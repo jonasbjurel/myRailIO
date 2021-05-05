@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+<!-- Copyright ($Author: Jonas Bjurel $) 2021 -->
+<title>JMRI: Sweden 3HMS signaling definition</title>
+
+<!-- Style -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/css/default.css"
+	MEDIA="screen">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/css/print.css"
+	MEDIA="print">
+<LINK REL="icon" HREF="/images/jmri.ico" TYPE="image/png">
+<LINK REL="home" TITLE="Home" HREF="/">
+<!-- /Style -->
+</head>
+
+<body>
+<!--#include virtual="/Header" -->
+  <div class="nomenu" id="mBody">
+    <div id="mainContent">
+
+<h1> 
+JMRI:Sweden 3HMS signalling definition
+</h1>
+
+This system contains signalling definitions corresponding to the Swedish Railroad rules effective June 1 2019. 
+<p>
+Signal aspects can be referenced here:-
+<p>
+<a href="https://www.trafikverket.se/for-dig-i-branschen/Arbetsmiljo-och-sakerhet/sakerhet-pa-jarnvag/trafikbestammelser-for-jarnvag--ttj/regelmoduler-i-trafikbestammelser-for-jarnvag/">Regelmoduler i Trafikbestämmelser för järnväg</a>.
+
+<p>
+Not all of the possible masts have been defined but there is a varied selection here that should cover most requirements. Due to the nature of this being a simplified prototype system it is not always easy to display all the possible variations of the same aspect on a mast and this should not be necessary in most cases. Where a mast can display different variations of an aspect (e.g. Approach Diverging, Diverging Clear, Diverging Advance Approach or Diverging Approach) the lower aspect will apply to any diverging route with a slow speed restriction. Slow speed means the same as Limited speed and is merely used to force the lower head aspect display and is not an official speed designation
+
+<p>
+No one searchlight mast can display all of the available aspects so check carefully which aspects you require before choosing a mast.
+
+<p>
+Some aspect sequences can be controlled by setting appropriate speeds on blocks...
+
+<p>
+Track speeds used in this system are: ...
+<p>
+Typical sequences of aspects shown by this signal system :-
+
+<p>
+5 head's main searchlight signals:
+
+<p>
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Stop.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-40-caution.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80-expect-proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80-expect-proceed-40.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80-expect-stop.gif">
+<p>
+
+<p>
+4 head's main searchlight signals:
+
+<p>
+3 head's main searchlight signals:
+
+<p>
+2 head's main searchlight signals:
+
+<p>
+7 head's dwarf signals:
+<p>
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-7/Stop.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-7/Proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-7/Proceed-40-caution.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-7/Proceed-80-expect-proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-7/Proceed-80-expect-proceed-40.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-7/Proceed-80-expect-stop.gif">
+<p>
+
+<p>
+4 head's dwarf signals:
+<p>
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-4/Stop.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-4/Proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-4/Proceed-40-caution.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-4/Proceed-80-expect-proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-4/Proceed-80-expect-proceed-40.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Dwf-4/Proceed-80-expect-stop.gif">
+<p>
+
+<p>
+Crossing signals:
+<p>
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Stop.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-40-caution.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80-expect-proceed-80.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80-expect-proceed-40.gif">
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/SL-5/Proceed-80-expect-stop.gif">
+<p>
+
+End stopping signal:
+<p>
+<img src="../../../resources/icons/smallschematics/aspects/Sweden-3HMS/EndStop-SL/End-stop.gif">
+<p>
+<p>
+Searchlight Signal Mast definitions:
+<ul>
+
+<li><a href="appearance-SL-5HL.xml">5 head Absolute searchlight signal</a>
+
+</ul>
+
+	</div>
+</div>
+
+<!--#include virtual="/Footer" -->
+
+</body>
+</html>

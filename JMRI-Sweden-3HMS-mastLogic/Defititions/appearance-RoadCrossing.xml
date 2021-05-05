@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="../../XSLT/appearancetable.xsl" type="text/xsl"?>
+<appearancetable xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://jmri.org/xml/schema/appearancetable.xsd">
+  <copyright xmlns="http://docbook.org/ns/docbook">
+    <year>2020</year>
+    <holder>JMRI</holder>
+  </copyright>
+  <authorgroup xmlns="http://docbook.org/ns/docbook">
+    <author>
+      <personname>
+        <firstname>Jonas</firstname>
+        <surname>Bjurel</surname>
+      </personname>
+    </author>
+  </authorgroup>
+  <revhistory xmlns="http://docbook.org/ns/docbook">
+    <revision>
+      <revnumber>1</revnumber>
+      <date>2020-12-21</date>
+      <authorinitials>JB</authorinitials>
+      <revremark>Initial version</revremark>
+    </revision>
+  </revhistory>
+  <aspecttable>Sweden-3HMS</aspecttable>
+  <name>One head road crossing signal</name>
+  <reference>June 2019 signal rules</reference>
+  <description>Appearances for a one head road crossing signal</description>
+  <appearances>
+	<appearance>
+	  <aspectname>Stopp</aspectname>
+	  <show>red</show>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/RoadCrossing/Roadcross-signal-stop-small.gif</imagelink>
+	</appearance>
+	  
+    <appearance>
+      <aspectname>Kör 80 - vänta</aspectname>
+      <show>lunar</show>
+      <reference>Kör 80 - vänta</reference>
+      <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/RoadCrossing/Roadcross-signal-clear-small.gif</imagelink>
+    </appearance>
+	  
+	<appearance>
+	  <aspectname>Kör 40 - vänta</aspectname>
+		<show>lunar</show>
+	  <reference>Kör 40 - vänta</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/RoadCrossing/Roadcross-signal-clear-small.gif</imagelink>
+	</appearance>
+	  
+	<appearance>
+	  <aspectname>Kör 80 - vänta - kör 80</aspectname>
+	  <show>lunar</show>
+	  <reference>Kör 80 - vänta - kör 80</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/RoadCrossing/Roadcross-signal-clear-small.gif</imagelink>
+	  </appearance>
+	  
+    <appearance>
+      <aspectname>Kör 80 - vänta - kör 40</aspectname>
+	  <show>lunar</show>
+      <reference>Kör 80 - vänta - kör 40</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/RoadCrossing/Roadcross-signal-clear-small.gif</imagelink>
+    </appearance>
+
+	<appearance>
+	  <aspectname>Kör 80 - vänta - stopp</aspectname>
+	  <show>lunar</show>
+	  <reference>Kör 80 - vänta - stopp</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/RoadCrossing/Roadcross-signal-clear-small.gif</imagelink>
+    </appearance>
+  </appearances>
+	
+  <specificappearances>
+		  <danger>
+		  </danger>
+		  <permissive>
+		  </permissive>
+		  <held>
+			  <aspect>Stopp</aspect>
+		  </held>
+	  </specificappearances>
+
+  <aspectMappings>
+    <!-- Start of Aspect Mapping -->
+    <aspectMapping>
+      <advancedAspect>Stopp</advancedAspect>
+      <ourAspect>Kör 80 - vänta - stopp</ourAspect>
+	  <ourAspect>Kör 40 - vänta</ourAspect>
+    </aspectMapping>
+
+	  <aspectMapping>
+		  <advancedAspect>Stopp - vänta - begär tillstånd</advancedAspect>
+		  <ourAspect>Kör 80 - vänta - stopp</ourAspect>
+		  <ourAspect>Kör 40 - vänta</ourAspect>
+	  </aspectMapping>
+
+	  <aspectMapping>
+		  <advancedAspect>Stopp - hinder - vänta - begär tillstånd</advancedAspect>
+		  <ourAspect>Kör 80 - vänta - stopp</ourAspect>
+		  <ourAspect>Kör 40 - vänta</ourAspect>
+	  </aspectMapping>
+
+	  <aspectMapping>
+		  <advancedAspect>Stopp - manuell växling - vänta - begär tillstånd</advancedAspect>
+		  <ourAspect>Kör 80 - vänta - stopp</ourAspect>
+		  <ourAspect>Kör 40 - vänta</ourAspect>
+	  </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta</advancedAspect>
+      <ourAspect>Kör 80 - vänta - kör 80</ourAspect>
+	  <ourAspect>Kör 40 - vänta</ourAspect>
+    </aspectMapping>
+	  
+	<aspectMapping>
+      <advancedAspect>Kör 40 - vänta</advancedAspect>
+      <ourAspect>Kör 80 - vänta - kör 40</ourAspect>
+	  <ourAspect>Kör 40 - vänta</ourAspect>
+    </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta - kör 80</advancedAspect>
+      <ourAspect>Kör 80 - vänta - kör 80</ourAspect>
+		<ourAspect>Kör 40 - vänta</ourAspect>
+    </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta - kör 40</advancedAspect>
+      <ourAspect>Kör 80 - vänta - kör 80</ourAspect>
+	  <ourAspect>Kör 40 - vänta</ourAspect>
+    </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta - stopp</advancedAspect>
+      <ourAspect>Kör 80 - vänta - kör 80</ourAspect>
+	  <ourAspect>Kör 40 - vänta</ourAspect>
+    </aspectMapping>
+  </aspectMappings>
+  <!-- End of Aspect Mapping -->
+</appearancetable>

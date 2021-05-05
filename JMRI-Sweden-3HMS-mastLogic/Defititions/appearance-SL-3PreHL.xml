@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="../../XSLT/appearancetable.xsl" type="text/xsl"?>
+<appearancetable xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://jmri.org/xml/schema/appearancetable.xsd">
+  <copyright xmlns="http://docbook.org/ns/docbook">
+    <year>2020</year>
+    <holder>JMRI</holder>
+  </copyright>
+  <authorgroup xmlns="http://docbook.org/ns/docbook">
+    <author>
+      <personname>
+        <firstname>Jonas</firstname>
+        <surname>Bjurel</surname>
+      </personname>
+    </author>
+  </authorgroup>
+  <revhistory xmlns="http://docbook.org/ns/docbook">
+    <revision>
+      <revnumber>1</revnumber>
+      <date>2020-12-27</date>
+      <authorinitials>JB</authorinitials>
+      <revremark>Initial version</revremark>
+    </revision>
+  </revhistory>
+  <aspecttable>Sweden-3HMS</aspecttable>
+  <name>Three head restricted pre-searchlight signal</name>
+  <reference>June 2019 signal rules</reference>
+  <description>Appearances for a three head restricted pre-searchlight signal used in Automatic Block, CTC and Interlocking Systems</description>
+  <appearances>
+	<appearance>
+	  <aspectname>Vänta - stopp</aspectname>
+	  <show>flashgreen</show>
+	  <show>dark</show>
+	  <show>dark</show>
+	  <reference>Vänta - stopp</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Pre-SL/Expect-stop-small.gif</imagelink>
+	</appearance>
+	  
+    <appearance>
+      <aspectname>Vänta - kör 80</aspectname>
+	  <show>dark</show>
+	  <show>flashlunar</show>
+	  <show>dark</show>
+      <reference>Vänta - kör 80</reference>
+      <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/Pre-SL/Expect-proceed-80-small.gif</imagelink>
+    </appearance>
+	  
+	<appearance>
+	  <aspectname>Vänta - kör 40</aspectname>
+	  <show>flashgreen</show>
+	  <show>dark</show>
+	  <show>flashgreen</show>
+	  <reference>Vänta - kör 40</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS//Pre-SL/Expect-proceed-40-small.gif</imagelink>
+	</appearance>
+  </appearances>
+	
+	<specificappearances>
+		<danger>
+			<aspect>Vänta - stopp</aspect>
+		</danger>
+		<permissive>
+		</permissive>
+		<held>
+		</held>
+	</specificappearances>
+	
+  <aspectMappings>
+    <!-- Start of Aspect Mapping -->
+    <aspectMapping>
+      <advancedAspect>Stopp</advancedAspect>
+      <ourAspect>Vänta - stopp</ourAspect>
+    </aspectMapping>
+
+	  <aspectMapping>
+		  <advancedAspect>Stopp - vänta - begär tillstånd</advancedAspect>
+		  <ourAspect>Vänta - stopp</ourAspect>
+	  </aspectMapping>
+
+	  <aspectMapping>
+		  <advancedAspect>Stopp - hinder - vänta - begär tillstånd</advancedAspect>
+		  <ourAspect>Vänta - stopp</ourAspect>
+	  </aspectMapping>
+
+	  <aspectMapping>
+		  <advancedAspect>Stopp - manuell växling - vänta - begär tillstånd</advancedAspect>
+		  <ourAspect>Vänta - stopp</ourAspect>
+	  </aspectMapping>
+	  <!-- -->	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta</advancedAspect>
+      <ourAspect>Vänta - kör 80</ourAspect>
+    </aspectMapping>
+	  
+	<aspectMapping>
+      <advancedAspect>Kör 40 - vänta</advancedAspect>
+      <ourAspect>Vänta - kör 40</ourAspect>
+    </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta - kör 80</advancedAspect>
+      <ourAspect>Vänta - kör 80</ourAspect>
+    </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta - kör 40</advancedAspect>
+      <ourAspect>Vänta - kör 80</ourAspect>
+    </aspectMapping>
+	  
+    <aspectMapping>
+      <advancedAspect>Kör 80 - vänta - stopp</advancedAspect>
+      <ourAspect>Vänta - kör 80</ourAspect>
+    </aspectMapping>
+  </aspectMappings>
+  <!-- End of Aspect Mapping -->
+</appearancetable>

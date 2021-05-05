@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="../../XSLT/appearancetable.xsl" type="text/xsl"?>
+<appearancetable xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://jmri.org/xml/schema/appearancetable.xsd">
+  <copyright xmlns="http://docbook.org/ns/docbook">
+    <year>2020</year>
+    <holder>JMRI</holder>
+  </copyright>
+  <authorgroup xmlns="http://docbook.org/ns/docbook">
+    <author>
+      <personname>
+        <firstname>Jonas</firstname>
+        <surname>Bjurel</surname>
+      </personname>
+    </author>
+  </authorgroup>
+  <revhistory xmlns="http://docbook.org/ns/docbook">
+    <revision>
+      <revnumber>1</revnumber>
+      <date>2020-12-28</date>
+      <authorinitials>JB</authorinitials>
+      <revremark>Initial version</revremark>
+    </revision>
+  </revhistory>
+  <aspecttable>Sweden-3HMS</aspecttable>
+  <name>One head end stop signal</name>
+  <reference>June 2019 signal rules</reference>
+  <description>Appearances for an end stop signal</description>
+  <appearances>
+	<appearance>
+	  <aspectname>Stopp</aspectname>
+ 	  <show>red</show>
+	  <reference>Stopp</reference>
+	  <imagelink type="aspects">../../../resources/icons/smallschematics/aspects/Sweden-3HMS/EndStop-SL/End-stop-small.gif</imagelink>
+    </appearance>
+  </appearances>
+  <specificappearances>
+    <danger>
+	  <aspect>Stopp</aspect>
+	</danger>
+    <permissive>
+	  <aspect>Stopp</aspect>
+	</permissive>
+	<held>
+	  <aspect>Stopp</aspect>
+    </held>
+  </specificappearances>
+
+  <aspectMappings>
+    <!-- Start of Aspect Mapping -->
+    <aspectMapping>
+	  <advancedAspect>Stopp</advancedAspect>
+	  <ourAspect>Stopp</ourAspect>
+	</aspectMapping>
+  <!-- End of Aspect Mapping -->
+  </aspectMappings>
+</appearancetable>
