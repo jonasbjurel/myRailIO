@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Lightcontrollers>
+<Decoders>
 	<Author>Jonas Bjurel</Author>
 	<Description>A lightgroup set definition for my MQTT evaluations</Description>
 	<Version>0.1</Version>
@@ -11,24 +11,27 @@
 			<VersionDescription>Super early version description</VersionDescription>
 		</Version>
 		<Version>
-			<VersionName>0.1</VersionName>
+			<VersionName>1.0</VersionName>
 			<Author>Jonas Bjurel</Author>
 			<VersionDescription>First test version description</VersionDescription>
 		</Version>
 	</VersionHistory>
 	<NTPServer>pool.ntp.org</NTPServer>
 	<TIMEZONE>+1</TIMEZONE>
-	<RSyslogServer>jmri.bjurel.com</RSyslogServer>
-	<LogLevel>INFO</LogLevel>
+	<RSyslogServer>log.jmri.bjurel.com</RSyslogServer>
+	<LogLevel>DEBUG_VERBOSE</LogLevel>
+	<PowerOffAtFault>Yes</PowerOffAtFault>
+	<DisableAllDecodersAtFault>No</DisableAllDecodersAtFault>
+	<PingPeriod>10.0</PingPeriod>
 	<Lightgroups>
 		<Masts>
 			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
 		</Masts>
-		<GenericLight/>
-		<SequenceLight/>
+		<GenericLights/>
+		<SequenceLights/>
 	</Lightgroups>
 	<Sensors/>
 	<TurnOuts/>
 	<Actuators/>
 	<Sounds/>
-	
+</Decoders>

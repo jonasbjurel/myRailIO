@@ -1,18 +1,44 @@
-Topic:/trains/track/lightgroups/controllerMgmt/lightcontroller1.bjurel.com/
+Configuration:
+==============
+Variable pointing to the genJMRIdecoder.xml file: System name: IMgenericDecoderConfigXml
+
+
+Topic:
+/trains/track/decoderMgmt/<decoderURI>
 
 Payload:
-<Controller>
-	<Author>Jonas Bjurel</Author>
-	<Version>0.1</Version><Date>2021-03-31</Date>
-	<Description>My decoder</Description>
-	<ServerURL>lightcontroller1.bjurel.com</ServerURL>
-	<ClientURL>lightcontroller1.bjurel.com</ClientURLURL>
-	<NTPServer>pool.ntp.org</NTPServer>
-	<TIMEZONE>+1</TIMEZONE>
-	<RSyslogServer>jmri.bjurel.com</RSyslogServer>
-	<LogLevel>INFO</LogLevel>
+<Decoder>
+	<Top>
+		<Author>Jonas Bjurel</Author>
+		<Version>0.1</Version><Date>2021-03-31</Date>
+		<Description>My decoder</Description>
+		<ServerURL>lightcontroller1.bjurel.com</ServerURL>
+		<ClientURL>lightcontroller1.bjurel.com</ClientURL>
+		<NTPServer>pool.ntp.org</NTPServer>
+		<TIMEZONE>+1</TIMEZONE>
+		<RSyslogServer>jmri.bjurel.com</RSyslogServer>
+		<LogLevel>INFO</LogLevel>
+	</Top>
+	<Lightgroups>
+		<Lightgroup>
+			<LGAddr>1</LGAddr>
+			<LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
+			<LgUserName>MQTT_5Head_Master_Test 1 !*[Decoder:decoder1.jmri.bjurel.com, Sequence:1 , Brightness:Normal, DimTime:Normal, FlashFreq:Normal,  FlashDuty:50 ]*!</LgUserName>
+			<LgType>Signal Mast</LgType>
+			<LgDesc>
+				<SmType>Signal Mast</SmType>
+				<SmDimTime>NORMAL</SmDimTime>
+				<SmFlashFreq>NORMAL</SmFlashFreq>
+				<SmFlashDuty>50</SmFlashDuty>
+				<SmBrightness>NORMAL</SmBrightness>
+			</LgDesc>
+		</Lightgroup>
+		<Lightgroup>
+			.
+			.
+			.
+		</Lightgroup>
 		
-		<Lightgroups>
 		<SignalMastDesc>
 			<Aspects>
 				<Aspect>
@@ -51,6 +77,7 @@ Payload:
 		</SignalMastDesc>                                       .
 		<Lightgroup>
 			<LgAddr>1</LgAddr>
+			<LgSeq>1</LgSeq>
 			<LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
 			<LgUserName>MQTT_5Head_Master_Test1</LgUserName>
 			<LgType>Signal Mast</LgType>
@@ -58,7 +85,41 @@ Payload:
 				<SmType>Sweden-3HMS:SL-5HL</SmType>
 				<SmDimTime>NORMAL</SmDimTime>
 				<SmFlashFreq>NORMAL</SmFlashFreq>
+				<SmFlashDuty>NORMAL</SmFlashDuty>
+				<SmBrightness>NORMAL</SmBrightness>
 			</LgDesc>
 		</Lightgroup>
 	</Lightgroups>
-</Controller>
+</Decoder>
+
+Setting Aspects to the decoder:
+Normal aspects:
+Topic: /trains/track/lightgroups/lightgroup/<decoderURI>/<lgAddr>
+Payload: <Aspect>"aspect"</Aspect>
+
+Setting Fail aspects to the decoder, the decoder will also autonomously set a fail aspect when failed or disconnected - the fail aspect is all leds lit
+Topic: /trains/track/lightgroups/lightgroup/<decoderURI>
+Payload: <Aspect>"FAIL"</Aspect>
+
+Selftest aspects, the selftest goes on 10 seconds after the decoder connection has been established
+Topic: /trains/track/lightgroups/lightgroup/<decoderURI>
+Payload: <Aspect>"SELFTEST"</Aspect>
+
+Supervision:
+============
+Downstream:
+Topic:Topic:/trains/track/decoderSupervision/downstream/controller1.bjurel.com/
+Payload: Dummy
+Upstream
+Topic:Topic:/trains/track/decoderSupervision/upstream/controller1.bjurel.com/
+Payload: Dummy
+
+Opstatus:
+<Offline/>
+<Online/>
+
+Machine orders:
+<reboot/>
+
+
+topDeoderCordidinator("C:\Users\jonas\OneDrive\Projects\ModelRailway\GenericJMRIdecoder\Server\config\genJMRIdecoder.xml")

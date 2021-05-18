@@ -273,7 +273,7 @@ class trace :
         self.debugLevel = debugLevel
         self.console = output.get("Console")
         self.rSyslog = output.get("rSyslog")
-        self.mqtt = output.get("Mmqtt")
+        self.mqtt = output.get("Mqtt")
         if debugClasses == None :
             self.debugClasses = None
         else :
@@ -317,12 +317,12 @@ class trace :
             return
 
         if severity == ERROR :
-            if errCallStack == True :
+            if self.errCallStack == True :
                 notification = str(time.time()) + ": ERROR!:  " + notificationStr + "\nCall Stack:\n" + str(inspect.stack())
             else :
                 notification = str(time.time()) + ": ERROR!:  " + notificationStr
             self.__deliverNotification(notification)
-            if errTerminate == True :
+            if self.errTerminate == True :
                 # Call back to registered entries for emergency
                 _thread.start_new_thread(self.terminate,(notification,))
             else :
@@ -559,7 +559,7 @@ class topDecoder :
             notify(self, PANIC, "Received top decoder .xml string missformated:\n")
             return 1
         else:
-            topDecoderXmlConfig = parse_xml(controllersXmlTree.getroot(), {"Author":MANSTR, "Description":OPTSTR, "Version":MANSTR, "Date":MANSTR, "URL":MANSTR, "ServerURL":OPTSTR, "SnmpTrapReceiver":OPTSTR, "RsyslogReceiver":OPTSTR, "Loglevel":OPTSTR, "NTPServer":OPTSTR, "TimeZone":OPTINT})
+            topDecoderXmlConfig = parse_xml(controllersXmlTree.getroot(), {"Author":MANSTR, "Description":OPTSTR, "Version":MANSTR, "Date":MANSTR, "URL":MANSTR, "ServerURL":OPTSTR, "RsyslogReceiver":OPTSTR, "Loglevel":OPTSTR, "NTPServer":OPTSTR, "TimeZone":OPTINT})
             global XMLAUTHOR
             XMLAUTHOR = topDecoderXmlConfig.get("Author")
             global XMLDESCRIPTION
