@@ -1,0 +1,4 @@
+<DecoderConfig>
+	<SSID>MySSID</SSID>
+	<BROKER>test.mosquitto.org</BROKER>
+</DecoderConfig>

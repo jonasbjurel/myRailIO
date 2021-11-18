@@ -4,24 +4,25 @@ Variable pointing to the genJMRIdecoder.xml file: System name: IMgenericDecoderC
 
 
 Topic:
-/trains/track/decoderMgmt/<decoderURI>
+/trains/track/decoderMgmt/<decoderURI>/
 
 Payload:
 <Decoder>
 	<Top>
 		<Author>Jonas Bjurel</Author>
-		<Version>0.1</Version><Date>2021-03-31</Date>
-		<Description>My decoder</Description>
-		<ServerURL>lightcontroller1.bjurel.com</ServerURL>
-		<ClientURL>lightcontroller1.bjurel.com</ClientURL>
+		<Description>A lightgroup set definition for my MQTT evaluations</Description>
+		<Version>0.1</Version>
+		<Date>2021-03-31</Date>
 		<NTPServer>pool.ntp.org</NTPServer>
-		<TIMEZONE>+1</TIMEZONE>
-		<RSyslogServer>jmri.bjurel.com</RSyslogServer>
-		<LogLevel>INFO</LogLevel>
+		<TimeZone>1</TimeZone>
+		<RsyslogReceiver/>
+		<Loglevel>DEBUG_VERBOSE</Loglevel>
+		<PingPeriod>10.0</PingPeriod>
 	</Top>
 	<Lightgroups>
 		<Lightgroup>
 			<LGAddr>1</LGAddr>
+			<LGSequence>1</LGSequence>
 			<LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
 			<LgUserName>MQTT_5Head_Master_Test 1 !*[Decoder:decoder1.jmri.bjurel.com, Sequence:1 , Brightness:Normal, DimTime:Normal, FlashFreq:Normal,  FlashDuty:50 ]*!</LgUserName>
 			<LgType>Signal Mast</LgType>
@@ -29,7 +30,7 @@ Payload:
 				<SmType>Signal Mast</SmType>
 				<SmDimTime>NORMAL</SmDimTime>
 				<SmFlashFreq>NORMAL</SmFlashFreq>
-				<SmFlashDuty>50</SmFlashDuty>
+				<SmFlashDuty>50</SmFlashDuty>		#Not supported by the decoder
 				<SmBrightness>NORMAL</SmBrightness>
 			</LgDesc>
 		</Lightgroup>

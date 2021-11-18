@@ -23,6 +23,14 @@
 	<PowerOffAtFault>Yes</PowerOffAtFault>
 	<DisableAllDecodersAtFault>No</DisableAllDecodersAtFault>
 	<PingPeriod>10.0</PingPeriod>
+	<Decoder>
+		<MAC>E0:E2:E6:4C:14:34</MAC>
+		<URI>decoder1.jmri.bjurel.com</URI>
+	</Decoder>
+	<Decoder>
+		<MAC>01:23:45:67:89:AB</MAC>
+		<URI>decoder2.jmri.bjurel.com</URI>
+	</Decoder>
 	<Lightgroups>
 		<Masts>
 			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>

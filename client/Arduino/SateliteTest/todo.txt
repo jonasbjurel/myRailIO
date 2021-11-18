@@ -1,0 +1,4 @@
+(SW) Timers (filter) < 1 ms doesnt work- create a method for no filtering
+(FPGA) Satelite feed-back(in the FPGA): fbWdErr; 
+(FPGA) Satelite Cmd (in the FPGA): cmdInvCrc, cmdEnable
+(SW + FPGA) Improved robustness with per Satelite unique CRC algorithm to protect against wrong latching: Eg. CRC^ADDRESS[7:4]^ADDRESS[3:0], with "startMark" Identifying Address 0 - last in the chain (first sent out)

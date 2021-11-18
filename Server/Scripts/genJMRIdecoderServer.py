@@ -59,6 +59,8 @@ OP_DISABLE = "Disabled"
 CONFIGXMLVAR = "IMgenericDecoderConfigXml"
 
 # MQTT Topics
+MQTT_DISCOVERY_REQUEST_TOPIC = "track/discoveryreq/"
+MQTT_DISCOVERY_RESPONSE_TOPIC = "track/discoveryres/"
 MQTT_PING_UPSTREAM_TOPIC = "track/decoderSupervision/upstream/"
 MQTT_PING_DOWNSTREAM_TOPIC = "track/decoderSupervision/downstream/"
 MQTT_CONFIG_TOPIC = "track/decoderMgmt/"
@@ -67,18 +69,23 @@ MQTT_LOG_TOPIC = "track/log/"
 MQTT_ASPECT_TOPIC = "track/lightgroups/lightgroup/"
 
 # MQTT Payload
+DISCOVERY = "<DISCOVERY_REQUEST/>"
 DECODER_UP = "<OPState>onLine</OPState>"
 DECODER_DOWN = "<OPState>offLine</OPState>"
 FAULT_ASPECT = "<Aspect>FAULT</Aspect>"
 PING = "<Ping/>"
 
 # XML parse filters
-MANSTR = {"expected": True, "type": "str", "values": None, "except": "PANIC"}
-OPTSTR = {"expected": None, "type": "str", "values": None, "except": "PANIC"}
-MANINT = {"expected": True, "type": "int", "values": None, "except": "PANIC"}
-OPTINT = {"expected": None, "type": "int", "values": None, "except": "PANIC"}
-MANFLOAT = {"expected": True, "type": "float", "values": None, "except": "PANIC"}
-OPTFLOAT = {"expected": None, "type": "float", "values": None, "except": "PANIC"}
+MANSTR = {"expected" : True, "type" : "str", "values" : None, "except": "PANIC"}
+OPTSTR = {"expected" : None, "type" : "str", "values" : None, "except": "PANIC"}
+MANINT = {"expected" : True, "type" : "int", "values" : None, "except": "PANIC"}
+OPTINT = {"expected" : None, "type" : "int", "values" : None, "except": "PANIC"}
+MANFLOAT = {"expected" : True, "type" : "float", "values" : None, "except": "PANIC"}
+OPTFLOAT = {"expected" : None, "type" : "float", "values" : None, "except": "PANIC"}
+MANSPEED = {"expected" : True, "type" : "str", "values" : ["SLOW","NORMAL","FAST"], "except": "PANIC"}
+MANSPEED = {"expected" : None, "type" : "str", "values" : ["SLOW","NORMAL","FAST"], "except": "PANIC"}
+MANLVL = {"expected" : True, "type" : "str", "values" : ["LOW","NORMAL","HIGH"], "except": "PANIC"}
+OPTLVL = {"expected" : None, "type" : "str", "values" : ["LOW","NORMAL","HIGH"], "except": "PANIC"}
 MANSPEED = {
     "expected": True,
     "type": "str",
@@ -108,93 +115,58 @@ OPTLVL = {
 # Helper fuction: parse_xml
 # Purpose: Parse xmlTrees and find keys, atributes and values
 # ==============================================================================================================================================
-def parse_xml(xmlTree, tagDict):
-    #   tagDict: {"Tag" : {"expected" : bool, "type" : "int/float/int", "values" : [], "except": "error/panic/info}, ....}
+def parse_xml(xmlTree,tagDict) :
+#   tagDict: {"Tag" : {"expected" : bool, "type" : "int/float/int", "values" : [], "except": "error/panic/info}, ....}
     res = {}
-    for child in xmlTree:
+    for child in xmlTree :
         tagDesc = tagDict.get(child.tag)
-
-        if tagDesc == None:
+        print(child.tag)
+        if tagDesc == None :
             continue
-        value = validateXmlText(
-            child.text.strip(), tagDesc.get("type"), tagDesc.get("values")
-        )
-        if tagDesc.get("expected") == None:
-            if value != None:
+        value = validateXmlText(child.text, tagDesc.get("type"), tagDesc.get("values"))
+        if tagDesc.get("expected") == None :
+            if value != None :
                 res[child.tag] = value
-            else:
-                through_xml_error(
-                    tagDesc.get("except"),
-                    "Tag: "
-                    + child.tag
-                    + " Tag.text: "
-                    + child.text
-                    + " did not pass type checks",
-                )
-        elif tagDesc.get("expected") == True:
-            if value != None:
+            else : 
+                continue
+        elif tagDesc.get("expected") == True : 
+            if value != None :
                 res[child.tag] = value
-            else:
-                through_xml_error(
-                    tagDesc.get("except"),
-                    "Tag: "
-                    + child.tag
-                    + " Tag.text: "
-                    + child.text
-                    + " did not pass type checks",
-                )
-        else:
-            through_xml_error(
-                tagDesc.get("except"), "Tag: " + child.tag + " was not expected"
-            )
+            else : through_xml_error(tagDesc.get("except"), "Tag: " + child.tag + " Tag.text: " + child.text + " did not pass type checks")
+        else : through_xml_error(tagDesc.get("except"), "Tag: " + child.tag + " was not expected")
 
-    for tag in tagDict:
-        if tagDict.get(tag).get("expected") != None:
-            if res.get(tag) == None:
-                if tagDict.get(tag).get("expected") == True:
-                    through_xml_error(
-                        tagDict.get(tag).get("except"),
-                        "Tag: " + tag + " was expected but not found",
-                    )
+    for tag in tagDict :
+        if tagDict.get(tag).get("expected") != None :
+            if res.get(tag) == None :
+                if tagDict.get(tag).get("expected") == True : through_xml_error(tagDict.get(tag).get("except"), "Tag: " + tag + " was expected but not found")
     return res
 
-
-def validateXmlText(txt, type, values):
-    if txt == None:
+def validateXmlText(txt, type, values) :
+    if txt == None :
         return None
-    if type == None:
-        return txt
-    elif type == "str":
-        res = str(txt)
-    elif type == "int":
-        res = int(txt)
-    elif type == "float":
-        res = float(txt)
-    else:
+    if type == None :
+        return txt.strip()
+    elif type == "str" : res = str(txt).strip()
+    elif type == "int" : res = int(txt)
+    elif type == "float" : res = float(txt)
+    else : 
         return None
 
-    if values == None:
+    if values == None :
         return res
-    else:
-        for value in values:
-            if res == value:
+    else :
+        for value in values :
+            if res == value :
                 return res
         return None
 
-
-def through_xml_error(_except, errStr):
-    if _except == "DEBUG_VERBOSE":
-        debug = DEBUG_VERBOSE
-    elif _except == "DEBUG_TERSE":
-        debug = DEBUG_TERSE
-    elif _except == "INFO":
-        debug = INFO
-    elif _except == "ERROR":
-        debug = ERROR
-    elif _except == "PANIC":
-        debug = PANIC
-    else:
-        debug = PANIC
+def through_xml_error(_except, errStr) :
+    if _except == "DEBUG_VERBOSE" : debug = DEBUG_VERBOSE
+    elif _except == "DEBUG_TERSE" : debug = DEBUG_TERSE
+    elif _except == "INFO" : debug = INFO
+    elif _except == "ERROR" : debug = ERROR
+    elif _except == "PANIC" : debug = PANIC
+    else : debug = PANIC
     notify(None, debug, errStr)
     return 0
 
@@ -266,7 +238,6 @@ class trace:
         self.debugClasses = None
         self.console = True
         self.mqtt = False
-
 
     def setDebugLevel(
         self,
@@ -355,8 +326,7 @@ class trace:
 
     def terminate(self, notification):
         self.__deliverNotification(notification)
-        MQTT.publish("/trains/track/supervision/" + URL + "/", "offLine")
-        info(self, INFO, "Terminating ....")
+        print(str(time.time()) + "Terminating ....")
         time.sleep(1)
         sys.exit()
         return
@@ -392,7 +362,7 @@ class trace:
 # 		<Author>Jonas Bjurel</Author>
 # 		<Version>0.1</Version><Date>2021-03-31</Date>
 # 		<Description>My decoder</Description>
-# 		<ServerURL>lightcontroller1.bjurel.com</ServerURL>
+# 		<ServerURI>lightcontroller1.bjurel.com</ServerURI>
 # 		<ClientURL>lightcontroller1.bjurel.com</ClientURL>
 # 		<NTPServer>pool.ntp.org</NTPServer>
 # 		<TIMEZONE>+1</TIMEZONE>
@@ -474,6 +444,17 @@ class topDeoderCordidinator:
             notify(self, PANIC, "Controllers .xml  missformated:\n")
             return 1
         else:
+            discoveryConfig = ET.Element("DiscoveryResponse")
+            for decoder in controllersXmlTree.getroot():
+                if decoder.tag == "Decoder":
+                    discoveryDecoder =  ET.SubElement(discoveryConfig, "Decoder")
+                    decoderConfig = parse_xml(decoder, {"MAC":MANSTR, "URI":MANSTR})
+                    discoverymac = ET.SubElement(discoveryDecoder, "MAC")
+                    discoverymac.text = decoderConfig.get("MAC")
+                    discoveryuri = ET.SubElement(discoveryDecoder, "URI")
+                    discoveryuri.text = decoderConfig.get("URI")
+            self.discoveryConfigXML = ET.tostring(discoveryConfig, method="xml").decode()
+            notify(self, INFO, "Discovery response xml configuration created: \n" + xml.dom.minidom.parseString(self.discoveryConfigXML).toprettyxml())
             #Defaults
             self.xmlDescription = ""
             self.xmlDate = ""
@@ -572,7 +553,8 @@ class topDeoderCordidinator:
             self.decoderTable[decoderURI] = decoder(self, decoderURI)
             self.decoderTable.get(decoderURI).start(self.lightgroups)
             self.opState = OP_WORKING
-        notify(self, INFO, "All decoders started")
+        notify(self, INFO, "All server side decoder instances started - which does not mean that the physical decoders are up")
+        MQTT.subscribe(MQTT_DISCOVERY_REQUEST_TOPIC, mqttListener(self.onDiscovery))
         return 0
 
     def getXmlConfigTree(self, URI):
@@ -596,8 +578,13 @@ class topDeoderCordidinator:
         child.text = self.LoglevelStr
         child = ET.SubElement(top, "PingPeriod")
         child.text = str(self.pingPeriod)
-        top.insert(9, self.lightgroups.getXMLConfigTree(URI))
+        #top.insert(9, self.lightgroups.getXMLConfigTree(URI))
         return top
+
+    def onDiscovery(self, topic, message):
+        notify(self, INFO,"Discovery request received")
+        notify(self, INFO,"Delivering discovery response with global MAC-URI mappings")
+        MQTT.publish(MQTT_DISCOVERY_RESPONSE_TOPIC, self.discoveryConfigXML)
 
     def handleDecoderFault(self, decoderURI):
         self.lock.acquire()
@@ -744,21 +731,21 @@ class decoder:
         notify(self, INFO, "Starting compilation of decoder .xml configuration for: " + self.URI)
         decoder = ET.Element("Decoder")
         decoder.insert(0, self.top.getXmlConfigTree(self.URI))
-        decoderXMLstr = xml.dom.minidom.parseString(
-            ET.tostring(decoder, method="xml").decode()
-        ).toprettyxml()
+        decoder.insert(1, self.lightgroupsObj.getXMLConfigTree(self.URI))
+        decoderXMLstr = ET.tostring(decoder, method="xml")
+
         notify(
             self,
             INFO,
             "Decoder: "
             + self.URI
             + " XML configuration compiled, sending it to the decoder: \n"
-            + decoderXMLstr,
-        )
-        MQTT.publish(MQTT_CONFIG_TOPIC + self.URI, decoderXMLstr)
-        MQTT.subscribe(MQTT_PING_UPSTREAM_TOPIC + self.URI, mqttListener(self.onPing))
-        MQTT.subscribe(MQTT_OPSTATE_TOPIC + self.URI, mqttListener(self.onOpStateChange))
-        MQTT.subscribe(MQTT_LOG_TOPIC + self.URI, mqttListener(self.onLogMessage))
+            + xml.dom.minidom.parseString(decoderXMLstr).toprettyxml(),
+       )
+        MQTT.publish(MQTT_CONFIG_TOPIC + self.URI + "/", decoderXMLstr)
+        MQTT.subscribe(MQTT_PING_UPSTREAM_TOPIC + self.URI + "/", mqttListener(self.onPing))
+        MQTT.subscribe(MQTT_OPSTATE_TOPIC + self.URI + "/", mqttListener(self.onOpStateChange))
+        MQTT.subscribe(MQTT_LOG_TOPIC + self.URI + "/", mqttListener(self.onLogMessage))
         self.opState = OP_CONFIG
         notify(
             self,
@@ -847,7 +834,7 @@ class decoder:
         if self.opState == OP_WORKING or self.opState == OP_DISABLE:
             notify(self, DEBUG_VERBOSE, "Returning the Ping from: " + self.URI)
             self.missedPingCnt = 0
-            MQTT.publish(MQTT_PING_DOWNSTREAM_TOPIC + self.URI, PING)
+            MQTT.publish(MQTT_PING_DOWNSTREAM_TOPIC + self.URI + "/", PING)
         self.lock.release()
         return 0
 
@@ -888,7 +875,7 @@ class decoder:
     def updateLgAspect(self, lgAddr, aspect, force=False):
         self.lock.acquire()
         if self.opState == OP_WORKING or force == True:
-            MQTT.publish(MQTT_ASPECT_TOPIC + self.URI + "/" + str(lgAddr), aspect)
+            MQTT.publish(MQTT_ASPECT_TOPIC + self.URI + "/" + str(lgAddr) + "/", aspect)
             notify(
                 self,
                 INFO,
@@ -1289,7 +1276,7 @@ class mastAspects:
             xmlAspectName = ET.SubElement(xmlAspect, "AspectName")
             xmlAspectName.text = aspect
             for mast in self.aspectTable.get(aspect):
-                xmlMast = ET.SubElement(xmlAspectName, "Mast")
+                xmlMast = ET.SubElement(xmlAspect, "Mast")
                 xmlMastType = ET.SubElement(xmlMast, "Type")
                 xmlMastType.text = str(mast)
                 for headAspect in (
@@ -1353,27 +1340,29 @@ class mast:
         self.opState = OP_INIT
         self.lock = threading.Lock()
         self.currentAspect = None
+        self.sm = None
         # Get current aspect
 
     def configure(self, sm):
-        notify(self, INFO, "Signal mast: " + str(sm) + " found, trying to configure it")
+        self.sm = sm
+        notify(self, INFO, "Signal mast: " + str(self.sm) + " found, trying to configure it")
         if smIsVirtual(sm) != 1:
             notify(
-                self, INFO, "Signal mast: " + str(sm) + " is not virtal, ommiting it"
+                self, INFO, "Signal mast: " + str(self.sm) + " is not virtal, ommiting it"
             )
             self.opState = OP_FAIL
             return 1
-        self.lgSystemName = str(sm)
+        self.lgSystemName = str(self.sm)
         self.lgAddr = smLgAddr(self.lgSystemName)
-        self.lgUserName = sm.getUserName()
-        self.lgType = sm.getBeanType()
+        self.lgUserName = self.sm.getUserName()
+        self.lgType = self.sm.getBeanType()
         self.smType = smType(self.lgSystemName)
-        self.lgComment = sm.getComment()
+        self.lgComment = self.sm.getComment()
         if self.__configProperties() != 0:
             notify(
                 self,
                 INFO,
-                "Signal mast: " + str(sm) + " could not be configured - ommiting it",
+                "Signal mast: " + str(self.sm) + " could not be configured - ommiting it",
             )
             self.opState = OP_FAIL
             return 1
@@ -1381,7 +1370,7 @@ class mast:
             self,
             INFO,
             "Signal mast: "
-            + str(sm)
+            + str(self.sm)
             + " successfully created with following configuration:",
         )
         notify(
@@ -1405,12 +1394,12 @@ class mast:
     def __configProperties(self):
         properties = (self.lgUserName.split("!*[")[-1]).split("]*!")[0]
         if len(properties) < 2:
-            notify(self, INFO, "No properties found for signal mast: " + str(sm))
+            notify(self, INFO, "No properties found for signal mast: " + str(self.sm))
             self.opState = OP_FAIL
             return 1
         properties = properties.split(",")
         if len(properties) == 0:
-            notify(self, INFO, "No properties found for signal mast: " + str(sm))
+            notify(self, INFO, "No properties found for signal mast: " + str(self.sm))
             return 1
         self.smBrightness = "NORMAL"
         self.smDimTime = "NORMAL"
@@ -1430,14 +1419,16 @@ class mast:
             if property[0].strip().upper() == "DECODER":
                 self.decoderURI = property[1].strip()
             elif property[0].strip().upper() == "SEQUENCE":
+                print"====================SEQUENCE PROPERT================================"
+                print(property[1])
                 try:
                     int(property[1].strip())
                 except:
                     notify(
                         self,
-                        ERROR,
+                        PANIC,
                         "Property: Sequence is not an integer for signal mast: "
-                        + str(sm),
+                        + str(self.sm),
                     )
                     self.opState = OP_FAIL
                     return 1
@@ -1449,12 +1440,11 @@ class mast:
                     self.smBrightness = "NORMAL"
                 elif property[1].strip().upper() == "HIGH":
                     self.smBrightness = "HIGH"
-                else:
                     notify(
                         self,
                         ERROR,
                         "Property: Brightness is not any of LOW/NORMAL/HIGH for signal mast: "
-                        + str(sm)
+                        + str(self.sm)
                         + " - using default",
                     )
             elif property[0].strip().upper() == "DIMTIME":
@@ -1469,7 +1459,7 @@ class mast:
                         self,
                         ERROR,
                         "Property: Dimtime is not any of SLOW/NORMAL/FAST for signal mast: "
-                        + str(sm)
+                        + str(self.sm)
                         + " - using default",
                     )
             elif property[0].strip().upper() == "FLASHFREQ":
@@ -1484,7 +1474,7 @@ class mast:
                         self,
                         ERROR,
                         "Property: Flashfreq is not any of SLOW/NORMAL/FAST for signal mast: "
-                        + str(sm)
+                        + str(self.sm)
                         + " - using default",
                     )
             elif property[0].strip().upper() == "FLASHDUTY":
@@ -1495,7 +1485,7 @@ class mast:
                         self,
                         ERROR,
                         "Property: Flashduty is not an integer for signal mast: "
-                        + str(sm)
+                        + str(self.sm)
                         + " - using default",
                     )
                 else:
@@ -1506,7 +1496,7 @@ class mast:
                     ERROR,
                     property[0].strip()
                     + " is not a valid property for signal mast: "
-                    + str(sm)
+                    + str(self.sm)
                     + " - ignoring",
                 )
             cnt += 1
@@ -1516,7 +1506,7 @@ class mast:
             notify(
                 self,
                 ERROR,
-                "Decoder property was not defined for signal mast: " + str(sm),
+                "Decoder property was not defined for signal mast: " + str(self.sm),
             )
             self.opState = OP_FAIL
             return 1
@@ -1526,7 +1516,7 @@ class mast:
             notify(
                 self,
                 ERROR,
-                "Sequence property was not defined for signal mast: " + str(sm),
+                "Sequence property was not defined for signal mast: " + str(self.sm),
             )
             self.opState = OP_FAIL
             return 1
@@ -1545,8 +1535,8 @@ class mast:
             sm = masts.getBySystemName(self.lgSystemName)
             sm.addPropertyChangeListener(self.onSmChange)
             self.opState = OP_WORKING
-            notify(self, INFO, "Mast: " + self.lgSystemName + " Registered, current opState: " + self.opState + ", Decoder: " + self.decoderURI+ ", Aspect: " + self.currentAspect)
-            return {self.lgSystemName: self}
+            notify(self, INFO, "Mast: " + self.lgSystemName + " Registered, current opState: " + self.opState + ", Decoder: " + self.decoderURI + ", Aspect: " + self.currentAspect)
+            return {self.lgSystemName:self}
 
     def getXMLConfigTree(self, decoderURI):
         # if self.configured != True :     Need to introduce OP States and check them
@@ -1556,8 +1546,10 @@ class mast:
 
         notify(self, DEBUG_TERSE, "Providing mast decoders .xml configuration")
         lightgroup = ET.Element("Lightgroup")
-        lgAddr = ET.SubElement(lightgroup, "LGAddr")
+        lgAddr = ET.SubElement(lightgroup, "LgAddr")
         lgAddr.text = str(self.lgAddr)
+        lgSeq = ET.SubElement(lightgroup, "LgSequence")
+        lgSeq.text = str(self.lgSequene)
         lgSystemName = ET.SubElement(lightgroup, "LgSystemName")
         lgSystemName.text = self.lgSystemName
         lgUserName = ET.SubElement(lightgroup, "LgUserName")
@@ -1579,8 +1571,11 @@ class mast:
 
     def getCurrentAspect(self):
         self.lock.acquire()
-        sm = masts.getBySystemName(self.lgSystemName)
-        self.currentAspect = sm.getAspect()
+        sm = masts.getBySystemName(self.lgSystemName) #probably removable
+        if isinstance(masts.getBySystemName(self.lgSystemName), str):
+            self.currentAspect = self.sm.getAspect()
+        else:
+            self.currentAspect = "UNKNOWN"
         self.lock.release()
         return self.currentAspect
 

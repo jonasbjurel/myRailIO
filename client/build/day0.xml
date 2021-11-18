@@ -1,0 +1,4 @@
+<DecoderConfig>
+	<SSID>Brevik-guest</SSID>
+	<BROKER>test.mosquitto.org</BROKER>
+</DecoderConfig>
