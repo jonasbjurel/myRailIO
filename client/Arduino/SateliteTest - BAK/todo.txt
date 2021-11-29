@@ -1,1 +1,0 @@
-Timers (filter) < 1 ms doesnt work
