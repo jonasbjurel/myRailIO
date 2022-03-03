@@ -1,0 +1,6 @@
+Dependencies:
+Python 3:	sys
+Python 3:	PyQt5
+Python 3:	time
+Python 3:	threading
+Python 3:	traceback
