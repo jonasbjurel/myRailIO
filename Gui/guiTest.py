@@ -6,7 +6,7 @@ from topDecoderLogic import topDecoder
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = UI_mainWindow()  #WE NEED TO pass win
-    top = topDecoder(win, demo=True) #WE NEED TO pass top
+    win = UI_mainWindow()
+    win.setTop(topDecoder(win, demo=True))
     win.show()
     sys.exit(app.exec())

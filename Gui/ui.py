@@ -90,6 +90,9 @@ class UI_mainWindow(QMainWindow):
         self.topMoMTree.setModel(self.MoMTreeModel)
         self.topMoMTree.expandAll()
 
+    def setTop(self, top):
+        self.top = top
+
     def registerMoMObj(self, objHandle, parentItem, string, type, displayIcon=None):
         if type == TOP_DECODER:
             fontSize = 14 
@@ -224,11 +227,11 @@ class UI_mainWindow(QMainWindow):
         self.restartPushButton.clicked.connect(self.restart)
 
     def log(self):
-        self.log = UI_logDialog(top)
+        self.log = UI_logDialog(self.top)
         self.log.show()
 
     def restart(self):
-        top.restart()
+        self.top.restart()
 
     def about(self):
         QMessageBox.about(
