@@ -19,79 +19,120 @@ Payload:
 		<Loglevel>DEBUG_VERBOSE</Loglevel>
 		<PingPeriod>10.0</PingPeriod>
 	</Top>
-	<Lightgroups>
-		<Lightgroup>
-			<LGAddr>1</LGAddr>
-			<LGSequence>1</LGSequence>
-			<LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
-			<LgUserName>MQTT_5Head_Master_Test 1 !*[Decoder:decoder1.jmri.bjurel.com, Sequence:1 , Brightness:Normal, DimTime:Normal, FlashFreq:Normal,  FlashDuty:50 ]*!</LgUserName>
-			<LgType>Signal Mast</LgType>
-			<LgDesc>
-				<SmType>Signal Mast</SmType>
-				<SmDimTime>NORMAL</SmDimTime>
-				<SmFlashFreq>NORMAL</SmFlashFreq>
-				<SmFlashDuty>50</SmFlashDuty>		#Not supported by the decoder
-				<SmBrightness>NORMAL</SmBrightness>
-			</LgDesc>
-		</Lightgroup>
-		<Lightgroup>
-			.
-			.
-			.
-		</Lightgroup>
+  <LgLink> #NEW
+    <linkNo>0</linkNo>
+		<Lightgroups>
+			<Lightgroup>
+        <LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
+        <LGAddr>1</LGAddr>
+				<LgType>Signal Mast</LgType>
+				<LgDesc>
+					<SmType>Signal Mast</SmType>
+					<SmDimTime>NORMAL</SmDimTime>
+					<SmFlashFreq>NORMAL</SmFlashFreq>
+					<SmFlashDuty>50</SmFlashDuty>		#Not supported by the decoder
+					<SmBrightness>NORMAL</SmBrightness>
+				</LgDesc>
+			</Lightgroup>
+			<Lightgroup>
+
+			</Lightgroup>
 		
-		<SignalMastDesc>
-			<Aspects>
-				<Aspect>
-					<AspectName>Stopp</AspectName>
-					<Mast>
-						<Type>Sweden-3HMS:SL-5HL></Type>
-						<Head>UNLIT</Head>
-						<Head>LIT</Head>
-						<Head>UNLIT</Head>
-						<Head>UNLIT</Head>
-						<Head>UNLIT</Head>
-						<NoofPxl>6</NoofPxl>
-					</Mast>
-					<Mast>
-						<Type><Sweden-3HMS:SL-3HL</Type>
-						<Head>UNLIT</Head>
-						<Head>LIT</Head>
-						<Head>UNLIT</Head>
-						<NoofPxl>3</NoofPxl>
-					</Mast>
-				</Aspect>
-					.
-				<Aspect>
-					<AspectName>Kör 80 - vänta - kör 40</AspectName>
-					<Mast>
-						<Type><Sweden-3HMS:SL-5HL></Type>
-						<Head>LIT</Head>
-						<Head>UNLIT</Head>
-						<Head>FLASH</Head>
-						<Head>UNLIT</Head>
-						<Head>UNLIT</Head>
-						<NoofPxl>6</NoofPxl>
-					</Mast>
-				</Aspect>
-			</Aspects> 
-		</SignalMastDesc>                                       .
-		<Lightgroup>
-			<LgAddr>1</LgAddr>
-			<LgSeq>1</LgSeq>
-			<LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
-			<LgUserName>MQTT_5Head_Master_Test1</LgUserName>
-			<LgType>Signal Mast</LgType>
-			<LgDesc>
-				<SmType>Sweden-3HMS:SL-5HL</SmType>
-				<SmDimTime>NORMAL</SmDimTime>
-				<SmFlashFreq>NORMAL</SmFlashFreq>
-				<SmFlashDuty>NORMAL</SmFlashDuty>
-				<SmBrightness>NORMAL</SmBrightness>
-			</LgDesc>
-		</Lightgroup>
-	</Lightgroups>
+			<SignalMastDesc>
+				<Aspects>
+					<Aspect>
+						<AspectName>Stopp</AspectName>
+						<Mast>
+							<Type>Sweden-3HMS:SL-5HL></Type>
+							<Head>UNLIT</Head>
+							<Head>LIT</Head>
+							<Head>UNLIT</Head>
+							<Head>UNLIT</Head>
+							<Head>UNLIT</Head>
+							<NoofPxl>6</NoofPxl>
+						</Mast>
+						<Mast>
+							<Type>Sweden-3HMS:SL-3HL</Type>
+							<Head>UNLIT</Head>
+							<Head>LIT</Head>
+							<Head>UNLIT</Head>
+							<NoofPxl>3</NoofPxl>
+						</Mast>
+					</Aspect>
+						.
+					<Aspect>
+						<AspectName>Kör 80 - vänta - kör 40</AspectName>
+						<Mast>
+							<Type>Sweden-3HMS:SL-5HL</Type>
+							<Head>LIT</Head>
+							<Head>UNLIT</Head>
+							<Head>FLASH</Head>
+							<Head>UNLIT</Head>
+							<Head>UNLIT</Head>
+							<NoofPxl>6</NoofPxl>
+						</Mast>
+					</Aspect>
+				</Aspects> 
+			</SignalMastDesc>
+		</Lightgroups>
+  </LgLink>
+
+  <SatLink>
+    <LinkNo>0</LinkNo>
+    <Satelite>
+      <SystemName>GJSAT-MySatelite-0</SystemName>
+      <Address>0</Address>
+      <Actuators>
+        <Actuator>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>0</Port>
+          <Type>TURNOUT</Type>
+          <SubType>SERVO</SubType>
+          <ActDesc>
+            <Direction>NORMAL/INVERSE</Direction>
+            <ThrownPos>0-100</ThrownPos>
+            <ClosedPos>0-100</ClosedPos>
+            <Speed>0-100</Speed>
+          </ActDesc>
+        </Actuator>
+
+        <Actuator>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>1</Port>
+          <Type>TURNOUT</Type>
+          <SubType>SOLENOID</SubType>
+          <ActDesc>
+            <Direction>NORMAL/INVERSE</Direction>
+            <Pulse>0-255</Pulse>
+          </ActDesc>
+        </Actuator>
+
+        <Actuator>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>2</Port>
+          <Type>GENERIC</Type>
+          <SubType>PWM100/PWM1_25K/PULSE/ONOFF</SubType>
+          <ActDesc>
+            <Invert>YES/NO</Invert>
+          </ActDesc>
+        </Actuator>
+      </Actuators>
+      
+			<Sensors>
+				<Sensor>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>0</Port>
+					<SensorType>BINARY</SensorType>
+					<SensorDesc>
+            <Invert>YES/NO</Invert>
+            <Filter>0-255</Filter>
+					</SensorDesc>
+				</Sensor>
+			</Sensors>
+    </Satelite>
+  </SatLink>
 </Decoder>
+
 
 Setting Aspects to the decoder:
 Normal aspects:
@@ -123,4 +164,6 @@ Machine orders:
 <reboot/>
 
 
-topDeoderCordidinator("C:\Users\jonas\OneDrive\Projects\ModelRailway\GenericJMRIdecoder\Server\config\genJMRIdecoder.xml")
+  topDeoderCordidinator("C:\Users\jonas\OneDrive\Projects\ModelRailway\GenericJMRIdecoder\Server\config\genJMRIdecoder.xml")
+
+  2Head_Dec1 !*[Decoder:decoder1.jmri.bjurel.com, Sequence:8, Brightness:Normal, DimTime:Normal, FlashFreq:Normal,  FlashDuty:50 ]*!
