@@ -1,0 +1,17 @@
+TODO CLIMBING UPWARDS:
+1) Remove the concept of childsSchemaDirty
+2) Review the implementation of validate() 
+	- including validate()
+	- including syslog messages for validate()
+3) Miska scopet för onConfigXml Try:
+4) What is delete top?
+5) TOPOLOGY check OF CHILDS (Static function of the child, passing the child list ?)
+6) Use NameKey consequently in notifications
+7) __SetConfig is Try shadowed - make a __SetConfig internal try to catch errors
+8) Create graceful methods to terminate - eg unregister all RPC pubs/subs - sending MQTT OFFLINE, etc
+9) NEED TO CHECK THE SYSNAME PREFIX - ESPECIALLY WHEN CREATING A ACTUATOR - SEEMS NOT TO BE CHECKED AGAINST THE ACTUATOR TYPE CREATED - IN CASE TEH SYSNAME PREFIX IS NOT ALIGNED WITH THE TYPE CREATED - JMRI WILL PREPEND A SYSNAME PREFIX - LEADING TO PROBLEMS!!
+10) mqtt.unsubscribeTopic does not work - breaks mqtt altogether - temporarrily disabled
+11) Remove all own op blocking causes at Admin deblock/enable
+12) Differentiate between AdminBlock an OP block towards decioders and their objects
+13) Define a destructor method for all methods
+14) Fix absolute paths in rpc
