@@ -110,8 +110,8 @@ class sensor(systemState, schema):
                                         {"JMRISystemName": MANSTR,
                                          "JMRIUserName": OPTSTR,
                                          "JMRIDescription": OPTSTR,
-                                         "Port": MANINT,
                                          "Type": MANSTR,
+                                         "Port": MANINT,
                                          "AdminState": OPTSTR
                                         }
                                        )
@@ -121,8 +121,9 @@ class sensor(systemState, schema):
             else:
                 self.userName.value = ""
             self.nameKey.value = "Sens-" + self.jmriSensSystemName.candidateValue
-            self.sensPort.value = sensorXmlConfig.get("Port")
             self.sensType.value = sensorXmlConfig.get("Type")
+            self.sensPort.value = sensorXmlConfig.get("Port")
+
             if sensorXmlConfig.get("JMRIDescription") != None:
                 self.description.value = sensorXmlConfig.get("JMRIDescription")
             else:
@@ -200,11 +201,13 @@ class sensor(systemState, schema):
         sysName = ET.SubElement(sensorXml, "JMRISystemName")
         sysName.text = self.jmriSensSystemName.value
         usrName = ET.SubElement(sensorXml, "JMRIUserName")
-        sysName.text = self.userName.value
+        usrName.text = self.userName.value
         descName = ET.SubElement(sensorXml, "JMRIDescription")
         descName.text = self.description.value
         type = ET.SubElement(sensorXml, "Type")
         type.text = self.sensType.value
+        port = ET.SubElement(sensorXml, "Port")
+        port.text = str(self.sensPort.value)
         if not decoder:
             adminState = ET.SubElement(sensorXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]

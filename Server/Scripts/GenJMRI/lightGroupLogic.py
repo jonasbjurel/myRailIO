@@ -110,7 +110,6 @@ class lightGroup(systemState, schema):
 
     def onXmlConfig(self, xmlConfig):
         try:
-            print("===============================Setting config =====================================")
             lgXmlConfig = parse_xml(xmlConfig,
                                         {"JMRISystemName": MANSTR,
                                          "JMRIUserName": OPTSTR,
@@ -153,15 +152,8 @@ class lightGroup(systemState, schema):
                 trace.notify(DEBUG_INFO, "\"AdminState\" not set for " + self.nameKey.candidateValue + " - disabling it")
                 self.setAdmState(ADM_DISABLE[STATE_STR])
         except:
-            print("===============================Config FAILED=====================================")
-
             trace.notify(DEBUG_ERROR, "Configuration validation failed for Light group, traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
-        print("===============================Config OK=====================================")
-        print(self.jmriLgSystemName.value)
-        print(self.jmriLgSystemName.candidateValue)
-
-
         res = self.parent.updateReq()
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Validation of, or setting of configuration failed - initiated by configuration change of: " + lgXmlConfig.get("JMRISystemName") + ", return code: " + trace.getErrStr(res))
@@ -174,9 +166,6 @@ class lightGroup(systemState, schema):
         return self.parent.updateReq()
 
     def validate(self):
-        print("===============================VALIDATING=====================================")
-        print(self.jmriLgSystemName.value)
-        print(self.jmriLgSystemName.candidateValue)
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration validate()")
         self.schemaDirty = self.isDirty()
         if self.schemaDirty:
@@ -193,31 +182,15 @@ class lightGroup(systemState, schema):
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration commit0()")
-        print("===============================COMMIT0=====================================")
-        print(self.jmriLgSystemName.value)
-        print(self.jmriLgSystemName.candidateValue)
         if self.schemaDirty:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " was reconfigured, commiting configuration")
-            print("===============================COMMIT ALL=====================================")
-
             self.commitAll()
-            try:
-                self.win.reSetMoMObjStr(self.item, self.nameKey.value)
-            except:
-                print("fail")
-            print(self.nameKey.value)
-            print(self.jmriLgSystemName.value)
-            print(self.jmriLgSystemName.candidateValue)
-            return rc.OK
+            self.win.reSetMoMObjStr(self.item, self.nameKey.value)
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " was not reconfigured, skiping config commitment")
         return rc.OK
 
     def commit1(self):
-        print("===============================COMMIT1=====================================")
-        print(self.jmriLgSystemName.value)
-        print(self.jmriLgSystemName.candidateValue)
-
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.value + " received configuration commit1()")
         if self.schemaDirty:
             try:
@@ -235,8 +208,6 @@ class lightGroup(systemState, schema):
         return rc.OK
 
     def abort(self):
-        print("===============================ABORT=====================================")
-
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
         self.unSetOpStateDetail(OP_CONFIG)
@@ -245,7 +216,27 @@ class lightGroup(systemState, schema):
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
-        FIX
+        lgXml = ET.Element("LightGroup")
+        sysName = ET.SubElement(lgXml, "JMRISystemName")
+        sysName.text = self.jmriLgSystemName.value
+        usrName = ET.SubElement(lgXml, "JMRIUserName")
+        usrName.text = self.userName.value
+        descName = ET.SubElement(lgXml, "JMRIDescription")
+        descName.text = self.description.value
+        type = ET.SubElement(lgXml, "Type")
+        type.text = self.lgType.value
+        linkAddr = ET.SubElement(lgXml, "LinkAddress")
+        linkAddr.text = str(self.lgLinkAddr.value)
+        property1 = ET.SubElement(lgXml, "Property1")
+        property1.text = self.lgProperty1.value
+        property2 = ET.SubElement(lgXml, "Property2")
+        property2.text = self.lgProperty2.value
+        property3 = ET.SubElement(lgXml, "Property3")
+        property3.text = self.lgProperty3.value
+        if not decoder:
+            adminState = ET.SubElement(lgXml, "AdminState")
+            adminState.text = self.getAdmState()[STATE_STR]
+        return minidom.parseString(ET.tostring(lgXml)).toprettyxml(indent="   ") if text else lgXml
 
     def getMethods(self):
         return METHOD_VIEW | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_DISABLE | METHOD_LOG
@@ -299,9 +290,6 @@ class lightGroup(systemState, schema):
         return rc.OK
 
     def rejected(self):
-        print("===========================REJECTED============================")
-        print(self.jmriLgSystemName.value)
-        print(self.jmriLgSystemName.candidateValue)
         self.abort()
         return rc.OK
 

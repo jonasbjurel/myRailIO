@@ -101,9 +101,10 @@ class UI_mainWindow(QMainWindow):
         super().__init__(parent)
         self.configFileDialog = UI_fileDialog("genJMRI main configuration", self)
         loadUi(MAIN_FRAME_UI, self)
-        self.actionSaveConfig.setEnabled(False)
-        self.actionSaveConfigAs.setEnabled(False)
-        self.autoLoadPreferences.setEnabled(False)
+        self.actionOpenConfig.setEnabled(True)
+        self.actionSaveConfig.setEnabled(True)
+        self.actionSaveConfigAs.setEnabled(True)
+        self.autoLoadPreferences.setEnabled(True)
         self.connectActionSignalsSlots()
         self.connectWidgetSignalsSlots()
         self.MoMTreeModel = QStandardItemModel()
@@ -783,7 +784,7 @@ class UI_topDialog(QDialog):
         # General genJMRI services configuration
         self.ntpLineEdit.setText(str(self.parentObjHandle.ntpUri.value[0]))
         self.timeZoneSpinBox.setValue(self.parentObjHandle.tz.value)
-        self.rsyslogLineEdit.setText(str(self.parentObjHandle.rsysLogUri.value))
+        self.rsyslogLineEdit.setText(str(self.parentObjHandle.rsyslogUri.value))
         self.logVerbosityComboBox.setCurrentText(str(long2shortVerbosity(self.parentObjHandle.logVerbosity.value)))
         # MQTT Southbound API Configuration
         self.decoderKeepalivePeriodDoubleSpinBox.setValue(self.parentObjHandle.decoderMqttKeepalivePeriod.value)
@@ -815,7 +816,7 @@ class UI_topDialog(QDialog):
         # General genJMRI services configuration
         self.parentObjHandle.ntpUri.value[0] = self.ntpLineEdit.displayText()
         self.parentObjHandle.tz.value = self.timeZoneSpinBox.value()
-        self.parentObjHandle.rsysLogUri.value = self.rsyslogLineEdit.displayText()
+        self.parentObjHandle.rsyslogUri.value = self.rsyslogLineEdit.displayText()
         self.parentObjHandle.logVerbosity.value = short2longVerbosity(self.logVerbosityComboBox.currentText())
         # MQTT Southbound API Configuration
         self.parentObjHandle.decoderMqttKeepalivePeriod.value = self.decoderKeepalivePeriodDoubleSpinBox.value()
@@ -841,6 +842,7 @@ class UI_topDialog(QDialog):
                 msg.setWindowTitle("Error")
                 msg.exec_()
                 return res
+        return rc.OK
 
     def connectWidgetSignalsSlots(self):
         self.confirmButtonBox.accepted.connect(self.accepted)

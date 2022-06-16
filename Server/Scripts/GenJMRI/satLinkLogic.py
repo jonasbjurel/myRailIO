@@ -234,7 +234,7 @@ class satLink(systemState, schema):
         except:
             childs = False
         if childs:
-            for child in childs.value:
+            for child in self.childs.value:
                 child.abort()
         self.abortAll()
         self.unSetOpStateDetail(OP_CONFIG)
@@ -252,7 +252,7 @@ class satLink(systemState, schema):
         descName = ET.SubElement(satLinkXml, "Description")
         descName.text = self.description.value
         satLink = ET.SubElement(satLinkXml, "Link")
-        satLink.text = self.satLinkNo.value
+        satLink.text = str(self.satLinkNo.value)
         if not decoder:
             adminState = ET.SubElement(satLinkXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]
@@ -264,7 +264,7 @@ class satLink(systemState, schema):
                 childs = False
             if childs:
                 for child in self.childs.value:
-                    satLinkXml.append(chlild.getXmlConfigTree())
+                    satLinkXml.append(child.getXmlConfigTree())
         return minidom.parseString(ET.tostring(satLinkXml)).toprettyxml(indent="   ") if text else satLinkXml
 
     def getMethods(self):

@@ -125,15 +125,20 @@ class topDecoder(systemState, schema):
         self.decoderMqttURI.value = DEFAULT_DECODER_MQTT_URI
         self.decoderMqttPort.value = DEFAULT_DECODER_MQTT_PORT
         self.decoderMqttTopicPrefix.value = DEFAULT_DECODER_MQTT_TOPIC_PREFIX
+        self.decoderMqttKeepalivePeriod.value = DEFAULT_DECODER_KEEPALIVE_PERIOD
         self.jmriRpcURI.value = DEFAULT_JMRI_RPC_URI
         self.jmriRpcPortBase.value = DEFAULT_JMRI_RPC_PORT_BASE
-        self.ntpUri.value = DEFAULT_NTP_SERVER
-        self.snmpUri.value = DEFAULT_SNMP_SERVER
-        self.tz.value = 0
-        self.rsysLogUri.value = DEFAULT_RSYSLOG_SERVER
-        self.logVerbosity.value = DEFAULT_LOG_VERBOSITY
-        self.decoderMqttKeepalivePeriod.value = DEFAULT_DECODER_KEEPALIVE_PERIOD
         self.JMRIRpcKeepAlivePeriod.value = DEFAULT_JMRI_RPC_KEEPALIVE_PERIOD
+        self.ntpUri.value = DEFAULT_NTP_SERVER
+        self.ntpPort.value = DEFAULT_NTP_PORT
+        self.tz.value = 0
+        self.rsyslogUri.value = DEFAULT_RSYSLOG_SERVER
+        self.rsyslogPort.value = DEFAULT_RSYSLOG_PORT
+        self.rsyslogProtocol.value = DEFAULT_RSYSLOG_PROTOCOL
+        self.logVerbosity.value = DEFAULT_LOG_VERBOSITY
+        self.snmpUri.value = DEFAULT_SNMP_SERVER
+        self.snmpPort.value = DEFAULT_SNMP_PORT
+        self.snmpProtocol.value = DEFAULT_SNMP_PROTOCOL
         self.decoderFailSafe.value = True
         self.trackFailSafe.value = DEFAULT_TRACK_FAILSAFE
         self.xmlConfig = None
@@ -213,13 +218,18 @@ class topDecoder(systemState, schema):
                                                     "DecoderMqttURI": MANSTR,
                                                     "DecoderMqttPort": OPTSTR,
                                                     "JMRIRPCURI" : OPTSTR,
-                                                    "JMRIRPCPortBase" : OPTSTR,
+                                                    "JMRIRPCPortBase" : OPTINT,
                                                     "DecoderMqttTopicPrefix": OPTSTR,
                                                     "NTPServer": OPTSTR,
+                                                    "NTPPort": OPTINT,
                                                     "TIMEZONE": OPTINT,
                                                     "RSyslogServer": OPTSTR,
+                                                    "RSyslogPort" : OPTINT,
+                                                    "RSyslogProtocol" : OPTSTR,
                                                     "LogLevel": OPTSTR,
-                                                    "SnmpURI": OPTSTR,
+                                                    "SNMPServer": OPTSTR,
+                                                    "SNMPPort": OPTINT,
+                                                    "SNMPProtocol": OPTSTR,
                                                     "TracksFailSafe" : OPTSTR,
                                                     "DecodersFailSafe" : OPTSTR, 
                                                     "DecoderKeepalivePeriod" : OPTFLOAT,
@@ -241,8 +251,14 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("JMRIRPCPortBase") != None: self.jmriRpcPortBase.value = int(topDecoderXmlConfig.get("JMRIRPCPortBase"))
             if topDecoderXmlConfig.get("DecoderMqttTopicPrefix") != None: self.decoderMqttTopicPrefix.value = topDecoderXmlConfig.get("DecoderMqttTopicPrefix")
             if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = [topDecoderXmlConfig.get("NTPServer")]
+            if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
             if topDecoderXmlConfig.get("TIMEZONE") != None: self.tz.value = int(topDecoderXmlConfig.get("TIMEZONE"))
-            if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsysLogUri.value = topDecoderXmlConfig.get("RSyslogServer")
+            if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsyslogUri.value = topDecoderXmlConfig.get("RSyslogServer")
+            if topDecoderXmlConfig.get("RSyslogPort") != None: self.rsyslogPort.value = topDecoderXmlConfig.get("RSyslogPort")
+            if topDecoderXmlConfig.get("RSyslogProtocol") != None: self.rsyslogProtocol.value = topDecoderXmlConfig.get("RSyslogProtocol")
+            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = [topDecoderXmlConfig.get("SNMPServer")]
+            if topDecoderXmlConfig.get("SNMPPort") != None: self.snmpPort.value = int(topDecoderXmlConfig.get("SNMPPort"))
+            if topDecoderXmlConfig.get("SNMPProtocol") != None: self.snmpProtocol.value = topDecoderXmlConfig.get("SNMPProtocol")
             if topDecoderXmlConfig.get("LogLevel") != None:
                 self.logVerbosity.value = topDecoderXmlConfig.get("LogLevel")
                 if trace.getSeverityFromSeverityStr(self.logVerbosity.candidateValue) == None:
@@ -281,6 +297,7 @@ class topDecoder(systemState, schema):
             else:
                 trace.notify(DEBUG_INFO, "\"AdminState\" not set for topDecoder - disabling it")
                 self.setAdmState(ADM_DISABLE[STATE_STR])
+
         except:
                 trace.notify(DEBUG_ERROR, "XML configuration missformated, topDecoder section is missing mandatory tags/values or values did not pass type/range check: " + str(traceback.print_exc()))
                 return rc.PARSE_ERR
@@ -321,10 +338,6 @@ class topDecoder(systemState, schema):
                     return res
         if self.schemaDirty:
             trace.notify(DEBUG_TERSE, "topDecoder - configuration has been changed - validating it")
-            if self.version.value != self.version.candidateValue:
-                self.versionConfigChanged = True
-            else:
-                self.versionConfigChanged = False
             if self.decoderMqttURI.value != self.decoderMqttURI.candidateValue or\
                self.decoderMqttPort.value != self.decoderMqttPort.candidateValue or\
                self.decoderMqttTopicPrefix.value != self.decoderMqttTopicPrefix.candidateValue:
@@ -420,7 +433,7 @@ class topDecoder(systemState, schema):
             topXml = ET.Element("genJMRI")
             if not decoder:
                 childXml = ET.SubElement(topXml, "Author")
-                if self.author.value: childXml.text = self.author.value
+                if self.author.value: childXml.text = str(self.author.value)
                 childXml = ET.SubElement(topXml, "Description")
                 if self.description.value: childXml.text = self.description.value
                 childXml = ET.SubElement(topXml, "Version")
@@ -436,6 +449,7 @@ class topDecoder(systemState, schema):
                 childXml = ET.SubElement(topXml, "gitUrl")
                 if self.gitUrl.value: childXml.text = self.gitUrl.value
                 versionHistoryXml = ET.SubElement(topXml, "VersionHistory")
+
                 for version in self.versionHistory.value:
                     versionXml = ET.SubElement(versionHistoryXml, "Version")
                     versionNameXml = ET.SubElement(versionXml, "VersionName")
@@ -452,18 +466,17 @@ class topDecoder(systemState, schema):
                     if version["gitBranch"]: gitBranchXml.text = version["gitBranch"]
                     gitTagXml = ET.SubElement(versionXml, "gitTag")
                     if version["gitTag"]: gitTagXml.text = version["gitTag"]
-                    gitUrlXml = ET.SubElement(versionXml, "gitURL")
+                    gitUrlXml = ET.SubElement(versionXml, "gitUrl")
                     if version["gitUrl"]: gitUrlXml.text = version["gitUrl"]
-                childXml = ET.SubElement(topXml, "DecoderMqttURI")
-                if self.decoderMqttURI.value: childXml.text = self.decoderMqttURI.value
-                childXml = ET.SubElement(topXml, "DecoderMqttPort")
-                if self.decoderMqttPort.value: childXml.text = str(self.decoderMqttPort.value)
-                childXml = ET.SubElement(topXml, "DecoderMqttTopicPrefix")
-                if self.decoderMqttTopicPrefix.value: childXml.text = self.decoderMqttTopicPrefix.value
-                childXml = ET.SubElement(topXml, "DecodersFailSafe")
-                childXml.text = "Yes" if self.decoderFailSafe.value else "No"
-                childXml = ET.SubElement(topXml, "DecoderKeepAlivePeriod")
-                childXml.text = str(self.decoderMqttKeepalivePeriod.value)
+
+            childXml = ET.SubElement(topXml, "DecoderMqttURI")
+            childXml.text = self.decoderMqttURI.value
+            childXml = ET.SubElement(topXml, "DecoderMqttPort")
+            childXml.text = str(self.decoderMqttPort.value)
+            childXml = ET.SubElement(topXml, "DecoderMqttTopicPrefix")
+            childXml.text = self.decoderMqttTopicPrefix.value
+            childXml = ET.SubElement(topXml, "DecoderKeepAlivePeriod")
+            childXml.text = str(self.decoderMqttKeepalivePeriod.value)
             if not decoder:
                 childXml = ET.SubElement(topXml, "JMRIRPCURI")
                 childXml.text = self.jmriRpcURI.value
@@ -471,21 +484,38 @@ class topDecoder(systemState, schema):
                 childXml.text = str(self.jmriRpcPortBase.value)
                 childXml = ET.SubElement(topXml, "JMRIRpcKeepAlivePeriod")
                 childXml.text = str(self.JMRIRpcKeepAlivePeriod.value)
-                childXml = ET.SubElement(topXml, "TracksFailSafe")
-                childXml.text = "Yes" if self.trackFailSafe.value else "No"
             childXml = ET.SubElement(topXml, "NTPServer")
-            if self.ntpUri.value: childXml.text = self.ntpUri.value
-            childXml = ET.SubElement(topXml, "TimeZone")
-            if self.tz.value: childXml.text = str(self.tz.value)
-            childXml = ET.SubElement(topXml, "RSyslogServer")
-            if self.rsysLogUri.value: childXml.text = self.rsysLogUri.value
-            childXml = ET.SubElement(topXml, "Loglevel")
+            if self.ntpUri.value: childXml.text = self.ntpUri.value[0]
+            childXml = ET.SubElement(topXml, "NTPPort")
+            if self.ntpPort.value: childXml.text = str(self.ntpPort.value)
+            childXml = ET.SubElement(topXml, "TIMEZONE")
+            if self.tz.value: childXml.text = "%+d" % (self.tz.value)
+            if not decoder:
+                childXml = ET.SubElement(topXml, "RSyslogServer")
+                if self.rsyslogUri.value: childXml.text = self.rsyslogUri.value
+                childXml = ET.SubElement(topXml, "RSyslogPort")
+                if self.rsyslogPort.value: childXml.text = str(self.rsyslogPort.value)
+                childXml = ET.SubElement(topXml, "RSyslogProtocol")
+                if self.rsyslogProtocol.value: childXml.text = self.rsyslogProtocol.value
+            childXml = ET.SubElement(topXml, "LogLevel")
             childXml.text = self.logVerbosity.value
             if not decoder:
-                adminState = ET.SubElement(satLinkXml, "AdminState")
+                childXml = ET.SubElement(topXml, "SNMPServer")
+                if self.rsyslogUri.value: childXml.text = self.snmpUri.value[0]
+                childXml = ET.SubElement(topXml, "SNMPPort")
+                if self.snmpPort.value: childXml.text = str(self.snmpPort.value)
+                childXml = ET.SubElement(topXml, "SNMPProtocol")
+                if self.snmpProtocol.value: childXml.text = self.snmpProtocol.value
+            if not decoder:
+                childXml = ET.SubElement(topXml, "TracksFailSafe")
+                childXml.text = "Yes" if self.trackFailSafe.value else "No"
+            childXml = ET.SubElement(topXml, "DecodersFailSafe")
+            childXml.text = "Yes" if self.decoderFailSafe.value else "No"
+            if not decoder:
+                adminState = ET.SubElement(topXml, "AdminState")
                 adminState.text = self.getAdmState()[STATE_STR]
             if includeChilds:
-                for decoder in self.decoders:
+                for decoder in self.decoders.value:
                     topXml.append(decoder.getXmlConfigTree(text=False))
             return minidom.parseString(ET.tostring(topXml, 'unicode')).toprettyxml() if text else topXml
 
@@ -566,14 +596,15 @@ class topDecoder(systemState, schema):
         print("Checking in tag: " + self.gitTag)
 
     def accepted(self):
-        self.__setConfig()
         self.setOpStateDetail(OP_CONFIG)
+        if self.version.value != self.version.candidateValue:
+            self.__setVersion(self.version.value)
+            self.schemaObjects["versionHistory"].commit()
         res = self.updateReq()
         if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not configure topDecoder, return code: " + trace.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Could not configure " + self.nameKey.candidateValue + ", return code: " + rc.getErrStr(res))
             return res
-        else:
-            trace.notify(DEBUG_INFO, "topDecoder Configured")
+        trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured from GUI")
         return rc.OK
 
     def rejected(self):
@@ -596,8 +627,7 @@ class topDecoder(systemState, schema):
             self.mqttClient.restart(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId="genJMRIServer")
             self.mqttClient.setTopicPrefix(self.decoderMqttTopicPrefix.value)
         self.setLogVerbosity(self.logVerbosity.value)
-        if self.versionConfigChanged:
-            self.__setVersion(self.version.value)
+
         # Set NTP server
         # Set RSYSLOG server
         self.topDecoderOpTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC)[:-1]
@@ -609,8 +639,10 @@ class topDecoder(systemState, schema):
         self.__updateVerHist()
         self.time.value = datetime.now(tz=pytz.UTC).strftime("%H:%M:%S")
         self.schemaObjects["time"].commit()
+        self.date.value = datetime.now(tz=pytz.UTC).strftime('%Y-%m-%d')
+        self.schemaObjects["date"].commit()
 
-    def __updateVerHist(self): #MOVE to comply to template
+    def __updateVerHist(self):
         self.versionHistory.append({"VersionName":self.version.value,
                             "Author":self.author.value,
                             "Date":self.date.value,

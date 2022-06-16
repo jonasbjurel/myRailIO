@@ -148,22 +148,18 @@ class decoder(systemState, schema):
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
-        for lightGroupsXml in xmlConfig:
-            if lightGroupsXml.tag == "Lightgroups":
-                for lightGroupsLinkXml in lightGroupsXml:
-                    if lightGroupsLinkXml.tag == "LightgroupsLink":
-                        res = self.addChild(LIGHT_GROUP_LINK, config=False, configXml=lightGroupsLinkXml,demo=False)
-                        if res != rc.OK:
-                            trace.notify(DEBUG_ERROR, "Failed to add Light group link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
-                            return res
-        for satelitesXml in xmlConfig:
-            if satelitesXml.tag == "Satelites":
-                for sateliteLinkXml in satelitesXml:
-                    if sateliteLinkXml.tag == "SateliteLink":
-                        res = self.addChild(SATELITE_LINK, config=False, configXml=sateliteLinkXml, demo=False)
-                        if res != rc.OK:
-                            trace.notify(DEBUG_ERROR, "Failed to add satelite link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
-                            return res
+        for lightGroupsLinkXml in xmlConfig:
+            if lightGroupsLinkXml.tag == "LightgroupsLink":
+                res = self.addChild(LIGHT_GROUP_LINK, config=False, configXml=lightGroupsLinkXml,demo=False)
+                if res != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Failed to add Light group link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
+                    return res
+        for sateliteLinkXml in xmlConfig:
+            if sateliteLinkXml.tag == "SateliteLink":
+                res = self.addChild(SATELITE_LINK, config=False, configXml=sateliteLinkXml, demo=False)
+                if res != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Failed to add satelite link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
+                    return res
         return rc.OK
 
     def updateReq(self):
@@ -248,7 +244,7 @@ class decoder(systemState, schema):
         except:
             childs = False
         if childs:
-            for child in childs.value:
+            for child in self.childs.value:
                 child.abort()
         self.abortAll()
         self.unSetOpStateDetail(OP_CONFIG)
@@ -270,7 +266,7 @@ class decoder(systemState, schema):
         uri = ET.SubElement(decoderXml, "URI")
         uri.text = self.decoderMqttURI.value
         if not decoder:
-            adminState = ET.SubElement(satLinkXml, "AdminState")
+            adminState = ET.SubElement(decoderXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]
         if includeChilds:
             childs = True
@@ -280,7 +276,7 @@ class decoder(systemState, schema):
                 childs = False
             if childs:
                 for child in self.childs.value:
-                    satLinkXml.append(chlild.getXmlConfigTree())
+                    decoderXml.append(child.getXmlConfigTree())
         return minidom.parseString(ET.tostring(decoderXml)).toprettyxml(indent="   ") if text else decoderXml
 
     def getMethods(self):

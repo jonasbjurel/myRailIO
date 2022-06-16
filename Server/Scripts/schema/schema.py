@@ -72,14 +72,13 @@ class schema():
     GIT_SCHEMA =        {"gitBranch":estr_t, "gitTag":estr_t, "gitUrl":uri_t}
     MQTT_SCHEMA =       {"decoderMqttURI":uri_t, "decoderMqttPort":ipPort_t, "decoderMqttTopicPrefix":estr_t, "decoderMqttKeepalivePeriod":efloat_t}
     JMRI_RPC_SCHEMA =   {"jmriRpcURI":uri_t, "jmriRpcPortBase":ipPort_t, "JMRIRpcKeepAlivePeriod":efloat_t}
-    SERVICES_SCHEMA =   {"ntpUri":multiChoiceUri_t, "ntpPort":ipPort_t, "ntpProtocol":ipProtocol_t, "tz":tz_t, "rsysLogUri":uri_t,
-                         "rsysLogPort":ipPort_t, "rsysLogProtocol":ipProtocol_t, "logVerbosity":logVerbosity_t, "snmpUri":multiChoiceUri_t,
+    SERVICES_SCHEMA =   {"ntpUri":multiChoiceUri_t, "ntpPort":ipPort_t, "ntpProtocol":ipProtocol_t, "tz":tz_t, "rsyslogUri":uri_t,
+                         "rsyslogPort":ipPort_t, "rsyslogProtocol":ipProtocol_t, "logVerbosity":logVerbosity_t, "snmpUri":multiChoiceUri_t,
                          "snmpPort":ipPort_t, "snmpProtocol":ipProtocol_t}
     ADM_STATE_SCHEMA =  {"admState":adminState_t}
     TOP_DECODER_SCHEMA =    {"decoders":elist_t, "decoderFailSafe":ebool_t, "trackFailSafe":ebool_t}
-
     DECODER_SCHEMA =    {"decoderSystemName":decoderSystemName_t, "decoderMqttURI":uri_t, "mac":mac_t, "lgLinks":elist_t, "satLinks":elist_t}
-    LG_LINK_SCHEMA =    {"lgLinkSystemName":lgLinkSystemName_t, "lgLinkNo":lgLinkNo_t, "lightGroups":elist_t}
+    LG_LINK_SCHEMA =    {"lgLinkSystemName":lgLinkSystemName_t, "lgLinkNo":lgLinkNo_t, "lightGroups":elist_t, "mastDefinitionPath":estr_t}
     SAT_LINK_SCHEMA =   {"satLinkSystemName":satLinkSystemName_t, "satLinkNo":satLinkNo_t, "satelites":elist_t}
     SAT_SCHEMA =        {"satSystemName":satSystemName_t, "satLinkAddr":satLinkAddr_t, "sensors":elist_t, "actuators":elist_t}
     SENS_SCHEMA =       {"jmriSensSystemName":jmriSensSystemName_t, "sensPort":sensPort_t, "sensType":sensType_t}

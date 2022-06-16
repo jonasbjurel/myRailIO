@@ -208,7 +208,7 @@ class actuator(systemState, schema):
         sysName = ET.SubElement(actuatorXml, "JMRISystemName")
         sysName.text = self.jmriActSystemName.value
         usrName = ET.SubElement(actuatorXml, "JMRIUserName")
-        sysName.text = self.userName.value
+        usrName.text = self.userName.value
         descName = ET.SubElement(actuatorXml, "JMRIDescription")
         descName.text = self.description.value
         type = ET.SubElement(actuatorXml, "Type")
@@ -216,7 +216,7 @@ class actuator(systemState, schema):
         subType = ET.SubElement(actuatorXml, "SubType")
         subType.text = self.actSubType.value
         port = ET.SubElement(actuatorXml, "Port")
-        port.text = self.actPort.value
+        port.text = str(self.actPort.value)
         if not decoder:
             adminState = ET.SubElement(actuatorXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]

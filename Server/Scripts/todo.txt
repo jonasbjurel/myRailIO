@@ -1,9 +1,7 @@
 TODO CLIMBING UPWARDS:
-1) Remove the concept of childsSchemaDirty
 2) Review the implementation of validate() 
 	- including validate()
 	- including syslog messages for validate()
-3) Miska scopet för onConfigXml Try:
 4) What is delete top?
 5) TOPOLOGY check OF CHILDS (Static function of the child, passing the child list ?)
 6) Use NameKey consequently in notifications
@@ -15,3 +13,16 @@ TODO CLIMBING UPWARDS:
 12) Differentiate between AdminBlock an OP block towards decioders and their objects
 13) Define a destructor method for all methods
 14) Fix absolute paths in rpc
+15) Evaluate Non GUI managed MOs
+	- SNMPServer - no GUI management - Should be
+	- MastDefinitionPath - should be part of the GUI and even file bowsable - also other definition paths should be concidered (separate GUI Page)
+
+16) xml config generation issues
+	- generated configuration doesnt define utf-8 encoding
+
+17) Fix rpc restart (disabled because it doesn't work - preventing day2 rpc reconfig)
+18) Mqtt restart doesn't re-subscribe, maybe it shouldnt
+19) Add xml (and GUI?) support for multiple SNMP and NTP servers
+20) Add decoder businesslogic - receiving discovery requests, sending config (including mast definitions retrieved from RPC), keep-alive, etc.
+21) Add support for decoder config generation
+

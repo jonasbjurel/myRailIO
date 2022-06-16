@@ -146,22 +146,18 @@ class satelite(systemState, schema):
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
-        for sensors in xmlConfig:
-            if sensors.tag == "Sensors":
-                for sensor in sensors:
-                    if sensor.tag == "Sensor":
-                        res = self.addChild(SENSOR, config=False, configXml=sensor, demo=False)
-                        if res != rc.OK:
-                            trace.notify(DEBUG_ERROR, "Failed to add Sensor " + satXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
-                            return res
-        for actuators in xmlConfig:
-            if actuators.tag == "Actuators":
-                for actuator in actuators:
-                    if actuator.tag == "Actuator":
-                        res = self.addChild(ACTUATOR, config=False, configXml=actuator, demo=False)
-                        if res != rc.OK:
-                            trace.notify(DEBUG_ERROR, "Failed to add Actuator to " + satXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
-                            return res
+        for sensor in xmlConfig:
+            if sensor.tag == "Sensor":
+                res = self.addChild(SENSOR, config=False, configXml=sensor, demo=False)
+                if res != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Failed to add Sensor " + satXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
+                    return res
+        for actuator in xmlConfig:
+            if actuator.tag == "Actuator":
+                res = self.addChild(ACTUATOR, config=False, configXml=actuator, demo=False)
+                if res != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Failed to add Actuator to " + satXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
+                    return res
         return rc.OK
 
     def updateReq(self):
@@ -265,20 +261,16 @@ class satelite(systemState, schema):
         usrName.text = self.userName.value
         descName = ET.SubElement(sateliteXml, "Description")
         descName.text = self.description.value
-        adress = ET.SubElement(sateliteXml, "Address")
-        adress.text = self.satLinkAddr.value
+        address = ET.SubElement(sateliteXml, "Address")
+        address.text = str(self.satLinkAddr.value)
         if not decoder:
             adminState = ET.SubElement(sateliteXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]
-        sensorsXml = ET.SubElement(sateliteXml, "Sensors")
         if includeChilds:
             for sensor in self.sensors.value:
-                sensorsXml.append(sensor.getXmlConfigTree())
-            sateliteXml.append(sensorsXml)
-            actuatorsXml = ET.SubElement(sateliteXml, "Actuators")
+                sateliteXml.append(sensor.getXmlConfigTree())
             for actuator in self.actuators.value:
-                actuatorsXml.append(actuator.getXmlConfigTree())
-            sateliteXml.append(actuatorsXml)
+                sateliteXml.append(actuator.getXmlConfigTree())
         return minidom.parseString(ET.tostring(sateliteXml)).toprettyxml(indent="   ") if text else sateliteXml
 
     def getMethods(self):

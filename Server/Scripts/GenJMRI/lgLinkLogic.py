@@ -85,8 +85,9 @@ class lgLink(systemState, schema):
             self.lgLinkSystemName.value = "GJLL-NewLgLinkSysName"
         self.nameKey.value = "LgLink-" + self.lgLinkSystemName.candidateValue
         self.userName.value = "GJLL-NewLgLinkUsrName"
-        self.lgLinkNo.value = 0
         self.description.value = "New Light group link"
+        self.lgLinkNo.value = 0
+        self.mastDefinitionPath.value = ""
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
         trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.commitAll()
@@ -101,6 +102,7 @@ class lgLink(systemState, schema):
                                              "UserName": OPTSTR,
                                              "Link": MANINT,
                                              "Description": OPTSTR,
+                                             "MastDefinitionPath" : MANSTR,
                                              "AdminState":OPTSTR
                                              }
                                         )
@@ -111,11 +113,12 @@ class lgLink(systemState, schema):
                 self.userName.value = lgLinkXmlConfig.get("UserName")
             else:
                 self.userName.value = ""
-            self.lgLinkNo.value = int(lgLinkXmlConfig.get("Link"))
             if lgLinkXmlConfig.get("Description") != None:
                 self.description.value = lgLinkXmlConfig.get("Description")
             else:
                 lgLinkXmlConfig.get("Description")
+            self.lgLinkNo.value = int(lgLinkXmlConfig.get("Link"))
+            self.mastDefinitionPath.value = lgLinkXmlConfig.get("MastDefinitionPath")
             if lgLinkXmlConfig.get("AdminState") != None:
                 self.setAdmState(lgLinkXmlConfig.get("AdminState"))
             else:
@@ -219,7 +222,7 @@ class lgLink(systemState, schema):
         except:
             childs = False
         if childs:
-            for child in childs.value:
+            for child in self.childs.value:
                 child.abort()
         self.abortAll()
         self.unSetOpStateDetail(OP_CONFIG)
@@ -236,10 +239,16 @@ class lgLink(systemState, schema):
         usrName.text = self.userName.value
         descName = ET.SubElement(lgLinkXml, "Description")
         descName.text = self.description.value
-        satLink = ET.SubElement(lgLinkXml, "Link")
-        satLink.text = self.lgLinkNo.value
         if not decoder:
-            adminState = ET.SubElement(satLinkXml, "AdminState")
+            mastDef = ET.SubElement(lgLinkXml, "MastDefinitionPath")
+            mastDef.text = self.mastDefinitionPath.value
+        if decoder:
+            #Provide actual mast definitions
+            pass
+        satLink = ET.SubElement(lgLinkXml, "Link")
+        satLink.text = str(self.lgLinkNo.value)
+        if not decoder:
+            adminState = ET.SubElement(lgLinkXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]
         elif decoder:
             ################# PROVIDE MASTS DEFINITION ###############
@@ -252,7 +261,7 @@ class lgLink(systemState, schema):
                 childs = False
             if childs:
                 for child in self.childs.value:
-                    lgLinkXml.append(chlild.getXmlConfigTree())
+                    lgLinkXml.append(child.getXmlConfigTree())
         return minidom.parseString(ET.tostring(lgLinkXml)).toprettyxml(indent="   ") if text else lgLinkXml
 
     def getMethods(self):
