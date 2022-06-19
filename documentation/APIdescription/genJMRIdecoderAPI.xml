@@ -150,10 +150,10 @@ Payload: <Aspect>"SELFTEST"</Aspect>
 Supervision:
 ============
 Downstream:
-Topic:Topic:/trains/track/decoderSupervision/downstream/controller1.bjurel.com/
+Topic:Topic:/trains/track/decoderSupervision/downstream/controller1.bjurel.com
 Payload: Dummy
 Upstream
-Topic:Topic:/trains/track/decoderSupervision/upstream/controller1.bjurel.com/
+Topic:Topic:/trains/track/decoderSupervision/upstream/controller1.bjurel.com
 Payload: Dummy
 
 Opstatus:
