@@ -65,14 +65,14 @@
       <AdminState>ENABLE</AdminState>
       <MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
       <LightGroup>
-        <JMRISystemName>IF$vsm:My LightGroup 0-0-0 SysName($100)</JMRISystemName>
-        <JMRIUserName>IF$vsm:My LightGroup 0-0-0 UsrName</JMRIUserName>
-        <JMRIDescription>IF$vsm:My LightGroup 0-0-0 Desc</JMRIDescription>
+        <JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($100)</JMRISystemName>
+        <JMRIUserName>IF$vsm:Sweden-3HMS:SL-5HL($100) 0-0-0 UsrName</JMRIUserName>
+        <JMRIDescription>IF$vsm:Sweden-3HMS:SL-5HL($100) 0-0-0 Desc</JMRIDescription>
         <Type>SIGNAL MAST</Type>
         <LinkAddress>0</LinkAddress>
-        <Property1>My LightGroup 0-0-0 property 1</Property1>
-        <Property2>My LightGroup 0-0-0 property 2</Property2>
-        <Property3>My LightGroup 0-0-0 property 3</Property3>
+        <Property1>SIGNAL MAST</Property1>
+        <Property2>SLOW</Property2>
+        <Property3>FAST</Property3>
         <AdminState>ENABLE</AdminState>
       </LightGroup>
     </LightgroupsLink>
@@ -84,14 +84,14 @@
       <AdminState>ENABLE</AdminState>
       <MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
       <LightGroup>
-        <JMRISystemName>IF$vsm:My LightGroup 0-1-0 SysName($101)</JMRISystemName>
+        <JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($101)</JMRISystemName>
         <JMRIUserName>IF$vsm:My LightGroup 0-1-0 UsrName</JMRIUserName>
         <JMRIDescription>IF$vsm:My LightGroup 0-1-0 Desc</JMRIDescription>
         <Type>SIGNAL MAST</Type>
         <LinkAddress>0</LinkAddress>
-        <Property1>My LightGroup 0-1-0 property 1</Property1>
-        <Property2>My LightGroup 0-1-0 property 2</Property2>
-        <Property3>My LightGroup 0-1-0 property 3</Property3>
+        <Property1>SIGNAL MAST</Property1>
+        <Property2>NORMAL</Property2>
+        <Property3>NORMAL</Property3>
         <AdminState>ENABLE</AdminState>
       </LightGroup>
     </LightgroupsLink>
@@ -173,14 +173,14 @@
       <AdminState>ENABLE</AdminState>
       <MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
       <LightGroup>
-        <JMRISystemName>IF$vsm:My LightGroup 1-0-0 SysName($102)</JMRISystemName>
+        <JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($102)</JMRISystemName>
         <JMRIUserName>IF$vsm:My LightGroup 1-0-0 UsrName</JMRIUserName>
         <JMRIDescription>IF$vsm:My LightGroup 1-0-0 Desc</JMRIDescription>
         <Type>SIGNAL MAST</Type>
         <LinkAddress>0</LinkAddress>
-        <Property1>My LightGroup 1-0-0 property 1</Property1>
-        <Property2>My LightGroup 1-0-0 property 2</Property2>
-        <Property3>My LightGroup 1-0-0 property 3</Property3>
+        <Property1>SIGNAL MAST</Property1>
+        <Property2>NORMAL</Property2>
+        <Property3>FAST</Property3>
         <AdminState>ENABLE</AdminState>
       </LightGroup>
     </LightgroupsLink>
@@ -192,14 +192,14 @@
       <AdminState>ENABLE</AdminState>
       <MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
       <LightGroup>
-        <JMRISystemName>IF$vsm:My LightGroup 1-1-0 SysName($103)</JMRISystemName>
+        <JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($103)</JMRISystemName>
         <JMRIUserName>IF$vsm:My LightGroup 1-1-0 UsrName</JMRIUserName>
         <JMRIDescription>IF$vsm:My LightGroup 1-1-0 Desc</JMRIDescription>
         <Type>SIGNAL MAST</Type>
         <LinkAddress>0</LinkAddress>
-        <Property1>My LightGroup 1-1-0 property 1</Property1>
-        <Property2>My LightGroup 1-1-0 property 2</Property2>
-        <Property3>My LightGroup 1-1-0 property 3</Property3>
+        <Property1>SIGNAL MAST</Property1>
+        <Property2>FAST</Property2>
+        <Property3>NORMAL</Property3>
         <AdminState>ENABLE</AdminState>
       </LightGroup>
     </LightgroupsLink>

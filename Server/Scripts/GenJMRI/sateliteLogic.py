@@ -268,9 +268,9 @@ class satelite(systemState, schema):
             adminState.text = self.getAdmState()[STATE_STR]
         if includeChilds:
             for sensor in self.sensors.value:
-                sateliteXml.append(sensor.getXmlConfigTree())
+                sateliteXml.append(sensor.getXmlConfigTree(decoder=decoder))
             for actuator in self.actuators.value:
-                sateliteXml.append(actuator.getXmlConfigTree())
+                sateliteXml.append(actuator.getXmlConfigTree(decoder=decoder))
         return minidom.parseString(ET.tostring(sateliteXml)).toprettyxml(indent="   ") if text else sateliteXml
 
     def getMethods(self):
@@ -407,11 +407,11 @@ class satelite(systemState, schema):
         return rc.OK # Place holder for object config validation
 
     def __setConfig(self):
+        self.satOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value
+        self.satAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value
         #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value, self.__onStats)
-
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value, self.__onStats)
         #trace.notify(DEBUG_PANIC, "SUBSCRIBED")
-        self.satOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value
         self.unRegOpStateCb(self.__sysStateListener)
         self.regOpStateCb(self.__sysStateListener)
         return rc.OK
@@ -419,10 +419,14 @@ class satelite(systemState, schema):
     def __sysStateListener(self):
         trace.notify(DEBUG_INFO, "Satelite  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.satOpTopic, ON_LINE)
+            self.mqttClient.publish(self.satOpTopic, OP_AVAIL_PAYLOAD)
             self.clearStats()
-        elif self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_UNAVAIL):
-            self.mqttClient.publish(self.satOpTopic, OFF_LINE)
+        else:
+            self.mqttClient.publish(self.satOpTopic, OP_UNAVAIL_PAYLOAD)
+        if self.getAdmState() == ADM_ENABLE:
+            self.mqttClient.publish(self.satAdmTopic, ADM_ON_LINE_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.satAdmTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __onStats(self, topic, payload):
         # We expect a report every second
@@ -440,11 +444,9 @@ class satelite(systemState, schema):
                                  "wdErr": MANINT
                                 }
                                )
-
         rxCrcErr = int(statsXmlVal.get("rxCrcErr"))
         txCrcErr = int(statsXmlVal.get("txCrcErr"))
         wdErr = int(statsXmlVal.get("wdErr"))
-
         if not self.getOpStateDetail():
             self.rxCrcErr += rxCrcErr
             self.txCrcErr += txCrcErr
@@ -463,3 +465,5 @@ class satelite(systemState, schema):
             self.txCrcErr += 1
             self.wdErr += 1
             time.sleep(0.25)
+# End Satelite
+#------------------------------------------------------------------------------------------------------------------------------------------------

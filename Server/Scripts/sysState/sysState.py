@@ -29,6 +29,7 @@ OP_ERRSEC =                 [0b00010000, "ERRSEC"]  # The OP state has the atrib
 OP_UNUSED =                 [0b00100000, "UNUSED"]  # The OP state has the atribute UNUSED - the object is not used anywere.
 OP_UNAVAIL =                [0b01000000, "UNAVAIL"] # The OP state has the atribute UNAVAIL - the object has experienced a ping timeout error.
 OP_FAIL =                   [0b10000000, "FAIL"]    # The OP state has the atribute FAIL - the object has experienced a general error.
+OP_ALL =                    [0b11111111, "ALL"]
                                                     # A collection of potential operational states - helper for translation of operational state to descriptive strings
 OP_DETAIL_STATES =          [OP_WORKING, OP_INIT,
                                 OP_CONFIG, OP_DISABLE,
@@ -114,6 +115,7 @@ class systemState():
         if not self.areChildsDisabled():
             return rc.CHILD_NOT_DISABLE
         self.admState = ADM_DISABLE
+        self.unSetOpStateDetail(OP_ALL, publish=False)
         self.setOpStateDetail(OP_DISABLE)
         return rc.OK
 
@@ -155,7 +157,8 @@ class systemState():
     def getOpStateDetail(self):
         return self.opStateDetail
 
-    def setOpStateDetail(self, opState):
+    def setOpStateDetail(self, opState, publish=True):
+        prevOpStateDetail = self.opStateDetail
         self.opStateDetail = self.opStateDetail | opState[STATE]
         if self.opStateDetail:
             self.opStateSummary = OP_SUMMARY_UNAVAIL
@@ -167,10 +170,11 @@ class systemState():
                 return rc.OK
             for child in self.childs.value:
                 child.setOpStateDetail(OP_CONTROLBLOCK)
-            self.callOpStateCbs()
+            if self.opStateDetail != prevOpStateDetail and publish:
+                self.callOpStateCbs()
             return rc.OK
 
-    def unSetOpStateDetail(self, opState):
+    def unSetOpStateDetail(self, opState, publish=True):
         prevOpStateDetail = self.opStateDetail
         self.opStateDetail = self.opStateDetail & ~opState[STATE]
         if not self.opStateDetail:
@@ -185,8 +189,9 @@ class systemState():
                 return rc.OK
             for child in self.childs.value:
                 child.unSetOpStateDetail(OP_CONTROLBLOCK)
+        if self.opStateDetail != prevOpStateDetail and publish:
             self.callOpStateCbs()
-            return rc.OK
+        return rc.OK
 
     def reEvalOpState(self):
         try:

@@ -48,6 +48,7 @@ SAT_CRC_ES_HIGH_TRESH =                 10
 SAT_WD_ES_HIGH_TRESH =                  1
 SAT_CRC_ES_LOW_TRESH =                  5
 SAT_WD_ES_LOW_TRESH =                   0
+DECODER_MAX_MISSED_PINGS =              3
 
 # System hardcoded parameters - not alterable without implementation design, or verification
 DECODER_MAX_LG_LINKS =                  2

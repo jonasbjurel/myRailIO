@@ -1,6 +1,6 @@
 import os
 import sys
-from PyQt5.QtWidgets import QApplication, QDialog, QWidget, QMainWindow, QMessageBox, QMenu, QFileDialog
+from PyQt5.QtWidgets import QApplication, QDialog, QWidget, QMainWindow, QMessageBox, QMenu, QFileDialog, QComboBox, QLineEdit
 from PyQt5.uic import loadUi
 from PyQt5.Qt import QStandardItemModel, QStandardItem
 from PyQt5.QtGui import QFont, QColor, QTextCursor, QIcon
@@ -871,7 +871,6 @@ class UI_topDialog(QDialog):
         msg.exec_()
         return
 
-
     def rejected(self):
         self.parentObjHandle.rejected()
         self.close()
@@ -973,7 +972,6 @@ class UI_decoderDialog(QDialog):
         msg.exec_()
         return
 
-
     def rejected(self):
         self.parentObjHandle.rejected()
         self.close()
@@ -1052,6 +1050,8 @@ class UI_lightgroupsLinkDialog(QDialog):
     def connectWidgetSignalsSlots(self):
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
+        lgTypeComboBox.currentTextChanged.connect(self.on_lgType_changed)
+
 
     def accepted(self):
         res = self.setValues()
@@ -1208,6 +1208,13 @@ class UI_lightGroupDialog(QDialog):
         self.parentObjHandle = parentObjHandle
         loadUi(LIGHTGROUP_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
+        self.property1Geometry = self.lgProp1Box.geometry()
+        self.property1Font = self.lgProp1Box.font()
+        self.property2Geometry = self.lgProp2Box.geometry()
+        self.property2Font = self.lgProp2Box.font()
+        self.property3Geometry = self.lgProp3Box.geometry()
+        self.property3Font = self.lgProp3Box.font()
+        self.lgPropertyHandler()
         self.displayValues()
         if edit:
             self.setEditable()
@@ -1220,9 +1227,9 @@ class UI_lightGroupDialog(QDialog):
         self.descriptionLineEdit.setEnabled(True)
         self.lgLinkAddressSpinBox.setEnabled(True)
         self.lgTypeComboBox.setEnabled(True)
-        self.lgProp1ComboBox.setEnabled(True)
-        self.lgProp2ComboBox.setEnabled(True)
-        self.lgProp3ComboBox.setEnabled(True)
+        self.lgProp1Box.setEnabled(True)
+        self.lgProp2Box.setEnabled(True)
+        self.lgProp3Box.setEnabled(True)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1237,9 +1244,9 @@ class UI_lightGroupDialog(QDialog):
         self.descriptionLineEdit.setEnabled(False)
         self.lgLinkAddressSpinBox.setEnabled(False)
         self.lgTypeComboBox.setEnabled(False)
-        self.lgProp1ComboBox.setEnabled(False)
-        self.lgProp2ComboBox.setEnabled(False)
-        self.lgProp3ComboBox.setEnabled(False)
+        self.lgProp1Box.setEnabled(False)
+        self.lgProp2Box.setEnabled(False)
+        self.lgProp3Box.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1254,7 +1261,9 @@ class UI_lightGroupDialog(QDialog):
         self.descriptionLineEdit.setText(str(self.parentObjHandle.description.value))
         self.lgLinkAddressSpinBox.setValue(self.parentObjHandle.lgLinkAddr.value)
         self.lgTypeComboBox.setCurrentText(str(self.parentObjHandle.lgType.value))
-        self.lgPropertyHandler()
+        self.lgProp1Box.setCurrentText(str(self.parentObjHandle.lgProperty1.value))
+        self.lgProp2Box.setCurrentText(str(self.parentObjHandle.lgProperty2.value))
+        self.lgProp3Box.setCurrentText(str(self.parentObjHandle.lgProperty3.value))
         self.opStateSummaryLineEdit.setText(str(self.parentObjHandle.getOpStateSummary()[STATE_STR]))
         self.opStateDetailLineEdit.setText(str(self.parentObjHandle.getOpStateDetailStr()))
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -1268,6 +1277,9 @@ class UI_lightGroupDialog(QDialog):
         self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
         self.parentObjHandle.lgLinkAddr.value = self.lgLinkAddressSpinBox.value()
         self.parentObjHandle.lgType.value = self.lgTypeComboBox.currentText()
+        self.parentObjHandle.lgProperty1.value = self.lgProp1Box.currentText()
+        self.parentObjHandle.lgProperty2.value = self.lgProp2Box.currentText()
+        self.parentObjHandle.lgProperty3.value = self.lgProp3Box.currentText()
         if self.adminStateForceCheckBox.isChecked():
             self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
         else:
@@ -1282,15 +1294,41 @@ class UI_lightGroupDialog(QDialog):
                 return res
         return rc.OK
 
-    def lgPropertyHandler(self):
-        pass # Define sub properties here
-
-    def lgPropertySetHandler(self):
-        pass # Define sub properties here
-
     def connectWidgetSignalsSlots(self):
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
+        self.lgTypeComboBox.currentTextChanged.connect(self.lgPropertyHandler)
+
+    def lgPropertyHandler(self):
+        self.lgProp1Box.deleteLater()
+        self.lgProp2Box.deleteLater()
+        self.lgProp3Box.deleteLater()
+        if self.lgTypeComboBox.currentText() == "SIGNAL MAST":
+            self.lgProperty1Label.setText("Mast type:")
+            self.lgProperty2Label.setText("Diming time:")
+            self.lgProperty3Label.setText("Flash freq.:")
+            self.lgProp1Box = QComboBox(self)
+            self.lgProp1Box.addItems(self.parentObjHandle.parent.getMastTypes())
+            self.lgProp2Box = QComboBox(self)
+            self.lgProp2Box.addItems(["NORMAL", "FAST", "SLOW"])
+            self.lgProp3Box = QComboBox(self)
+            self.lgProp3Box.addItems(["NORMAL", "FAST", "SLOW"])
+        else:
+            self.lgProperty1Label.setText("Property 1:")
+            self.lgProperty2Label.setText("Property 2:")
+            self.lgProperty3Label.setText("Property 3:")
+            self.lgProp1Box = QLineEdit(self)
+            self.lgProp2Box = QLineEdit(self)
+            self.lgProp3Box = QLineEdit(self)
+        self.lgProp1Box.setGeometry(self.property1Geometry)
+        self.lgProp2Box.setGeometry(self.property2Geometry)
+        self.lgProp3Box.setGeometry(self.property3Geometry)
+        self.lgProp1Box.setFont(self.property1Font)
+        self.lgProp2Box.setFont(self.property2Font)
+        self.lgProp3Box.setFont(self.property3Font)
+        self.lgProp1Box.show()
+        self.lgProp2Box.show()
+        self.lgProp3Box.show()
 
     def accepted(self):
         res = self.setValues()

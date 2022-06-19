@@ -89,6 +89,7 @@ class lgLink(systemState, schema):
         self.lgLinkNo.value = 0
         self.mastDefinitionPath.value = ""
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
+        self.mastTypes = []
         trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.commitAll()
         if self.demo:
@@ -230,7 +231,7 @@ class lgLink(systemState, schema):
             self.delete()
         return rc.OK
 
-    def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
+    def getXmlConfigTree(self, decoder=True, text=False, includeChilds=True): #Change decoder value
         trace.notify(DEBUG_TERSE, "Providing Light group link .xml configuration")
         lgLinkXml = ET.Element("LightgroupsLink")
         sysName = ET.SubElement(lgLinkXml, "SystemName")
@@ -242,17 +243,13 @@ class lgLink(systemState, schema):
         if not decoder:
             mastDef = ET.SubElement(lgLinkXml, "MastDefinitionPath")
             mastDef.text = self.mastDefinitionPath.value
-        if decoder:
-            #Provide actual mast definitions
-            pass
         satLink = ET.SubElement(lgLinkXml, "Link")
         satLink.text = str(self.lgLinkNo.value)
         if not decoder:
             adminState = ET.SubElement(lgLinkXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]
         elif decoder:
-            ################# PROVIDE MASTS DEFINITION ###############
-            pass
+            lgLinkXml.append(self.__getXmlMastDesc())
         if includeChilds:
             childs = True
             try:
@@ -261,7 +258,7 @@ class lgLink(systemState, schema):
                 childs = False
             if childs:
                 for child in self.childs.value:
-                    lgLinkXml.append(child.getXmlConfigTree())
+                    lgLinkXml.append(child.getXmlConfigTree(decoder=decoder))
         return minidom.parseString(ET.tostring(lgLinkXml)).toprettyxml(indent="   ") if text else lgLinkXml
 
     def getMethods(self):
@@ -359,6 +356,13 @@ class lgLink(systemState, schema):
     def getDecoderUri(self):
         return self.parent.getDecoderUri()
 
+    def getLightGroupTypes(self):
+        pass
+
+    def getMastTypes(self):
+        self.__getXmlMastDesc()
+        return self.mastTypes
+
     def __validateConfig(self):
         res = self.parent.checkSysName(self.lgLinkSystemName.candidateValue)
         if res != rc.OK:
@@ -379,13 +383,142 @@ class lgLink(systemState, schema):
 
     def __setConfig(self):
         self.lgLinkOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LGLINK_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.lgLinkSystemName.value
+        self.lgLinkAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LGLINK_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.lgLinkSystemName.value
         self.unRegOpStateCb(self.__sysStateListener)
         self.regOpStateCb(self.__sysStateListener)
         return rc.OK
 
     def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Light group link " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
+        trace.notify(DEBUG_INFO, "Light group link " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.lgLinkOpTopic, ON_LINE)
-        elif self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_UNAVAIL):
-            self.mqttClient.publish(self.lgLinkOpTopic, OFF_LINE)
+            self.mqttClient.publish(self.lgLinkOpTopic, OP_AVAIL_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.lgLinkOpTopic, OP_UNAVAIL_PAYLOAD)
+        if self.getAdmState() == ADM_ENABLE:
+            self.mqttClient.publish(self.lgLinkAdmTopic, ADM_ON_LINE_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.lgLinkAdmTopic, ADM_OFF_LINE_PAYLOAD)
+
+    def __getXmlMastDesc(self):
+        self.__getMastAspects()
+        trace.notify(DEBUG_TERSE, "Providing mastAspects over arching decoders .xml configuration")
+        xmlSignalmastDesc = ET.Element("SignalMastDesc")
+        xmlAspects = ET.SubElement(xmlSignalmastDesc, "Aspects")
+        for aspect in self.aspectTable:
+            xmlAspect = ET.SubElement(xmlAspects, "Aspect")
+            xmlAspectName = ET.SubElement(xmlAspect, "AspectName")
+            xmlAspectName.text = aspect
+            for mast in self.aspectTable.get(aspect):
+                xmlMast = ET.SubElement(xmlAspect, "Mast")
+                xmlMastType = ET.SubElement(xmlMast, "Type")
+                xmlMastType.text = str(mast)
+                for headAspect in (self.aspectTable.get(aspect).get(mast).get("headAspects")):
+                    xmlHead = ET.SubElement(xmlMast, "Head")
+                    xmlHead.text = str(headAspect)
+                xmlNoofpxl = ET.SubElement(xmlMast, "NoofPxl")
+                xmlNoofpxl.text = str(
+                    self.aspectTable.get(aspect).get(mast).get("NoofPxl")
+                )
+        return xmlSignalmastDesc
+
+    def __getMastAspects(self):
+        trace.notify(DEBUG_INFO, "Configuring mastAspects")
+        self.aspectTable = {}
+        try:
+            aspectsXmlTree = ET.ElementTree(ET.fromstring(self.rpcClient.getFile(self.mastDefinitionPath.value + "/aspects.xml")))
+        except:
+            trace.notify(DEBUG_PANIC, "aspects.xml not found")
+            assert false
+
+        if str(aspectsXmlTree.getroot().tag) != "aspecttable":
+            trace.notify(DEBUG_PANIC, "aspects.xml missformated")
+            assert false
+        found = False
+        for child in aspectsXmlTree.getroot():
+            if child.tag == "aspects":
+                for subchild in child:
+                    if subchild.tag == "aspect":
+                        for subsubchild in subchild:
+                            if subsubchild.tag == "name":
+                                self.aspectTable[subsubchild.text] = None
+                                found = True
+                                break
+        if found == False:
+            trace.notify(DEBUG_PANIC, "no Aspects found - aspects.xml  missformated")
+            assert false
+        fileFound = False
+        self.mastTypes = []
+        for filename in self.rpcClient.listDir(self.mastDefinitionPath.value):
+            if filename.endswith(".xml") and filename.startswith("appearance-"):
+                fileFound = True
+                if self.mastDefinitionPath.value.endswith("\\"):  # Is the directory/filename really defining the SM type?
+                    mastType = (self.mastDefinitionPath.value.split("\\")[-2] + ":" + (filename.split("appearance-")[-1]).split(".xml")[0])  # Fix UNIX portability
+                else:
+                    mastType = (self.mastDefinitionPath.value.split("\\")[-1] + ":" + (filename.split("appearance-")[-1]).split(".xml")[0])
+                self.mastTypes.append(mastType)
+                trace.notify(DEBUG_INFO, "Parsing Appearance file: " + self.mastDefinitionPath.value + "\\" + filename)
+                appearanceXmlTree = ET.ElementTree(ET.fromstring(self.rpcClient.getFile(self.mastDefinitionPath.value + "\\" + filename)))
+                if str(appearanceXmlTree.getroot().tag) != "appearancetable":
+                    trace.notify(DEBUG_PANIC, filename + " is  missformated")
+                    assert false
+                found = False
+                for child in appearanceXmlTree.getroot():
+                    if child.tag == "appearances":
+                        for subchild in child:
+                            if subchild.tag == "appearance":
+                                headAspects = []
+                                aspectName = None
+                                cnt = 0
+                                for subsubchild in subchild:
+                                    if subsubchild.tag == "aspectname":
+                                        aspectName = subsubchild.text
+                                    if aspectName != None and subsubchild.tag == "show":
+                                        found = True
+                                        headAspects.append(
+                                            self.__decodeAppearance(subsubchild.text)
+                                        )
+                                        cnt += 1
+                                        x = self.aspectTable.get(aspectName)
+                                        if x == None:
+                                            x = {
+                                                mastType: {
+                                                    "headAspects": headAspects,
+                                                    "NoofPxl": -(-cnt // 3) * 3,
+                                                }
+                                            }
+                                        else:
+                                            x[mastType] = {
+                                                "headAspects": headAspects,
+                                                "NoofPxl": -(-cnt // 3) * 3,
+                                            }
+                                        self.aspectTable[aspectName] = x
+                if found == False:
+                    trace.notify(DEBUG_PANIC, "No Appearances found in: " + filename)
+                    assert false
+        if fileFound != True:
+            trace.notify(DEBUG_PANIC, "No Appearance file found")
+            assert false
+        trace.notify(DEBUG_INFO, "mastAspects successfulyy generated")
+        return appearanceXmlTree
+
+    def __decodeAppearance(self, appearance):
+        if (
+            appearance == "red"
+            or appearance == "green"
+            or appearance == "yellow"
+            or appearance == "lunar"
+        ):
+            return "LIT"
+        elif (
+            appearance == "flashred"
+            or appearance == "flashgreen"
+            or appearance == "flashyellow"
+            or appearance == "flashlunar"
+        ):
+            return "FLASH"
+        elif appearance == "dark":
+            return "UNLIT"
+        else:
+            trace.notify(DEBUG_PANIC, "A non valid appearance: " + appearance + " was found")
+# End LgLink
+#------------------------------------------------------------------------------------------------------------------------------------------------

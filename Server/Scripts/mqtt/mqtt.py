@@ -82,8 +82,13 @@ class mqtt(pahomqtt.Client):
             self.subscribe(topic, qos=0)
             trace.notify(DEBUG_INFO, "Adding new subscription for topic: " + topic + " with callback: " + str(callback) + " to MQTT client " + str(self.clientId))
         else:
-            self.subscriptions[topic].append(callback)
-            trace.notify(DEBUG_INFO, "Adding callback to existing subscription for topic: " + topic + " with callback: " + str(callback) + " to MQTT client " + str(self.clientId))
+            try:
+                self.subscriptions[topic].index(callback)
+            except:
+                self.subscriptions[topic].append(callback)
+                trace.notify(DEBUG_INFO, "Adding callback to existing subscription for topic: " + topic + " with callback: " + str(callback) + " to MQTT client " + str(self.clientId))
+            else:
+                trace.notify(DEBUG_INFO, "Callback already exists for topic: " + topic + " callback: " + str(callback) + " to MQTT client " + str(self.clientId))
         return rc.OK
 
     def unsubscribeTopic(self, topic, callback):

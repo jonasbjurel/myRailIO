@@ -101,8 +101,8 @@ class lightGroup(systemState, schema):
         self.lgLinkAddr.value = 0
         self.lgType.value = "SIGNAL MAST"
         self.lgProperty1.value = ""
-        self.lgProperty2.value = ""
-        self.lgProperty3.value = ""
+        self.lgProperty2.value = "NORMAL"
+        self.lgProperty3.value = "NORMAL"
         trace.notify(DEBUG_INFO,"New Light group: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP, displayIcon=TRAFFICLIGHT_ICON)
         self.lgShowing = "UNKOWN" #NEED TO FIX BUSINESS LOGIC
@@ -178,13 +178,15 @@ class lightGroup(systemState, schema):
     def checkSysName(self, sysName): #Just from the template - not applicable for this object leaf
         return self.parent.checkSysName(sysName)
 
-
-
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration commit0()")
         if self.schemaDirty:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " was reconfigured, commiting configuration")
             self.commitAll()
+            print("############################################COMMITED ALL##############################################")
+            print(self.lgProperty1.value)
+            print(self.lgProperty1.candidateValue)
+
             self.win.reSetMoMObjStr(self.item, self.nameKey.value)
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " was not reconfigured, skiping config commitment")
@@ -197,9 +199,9 @@ class lightGroup(systemState, schema):
                 trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.value + " was reconfigured - applying the configuration")
                 res = self.__setConfig()
             except:
-                trace.notify(DEBUG_PANIC, "Could not set new configuration for Actuator " + self.jmriLgSystemName.value)
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for Light group " + self.jmriLgSystemName.value + " , traceback: " + str(traceback.print_exc()))
             if res != rc.OK:
-                trace.notify(DEBUG_PANIC, "Could not set new configuration for Actuator " + self.jmriLgSystemName.value)
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for Light group " + self.jmriLgSystemName.value)
                 return rc.GEN_ERR
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.value + " was not reconfigured, skiping re-configuration")
@@ -301,19 +303,55 @@ class lightGroup(systemState, schema):
         return rc.OK
 
     def __setConfig(self):
+        try:
+            if self.self.lgType.value.value == "SIGNAL MAST":
+                lightGroups = self.rpcClient.getConfigsByType(jmriObj.MASTS)
+                lightGroup = lightGroups[jmriObj.getObjTypeStr(jmriObj.MASTS)][self.jmriLgSystemName.value]
+                self.actState = self.rpcClient.getStateBySysName(jmriObj.MASTS, self.jmriLgSystemName.value)
+            else:
+                trace.notify(DEBUG_INFO, "Could not create Light group type " + self.lgType.value + " for " + self.nameKey.value +" , type not supported")
+                return rc.PARAM_ERR
+            trace.notify(DEBUG_INFO, "System name " + self.jmriLgSystemName.value + " already configured in JMRI, re-using it")
+        except:
+            trace.notify(DEBUG_INFO, "SIGNAL MAST name " + self.jmriLgSystemName.value + " doesnt exist in JMRI, creating it")
+            if self.lgType.value == "SIGNAL MAST":
+                if self.rpcClient.createObject(jmriObj.MASTS, self.jmriLgSystemName.value) != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Could not create JMRI instance " + self.nameKey.value)
+                    return rc.GEN_ERR
+            else:
+                trace.notify(DEBUG_INFO, "Could not create Light group type " + self.lgType.value + " for " + self.nameKey.value +" , type not supported")
+                return rc.PARAM_ERR
+        if self.lgType.value == "SIGNAL MAST":
+            self.rpcClient.setUserNameBySysName(jmriObj.MASTS, self.jmriLgSystemName.value, self.userName.value)
+            self.rpcClient.setCommentBySysName(jmriObj.MASTS, self.jmriLgSystemName.value, self.description.value)
+            self.lgShowing = str(self.rpcClient.getStateBySysName(jmriObj.MASTS, self.jmriLgSystemName.value))
+            self.rpcClient.unRegEventCb(jmriObj.MASTS, self.jmriLgSystemName.value, self.__lgChangeListener)
+            self.rpcClient.regEventCb(jmriObj.MASTS, self.jmriLgSystemName.value, self.__lgChangeListener)
+            self.rpcClient.unRegMqttPub(jmriObj.MASTS, self.jmriLgSystemName.value)
+            self.rpcClient.regMqttPub(jmriObj.MASTS, self.jmriLgSystemName.value, MQTT_LIGHTGROUP_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value, {"*":"*"})
+            self.actOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_TURNOUT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        else:
+            trace.notify(DEBUG_INFO, "Could not create Light group type " + self.lgType.value + " for " + self.nameKey.value +" , type not supported")
+            return rc.PARAM_ERR
         self.lgOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        self.lgAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
         self.unRegOpStateCb(self.__sysStateListener)
         self.regOpStateCb(self.__sysStateListener)
         return rc.OK
 
     def __lgChangeListener(self, event):
-        pass
+        trace.notify(DEBUG_VERBOSE, "Light group  " + self.nameKey.value + " changed value from " + str(event.oldState) + " to " + str(event.newState))
+        self.lgShowing = str(event.newState)
 
     def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Light group  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
+        trace.notify(DEBUG_INFO, "Light group  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.lgOpTopic, ON_LINE)
-        elif self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_UNAVAIL):
-            self.mqttClient.publish(self.lgOpTopic, OFF_LINE)
+            self.mqttClient.publish(self.lgOpTopic, OP_AVAIL_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.lgOpTopic, OP_UNAVAIL_PAYLOAD)
+        if self.getAdmState() == ADM_ENABLE:
+            self.mqttClient.publish(self.lgAdmTopic, ADM_ON_LINE_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.lgAdmTopic, ADM_OFF_LINE_PAYLOAD)
 # End Lightgroups
 #------------------------------------------------------------------------------------------------------------------------------------------------

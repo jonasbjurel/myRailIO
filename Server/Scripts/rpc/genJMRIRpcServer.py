@@ -413,6 +413,8 @@ class jmriRpcShimAPI(jmriAPIShim):
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcsetRpcServerDebugLevel)
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcGetKeepaliveInterval)
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcSetKeepaliveInterval)
+        jmriRpcServer.regFn(jmriRpcShimAPI.rpcGetFile)
+        jmriRpcServer.regFn(jmriRpcShimAPI.rpcListDir)
         jmriRpcShimAPI.mqttPubRecordDict = {}
         jmriRpcShimAPI.mqttSubRecordDict = {}
     @staticmethod
@@ -492,6 +494,23 @@ class jmriRpcShimAPI(jmriAPIShim):
     @staticmethod
     def rpcSetKeepaliveInterval(keepaliveInterval):
         return jmriRpcShimAPI.setKeepaliveInterval(keepaliveInterval)
+
+    @staticmethod
+    def rpcGetFile(fileName):
+        try:
+            f = open(fileName, "r")
+            fileContent = f.read()
+            f.close()
+            return fileContent
+        except:
+            return None
+
+    @staticmethod
+    def rpcListDir(path):
+        try:
+            return os.listdir(path)
+        except:
+            return None
 # END <jmriRpcShimAPI> -------------------------------------------------------------------------------------------------------------------------
 
 

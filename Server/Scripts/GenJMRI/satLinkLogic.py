@@ -264,7 +264,7 @@ class satLink(systemState, schema):
                 childs = False
             if childs:
                 for child in self.childs.value:
-                    satLinkXml.append(child.getXmlConfigTree())
+                    satLinkXml.append(child.getXmlConfigTree(decoder=decoder))
         return minidom.parseString(ET.tostring(satLinkXml)).toprettyxml(indent="   ") if text else satLinkXml
 
     def getMethods(self):
@@ -387,9 +387,10 @@ class satLink(systemState, schema):
         return rc.OK
 
     def __setConfig(self):
+        self.satLinkOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value
+        self.satLinkAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value
         #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value, self.__onStats)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value, self.__onStats)
-        self.satLinkOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value
         self.unRegOpStateCb(self.__sysStateListener)
         self.regOpStateCb(self.__sysStateListener)
         return rc.OK
@@ -397,10 +398,14 @@ class satLink(systemState, schema):
     def __sysStateListener(self):
         trace.notify(DEBUG_INFO, "Satelite Link " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.satLinkOpTopic, ON_LINE)
+            self.mqttClient.publish(self.satLinkOpTopic, OP_AVAIL_PAYLOAD)
             self.clearStats()
-        elif self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_UNAVAIL):
-            self.mqttClient.publish(self.satLinkOpTopic, OFF_LINE)
+        else:
+            self.mqttClient.publish(self.satLinkOpTopic, OP_UNAVAIL_PAYLOAD)
+        if self.getAdmState() == ADM_ENABLE:
+            self.mqttClient.publish(self.satLinkAdmTopic, ADM_ON_LINE_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.satLinkAdmTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __onStats(self, topic, payload):
         trace.notify(DEBUG_VERBOSE, self.nameKey.value + " received a statistics report")
@@ -409,14 +414,10 @@ class satLink(systemState, schema):
         prevRxSymErr = self.rxSymErr
         prevRxSizeErr = self.rxSizeErr
         prevWdErr = self.wdErr
-
-
         statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
         if str(statsXmlTree.getroot().tag) != "statReport":
             trace.notify(DEBUG_ERROR, "SatLink statistics report missformated")
             return
-
-
         statsXmlVal = parse_xml(statsXmlTree.getroot(),
                                 {"rxCrcErr": MANINT,
                                  "remCrcErr": MANINT,
@@ -425,14 +426,11 @@ class satLink(systemState, schema):
                                  "wdErr": MANINT
                                 }
                                )
-
         rxCrcErr = int(statsXmlVal.get("rxCrcErr"))
         remCrcErr = int(statsXmlVal.get("remCrcErr"))
         rxSymErr = int(statsXmlVal.get("rxSymErr"))
         rxSizeErr = int(statsXmlVal.get("rxSizeErr"))
         wdErr = int(statsXmlVal.get("wdErr"))
-
-
         if not self.getOpStateDetail():
             # We expect a report every second
             self.rxCrcErr += rxCrcErr
@@ -448,7 +446,6 @@ class satLink(systemState, schema):
                wdErr > SATLINK_WD_ES_HIGH_TRESH:
                 trace.notify(DEBUG_INFO, self.nameKey.value + " entered into an \"Errored second\" opState")
                 self.setOpStateDetail(OP_ERRSEC)
-
         elif self.getOpStateDetail() & OP_ERRSEC[STATE]:
             if rxCrcErr <= SATLINK_CRC_ES_LOW_TRESH and\
                remCrcErr <= SATLINK_CRC_ES_LOW_TRESH and\
@@ -467,3 +464,5 @@ class satLink(systemState, schema):
             self.rxSizeErr += 1
             self.wdErr += 1
             time.sleep(0.25)
+# End Sat Link
+#------------------------------------------------------------------------------------------------------------------------------------------------

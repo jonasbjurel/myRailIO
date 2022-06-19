@@ -1,4 +1,3 @@
-TODO CLIMBING UPWARDS:
 2) Review the implementation of validate() 
 	- including validate()
 	- including syslog messages for validate()
@@ -9,8 +8,6 @@ TODO CLIMBING UPWARDS:
 8) Create graceful methods to terminate - eg unregister all RPC pubs/subs - sending MQTT OFFLINE, etc
 9) NEED TO CHECK THE SYSNAME PREFIX - ESPECIALLY WHEN CREATING A ACTUATOR - SEEMS NOT TO BE CHECKED AGAINST THE ACTUATOR TYPE CREATED - IN CASE TEH SYSNAME PREFIX IS NOT ALIGNED WITH THE TYPE CREATED - JMRI WILL PREPEND A SYSNAME PREFIX - LEADING TO PROBLEMS!!
 10) mqtt.unsubscribeTopic does not work - breaks mqtt altogether - temporarrily disabled
-11) Remove all own op blocking causes at Admin deblock/enable
-12) Differentiate between AdminBlock an OP block towards decioders and their objects
 13) Define a destructor method for all methods
 14) Fix absolute paths in rpc
 15) Evaluate Non GUI managed MOs
@@ -23,6 +20,6 @@ TODO CLIMBING UPWARDS:
 17) Fix rpc restart (disabled because it doesn't work - preventing day2 rpc reconfig)
 18) Mqtt restart doesn't re-subscribe, maybe it shouldnt
 19) Add xml (and GUI?) support for multiple SNMP and NTP servers
-20) Add decoder businesslogic - receiving discovery requests, sending config (including mast definitions retrieved from RPC), keep-alive, etc.
-21) Add support for decoder config generation
-
+20) trace.notify in ui.py
+21) More enforcements needed on Lightgroup SIGNAL MAST. ENFORCE System Name - Once system name is set type should not be editable...
+22) In general - once system name is set - it should not be editable

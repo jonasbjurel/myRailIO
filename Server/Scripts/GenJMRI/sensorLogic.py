@@ -280,9 +280,12 @@ class sensor(systemState, schema):
             sensors = self.rpcClient.getConfigsByType(jmriObj.SENSORS)
             sensor = sensors[jmriObj.getObjTypeStr(jmriObj.SENSORS)][self.jmriSensSystemName.value]
             trace.notify(DEBUG_INFO, "System name " + self.jmriSensSystemName.value + " already configured in JMRI, re-using it")
+
         except:
             trace.notify(DEBUG_INFO, "System name " + self.jmriSensSystemName.value + " doesnt exist in JMRI, creating it")
             self.rpcClient.createObject(jmriObj.SENSORS, self.jmriSensSystemName.value)
+        self.sensOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        self.sensAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
         self.rpcClient.setUserNameBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value, self.userName.value)
         self.rpcClient.setCommentBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value, self.description.value)
         self.sensState = self.rpcClient.getStateBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value)
@@ -290,7 +293,6 @@ class sensor(systemState, schema):
         self.rpcClient.unRegMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value)
         self.rpcClient.regEventCb(jmriObj.SENSORS, self.jmriSensSystemName.value, self.__senseChangeListener)
         self.rpcClient.regMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value, MQTT_SENS_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value, {"*":"*"})
-        self.sensOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
         self.unRegOpStateCb(self.__sysStateListener)
         self.regOpStateCb(self.__sysStateListener)
         return rc.OK
@@ -302,8 +304,12 @@ class sensor(systemState, schema):
     def __sysStateListener(self):
         trace.notify(DEBUG_INFO, "Sensor  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.sensOpTopic, ON_LINE)
-        elif self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_UNAVAIL):
-            self.mqttClient.publish(self.sensOpTopic, OFF_LINE)
+            self.mqttClient.publish(self.sensOpTopic, OP_AVAIL_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.sensOpTopic, OP_UNAVAIL_PAYLOAD)
+        if self.getAdmState() == ADM_ENABLE:
+            self.mqttClient.publish(self.sensAdmTopic, ADM_ON_LINE_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.sensAdmTopic, ADM_OFF_LINE_PAYLOAD)
 # End Sensors
 #------------------------------------------------------------------------------------------------------------------------------------------------

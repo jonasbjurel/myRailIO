@@ -142,6 +142,10 @@
 #           Description: set current keep-alive interval (s)
 #           Parameters: int: keepaliveInterval keep alive interval
 #
+#       getFile(fileName): returns fileContent or None
+#           Description: get file content on RPC server side
+#           Parameters: str: filepath\filename
+#
 # Callbacks:
 #       errcb(int:ErrNo): returns None
 #           Description: Called when a RPC client error has occured, callback is registered by jmriRpcClient.start
@@ -275,7 +279,7 @@ def getCallBackNewState(checkDict):
 class jmriRpcClient():
     def __init__(self):
         pass
-    
+
     def start(self, uri="localhost", portBase = 8000, errCb=None):
         trace.notify(DEBUG_INFO, "Starting RPC client - remote end-points: " + uri + ":" + str(portBase) + " and "  + uri + ":" + str(portBase+1))
         self.rpc = xmlrpc.client.ServerProxy("http://" + uri + ":" + str(portBase) + "/")
@@ -508,6 +512,18 @@ class jmriRpcClient():
         self.keepaliveTimerHandle.start()
         return self.rpc.rpcSetKeepaliveInterval(keepaliveInterval)
 
+    def getFile(self, fileName):
+        try:
+            return self.rpc.rpcGetFile(fileName)
+        except:
+            return None
+
+    def listDir(self, path):
+        #try:
+        return self.rpc.rpcListDir(path)
+        #except:
+        #    return None
+
     def cbGenerator(self):
         while self.running:
             trace.notify(DEBUG_VERBOSE, "Waiting for call-back")
@@ -541,7 +557,6 @@ class jmriRpcClient():
             if self.errCb != None:
                 self.errCb(rc.KEEPALIVE_TIMEOUT)
             trace.notify(DEBUG_PANIC, "RPC keepalive error,  more than " + str(MAX_MISSED_KEEPALIVE) + " keep-alive messages missed")
-
         else:
             self.keepaliveTimerHandle = threading.Timer(self.keepAlive, self.keepAliveTimer)
             self.keepaliveTimerHandle.start()

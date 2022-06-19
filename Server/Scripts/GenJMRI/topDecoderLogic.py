@@ -142,6 +142,7 @@ class topDecoder(systemState, schema):
         self.decoderFailSafe.value = True
         self.trackFailSafe.value = DEFAULT_TRACK_FAILSAFE
         self.xmlConfig = None
+        self.nestedUpdate = 0
         self.commitAll()
         if self.demo:
             for i in range(6):
@@ -314,10 +315,18 @@ class topDecoder(systemState, schema):
                 if res != rc.OK:
                         trace.notify(DEBUG_ERROR, "Failed to add decoder to topDecoder - return code: " + rc.getErrStr(res))
                         return res
+            for child in self.childs.value:
+                child.decoderRestart()
         return rc.OK
 
     def updateReq(self):
-        return self.validate()
+        self.nestedUpdate += 1
+        res = self.validate()
+        self.nestedUpdate -= 1
+        if self.nestedUpdate == 0:
+            for child in self.childs.value:
+                child.decoderRestart()
+        return res
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "topDecoder received configuration validate()")
@@ -428,7 +437,7 @@ class topDecoder(systemState, schema):
             self.delete()
         return rc.OK
 
-    def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
+    def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True, onlyIncludeThisChild=False):
             trace.notify(DEBUG_TERSE, "Providing top decoder over arching decoder .xml configuration")
             topXml = ET.Element("genJMRI")
             if not decoder:
@@ -515,8 +524,11 @@ class topDecoder(systemState, schema):
                 adminState = ET.SubElement(topXml, "AdminState")
                 adminState.text = self.getAdmState()[STATE_STR]
             if includeChilds:
-                for decoder in self.decoders.value:
-                    topXml.append(decoder.getXmlConfigTree(text=False))
+                if not onlyIncludeThisChild:
+                    for decoderItter in self.decoders.value:
+                        topXml.append(decoderItter.getXmlConfigTree(decoder=decoder, text=False))
+                else:
+                    topXml.append(onlyIncludeThisChild.getXmlConfigTree(decoder=decoder, text=False))
             return minidom.parseString(ET.tostring(topXml, 'unicode')).toprettyxml() if text else topXml
 
     def getMethods(self):
@@ -631,8 +643,11 @@ class topDecoder(systemState, schema):
         # Set NTP server
         # Set RSYSLOG server
         self.topDecoderOpTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC)[:-1]
+        self.topDecoderAdmTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC)[:-1]
         self.unRegOpStateCb(self.__sysStateListener)
         self.regOpStateCb(self.__sysStateListener)
+        #self.mqttClient.unSubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
         return rc.OK
 
     def __setVersion(self, version):
@@ -670,8 +685,23 @@ class topDecoder(systemState, schema):
         pass
 
     def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Top decoder got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
+        trace.notify(DEBUG_INFO, "Top decoder got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.topDecoderOpTopic, ON_LINE)
-        elif self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_UNAVAIL):
-            self.mqttClient.publish(self.topDecoderOpTopic, OFF_LINE)
+            self.mqttClient.publish(self.topDecoderOpTopic, OP_AVAIL_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.topDecoderOpTopic, OP_UNAVAIL_PAYLOAD)
+        if self.getAdmState() == ADM_ENABLE:
+            self.mqttClient.publish(self.topDecoderAdmTopic, ADM_ON_LINE_PAYLOAD)
+        else:
+            self.mqttClient.publish(self.topDecoderAdmTopic, ADM_OFF_LINE_PAYLOAD)
+
+    def __onDiscoveryReq(self, topic, payload):
+        try:
+            self.discoveryConfigXML
+        except:
+            trace.notify(DEBUG_INFO, "Top decoder received a discovery request, but it was not yet configured - cannot respond")
+        else:
+            trace.notify(DEBUG_INFO, "Top decoder received a discovery request - responding")
+            self.mqttClient.publish(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC, self.discoveryConfigXML)
+# End TopDecoder
+#------------------------------------------------------------------------------------------------------------------------------------------------

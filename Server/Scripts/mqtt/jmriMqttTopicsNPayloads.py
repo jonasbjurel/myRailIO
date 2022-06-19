@@ -15,30 +15,34 @@
 MQTT_JMRI_PRE_TOPIC =                       "/trains/"
 
 
-MQTT_DECODER_DISCOVERY_REQUEST_TOPIC = "track/discoveryreq/"                            # Discovery request from decoders
-MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC = "track/discoveryres/"                           # Discovery response from server (aka topDecoder)
-MQTT_DECODER_SUPERVISION_UPSTREAM_TOPIC = "track/decoderSupervision/upstream/"          # Ping/super
-MQTT_DECODER_SUPERVISION_DOWNSTREAM_TOPIC = "track/decoderSupervision/downstream/"
-MQTT_DECODER_CONFIG_TOPIC = "track/decoderMgmt/"                                        # Decoder configuration topic sent from  server (aka topDecoder)
-MQTT_LOG_TOPIC = "track/log/"                                                           # Logs sent from decoders
+MQTT_DECODER_DISCOVERY_REQUEST_TOPIC =      "track/discoveryreq"                                # Discovery request from decoders
+MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC =     "track/discoveryresp"                               # Discovery response from server (aka topDecoder)
+MQTT_LOG_TOPIC =                            "track/log/"                                        # Logs sent from decoders
+MQTT_DECODER_CONFIGREQ_TOPIC =              "track/decoderconfigreq/"
+MQTT_DECODER_CONFIG_TOPIC =                 "track/decoderconfig/"
 
-MQTT_OPSTATE_TOPIC =    "opState/"                                                         # Decoder Operational state sent to decoders
-MQTT_TOPDECODER_TOPIC =    "track/topdecoder/"
-MQTT_DECODER_TOPIC =    "track/decoder/"
-MQTT_LGLINK_TOPIC =     "track/lglink/"
-MQTT_LG_TOPIC =         "track/lightgroup/"
+MQTT_OPSTATE_TOPIC =                        "opState/"                                          # Decoder Operational state sent to decoders
+MQTT_ADMSTATE_TOPIC =                       "admState/"                                         # Decoder Operational state sent to decoders
 
-MQTT_SATLINK_TOPIC =    "track/sateliteLink/"
-MQTT_SAT_TOPIC =        "track/satelite/"
-MQTT_ASPECT_TOPIC = "track/lightgroups/lightgroup/"
-MQTT_TURNOUT_TOPIC = "track/turnout/"
-MQTT_LIGHT_TOPIC = "track/light/"
-MQTT_SENS_TOPIC = "track/sensor/"
-MQTT_MEMORY_TOPIC = "track/memory/"
-MQTT_STATE_TOPIC = "state/"
-MQTT_STATS_TOPIC = "statistics/"
+MQTT_TOPDECODER_TOPIC =                     "track/topdecoder/"
+MQTT_DECODER_TOPIC =                        "track/decoder/"
+MQTT_LGLINK_TOPIC =                         "track/lglink/"
+MQTT_LG_TOPIC =                             "track/lightgroup/"
 
-
+MQTT_SATLINK_TOPIC =                        "track/sateliteLink/"
+MQTT_SAT_TOPIC =                            "track/satelite/"
+MQTT_ASPECT_TOPIC =                         "track/lightgroups/lightgroup/"
+MQTT_TURNOUT_TOPIC =                        "track/turnout/"
+MQTT_LIGHT_TOPIC =                          "track/light/"
+MQTT_LIGHTGROUP_TOPIC =                     "track/lightgroup/"
+MQTT_SENS_TOPIC =                           "track/sensor/"
+MQTT_MEMORY_TOPIC =                         "track/memory/"
+MQTT_STATE_TOPIC =                          "state/"
+MQTT_STATS_TOPIC =                          "statistics/"
+MQTT_DISCOVERY_REQ =                        "track/discoveryreq"
+MQTT_DISCOVERY_RSEP =                       "track/discoveryresp"
+MQTT_SUPERVISION_UPSTREAM =                 "track/decodersupervision/upstream/"
+MQTT_SUPERVISION_DOWNSTREAM =               "track/decodersupervision/downstream/"
 
 # Southbound Decoder MQTT Payload
 # -------------------------------
@@ -47,16 +51,13 @@ DECODER_UP = "<OPState>onLine</OPState>"
 DECODER_DOWN = "<OPState>offLine</OPState>"
 FAULT_ASPECT = "<Aspect>FAULT</Aspect>"
 NOFAULT_ASPECT = "<Aspect>NOFAULT</Aspect>"
-PING = "<Ping/>"
-ADM_BLOCK = "<AdmState>BLOCK</AdmState>"
-ADM_DEBLOCK = "<AdmState>DEBLOCK</AdmState>"
-PANIC_MSG = "<PANIC/>"
-NOPANIC_MSG = "<NOPANIC/>"
-ON_LINE = "<ONLINE/>"
-OFF_LINE = "<OFFLINE/>"
+PING =                                      "<PING/>"
+
+ADM_ON_LINE_PAYLOAD =                               "<ONLINE/>"
+ADM_OFF_LINE_PAYLOAD =                              "<OFFLINE/>"
+OP_AVAIL_PAYLOAD =                                  "<AVAILABLE/>"
+OP_UNAVAIL_PAYLOAD =                                "<UNAVAILABLE/>"
 
 # Northbound MQTT API topics
 # --------------------------
-MQTT_NB_API_REQ = "genJMRIDecoder/NbAPI/req/"
-MQTT_NB_API_RESP = "genJMRIDecoder/NbAPI/resp/"
-MQTT_NB_API_ALERT = "genJMRIDecoder/NbAPI/alert/"
+

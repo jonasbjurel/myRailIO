@@ -25,6 +25,7 @@ class rc():
     PARSE_ERR =                  9
     TYPE_VAL_ERR =               10
     RANGE_ERR =                  11
+    PARAM_ERR =                  12
     GEN_ERR =                    255
 
     ERROR_TEXT = [""] * 256
@@ -40,6 +41,7 @@ class rc():
     ERROR_TEXT[9] =                 "Parsing error"
     ERROR_TEXT[10] =                 "Type value error"
     ERROR_TEXT[11] =                "Range error"
+    ERROR_TEXT[12] =                "Parameter error"
     ERROR_TEXT[255] =               "General error"
 
     @staticmethod

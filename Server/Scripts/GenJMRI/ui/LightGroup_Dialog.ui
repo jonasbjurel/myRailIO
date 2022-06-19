@@ -452,7 +452,7 @@
     <rect>
      <x>230</x>
      <y>290</y>
-     <width>201</width>
+     <width>531</width>
      <height>41</height>
     </rect>
    </property>
@@ -535,12 +535,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QComboBox" name="lgProp1ComboBox">
+  <widget class="QComboBox" name="lgProp1Box">
    <property name="geometry">
     <rect>
      <x>230</x>
      <y>360</y>
-     <width>201</width>
+     <width>531</width>
      <height>41</height>
     </rect>
    </property>
@@ -573,12 +573,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QComboBox" name="lgProp2ComboBox">
+  <widget class="QComboBox" name="lgProp2Box">
    <property name="geometry">
     <rect>
      <x>230</x>
      <y>430</y>
-     <width>201</width>
+     <width>531</width>
      <height>41</height>
     </rect>
    </property>
@@ -611,12 +611,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QComboBox" name="lgProp3ComboBox">
+  <widget class="QComboBox" name="lgProp3Box">
    <property name="geometry">
     <rect>
      <x>230</x>
      <y>500</y>
-     <width>201</width>
+     <width>531</width>
      <height>41</height>
     </rect>
    </property>
