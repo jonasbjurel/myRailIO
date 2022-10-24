@@ -513,7 +513,7 @@ class UI_setAutoloadPrefsDialog(QDialog):
         self.autoLoadConfigAcceptButtonBox.rejected.connect(self.rejected)
 
     def accepted(self):
-        self.parentObjHandle.setAutoLoad(True if self.autoLoadConfigComboBox.currentText() else False, self.autoLoadConfigDelaySpinBox.value() if self.autoLoadConfigComboBox.currentText() == "Yes" else 0)
+        self.parentObjHandle.setAutoLoad(True if self.autoLoadConfigComboBox.currentText() == "Yes" else False, self.autoLoadConfigDelaySpinBox.value() if self.autoLoadConfigComboBox.currentText() == "Yes" else 0)
         self.close()
 
     def rejected(self):
@@ -594,7 +594,7 @@ class UI_logSettingDialog(QDialog):
         self.parentObjHandle = parentObjHandle
         loadUi(LOGSETTING_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
-        self.logSettingVerbosityComboBox.setCurrentText(long2shortVerbosity(self.parentObjHandle.getLogVerbosity()))
+        self.logSettingVerbosityComboBox.setCurrentText(long2shortVerbosity(self.parentObjHandle.logVerbosity.value))
 
     def connectWidgetSignalsSlots(self):
         self.logSettingConfirmButtonBox.accepted.connect(self.accepted)
@@ -1671,7 +1671,7 @@ class UI_actuatorDialog(QDialog):
         elif self.actTypeComboBox.currentText() == "LIGHT":
             self.actSubTypeComboBox.addItems(["ONOFF"])
         elif self.actTypeComboBox.currentText() == "MEMORY":
-            self.actSubTypeComboBox.addItems(["SOLENOID", "SERVO", "PWM", "ONOFF", "PULSE"])
+            self.actSubTypeComboBox.addItems(["SOLENOID", "SERVO", "PWM100", "PWM1_25K", "ONOFF", "PULSE"])
         else:
             return rc.TYPE_VAL_ERR
         return rc.OK

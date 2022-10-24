@@ -115,7 +115,7 @@ class satelite(systemState, schema):
             satXmlConfig = parse_xml(xmlConfig,
                                         {"SystemName": MANSTR,
                                          "UserName": OPTSTR,
-                                         "Address": MANINT,
+                                         "LinkAddress": MANINT,
                                          "Description": OPTSTR,
                                          "AdminState": OPTSTR
                                         }
@@ -126,7 +126,7 @@ class satelite(systemState, schema):
             else:
                 self.userName.value = ""
             self.nameKey.value = "Sat-" + self.satSystemName.candidateValue
-            self.satLinkAddr.value = satXmlConfig.get("Address")
+            self.satLinkAddr.value = satXmlConfig.get("LinkAddress")
             if satXmlConfig.get("Description") != None:
                 self.description.value = satXmlConfig.get("Description")
             else:
@@ -261,8 +261,8 @@ class satelite(systemState, schema):
         usrName.text = self.userName.value
         descName = ET.SubElement(sateliteXml, "Description")
         descName.text = self.description.value
-        address = ET.SubElement(sateliteXml, "Address")
-        address.text = str(self.satLinkAddr.value)
+        LinkAddress = ET.SubElement(sateliteXml, "LinkAddress")
+        LinkAddress.text = str(self.satLinkAddr.value)
         if not decoder:
             adminState = ET.SubElement(sateliteXml, "AdminState")
             adminState.text = self.getAdmState()[STATE_STR]

@@ -1,0 +1,174 @@
+/*============================================================================================================================================= */
+/* License                                                                                                                                      */
+/*==============================================================================================================================================*/
+// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law and agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/*==============================================================================================================================================*/
+/* END License                                                                                                                                  */
+/*==============================================================================================================================================*/
+
+#ifndef MQTT_H
+#define MQTT_H
+
+
+
+/*==============================================================================================================================================*/
+/* Include files                                                                                                                                */
+/*==============================================================================================================================================*/
+#include <stdlib.h>
+#include <cstddef>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <WiFi.h>
+#include "libraries/pubsubclient/src/PubSubClient.h"
+#include "libraries/ArduinoLog/ArduinoLog.h"
+#include "libraries/QList/src/QList.h"
+#include "libraries/tinyxml2/tinyxml2.h"
+#include "systemState.h"
+#include "networking.h"
+#include "strHelpers.h"
+#include "panic.h"
+#include "rc.h"
+#include "config.h"
+#include "mqttTopics.h"
+
+/*==============================================================================================================================================*/
+/* END Include files                                                                                                                            */
+/*==============================================================================================================================================*/
+
+
+
+/*==============================================================================================================================================*/
+/* Class: mqtt                                                                                                                                  */
+/* Purpose:                                                                                                                                     */
+/* Methods:                                                                                                                                     */
+/* Data structures:                                                                                                                             */
+/*==============================================================================================================================================*/
+#define MQTT_POLL_LATENCY_AVG_TIME_MS       10
+#define MQTT_QOS_0                          0
+#define MQTT_QOS_1                          1
+#define MQTT_RETAIN                         true
+
+typedef void(*mqttSubCallback_t)(const char* topic, const char* payload, const void* args);
+typedef void(*mqttStatusCallback_t)(uint8_t p_mqttStatus, const void* args);
+
+
+struct mqttSub_t {
+    char* topic;
+    mqttSubCallback_t mqttSubCallback;
+    void* mqttCallbackArgs;
+};
+
+struct mqttTopic_t {
+    char* topic;
+    QList<mqttSub_t*>* topicList;
+};
+
+
+
+class mqtt{
+public:
+    //Public methods
+    static rc_t init(const char* p_broker, uint16_t p_port, const char* p_user, const char* p_pass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain);
+    static void regOpStateCb(sysStateCb_t p_systemStateCb, void* p_systemStateCbArgs);
+    static rc_t regStatusCallback(const mqttStatusCallback_t p_statusCallback, const void* args);
+    static rc_t reConnect(void);
+    static void disConnect(void);
+    static rc_t up(void);
+    static void down(void);
+    static rc_t subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback, const void* p_args);
+    static rc_t unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback);
+    static rc_t sendMsg(const char* p_topic, const char* p_payload, bool p_retain = defaultRetain);
+    static rc_t setDecoderUri(const char* p_decoderUri);
+    static const char* getDecoderUri(void);
+    static rc_t setBrokerUri(const char* p_brokerUri);
+    static const char* getBrokerUri(void);
+    static void setBrokerPort(uint16_t p_brokerPort);
+    static uint16_t getBrokerPort(void);
+    static void setBrokerUser(const char* p_brokerUser);
+    static const char* getBrokerUser(void);
+    static void setBrokerPass(const char* p_brokerPass);
+    static const char* getBrokerPass(void);
+    static void setClientId(const char* p_clientId);
+    static const char* getClientId(void);
+    static void setDefaultQoS(bool p_defaultQoS);
+    static bool getDefaultQoS(void);
+    static void setKeepAlive(float p_keepAlive);
+    static float getKeepAlive(void);
+    static void setPingPeriod(float p_pingPeriod);
+    static float getPingPeriod(void);
+    static uint16_t getOpState(void);
+    static uint32_t getOverRuns(void);
+    static void clearOverRuns(void);
+    static uint32_t getMeanLatency(void);
+    static uint32_t getMaxLatency(void);
+    static void clearMaxLatency(void);
+
+    //Public data structures
+    //--
+
+private:
+    //Private methods
+    static void discover(void);
+    static void onDiscoverResponse(const char* p_topic, const char* p_payload, const void* p_dummy);
+    static void poll(void* dummy);
+    static void onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length);
+    static rc_t reSubscribe(void);
+    static void mqttPingTimer(void* dummy);
+    static void onMqttPing(const char* p_topic, const char* p_payload, const void* p_dummy);
+    static void onOpStateChange(const void* p_dummy, uint16_t p_systemState);
+
+
+    //Private data structures
+    static TaskHandle_t* supervisionTaskHandle;
+    static systemState* sysState;
+    static sysStateCb_t systemStateCb;
+    static void* systemStateCbArgs;
+    static SemaphoreHandle_t mqttLock;
+    static WiFiClient espClient;
+    static PubSubClient mqttClient;
+    static uint32_t overRuns;
+    static uint32_t maxLatency;
+    static uint16_t avgSamples;
+    static uint32_t* latencyVect;
+    static char* decoderUri;
+    static char* brokerUri;
+    static uint16_t brokerPort;
+    static char* brokerUser;
+    static char* brokerPass;
+    static char* clientId;
+    static uint8_t defaultQoS;
+    static uint8_t keepAlive;
+    static TaskHandle_t* mqttPingHandle;
+    static bool opStateTopicSet;
+    static char* opStateTopic;
+    static char* upPayload;
+    static char* downPayload;
+    static char* mqttPingUpstreamTopic;
+    static uint8_t missedPings;
+    static int mqttStatus;
+    static uint8_t qos;
+    static bool defaultRetain;
+    static float pingPeriod;
+    static bool discovered;
+    static QList<mqttTopic_t*> mqttTopics;
+    static mqttStatusCallback_t statusCallback;
+    static void* statusCallbackArgs;
+};
+
+/*==============================================================================================================================================*/
+/* END Class mqtt                                                                                                                               */
+/*==============================================================================================================================================*/
+#endif /*MQTT_H*/

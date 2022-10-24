@@ -1,2 +1,0 @@
-<DecoderConfig>
-   <SSID>MySSID</SSID><BROKER>test.mosquitto.org</BROKER><URI>decoder1.jmri.bjurel.com</URI></DecoderConfig>
