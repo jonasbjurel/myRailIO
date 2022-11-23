@@ -23,14 +23,17 @@
 
 // Return Codes
 #define rc_t						int8_t
-#define RC_OK						0														//Do not change, 0 should always be success
-#define RC_GEN_ERR					-127													//Do not change, 255 should always be unspecified error 
-#define RC_OUT_OF_MEM_ERR			-1														//No more memory
-#define RC_PARSE_ERR				-2														//Could not the parse eg XML string
+#define RC_OK						0														// Do not change, 0 should always be success
+#define RC_GEN_ERR					-127													// Do not change, 255 should always be unspecified error 
+#define RC_OUT_OF_MEM_ERR			-1														// No more memory
+#define RC_PARSE_ERR				-2														// Could not the parse eg XML string
 #define RC_NOT_FOUND_ERR			-3														// Object not found
 #define RC_TIMEOUT_ERR				-4														// Timeout
 #define RC_DEBUG_NOT_SET_ERR		-5														// Not in debug mode
 #define RC_NOT_CONFIGURED_ERR		-6														// Not configured
 #define RC_DISCOVERY_ERR			-7														// Discovery failed
-#define RC_NOTIMPLEMENTED_ERR		-126													//Called method not implemented
+#define RC_ALREADYEXISTS_ERR		-8														// Object already exists
+#define RC_PARAMETERVALUE_ERR		-9														// Parameter value error
+
+#define RC_NOTIMPLEMENTED_ERR		-126													// Called method not implemented
 #endif /*RC_H*/

@@ -33,7 +33,7 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-lgLink::lgLink(uint8_t p_linkNo) : systemState(this) {
+lgLink::lgLink(uint8_t p_linkNo) : systemState(this), globalCli(LGLINK_MO_NAME) {
     Log.notice("lgLink::lgLink: Creating Lightgroup link channel %d" CR, p_linkNo);
     linkNo = p_linkNo;
     regSysStateCb((void*)this, &onSysStateChangeHelper);
@@ -46,6 +46,35 @@ lgLink::lgLink(uint8_t p_linkNo) : systemState(this) {
     runtimeVect = new uint32_t[avgSamples];
     if (latencyVect == NULL || runtimeVect == NULL)
         panic("lgLink::satLink: Could not create PM vectors - rebooting...");
+
+    /* CLI decoration methods */
+    // get/set lgLinkNo
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, this, onCliGetLinkHelper);
+    regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, LGLINKNO_GET_LGLINK_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, this, onCliSetLinkHelper);
+    regCmdHelp(SET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, LGLINKNO_SET_LGLINK_HELP_TXT);
+
+    // get/clear lgLink overrun stats
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, this, onCliGetLinkOverrunsHelper);
+    regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, LGLINKNO_GET_LGLINKOVERRUNS_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, this, onCliClearLinkOverrunsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKOVERRUNS_HELP_TXT);
+
+    // get/clear lgLink latency stats
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, this, onCliGetMeanLatencyHelper);
+    regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, LGLINKNO_GET_LGLINKMEANLATENCY_HELP_TXT);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, this, onCliGetMaxLatencyHelper);
+    regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, LGLINKNO_GET_LGLINKMAXLATENCY_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, this, onCliClearMaxLatencyHelper);
+    regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXLATENCY_HELP_TXT);
+
+    // get/clear lgLink runtime stats
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, this, onCliGetMeanRuntimeHelper);
+    regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMEANRUNTIME_HELP_TXT);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, this, onCliGetMaxRuntimeHelper);
+    regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMAXRUNTIME_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, this, onCliClearMaxRuntimeHelper);
+    regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXRUNTIME_HELP_TXT);
 }
 
 lgLink::~lgLink(void) {
@@ -77,7 +106,7 @@ rc_t lgLink::init(void) {
 }
 
 void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
-    if (~(getOpState() & OP_UNCONFIGURED))
+    if (~(systemState::getOpState() & OP_UNCONFIGURED))
         panic("lgLink:onConfig: lgLink received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
     Log.notice("lgLink::onConfig: lgLink channel %d received an uverified configuration, parsing and validating it..." CR, linkNo);
     xmlconfig[XML_LGLINK_SYSNAME] = NULL;
@@ -149,7 +178,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
 
 rc_t lgLink::start(void) {
     Log.notice("lgLink::start: Starting lightgroup link: %d" CR, linkNo);
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("lgLink::start: LG Link %d not configured - will not start it" CR, linkNo);
         setOpState(OP_UNUSED);
         unSetOpState(OP_INIT);
@@ -229,13 +258,17 @@ void lgLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.error("lgLink::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
 }
 
+rc_t lgLink::getOpStateStr(char* p_opStateStr) {
+    return systemState::getOpStateStr(p_opStateStr);
+}
+
 rc_t lgLink::setSystemName(char* p_systemName, bool p_force) {
     Log.error("lgLink::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgLink::getSystemName(const char* p_systemName){
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgLink::getSystemName: cannot get System name as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -248,7 +281,7 @@ rc_t lgLink::setUsrName(char* p_usrName, bool p_force) {
         Log.error("lgLink::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgLink::setUsrName: cannot set System name as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -261,7 +294,7 @@ rc_t lgLink::setUsrName(char* p_usrName, bool p_force) {
 }
 
 rc_t  lgLink::getUsrName(const char* p_userName){
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgLink::getUsrName: cannot get User name as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -274,7 +307,7 @@ rc_t lgLink::setDesc(char* p_description, bool p_force) {
         Log.error("lgLink::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgLink::setDesc: cannot set Description as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -287,7 +320,7 @@ rc_t lgLink::setDesc(char* p_description, bool p_force) {
 }
 
 rc_t lgLink::getDesc(const char* p_desc){
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgLink::getDesc: cannot get Description as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -301,7 +334,7 @@ rc_t lgLink::setLink(uint8_t p_link) {
 }
 
 rc_t lgLink::getLink(uint8_t* p_link) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgLink::getLink: cannot get Link No as lgLink is not configured" CR);
         return RC_GEN_ERR;
     }
@@ -473,8 +506,8 @@ void lgLink::clearMaxRuntime(void) {
 }
 
 flash* lgLink::getFlashObj(uint8_t p_flashType) {
-    if (getOpState() == OP_INIT) {
-        Log.error("lgLink::getFlashObj: opState %d does not allow to provide flash objects - returning NULL - and continuing..." CR, getOpState());
+    if (systemState::getOpState() == OP_INIT) {
+        Log.error("lgLink::getFlashObj: opState %d does not allow to provide flash objects - returning NULL - and continuing..." CR, systemState::getOpState());
         return NULL;
     }
     switch (p_flashType) {
@@ -489,9 +522,119 @@ flash* lgLink::getFlashObj(uint8_t p_flashType) {
         break;
     }
 }
-
 signalMastAspects* lgLink::getSignalMastAspectObj(void){
 return signalMastAspectsObject;
+}
+
+/* CLI decoration methods */
+void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<lgLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg link, return code: %i", rc);
+        return;
+    }
+    printCli("Lightgroup link: %i", link);
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgLink::onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    if (rc = reinterpret_cast<lgLink*>(p_cliContext)->setLink(atoi(cmd.getArgument(1).getValue().c_str()))) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg link, return code: %i", rc);
+        return;
+    }
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgLink::onCliGetLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    printCli("Lightgroup-link overruns: %i", reinterpret_cast<lgLink*>(p_cliContext)->getOverRuns());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgLink::onCliClearLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<lgLink*>(p_cliContext)->clearOverRuns();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgLink::onCliGetMeanLatencyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    printCli("Lightgroup-link mean latency: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMeanLatency());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgLink::onCliGetMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    printCli("Lightgroup-link max latency: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMaxLatency());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgLink::onCliClearMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<lgLink*>(p_cliContext)->clearMaxLatency();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgLink::onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    printCli("Lightgroup-link mean run-time: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMeanRuntime());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgLink::onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    printCli("Lightgroup-link max run-time: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMaxRuntime());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgLink::onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<lgLink*>(p_cliContext)->clearMaxRuntime();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
 /*==============================================================================================================================================*/

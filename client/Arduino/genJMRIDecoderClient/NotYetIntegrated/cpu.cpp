@@ -36,17 +36,10 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-cpu CPU;
-
 SemaphoreHandle_t cpu::cpuPMLock;
-uint64_t cpu::accBusyTime0;
-uint64_t cpu::accTime0;
-uint64_t cpu::accBusyTime1;
-uint64_t cpu::accTime1;
-uint64_t cpu::totalUsHistory0[CPU_HISTORY_SIZE];
-uint64_t cpu::totalUsHistory1[CPU_HISTORY_SIZE];
-uint64_t cpu::busyUsHistory0[CPU_HISTORY_SIZE];
-uint64_t cpu::busyUsHistory1[CPU_HISTORY_SIZE];
+uint64_t cpu::accBusyTime[2] = {0, 0};
+uint64_t cpu::accTime[2] = {0, 0};
+uint64_t cpu::totalUsHistory[2][CPU_HISTORY_SIZE];
 uint8_t cpu::index;
 uint32_t cpu::totIndex;
 float cpu::maxCpuLoad0;
@@ -55,43 +48,43 @@ float cpu::maxCpuLoad1;
 void cpu::init(void) {
 	cpuPMLock = xSemaphoreCreateMutex();
 	xTaskCreatePinnedToCore(
-		cpuMeasurment0,												// Task function
-		"CPU-MEAS-0",												// Task function name reference
-		1024,														// Stack size
-		NULL,														// Parameter passing
-		tskIDLE_PRIORITY + 1,										// Priority 0-24, higher is more
-		NULL,														// Task handle
-		CORE_0);													// Core [CORE_0 | CORE_1]
+		cpuMeasurment0,														// Task function
+		"CPU-MEAS-0",														// Task function name reference
+		1024,																// Stack size
+		NULL,																// Parameter passing
+		tskIDLE_PRIORITY + 1,												// Priority 0-24, higher is more
+		NULL,																// Task handle
+		CORE_0);															// Core [CORE_0 | CORE_1]
 
 	xTaskCreatePinnedToCore(
-		cpuMeasurment1,												// Task function
-		"CPU-MEAS-1",												// Task function name reference
-		1024,														// Stack size
-		NULL,														// Parameter passing
-		tskIDLE_PRIORITY + 1,										// Priority 0-24, higher is more
-		NULL,														// Task handle
-		CORE_1);													// Core [CORE_0 | CORE_1]
+		cpuMeasurment1,														// Task function
+		"CPU-MEAS-1",														// Task function name reference
+		1024,																// Stack size
+		NULL,																// Parameter passing
+		tskIDLE_PRIORITY + 1,												// Priority 0-24, higher is more
+		NULL,																// Task handle
+		CORE_1);															// Core [CORE_0 | CORE_1]
 
-/*	xTaskCreatePinnedToCore(										// *** Debug: Load calibration task ***
-						load,										// Task function
-						"LOAD",										// Task function name reference
-						1024,										// Stack size
-						NULL,										// Parameter passing
-						4,											// Priority 0-24, higher is more
-						NULL,										// Task handle
-						CORE_1);									// Core [CORE_0 | CORE_1] */
+/*	xTaskCreatePinnedToCore(												// *** Debug: Load calibration task ***
+						load,												// Task function
+						"LOAD",												// Task function name reference
+						1024,												// Stack size
+						NULL,												// Parameter passing
+						4,													// Priority 0-24, higher is more
+						NULL,												// Task handle
+						CORE_1);											// Core [CORE_0 | CORE_1] */
 
 	xTaskCreatePinnedToCore(
-		cpuPM,														// Task function
-		"CPU-PM",													// Task function name reference
-		6 * 1024,													// Stack size
-		NULL,														// Parameter passing
-		CPU_PM_POLL_PRIO,											// Priority 0-24, higher is more
-		NULL,														// Task handle
-		CPU_PM_CORE);												// Core [CORE_0 | CORE_1]
+		cpuPM,																// Task function
+		"CPU-PM",															// Task function name reference
+		6 * 1024,															// Stack size
+		NULL,																// Parameter passing
+		CPU_PM_POLL_PRIO,													// Priority 0-24, higher is more
+		NULL,																// Task handle
+		CPU_PM_CORE);														// Core [CORE_0 | CORE_1]
 }
 
-void cpu::load(void* dummy) {										//Calibrating load function - steps the system core load every 5 seconds
+void cpu::load(void* dummy) {												//Calibrating load function - steps the system core load every 5 seconds
 	while (true) {
 		for (uint16_t load = 0; load < 10000; load += 1000) {
 			Serial.print("Generating ");
@@ -108,97 +101,51 @@ void cpu::load(void* dummy) {										//Calibrating load function - steps the s
 	}
 }
 
-void cpu::cpuMeasurment0(void* dummy) {								// Core CPU load measuring function - disables built in idle function, and thus legacy watchdog and heap housekeeping.
-	int64_t measureBusyTimeStart;
-	int64_t measureTimeStart;
-	accBusyTime0 = 0;
-	accTime0 = 0;
-	vTaskSuspendAll();												// Suspend the task scheduling for this core - to take full controll of the scheduling.
+void cpu::cpuMeasurment(void* p_core) {										// Core CPU load measuring function - disables built in idle function, and thus legacy watchdog and heap housekeeping.
+	int64_t measureBusyTimeStart[2];
+	int64_t measureTimeStart[2];
+	uint8_t core = *((uint8_t*)p_core);
+	accBusyTime[core] = 0;
+	accTime[core] = 0;
+	vTaskSuspendAll();														// Suspend the task scheduling for this core - to take full controll of the scheduling.
 	while (true) {
-		measureTimeStart = esp_timer_get_time();					// Start a > 100 mS time measuring loop, we cannot measure the time for each idividual loop for truncation error reasons
-		while (esp_timer_get_time() - measureTimeStart < 100000) {	// Wait 100 mS before granting Idle task runtime
-			measureBusyTimeStart = esp_timer_get_time();			// Start of busy run-time measurement
-			xTaskResumeAll();										// By shortly enabling scheduling we will trigger scheduling of queued higher priority tasks
-			vTaskSuspendAll();										// After completion of the higher priority tasks we will disable scheduling again
-			if (esp_timer_get_time() - measureBusyTimeStart > 10) {	// If the time duration for enabled scheduling was more than 10 uS we assume that the time was spent for busy workloaads and account the time as busy
-				accBusyTime0 += esp_timer_get_time() - measureBusyTimeStart;
+		measureTimeStart[core] = esp_timer_get_time();						// Start a > 100 mS time measuring loop, we cannot measure the time for each idividual loop for truncation error reasons
+		while (esp_timer_get_time() - measureTimeStart[2] < 100000) {		// Wait 100 mS before granting Idle task runtime
+			measureBusyTimeStart[core] = esp_timer_get_time();				// Start of busy run-time measurement
+			xTaskResumeAll();												// By shortly enabling scheduling we will trigger scheduling of queued higher priority tasks
+			vTaskSuspendAll();												// After completion of the higher priority tasks we will disable scheduling again
+			if (esp_timer_get_time() - measureBusyTimeStart[core] > 10) {	// If the time duration for enabled scheduling was more than 10 uS we assume that the time was spent for busy workloaads and account the time as busy
+				accBusyTime[core] += esp_timer_get_time() - measureBusyTimeStart[core];
 			}
 		}
-		accTime0 += esp_timer_get_time() - measureTimeStart;		// Exclude idle task runtime or potentially highrér priority tasks runtime from the measurement samples
+		accTime[core] += esp_timer_get_time() - measureTimeStart[core];		// Exclude idle task runtime or potentially highrér priority tasks runtime from the measurement samples
 		xTaskResumeAll();
-		vTaskDelay(1);												// The hope here is that the task queue is empty - Give IDLE task time to run
+		vTaskDelay(1);														// The hope here is that the task queue is empty - Give IDLE task time to run
 		vTaskSuspendAll();
 	}
 }
 
-void cpu::cpuMeasurment1(void* dummy) {								// Core CPU load measuring function - disables built in idle function, and thus legacy watchdog and heap housekeeping.
-	int64_t measureBusyTimeStart;
-	int64_t measureTimeStart;
-	accBusyTime1 = 0;
-	accTime1 = 0;
-	vTaskSuspendAll();												// Suspend the task scheduling for this core - to take full controll of the scheduling.
-	while (true) {
-		measureTimeStart = esp_timer_get_time();					// Start a > 100 mS time measuring loop, we cannot measure the time for each idividual loop for truncation error reasons
-		while (esp_timer_get_time() - measureTimeStart < 100000) {	// Wait 100 mS before granting Idle task runtime
-			measureBusyTimeStart = esp_timer_get_time();			// Start of busy run-time measurement
-			xTaskResumeAll();										// By shortly enabling scheduling we will trigger scheduling of queued higher priority tasks
-			vTaskSuspendAll();										// After completion of the higher priority tasks we will disable scheduling again
-			if (esp_timer_get_time() - measureBusyTimeStart > 10) { // If the time duration for enabled scheduling was more than 10 uS we assume that the time was spent for busy workloaads and account the time as busy
-				accBusyTime1 += esp_timer_get_time() - measureBusyTimeStart;
-			}
-		}
-		accTime1 += esp_timer_get_time() - measureTimeStart;		// Exclude idle task runtime or potentially highrér priority tasks runtime from the measurement samples
-		xTaskResumeAll();
-		vTaskDelay(1);												// The hope here is that the task queue is empty - Give IDLE task time to run
-		vTaskSuspendAll();
-	}
-}
-
-void cpu::cpuPM(void* dummy) {
-	float cpuLoad0 = 0;
-	float cpuLoad1 = 0;
-	uint64_t prevAccBusyTime0 = 0;
-	uint64_t prevAccTime0 = 0;
-	uint64_t prevAccBusyTime1 = 0;
-	uint64_t prevAccTime1 = 0;
+void cpu::cpuPM(void* dummy) {												// Collect CPU load PMdata
+	float cpuLoad[2] = {0, 0};
+	uint64_t prevAccBusyTime[2] = {0, 0};
+	uint64_t prevAccTime[2] = {0, 0};
 	xSemaphoreTake(cpuPMLock, portMAX_DELAY);
 	index = 0;
 	totIndex = 0;
 	while (true) {
-		busyUsHistory0[index] = accBusyTime0;
-		totalUsHistory0[index] = accTime0;							//FIX Should be total acc time
-		busyUsHistory1[index] = accBusyTime1;
-		totalUsHistory1[index] = accTime1;							//FIX Should be total acc time
+		busyUsHistory[0][index] = accBusyTime[0];
+		totalUsHistory[0][index] = accTime[1];							//FIX Should be total acc time
+		busyUsHistory[1][index] = accBusyTime[1];
+		totalUsHistory[1][index] = accTime[1];							//FIX Should be total acc time
 		xSemaphoreGive(cpuPMLock);
-		cpuLoad0 = getAvgCpuLoadCore(CORE_0, 1);
-		cpuLoad1 = getAvgCpuLoadCore(CORE_1, 1);
+		cpuLoad[0] = getAvgCpuLoadCore(CORE_0, 1);
+		cpuLoad[1] = getAvgCpuLoadCore(CORE_1, 1);
 		xSemaphoreTake(cpuPMLock, portMAX_DELAY);
-		if (cpuLoad0 > maxCpuLoad0)
-			maxCpuLoad0 = cpuLoad0;
-		if (cpuLoad1 > maxCpuLoad1)
-			maxCpuLoad1 = cpuLoad1;
+		if (cpuLoad[0] > maxCpuLoad[0])
+			maxCpuLoad[0] = cpuLoad[0];
+		if (cpuLoad[1] > maxCpuLoad[1])
+			maxCpuLoad[1] = cpuLoad[1];
 		xSemaphoreGive(cpuPMLock);
-		Serial.print("--- CPU load report for index: ");
-		Serial.print(index);
-		Serial.println(" ---");
-		Serial.println("CPU,  1 Sec, 10 Sec, 1 Min, Max");
-		Serial.print("0,    ");
-		Serial.print(getAvgCpuLoadCore(CORE_0, 1));
-		Serial.print(",   ");
-		Serial.print(getAvgCpuLoadCore(CORE_0, 10));
-		Serial.print(",   ");
-		Serial.print(getAvgCpuLoadCore(CORE_0, 60));
-		Serial.print(", ");
-		Serial.println(maxCpuLoad0);
-		Serial.print("1,    ");
-		Serial.print(getAvgCpuLoadCore(CORE_1, 1));
-		Serial.print(",   ");
-		Serial.print(getAvgCpuLoadCore(CORE_1, 10));
-		Serial.print(",   ");
-		Serial.print(getAvgCpuLoadCore(CORE_1, 60));
-		Serial.print(",   ");
-		Serial.println(maxCpuLoad1);
-		Serial.println("--- END CPU load report ---");
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		xSemaphoreTake(cpuPMLock, portMAX_DELAY);
 		if (++index == CPU_HISTORY_SIZE)
@@ -209,7 +156,7 @@ void cpu::cpuPM(void* dummy) {
 
 float cpu::getAvgCpuLoadCore(uint8_t p_core, uint8_t p_period) {
 	int8_t tmp_startIndex;
-	if (p_period > CPU_HISTORY_SIZE) {
+	if (p_period >= CPU_HISTORY_SIZE) {
 		Log.error("cpu::getAvgCpuLoadCore: invalid average period provided" CR);
 		return RC_GEN_ERR;
 	}
@@ -290,10 +237,14 @@ uint8_t cpu::clearCpuMaxLoadCore(uint8_t p_core) {
 void cpu::getTaskInfoAll(char* p_taskInfoTxt) {							//TODO
 }
 
-uint8_t cpu::getTaskInfoByTask(char* p_task, char* p_taskInfoTxt) {		//TODO
+uint8_t cpu::getTaskInfoByTask(const char* p_task, char* p_taskInfoTxt) {		//TODO
 }
 
-uint32_t cpu::getHeapMemInfoAll(void) {									//Migrate function from CLI class to here
+uint32_t cpu::getHeapMemInfoAll(const heapInfo_t p_heapInfo) {						//Migrate function from CLI class to here
+	p_heapInfo->totalSize = heap_caps_get_total_size(uint32_t caps)
+	p_heapInfo->freeSize() = xPortGetFreeHeapSize();
+	p_heapInfo->lowWatermark() = xPortGetMinimumEverFreeHeapSize();
+
 }
 
 uint32_t cpu::getHeapMemInfoMaxAll(void) {								//Migrate function from CLI class to here

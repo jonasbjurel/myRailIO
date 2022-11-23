@@ -31,11 +31,11 @@
 
 
 /*==============================================================================================================================================*/
-/* Class: "lgBase (Light-group base/Stem-cell class)"                                                                                                */
+/* Class: "lgBase (Light-group base/Stem-cell class)"                                                                                           */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this) {
+lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this), globalCli(LG_MO_NAME) {
     lgLinkHandle = (lgLink*)p_lgLinkHandle;
     lgAddress = p_lgAddress;
     lgLinkHandle->getLink(&lgLinkNo);
@@ -47,6 +47,37 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this) 
         panic("lgBase::lgBase: Could not create Lock objects - rebooting...");
     debug = false;
     stripOffset = 0;
+
+    /* CLI decoration definitions*/
+    // get/set address
+    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, this, onCliGetAddressHelper);
+    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_GET_LGADDR_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, this, onCliSetAddressHelper);
+    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_SET_LGADDR_HELP_TXT);
+
+    // get/set ledcnt
+    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, this, onCliGetLedCntHelper);
+    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, LG_GET_LGLEDCNT_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, this, onCliSetLedCntHelper);
+    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, LG_SET_LGLEDCNT_HELP_TXT);
+
+    // get/set ledoffset
+    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, this, onCliGetLedOffsetHelper);
+    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, LG_GET_LGLEDOFFSET_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, this, onCliSetLedOffsetHelper);
+    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, LG_SET_LGLEDOFFSET_HELP_TXT);
+
+    // get/set properties
+    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, this, onCliGetPropertyHelper);
+    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, LG_GET_LGPROPERTY_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, this, onCliSetPropertyHelper);
+    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, LG_SET_LGPROPERTY_HELP_TXT);
+
+    // get/set showing
+    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, this, onCliGetShowingHelper);
+    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_GET_LGSHOWING_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, this, onCliSetShowingHelper);
+    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_SET_LGSHOWING_HELP_TXT);
 }
 
 lgBase::~lgBase(void) {
@@ -59,7 +90,7 @@ rc_t lgBase::init(void) {
 }
 
 void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
-    if (!(getOpState() & OP_UNCONFIGURED))
+    if (!(systemState::getOpState() & OP_UNCONFIGURED))
         panic("lgBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported rebooting...");
     Log.notice("lgBase::onConfig: lg-address %d, on lgLink %d received an unverified configuration, parsing and validating it...", lgAddress, lgLinkNo);
     xmlconfig[XML_LG_SYSNAME] = NULL;
@@ -104,12 +135,12 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         }
     else
         panic("lgBase::onConfig: lg type not supported");
-    CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], init());
+    LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], init());
     if (EXT_RC)
         panic("lgBase::onConfig: Failed to initialize Lg extention object - Rebooting...");
     if (xmlconfig[XML_LG_PROPERTIES]) {
         Log.notice("lgBase::onConfig: Configuring the lg base stem-object - Lg Adress: %d, Lg Link %d, Lg System Name %s: with properties" CR, lgAddress, lgLinkNo, xmlconfig[XML_LG_SYSNAME]);
-        CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onConfig(((tinyxml2::XMLElement*) p_lgXmlElement)->FirstChildElement("Properties")));
+        LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onConfig(((tinyxml2::XMLElement*) p_lgXmlElement)->FirstChildElement("Properties")));
     }
     else
         Log.notice("lgBase::onConfig: No properties provided for base stem-object" CR);
@@ -119,14 +150,14 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
 
 rc_t lgBase::start(void) {
     Log.notice("lgBase::start: Starting lg address %d on lgLink %d" CR, lgAddress, lgLinkNo);
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("lgBase::start: lg address %d on lgLink %d not configured - will not start it" CR, lgAddress, lgLinkNo);
         setOpState(OP_UNUSED);
         unSetOpState(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
     Log.notice("lgBase::start: lg address %d on lgLink %d  - starting extention class" CR, lgAddress, lgLinkNo);
-    CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], start());
+    LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], start());
     if (EXT_RC)
         panic("lgBase::onConfig: Failed to start Light group");
     Log.notice("lgBase::start: Subscribing to adm- and op state topics");
@@ -144,7 +175,7 @@ void lgBase::onSysStateChangeHelper(const void* p_lgBaseHandle, uint16_t p_sysSt
 
 void lgBase::onSysStateChange(uint16_t p_sysState) {
     if (!(p_sysState & OP_UNCONFIGURED)){
-        CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(p_sysState));
+        LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(p_sysState));
         if (p_sysState & OP_INTFAIL && p_sysState & OP_INIT)
             Log.notice("lgBase::onSysStateChange: lg address %d on lgLink %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, lgAddress, lgLinkNo);
         else if (p_sysState & OP_INTFAIL)
@@ -190,13 +221,17 @@ void lgBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.error("lgBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, lgAddress, lgLinkNo, p_payload);
 }
 
-rc_t lgBase::setSystemName(char* p_systemName, bool p_force) {
+rc_t lgBase::getOpStateStr(char* p_opStateStr) {
+    return systemState::getOpStateStr(p_opStateStr);
+}
+
+rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {
     Log.error("lgBase::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgBase::getSystemName(const char* p_systemName) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::getSystemName: cannot get System name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -204,12 +239,12 @@ rc_t lgBase::getSystemName(const char* p_systemName) {
     return RC_OK;
 }
 
-rc_t lgBase::setUsrName(char* p_usrName, bool p_force) {
+rc_t lgBase::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
         Log.error("lgBase::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::setUsrName: cannot set System name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -222,7 +257,7 @@ rc_t lgBase::setUsrName(char* p_usrName, bool p_force) {
 }
 
 rc_t lgBase::getUsrName(const char* p_userName) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::getUsrName: cannot get User name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -230,12 +265,12 @@ rc_t lgBase::getUsrName(const char* p_userName) {
     return RC_OK;
 }
 
-rc_t lgBase::setDesc(char* p_description, const bool p_force) {
+rc_t lgBase::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
         Log.error("lgBase::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::setDesc: cannot set Description as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -248,7 +283,7 @@ rc_t lgBase::setDesc(char* p_description, const bool p_force) {
 }
 
 rc_t lgBase::getDesc(const char* p_desc) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::getDesc: cannot get Description as lg is not configured" CR);
         p_desc = NULL;
         return RC_NOT_CONFIGURED_ERR;
@@ -263,7 +298,7 @@ rc_t lgBase::setAddress(uint8_t p_address) {
 }
 
 rc_t lgBase::getAddress(uint8_t* p_address) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::getPort: cannot get port as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -277,26 +312,42 @@ rc_t lgBase::setNoOffLeds(uint8_t p_noOfLeds){
 }
 
 rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("lgBase::getNoOffLeds: cannot get lg number of Leds as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
-    CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getNoOffLeds(p_noOfLeds));
+    LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getNoOffLeds(p_noOfLeds));
     return EXT_RC;
 }
 
-rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue) {
-    CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], setProperty(p_propertyId, p_propertyValue));
+rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force) {
+    if (!debug || !p_force) {
+        Log.error("lgBase::setProperty: cannot set lg property as debug is inactive" CR);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
+        Log.error("lgBase::setProperty: cannot set lg property as lg is not configured" CR);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], setProperty(p_propertyId, p_propertyValue));
     return EXT_RC;
 }
 
 rc_t lgBase::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
-    if (getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgBase::getProperties: cannot get port as lg is not configured" CR);
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
+        Log.error("lgBase::getProperty: cannot get port as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
-    CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getProperty(p_propertyId, p_propertyValue));
+    LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getProperty(p_propertyId, p_propertyValue));
     return EXT_RC;
+}
+
+void lgBase::setShowing(const char* p_showing) {
+    LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], setShowing(p_showing));
+}
+
+void lgBase::getShowing(const char* p_showing) {
+    LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getShowing(p_showing));
 }
 
 void lgBase::setDebug(const bool p_debug) {
@@ -314,6 +365,155 @@ void lgBase::setStripOffset(uint16_t p_stripOffset) {
 
 uint16_t lgBase::getStripOffset(void) {
     return stripOffset;
+}
+
+/* CLI decoration methods*/
+void lgBase::onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t address;
+    if (rc = reinterpret_cast<lgBase*>(p_cliContext)->getAddress(&address)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg address, return code: %i", rc);
+        return;
+    }
+    printCli("Lightgroup-address: %i", address);
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgBase::onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    if (rc = reinterpret_cast<lgBase*>(p_cliContext)->setAddress(atoi(cmd.getArgument(1).getValue().c_str()))) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg address, return code: %i", rc);
+        return;
+    }
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgBase::onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t cnt;
+    if (rc = reinterpret_cast<lgBase*>(p_cliContext)->getNoOffLeds(&cnt)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg Led-cnt, return code: %i", rc);
+        return;
+    }
+    printCli("Lightgroup-Ledcnt: %i", cnt);
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgBase::onCliSetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    if (rc = reinterpret_cast<lgBase*>(p_cliContext)->setNoOffLeds(atoi(cmd.getArgument(1).getValue().c_str()))) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg Led-cnt, return code: %i", rc);
+        return;
+    }
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgBase::onCliGetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    printCli("Lightgroup-offset: %i", reinterpret_cast<lgBase*>(p_cliContext)->getStripOffset());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgBase::onCliSetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<lgBase*>(p_cliContext)->setStripOffset(atoi(cmd.getArgument(1).getValue().c_str()));
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    char* property;
+    if (cmd.getArgument(1)) {
+        if (rc = reinterpret_cast<lgBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg property, return code: %i", rc);
+            return;
+        }
+        printCli("Lightgroup property %i: %s", atoi(cmd.getArgument(1).getValue().c_str()), property);
+        acceptedCliCommand(CLI_TERM_QUIET);
+    }
+    else {
+        printCli("Lightgroup property index:\t\t\tLightgroup property value:\n");
+        for (uint8_t i = 0; i < 255; i++) {
+            if (rc = reinterpret_cast<lgBase*>(p_cliContext)->getProperty(i, property)) {
+                if (rc == RC_NOT_FOUND_ERR)
+                    break;
+                notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg property %i, return code: %i", i, rc);
+                return;
+            }
+            printCli("%i\t\t\t%s\n", i, property);
+        }
+        printCli("END");
+        acceptedCliCommand(CLI_TERM_QUIET);
+    }
+}
+
+void lgBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    if (rc = reinterpret_cast<lgBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str())) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
+        return;
+    }
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void lgBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    char* showing;
+    reinterpret_cast<lgBase*>(p_cliContext)->getShowing(showing);
+    printCli("Lightgroup-showing: %s", showing);
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void lgBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext){
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<lgBase*>(p_cliContext)->getShowing(cmd.getArgument(1).getValue().c_str());
+    acceptedCliCommand(CLI_TERM_ORDERED);
 }
 
 /*==============================================================================================================================================*/

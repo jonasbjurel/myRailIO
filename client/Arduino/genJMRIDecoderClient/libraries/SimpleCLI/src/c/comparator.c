@@ -6,7 +6,7 @@
 
 #include <string.h> // strlen
 
-#include "c/comparator.h"
+#include "comparator.h"
 
 // My own implementation, because the default one in ctype.h make problems on older ESP8266 SDKs
 char to_lower(char c) {

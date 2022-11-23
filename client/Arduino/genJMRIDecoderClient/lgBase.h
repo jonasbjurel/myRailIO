@@ -34,6 +34,8 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "globalCli.h"
+#include "cliGlobalDefinitions.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
@@ -76,21 +78,23 @@ typedef float							lg_property_t[8];
 #define XML_LG_PROPERTIES				6
 #define XML_ACT_PROPERTIES				7
 
-#define CALL_EXT(ext_p, type, method)\
+#define LG_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "SIGNAL MAST"))\
 			((lgSignalMast*)ext_p)->method;\
 		else\
 			panic("lgBase::CALL_EXT: Non supported type - rebooting")
 
-#define CALL_EXT_RC(ext_p, type, method)\
+#define LG_CALL_EXT_RC(ext_p, type, method)\
 		rc_t EXT_RC;\
 		if(!strcmp(type, "SIGNAL MAST")){\
 			EXT_RC = ((lgSignalMast*)ext_p)->method;\
 		}\
-		else\
-			panic("lgBase::CALL_EXT: Non supported type - rebooting")
+		else{\
+			EXT_RC = RC_GEN_ERR;\
+			panic("lgBase::CALL_EXT: Non supported type - rebooting");\
+		}
 
-class lgBase : public systemState {
+class lgBase : public systemState, public globalCli {
 public:
 	//Public methods
 	lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle);
@@ -104,22 +108,36 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgBaseHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
-	rc_t setSystemName(char* p_systemName, const bool p_force = false);
+	rc_t getOpStateStr(char* p_opStateStr);
+	rc_t setSystemName(const char* p_systemName, bool p_force = false);
 	rc_t getSystemName(const char* p_systemName);
-	rc_t setUsrName(char* p_usrName, bool p_force = false);
-	rc_t  getUsrName(const char* p_userName);
-	rc_t setDesc(char* p_description, bool p_force = false);
+	rc_t setUsrName(const char* p_usrName, bool p_force = false);
+	rc_t getUsrName(const char* p_userName);
+	rc_t setDesc(const char* p_description, bool p_force = false);
 	rc_t getDesc(const char* p_desc);
 	rc_t setAddress(uint8_t p_address);
 	rc_t getAddress(uint8_t* p_address);
 	rc_t setNoOffLeds(uint8_t p_noOfLeds);
 	rc_t getNoOffLeds(uint8_t* p_noOfLeds);
-	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
+	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force = false);
 	rc_t getProperty(uint8_t p_propertyId, const char* p_propertyValue);
-	void setDebug(const bool p_debug);
+	void getShowing(const char* p_showing);
+	void setShowing(const char* p_showing);
+	void setDebug(bool p_debug);
 	bool getDebug(void);
 	void setStripOffset(const uint16_t p_stripOffset);
 	uint16_t getStripOffset(void);
+	/* CLI decoration methods */
+	static void onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
 
 	//Public data structures
 	lgLink* lgLinkHandle;
@@ -138,4 +156,4 @@ private:
 	SemaphoreHandle_t lgBaseLock;
 };
 
-#endif /*ACTBASE_H*/
+#endif /*LGBASE_H*/

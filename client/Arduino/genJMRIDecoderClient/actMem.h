@@ -67,8 +67,10 @@ public:
     void onDiscovered(satelite* p_sateliteLibHandle);
     void onSysStateChange(uint16_t p_sysState);
     static void onActMemChangeHelper(const char* p_topic, const char* p_payload, const void* p_actMemHandle);
-    void setDebug(bool p_debug);
-    bool getDebug(void);
+    rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal);
+    rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
+    rc_t setShowing(const char* p_showing);
+    rc_t getShowing(char* p_showing, char* p_orderedShowing);
 
     //Public data structures
     //--
@@ -96,7 +98,6 @@ private:
     bool actMemSolenoidPushPort;
     uint8_t actMemSolenoidActivationTime;
     bool failSafe;
-    bool debug;
 };
 
 /*==============================================================================================================================================*/

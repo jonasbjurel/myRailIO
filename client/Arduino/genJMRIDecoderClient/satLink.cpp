@@ -35,7 +35,7 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-satLink::satLink(uint8_t p_linkNo) : systemState(this) {
+satLink::satLink(uint8_t p_linkNo) : systemState(this), globalCli(SATLINK_MO_NAME) {
     Log.notice("satLink::satLink: Creating Satelite link channel %d" CR, p_linkNo);
     linkNo = p_linkNo;
     regSysStateCb(this, &onSysStateChangeHelper);
@@ -43,6 +43,60 @@ satLink::satLink(uint8_t p_linkNo) : systemState(this) {
     satLinkLock = xSemaphoreCreateMutex();
     if (satLinkLock == NULL)
         panic("satLink::satLink: Could not create Lock objects - rebooting...");
+    /* CLI decoration methods */
+    // get/set satLinkNo
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, this, onCliGetLinkHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, SATLINK_GET_SATLINKNO_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, this, onCliSetLinkHelper);
+    regCmdHelp(SET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, SATLINK_SET_SATLINKNO_HELP_TXT);
+
+    //get/clear Tx-underruns
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKTXUNDERRUN_SUB_MO_NAME, this, onCliGetTxUnderrunsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKTXUNDERRUN_SUB_MO_NAME, SATLINK_GET_TXUNDERRUNS_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKTXUNDERRUN_SUB_MO_NAME, this, onCliClearTxUnderrunsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKTXUNDERRUN_SUB_MO_NAME, SATLINK_CLEAR_TXUNDERRUNS_HELP_TXT);
+
+    //get/clear Tx-underruns
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXOVERRUN_SUB_MO_NAME, this, onCliGetRxOverrrunsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXOVERRUN_SUB_MO_NAME, SATLINK_GET_RXOVERRUNS_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXOVERRUN_SUB_MO_NAME, this, onCliClearRxOverrunsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXOVERRUN_SUB_MO_NAME, SATLINK_CLEAR_RXOVERRUNS_HELP_TXT);
+
+    //get/clear scan timing violations
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKTIMINGVIOLATION_SUB_MO_NAME, this, onCliGetScanTimingViolationsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKTIMINGVIOLATION_SUB_MO_NAME, SATLINK_GET_TIMINGVIOLATION_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKTIMINGVIOLATION_SUB_MO_NAME, this, onCliClearScanTimingViolationsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKTIMINGVIOLATION_SUB_MO_NAME, SATLINK_CLEAR_TIMINGVIOLATION_HELP_TXT);
+
+    //get/clear rx crc errors
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXCRCERR_SUB_MO_NAME, this, onCliGetRxCrcErrsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXCRCERR_SUB_MO_NAME, SATLINK_GET_RXCRCERR_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXCRCERR_SUB_MO_NAME, this, onCliClearRxCrcErrsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXCRCERR_SUB_MO_NAME, SATLINK_CLEAR_RXCRCERR_HELP_TXT);
+
+    //get/clear remote crc errors
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKREMOTECRCERR_SUB_MO_NAME, this, onCliGetRemoteCrcErrsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKREMOTECRCERR_SUB_MO_NAME, SATLINK_GET_REMOTECRCERR_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKREMOTECRCERR_SUB_MO_NAME, this, onCliClearRemoteCrcErrsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKREMOTECRCERR_SUB_MO_NAME, SATLINK_CLEAR_REMOTECRCERR_HELP_TXT);
+
+    //get/clear rx symbol errors
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSYMERRS_SUB_MO_NAME, this, onCliGetRxSymbolErrsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSYMERRS_SUB_MO_NAME, SATLINK_GET_RXSYMERRS_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSYMERRS_SUB_MO_NAME, this, onCliClearRxSymbolErrsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSYMERRS_SUB_MO_NAME, SATLINK_CLEAR_RXSYMERRS_HELP_TXT);
+
+    //get/clear rx size errors
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSIZEERRS_SUB_MO_NAME, this, onCliGetRxDataSizeErrsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSIZEERRS_SUB_MO_NAME, SATLINK_GET_RXSIZEERRS_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSIZEERRS_SUB_MO_NAME, this, onCliClearRxDataSizeErrsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKRXSIZEERRS_SUB_MO_NAME, SATLINK_CLEAR_RXSIZEERRS_HELP_TXT);
+
+    //get/clear watchdog errors
+    regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, this, onCliGetWdErrsHelper);
+    regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, SATLINK_GET_WDERRS_HELP_TXT);
+    regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, this, onCliClearWdErrsHelper);
+    regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, SATLINK_CLEAR_WDERRS_HELP_TXT);
 
 }
 
@@ -84,7 +138,7 @@ rc_t satLink::init(void) {
 }
 
 void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
-    if (!(getOpState() & OP_UNCONFIGURED))
+    if (!(systemState::getOpState() & OP_UNCONFIGURED))
         panic("satLink:onConfig: satLink channel received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
     Log.notice("satLink::onConfig: satLink channel %d received an uverified configuration, parsing and validating it..." CR, linkNo);
     xmlconfig[XML_SATLINK_SYSNAME] = NULL;
@@ -136,7 +190,7 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
 
 rc_t satLink::start(void) {
     Log.notice("satLink::start: Starting Satelite link: %d" CR, linkNo);
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("satLink::start: Satelite Link %d not configured - will not start it" CR, linkNo);
         setOpState(OP_UNUSED);
         unSetOpState(OP_INIT);
@@ -176,7 +230,9 @@ void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t 
 }
 
 void satLink::pmPollHelper(void* metaData_p) {
-    Log.notice("satLink::pmPollHelper: Starting PM polling for satLink %d" CR, ((satLink*)metaData_p)->getLink());
+    uint8_t link;
+    ((satLink*)metaData_p)->getLink(&link);
+    Log.notice("satLink::pmPollHelper: Starting PM polling for satLink %d" CR, link);
     int64_t  nextLoopTime = esp_timer_get_time();
     int64_t  thisLoopTime;
     TickType_t delay;
@@ -226,7 +282,7 @@ void satLink::onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandl
 }
 
 void satLink::onSatLinkLibStateChange(const satOpState_t satOpState_p) {
-    if (!(getOpState() & OP_INIT)) {
+    if (!(systemState::getOpState() & OP_INIT)) {
         if (satOpState_p)
             setOpState(OP_INTFAIL);
         else
@@ -283,13 +339,17 @@ void satLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.error("satLink::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
 }
 
+rc_t satLink::getOpStateStr(char* p_opStateStr) {
+    return systemState::getOpStateStr(p_opStateStr);
+}
+
 rc_t satLink::setSystemName(const char* p_systemName, const bool p_force) {
     Log.error("satLink::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* satLink::getSystemName(void) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("satLink::getSystemName: cannot get System name as satLink is not configured" CR);
         return NULL;
     }
@@ -301,7 +361,7 @@ rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
         Log.error("satLink::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("satLink::setUsrName: cannot set System name as satLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -314,7 +374,7 @@ rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
 }
 
 const char* satLink::getUsrName(void) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("satLink::getUsrName: cannot get User name as satLink is not configured" CR);
         return NULL;
     }
@@ -326,7 +386,7 @@ rc_t satLink::setDesc(const char* p_description, const bool p_force) {
         Log.error("satLink::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("satLink::setDesc: cannot set Description as satLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -339,51 +399,52 @@ rc_t satLink::setDesc(const char* p_description, const bool p_force) {
 }
 
 const char* satLink::getDesc(void) {
-    if (getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("satLink::getDesc: cannot get Description as satLink is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_SATLINK_DESC];
 }
 
-const rc_t satLink::setLink(const char* p_link) {
+rc_t satLink::setLink(uint8_t p_link) {
     Log.error("satLink::setLink: cannot set Link No - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-const rc_t satLink::getLink(void) {
-    if (getOpState() & OP_UNCONFIGURED) {
+rc_t satLink::getLink(uint8_t* p_link) {
+    if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.error("satLink::getLink: cannot get Link No as satLink is not configured" CR);
         return RC_GEN_ERR;
     }
-    return atoi(xmlconfig[XML_SATLINK_LINK]);
+    *p_link = atoi(xmlconfig[XML_SATLINK_LINK]);
+    return RC_OK;
 }
 
-const void satLink::setDebug(const bool p_debug) {
+void satLink::setDebug(const bool p_debug) {
     debug = p_debug;
 }
 
-const bool satLink::getDebug(void) {
+bool satLink::getDebug(void) {
     return debug;
 }
 
-uint32_t satLink::getTxUnderuns(void) {
+uint32_t satLink::getTxUnderruns(void) {
     return txUnderunErr;
 }
 
-void satLink::clearTxUnderuns(void) {
+void satLink::clearTxUnderruns(void) {
     txUnderunErr = 0;
 }
 
-uint32_t satLink::getRxOverRuns(void) {
+uint32_t satLink::getRxOverruns(void) {
     return rxOverRunErr;
 }
 
-void satLink::clearRxOverRuns(void) {
+void satLink::clearRxOverruns(void) {
     rxOverRunErr = 0;
 }
 
-uint32_t satLink::getscanTimingViolations(void) {
+uint32_t satLink::getScanTimingViolations(void) {
     return scanTimingViolationErr;
 }
 
@@ -431,12 +492,251 @@ void satLink::clearWdErrs(void) {
     wdErr = 0;
 }
 
-//int64_t lgLink::getMeanLatency(void) {}
-//int64_t lgLink::getMaxLatency(void) {}
-//void lgLink::clearMaxLatency(void) {}
-// uint32_t lgLink::getMeanRuntime(void) {}
-//uint32_t lgLink::getMaxRuntime(void) {}
-//void lgLink::clearMaxRuntime(void) {}
+//int64_t satLink::getMeanLatency(void) {}
+//int64_t satLink::getMaxLatency(void) {}
+//void satLink::clearMaxLatency(void) {}
+// uint32_t satLink::getMeanRuntime(void) {}
+//uint32_t satLink::getMaxRuntime(void) {}
+//void satLink::clearMaxRuntime(void) {}
+
+/* CLI decoration methods */
+void satLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink, return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link: %i", link);
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->setLink(atoi(cmd.getArgument(1).getValue().c_str()))) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lgLink, return code: %i", rc);
+        return;
+    }
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or txunderruns , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i TX-underruns: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getTxUnderruns());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearTxUnderruns();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetRxOverrrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxoverruns , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i RX-overruns: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getTxUnderruns());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearRxOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearRxOverruns();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or timingviolations , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i RX-Timing-violations: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getScanTimingViolations());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearScanTimingViolations();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+        Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxcrcerr , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i RX-CRC-Errors: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getRxCrcErrs());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearRxCrcErrs();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or remotecrcerr , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i Remote-CRC-Errors: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getRemoteCrcErrs());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearRemoteCrcErrs();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxsymerr , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i RX-Symbol-Errors: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getRxSymbolErrs());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearRxSymbolErrs();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxsizeerr , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i RX-Size-Errors: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getRxDataSizeErrs());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->getRxDataSizeErrs();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void satLink::onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    rc_t rc;
+    uint8_t link;
+    if (rc = reinterpret_cast<satLink*>(p_cliContext)->getLink(&link)) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or wderr , return code: %i", rc);
+        return;
+    }
+    printCli("Satelite-link %i Watchdog-Errors: %i", link, reinterpret_cast<satLink*>(p_cliContext)->getWdErrs());
+    acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void satLink::onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+    Command cmd(p_cmd);
+    if (cmd.getArgument(1)) {
+        notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+        return;
+    }
+    reinterpret_cast<satLink*>(p_cliContext)->clearWdErrs();
+    acceptedCliCommand(CLI_TERM_EXECUTED);
+}
 
 /*==============================================================================================================================================*/
 /* END Class satLink                                                                                                                            */

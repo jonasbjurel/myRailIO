@@ -100,6 +100,30 @@ uint16_t systemState::getOpState(void) {
     return opState;
 }
 
+rc_t systemState::getOpStateStr(char* p_opStateStr) {
+    if (opState & OP_INIT)
+        strcat(p_opStateStr, "INIT|");
+    if (opState & OP_DISCONNECTED)
+        strcat(p_opStateStr, "DISCONNECTED|");
+    if (opState & OP_UNDISCOVERED)
+        strcat(p_opStateStr, "UNDISCOVERED|");
+    if (opState & OP_UNCONFIGURED)
+        strcat(p_opStateStr, "UNCONFIGURED|");
+    if (opState & OP_DISABLED)
+        strcat(p_opStateStr, "DISABLED|");
+    if (opState & OP_INTFAIL)
+        strcat(p_opStateStr, "INTFAIL|");
+    if (opState & OP_CBL)
+        strcat(p_opStateStr, "CBL|");
+    if (opState & OP_UNUSED)
+        strcat(p_opStateStr, "UNUSED|");
+    if (strlen(p_opStateStr))
+        p_opStateStr[strlen(p_opStateStr) - 1] = ' ';
+    else
+        strcpy(p_opStateStr, "WORKING");
+    return RC_OK;
+}
+
 void systemState::updateObjOpStates(void) {
     if (cb == NULL) {
         Log.info("systemState::updateObjOpStates: opState has changed for object %d, but no registered call-back to inform - doing nothing", parent);

@@ -75,9 +75,6 @@
     <ClInclude Include="satLink.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\genericIOSatellite\LIB\src\Satelite.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lgLink.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -115,6 +112,72 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="actMem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\genericIOSatellite\LIB\src\Satelite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cliCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cliGlobalDefinitions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="telnetCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globalCli.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__vm\.genJMRIDecoderClient.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\SimpleCLI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\Command.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\CommandError.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\Argument.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\StringCLI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\arg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\arg_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\cmd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\cmd_error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\cmd_error_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\cmd_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\comparator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\SimpleCLI\src\c\parser_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libraries\ESPTelnet\src\ESPTelnet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -178,9 +241,6 @@
     <ClCompile Include="satLink.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\genericIOSatellite\LIB\src\Satelite.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -200,6 +260,48 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="actMem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\genericIOSatellite\LIB\src\Satelite.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="globalCli.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cliCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="telnetCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\SimpleCLI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\Command.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\CommandError.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\c\arg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\c\cmd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\c\cmd_error.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\c\comparator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\c\parser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\SimpleCLI\src\Argument.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\ESPTelnet\src\ESPTelnet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

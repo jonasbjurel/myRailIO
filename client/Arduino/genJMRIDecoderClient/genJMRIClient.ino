@@ -23,8 +23,6 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-
-//#include <dummy.h>
 #include <dummy.h>
 #include "genJMRIClient.h"
 /*==============================================================================================================================================*/
@@ -46,7 +44,7 @@ void setup() {
     Log.begin(LOG_LEVEL_VERBOSE, &Serial);
     //  Log.setPrefix(printPrefix); // set prefix similar to NLog
     Log.notice("Logging started towards Serial" CR);
-    //cpu::init();
+    //CPU.init();
     networking::start();
     uint8_t wifiWait = 0;
     while (networking::getOpState() != OP_WORKING) {

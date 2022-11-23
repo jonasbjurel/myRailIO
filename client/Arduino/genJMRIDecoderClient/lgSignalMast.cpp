@@ -60,7 +60,7 @@ rc_t lgSignalMast::init(void) {
 }
 
 rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
-    if (!(lgBaseObjHandle->getOpState() & OP_UNCONFIGURED))
+    if (!(lgBaseObjHandle->systemState::getOpState() & OP_UNCONFIGURED))
         panic("mastDecoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
     lgBaseObjHandle->getSystemName(lgSysName);
     if (p_mastDescXmlElement == NULL)
@@ -150,6 +150,7 @@ void lgSignalMast::onSysStateChange(uint16_t p_sysState) {
 
 rc_t lgSignalMast::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
     Log.notice("mastDecoder::setProperty: Setting light-group property for %s, property Id %d, property value %s" CR, lgSysName, p_propertyId, p_propertyValue);
+    return RC_NOTIMPLEMENTED_ERR;
     //......
 }
 
@@ -163,6 +164,16 @@ rc_t lgSignalMast::getNoOffLeds(uint8_t* p_noOfLeds) {
     *p_noOfLeds = lgNoOfLed;
 }
 
+void lgSignalMast::getShowing(const char* p_showing){
+    p_showing = aspect;
+}
+
+void lgSignalMast::setShowing(const char* p_showing) {
+    char aspect[100];
+    sprintf(aspect, "<Aspect>%s</Aspect>");
+    onAspectChange(NULL, aspect);
+}
+
 void lgSignalMast::onAspectChangeHelper(const char* p_topic, const char* p_payload, const void* p_mastObject) {
     ((lgSignalMast*)p_mastObject)->onAspectChange(p_topic, p_payload);
 }
@@ -170,7 +181,7 @@ void lgSignalMast::onAspectChangeHelper(const char* p_topic, const char* p_paylo
 void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
     xSemaphoreTake(lgSignalMastLock, portMAX_DELAY);
     xSemaphoreTake(lgSignalMastReentranceLock, portMAX_DELAY);
-    if (lgBaseObjHandle->getOpState()) {
+    if (lgBaseObjHandle->systemState::getOpState()) {
         xSemaphoreGive(lgSignalMastLock);
         xSemaphoreGive(lgSignalMastReentranceLock);
         Log.error("mastDecoder::onAspectChange: A new aspect received, but mast decoder opState is not OP_WORKING - continuing..." CR);
@@ -216,7 +227,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
 
 rc_t lgSignalMast::parseXmlAppearance(const char* p_aspectXml, char* p_aspect) {
     tinyxml2::XMLDocument aspectXmlDocument;
-    if (aspectXmlDocument.Parse(p_aspectXml) || aspectXmlDocument.FirstChildElement("Aspect") == NULL || aspectXmlDocument.FirstChildElement("Aspect")->GetText() == NULL) {
+    if (aspectXmlDocument.Parse(p_aspectXml) || aspectXmlDocument.FirstChildElement("p_showing") == NULL || aspectXmlDocument.FirstChildElement("Aspect")->GetText() == NULL) {
         Log.error("mastDecoder::parseXmlAppearance: Failed to parse the new aspect - continuing..." CR);
         return RC_PARSE_ERR;
     }

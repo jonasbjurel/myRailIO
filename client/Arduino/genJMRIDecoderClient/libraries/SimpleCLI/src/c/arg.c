@@ -4,12 +4,12 @@
    Source: github.com/spacehuhn/SimpleCLI
  */
 
- #include "c/arg.h"
+ #include "arg.h"
 
 #include <stdlib.h>       // malloc()
 #include <string.h>       // memcpy()
 
-#include "c/comparator.h" // compare
+#include "comparator.h" // compare
 
 // ===== Arg ===== //
 

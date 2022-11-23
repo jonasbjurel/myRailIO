@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
+#include "globalCli.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
@@ -68,7 +69,7 @@ class actMem;
 #define XML_ACT_SUBTYPE					5
 #define XML_ACT_PROPERTIES				6
 
-#define CALL_EXT(ext_p, type, method)\
+#define ACT_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "TURNOUT"))\
 			((actTurn*)ext_p)->method;\
 		else if(!strcmp(type, "LIGHT"))\
@@ -78,8 +79,21 @@ class actMem;
 		else\
 			panic("actBase::CALL_EXT: Non supported type - rebooting")
 
+#define ACT_CALL_EXT_RC(ext_p, type, method)\
+		rc_t EXT_RC;\
+		if(!strcmp(type, "TURNOUT"))\
+			EXT_RC = ((actTurn*)ext_p)->method;\
+		else if(!strcmp(type, "LIGHT"))\
+			EXT_RC = ((actLight*)ext_p)->method;\
+		else if(!strcmp(type, "MEMORY"))\
+			EXT_RC = ((actMem*)ext_p)->method;\
+		else{\
+			EXT_RC = RC_GEN_ERR;\
+			panic("actBase::CALL_EXT_RC: Non supported type - rebooting");\
+		}
 
-class actBase : public systemState {
+
+class actBase : public systemState, globalCli {
 public:
 	//Public methods
 	actBase(uint8_t p_actPort, sat* p_satHandle);
@@ -94,6 +108,7 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
+	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, const bool p_force = false);
 	const char* getSystemName(void);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);
@@ -101,9 +116,20 @@ public:
 	rc_t setDesc(const char* p_description, bool p_force = false);
 	const char* getDesc(void);
 	rc_t setPort(uint8_t p_port);
-	int8_t getPort(void);
+	rc_t getPort(uint8_t* p_port);
+	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
+	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
+	rc_t getShowing(char* p_showing, char* p_orderedShowing);
+	rc_t setShowing(const char* p_showing, bool p_force = false);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
+	/* CLI decoration methods */
+	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
 
 	//Public data structures
 	sat* satHandle;

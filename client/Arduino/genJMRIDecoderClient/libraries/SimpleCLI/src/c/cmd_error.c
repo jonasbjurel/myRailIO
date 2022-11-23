@@ -4,7 +4,7 @@
    Source: github.com/spacehuhn/SimpleCLI
  */
 
-#include "c/cmd_error.h"
+#include "cmd_error.h"
 #include <stdlib.h> // malloc, memcpy
 #include <string.h> // strlen, strcpy
 

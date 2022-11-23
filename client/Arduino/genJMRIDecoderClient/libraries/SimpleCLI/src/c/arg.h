@@ -7,7 +7,7 @@
 #ifndef arg_h
 #define arg_h
 
-#include "c/arg_types.h" // arg
+#include "arg_types.h" // arg
 #include <stddef.h>      // size_t
 
 // ===== Arg ===== //

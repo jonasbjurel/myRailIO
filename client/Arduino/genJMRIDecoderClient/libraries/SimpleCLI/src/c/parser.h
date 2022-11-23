@@ -7,7 +7,7 @@
 #ifndef parser_h
 #define parser_h
 
-#include "c/parser_types.h"
+#include "parser_types.h"
 
 // ===== Word Node ===== //
 word_node* word_node_create(const char* str, size_t len);

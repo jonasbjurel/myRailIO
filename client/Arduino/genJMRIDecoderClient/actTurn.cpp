@@ -45,16 +45,15 @@ actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) 
         turnType = TURN_TYPE_SOLENOID;
         throwtime = TURN_SOLENOID_DEFAULT_THROWTIME_MS;
     }
-    actPort = actBaseHandle->actPort;
-    satAddr = actBaseHandle->satHandle->getAddr();
-    satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
+    actBaseHandle->getPort(&actPort);
+    actBaseHandle->satHandle->getAddr(&satAddr);
+    actBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
     sysName = actBaseHandle->satHandle->getSystemName();
     satLibHandle = NULL;
     pendingStart = false;
     turnOutInvert = false;
     turnSolenoidPushPort = true;
     sysState = OP_INIT | OP_UNCONFIGURED;
-    debug = false;
     Log.notice("actTurn::actTurn: Creating turnout extention object for %s turnout for actuator port %d, on satelite adress %d, satLink %d" CR, turnType, actPort, satAddr, satLinkNo);
     actTurnLock = xSemaphoreCreateMutex();
     if (actTurnLock == NULL)
@@ -79,11 +78,11 @@ void actTurn::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 
 rc_t actTurn::start(void) {
     Log.notice("actTurn::start: Starting actTurn actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->getOpState() & OP_UNCONFIGURED) {
+    if (actBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("actTurn::start: actTurn actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
-    if (actBaseHandle->getOpState() & OP_UNDISCOVERED) {
+    if (actBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
         Log.notice("actTurn::start: actTurn actuator extention class object %s, on actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sysName, actPort, satAddr, satLinkNo);
         pendingStart = true;
         return RC_NOT_CONFIGURED_ERR;
@@ -113,7 +112,7 @@ rc_t actTurn::start(void) {
     setFailSafe(true);
     Log.notice("actTurn::start: Subscribing to turn-out orders for turn-out %s,  on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
     const char* turnoutOrders[3] = { MQTT_TURN_TOPIC, "/", sysName };
-    if (mqtt::subscribeTopic(concatStr(turnoutOrders, 3), &onTurnChangeHelper, this))
+    if (mqtt::subscribeTopic(concatStr(turnoutOrders, 3), &onActTurnChangeHelper, this))
         panic("actTurn::start: Failed to suscribe to turn-out order topic - rebooting...");
     return RC_OK;
 }
@@ -136,18 +135,18 @@ void actTurn::onSysStateChange(const uint16_t p_sysState) {
         setFailSafe(false);
 }
 
-void actTurn::onTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle) {
-    ((actTurn*)p_actTurnHandle)->onTurnChange(p_topic, p_payload);
+void actTurn::onActTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle) {
+    ((actTurn*)p_actTurnHandle)->onActTurnChange(p_topic, p_payload);
 }
 
-void actTurn::onTurnChange(const char* p_topic, const char* p_payload) {
-    if (strcmp(p_topic, MQTT_TURN_CLOSED_PAYLOAD)) {
+void actTurn::onActTurnChange(const char* p_topic, const char* p_payload) {
+    if (strcmp(p_payload, MQTT_TURN_CLOSED_PAYLOAD)) {
         Log.notice("senseDigital::onTurnChange: Got a close turnout change order for turnout %s" CR, sysName);
         orderedTurnOutPos = TURN_CLOSED_POS;
         if (!failSafe)
             turnOutPos = TURN_CLOSED_POS;
     }
-    else if (strcmp(p_topic, MQTT_TURN_THROWN_PAYLOAD)) {
+    else if (strcmp(p_payload, MQTT_TURN_THROWN_PAYLOAD)) {
         Log.notice("senseDigital::onTurnChange: Got a throw turnout change order for turnout %s" CR, sysName);
         orderedTurnOutPos = TURN_THROWN_POS;
         if (!failSafe)
@@ -226,13 +225,37 @@ void actTurn::setFailSafe(bool p_failSafe) {
     setTurn();
 }
 
-void actTurn::setDebug(bool p_debug) {
-    Log.notice("actTurn::setDebug: Debug mode set for turnout %s" CR, sysName);
-    debug = p_debug;
+rc_t actTurn::setProperty(uint8_t p_propertyId, const char* p_propertyVal){
+    Log.notice("actTurn::setProperty: Setting of Turn property not implemented" CR);
+    return RC_NOTIMPLEMENTED_ERR;
+}
+rc_t actTurn::getProperty(uint8_t p_propertyId, char* p_propertyVal){
+    Log.notice("actTurn::getProperty: Getting of Turn property not implemented" CR);
+    return RC_NOTIMPLEMENTED_ERR;
 }
 
-bool actTurn::getDebug(void) {
-    return debug;
+rc_t actTurn::setShowing(const char* p_showing) {
+    if (!strcmp(p_showing, MQTT_TURN_THROWN_PAYLOAD)) {
+        onActTurnChange(NULL, MQTT_TURN_THROWN_PAYLOAD);
+        return RC_OK;
+    }
+    if (!strcmp(p_showing, MQTT_TURN_CLOSED_PAYLOAD)) {
+        onActTurnChange(NULL, MQTT_TURN_CLOSED_PAYLOAD);
+        return RC_OK;
+    }
+    return RC_PARAMETERVALUE_ERR;
+}
+
+rc_t actTurn::getShowing(char* p_showing, char* p_orderedShowing) {
+    if (turnOutPos)
+        p_showing = (char*)MQTT_TURN_THROWN_PAYLOAD;
+    else
+        p_showing = (char*)MQTT_TURN_CLOSED_PAYLOAD;
+    if (orderedTurnOutPos)
+        p_orderedShowing = (char*)MQTT_TURN_THROWN_PAYLOAD;
+    else
+        p_orderedShowing = (char*)MQTT_TURN_CLOSED_PAYLOAD;
+    return RC_OK;
 }
 
 /*==============================================================================================================================================*/

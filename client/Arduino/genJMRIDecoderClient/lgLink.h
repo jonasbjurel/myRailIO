@@ -33,6 +33,8 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "globalCli.h"
+#include "cliGlobalDefinitions.h"
 #include "decoder.h"
 #include "lgBase.h"
 #include "signalMastAspects.h"
@@ -79,7 +81,7 @@ struct stripLed_t {
 
 
 
-class lgLink : public systemState {
+class lgLink : public systemState, public globalCli {
 public:
     //Public methods
     lgLink(uint8_t p_linkNo);
@@ -93,10 +95,11 @@ public:
     void onOpStateChange(const char* p_topic, const char* p_payload);
     static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
     void onAdmStateChange(const char* p_topic, const char* p_payload);
+    rc_t getOpStateStr(char* p_opStateStr);
     rc_t setSystemName(char* p_systemName, bool p_force = false);
     rc_t getSystemName(const char* p_systemName);
     rc_t setUsrName(char* p_usrName, bool p_force = false);
-    rc_t  getUsrName(const char* p_userName);
+    rc_t getUsrName(const char* p_userName);
     rc_t setDesc(char* p_description, bool p_force = false);
     rc_t getDesc(const char* p_desc);
     rc_t setLink(uint8_t p_link);
@@ -114,6 +117,18 @@ public:
     uint32_t getMeanRuntime(void);
     uint32_t getMaxRuntime(void);
     void clearMaxRuntime(void);
+    /* CLI decoration methods */
+    static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliClearLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetMeanLatencyHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliClearMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext);
+
 
     //Public data structures
     //--

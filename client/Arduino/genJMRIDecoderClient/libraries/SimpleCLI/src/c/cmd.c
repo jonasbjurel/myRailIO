@@ -7,12 +7,12 @@
 #include <stdlib.h>       // malloc
 #include <string.h>       // strlen
 
-#include "c/comparator.h" // compare
+#include "comparator.h" // compare
 
-#include "c/cmd.h"
+#include "cmd.h"
 
-#include "c/cmd_error.h"
-#include "c/arg.h"
+#include "cmd_error.h"
+#include "arg.h"
 
 // ===== CMD ===== //
 

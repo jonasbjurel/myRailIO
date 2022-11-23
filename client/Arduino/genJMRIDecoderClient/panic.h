@@ -28,9 +28,7 @@
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
-#include "decoder.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
-#include "systemState.h"
 #include "rc.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */

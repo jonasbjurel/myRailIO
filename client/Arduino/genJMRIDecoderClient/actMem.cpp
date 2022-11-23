@@ -53,16 +53,15 @@ actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     else if (!strcmp(p_subType, MQTT_MEM_PULSE_PAYLOAD)) {
         actMemType = ACTMEM_TYPE_PULSE;
     }
-    actPort = actBaseHandle->actPort;
-    satAddr = actBaseHandle->satHandle->getAddr();
-    satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
+    actBaseHandle->getPort(&actPort);
+    actBaseHandle->satHandle->getAddr(&satAddr);
+    actBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
     sysName = actBaseHandle->satHandle->getSystemName();
     satLibHandle = NULL;
     pendingStart = false;
     actMemSolenoidPushPort = true;
     actMemSolenoidActivationTime = ACTMEM_DEFAULT_SOLENOID_ACTIVATION_TIME_MS;
     sysState = OP_INIT | OP_UNCONFIGURED;
-    debug = false;
     Log.notice("actMem::actMem: Creating memory extention object for %s on actuator port %d, on satelite adress %d, satLink %d" CR, p_subType, actPort, satAddr, satLinkNo);
     actMemLock = xSemaphoreCreateMutex();
     if (actMemLock == NULL)
@@ -87,11 +86,11 @@ void actMem::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 
 rc_t actMem::start(void) {
     Log.notice("actMem::start: Starting actMem actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->getOpState() & OP_UNCONFIGURED) {
+    if (actBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("actMem::start: actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
-    if (actBaseHandle->getOpState() & OP_UNDISCOVERED) {
+    if (actBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
         Log.notice("actMem::start: actMem actuator extention class object %s, on actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sysName, actPort, satAddr, satLinkNo);
         pendingStart = true;
         return RC_NOT_CONFIGURED_ERR;
@@ -161,18 +160,19 @@ void actMem::onActMemChangeHelper(const char* p_topic, const char* p_payload, co
 void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
     Log.notice("actMem::onMemActChange: Got a change order for memory actuator %s - new value %d" CR, sysName, p_payload);
 
-    if (strcmp(p_topic, "ON")) {
+    if (strcmp(p_payload, "ON")) {
         orderedActMemPos = 255;
         if (!failSafe)
             actMemPos = 255;
     }
-    else if (strcmp(p_topic, "OFF")) {
+    else if (strcmp(p_payload, "OFF")) {
         orderedActMemPos = 0;
         if (!failSafe)
             actMemPos = 0;
     }
     else {
-        orderedActMemPos = atoi(p_topic);
+        orderedActMemPos = (atoi(p_payload) > 255? 255 : (atoi(p_payload)));
+        orderedActMemPos = (orderedActMemPos < 0 ? 0 : orderedActMemPos);
         if (!failSafe)
             actMemPos = orderedActMemPos;
     }
@@ -230,13 +230,47 @@ void actMem::setFailSafe(bool p_failSafe) {
     setActMem();
 }
 
-void actMem::setDebug(bool p_debug) {
-    Log.notice("actMem::setDebug: Debug mode set for memory %s" CR, sysName);
-    debug = p_debug;
+rc_t actMem::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
+    Log.notice("actMem::setProperty: Setting of Memory property not implemented" CR);
+    return RC_NOTIMPLEMENTED_ERR;
 }
 
-bool actMem::getDebug(void) {
-    return debug;
+rc_t actMem::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
+    Log.notice("actMem::getProperty: Getting of Memory property not implemented" CR);
+    return RC_NOTIMPLEMENTED_ERR;
+}
+
+rc_t actMem::setShowing(const char* p_showing) {
+    if (!strcmp(p_showing, MQTT_MEM_ON_PAYLOAD)) {
+        onActMemChange(NULL, MQTT_LIGHT_ON_PAYLOAD);
+        return RC_OK;
+    }
+    if (!strcmp(p_showing, MQTT_MEM_OFF_PAYLOAD)) {
+        onActMemChange(NULL, MQTT_MEM_OFF_PAYLOAD);
+        return RC_OK;
+    }
+    if (strtol(p_showing, NULL, 10) || !strcmp(p_showing, "0")) {
+        onActMemChange(NULL, p_showing);
+        return RC_OK;
+    }
+    return RC_PARAMETERVALUE_ERR;
+}
+
+rc_t actMem::getShowing(char* p_showing, char* p_orderedShowing) {
+    if (actMemPos == 0)
+        p_showing = (char*)MQTT_MEM_OFF_PAYLOAD;
+    else if (actMemPos == 255)
+        p_showing = (char*)MQTT_MEM_ON_PAYLOAD;
+    else
+        p_showing = itoa(actMemPos, NULL, 10);
+
+    if (orderedActMemPos == 0)
+        p_orderedShowing = (char*)MQTT_MEM_OFF_PAYLOAD;
+    else if (orderedActMemPos == 255)
+        p_orderedShowing = (char*)MQTT_MEM_ON_PAYLOAD;
+    else
+        p_orderedShowing = itoa(orderedActMemPos, NULL, 10);
+    return RC_OK;
 }
 
 /*==============================================================================================================================================*/

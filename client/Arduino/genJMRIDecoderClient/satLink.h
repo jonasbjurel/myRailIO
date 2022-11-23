@@ -32,6 +32,8 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "globalCli.h"
+#include "cliGlobalDefinitions.h"
 #include "decoder.h"
 #include "sat.h"
 #include "libraries/genericIOSatellite/LIB/src/Satelite.h"
@@ -60,7 +62,7 @@ class sat;
 #define XML_SATLINK_DESC							2
 #define XML_SATLINK_LINK							3
 
-class satLink : public systemState {
+class satLink : public systemState, public globalCli {
 public:
 	//Public methods
 	satLink(uint8_t p_linkNo);
@@ -79,21 +81,22 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
+	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, const bool p_force = false);
 	const char* getSystemName(void);
 	rc_t setUsrName(const char* p_usrName, const bool p_force = false);
 	const char* getUsrName(void);
 	rc_t setDesc(const char* p_description, const bool p_force = false);
 	const char* getDesc(void);
-	const rc_t setLink(const char* p_link);
-	const rc_t getLink(void);
-	const void setDebug(const bool p_debug);
-	const bool getDebug(void);
-	uint32_t getTxUnderuns(void);
-	void clearTxUnderuns(void);
-	uint32_t getRxOverRuns(void);
-	void clearRxOverRuns(void);
-	uint32_t getscanTimingViolations(void);
+	rc_t setLink(uint8_t p_link);
+	rc_t getLink(uint8_t* p_link);
+	void setDebug(const bool p_debug);
+	bool getDebug(void);
+	uint32_t getTxUnderruns(void);
+	void clearTxUnderruns(void);
+	uint32_t getRxOverruns(void);
+	void clearRxOverruns(void);
+	uint32_t getScanTimingViolations(void);
 	void clearScanTimingViolations(void);
 	uint32_t getRxCrcErrs(void);
 	void clearRxCrcErrs(void);
@@ -105,13 +108,30 @@ public:
 	void clearRxDataSizeErrs(void);
 	uint32_t getWdErrs(void);
 	void clearWdErrs(void);
-
 	//int64_t lgLink::getMeanLatency(void) {}
 	//int64_t lgLink::getMaxLatency(void) {}
 	//void lgLink::clearMaxLatency(void) {}
-	// uint32_t lgLink::getMeanRuntime(void) {}
+	//uint32_t lgLink::getMeanRuntime(void) {}
 	//uint32_t lgLink::getMaxRuntime(void) {}
 	//void lgLink::clearMaxRuntime(void) {}
+	static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetRxOverrrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearRxOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
 
 	//Public data structures
 

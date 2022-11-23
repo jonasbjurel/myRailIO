@@ -32,6 +32,8 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "globalCli.h"
+#include "cliGlobalDefinitions.h"
 #include "satLink.h"
 #include "senseBase.h"
 #include "actBase.h"
@@ -61,7 +63,7 @@ class actBase;
 #define XML_SAT_DESC							2
 #define XML_SAT_ADDR							3
 
-class sat : public systemState {
+class sat : public systemState, public globalCli {
 public:
 	//Public methods
 	sat(uint8_t satAddr_p, satLink* linkHandle_p);
@@ -79,6 +81,7 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
+	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, const bool p_force = false);
 	const char* getSystemName(void);
 	rc_t setUsrName(const char* p_usrName, const bool p_force = false);
@@ -86,7 +89,7 @@ public:
 	rc_t setDesc(const char* p_description, const bool p_force = false);
 	const char* getDesc(void);
 	rc_t setAddr(uint8_t p_addr);
-	uint8_t getAddr(void);
+	rc_t getAddr(uint8_t* p_addr);
 	void setDebug(const bool p_debug);
 	bool getDebug(void);
 	uint32_t getRxCrcErrs(void);
@@ -95,6 +98,15 @@ public:
 	void clearTxCrcErrs(void);
 	uint32_t getWdErrs(void);
 	void clearWdErrs(void);
+	/* CLI decoration methods */
+	static void onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
 
 	//Public data structures
 	satLink* linkHandle;

@@ -180,7 +180,7 @@ void signalMastAspects::dumpConfig(void) {
 }
 
 rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** p_appearance) {
-    if (parentHandle->getOpState() != OP_WORKING) {
+    if (parentHandle->systemState::getOpState() != OP_WORKING) {
         Log.error("signalMastAspects::getAppearance: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_appearance = NULL;
         return RC_GEN_ERR;
@@ -212,7 +212,7 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
 }
 
 rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads) {
-    if (parentHandle->getOpState() != OP_WORKING) { //NEEDS ATTENTION
+    if (parentHandle->systemState::getOpState() != OP_WORKING) { //NEEDS ATTENTION
         Log.error("signalMastAspects::getNoOfHeads: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_noOfHeads = 0;
         return RC_GEN_ERR;

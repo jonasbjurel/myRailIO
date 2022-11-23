@@ -7,9 +7,9 @@
 #ifndef cmd_h
 #define cmd_h
 
-#include "c/cmd_types.h"       // cmd, cmd_parse_error
-#include "c/parser_types.h"    // line_node, word_list, word_node, ...
-#include "c/cmd_error_types.h" // cmd_error
+#include "cmd_types.h"       // cmd, cmd_parse_error
+#include "parser_types.h"    // line_node, word_list, word_node, ...
+#include "cmd_error_types.h" // cmd_error
 
 // ===== CMD ===== //
 

@@ -1,4 +1,4 @@
-/*==============================================================================================================================================*/
+/*============================================================================================================================================= =*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
 // Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
@@ -18,17 +18,24 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
-#ifndef CLI_H
-#define CLI_H
+#ifndef TELNETCORE_H
+#define TELNETCORE_H
 
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-#include <stdlib.h>
-#include <cstddef>
-#include <stdio.h>
+#include <iostream>
 #include <string.h>
-
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <assert.h>
+#include "libraries/ESPTelnet/src/ESPTelnet.h"
+#include "libraries/ArduinoLog/ArduinoLog.h"
+#include "panic.h"
+#include "rc.h"
+#include "config.h"
+class telnetCore;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -36,65 +43,49 @@
 
 
 /*==============================================================================================================================================*/
-/* Class: decoderCli                                                                                                                            */
+/* Class: telneCore                                                                                                                             */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
-/* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-#define CLI_PARSE_CONTINUE  0
-#define CLI_PARSE_STOP  1
 
-typedef void (*cliInitCb_t)(void);
-typedef uint8_t(*cliCb_t)(cmd* c);
+/* Definitions                                                                                                                                  */
+typedef void(telnetConnectCb_t)(const char* p_clientIp, bool p_connected, void* p_metaData);
+typedef void(telnetInputCb_t)(char* p_cmd, void* p_metaData);
 
-struct cliContext_t {
-    char* cliContext;
-    cliInitCb_t cliContextInitCb;
-    cliCb_t cliContextCb;
-};
-
-class decoderCli {
+/* Methods                                                                                                                                      */
+class telnetCore {
 public:
-    //methods
-    static void init(void);
-    static void registerCliContext(cliContext_t* p_context);
-    static void printToCli(String p_output, bool partial = false);
-
-    //Data structures
-    static Command help;
-    static Command set;
-    static Command get;
-    static Command exec;
-
-private:
-    //methods
-    static void onTelnetConnect(String ip);
+    //Public methods
+    static rc_t start(void);
+    static void regTelnetConnectCb(telnetConnectCb_t p_telnetConnectCb, void* p_telnetConnectCbMetaData);
+    static void onTelnetConnect(String p_clientIp);
     static void onTelnetDisconnect(String ip);
     static void onTelnetReconnect(String ip);
     static void onTelnetConnectionAttempt(String ip);
-    static void onTelnetString(String p_cmd);
-    static void onCliCommand(cmd* p_cmd);
-    static cliContext_t* getCliContext(char* p_context);
-    static void setCliContext(cliContext_t* p_context);
-    static void resetCliContext(void);
-    static void commonCliContextInit(void);
-    static uint8_t contextCommonCliCmd(cmd* p_cmd);
-    static void rootCliContextInit(void);
-    static uint8_t onRootCliCmd(cmd* p_cmd);
-    static void cliPoll(void* dummy);
+    static void regTelnetInputCb(telnetInputCb_t p_telnetInputCb, void* p_telnetInputCbMetaData);
+    static void onTelnetInput(String p_cmd);
+    static void print(const char* p_output);
+    static void poll(void* dummy);
 
-    //Data structures
-    static QList<cliContext_t*>* cliContextList;
-    static cliContext_t* currentCliContext;
-    static cliContext_t* newCliContext;
-    static SimpleCLI* cli;
+    //Public data structures
+
+
+private:
+    //Private methods
+
+    //Private data structures
     static ESPTelnet telnet;
-    static cliContext_t* rootCliContext;
+    static telnetConnectCb_t* telnetConnectCb;
+    static void* telnetConnectCbMetaData;
+    static telnetInputCb_t* telnetInputCb;
+    static void* telnetInputCbMetaData;
     static uint8_t connections;
+    static char ip[20];
+
 };
 
 /*==============================================================================================================================================*/
-/* End class decoderCli                                                                                                                         */
+/* END Class telnetCore                                                                                                                         */
 /*==============================================================================================================================================*/
+#endif //TELNETCORE_H
 
-#endif //CLI_H

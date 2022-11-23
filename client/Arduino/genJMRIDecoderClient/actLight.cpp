@@ -35,14 +35,13 @@
 /*==============================================================================================================================================*/
 actLight::actLight(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actBaseHandle = p_actBaseHandle;
-    actPort = actBaseHandle->actPort;
-    satAddr = actBaseHandle->satHandle->getAddr();
-    satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
+    actBaseHandle->getPort(&actPort);
+    actBaseHandle->satHandle->getAddr(&satAddr);
+    actBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
     sysName = actBaseHandle->satHandle->getSystemName();
     satLibHandle = NULL;
     pendingStart = false;
     sysState = OP_INIT | OP_UNCONFIGURED;
-    debug = false;
     Log.notice("actLight::actLight: Creating light extention object on actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
     actLightLock = xSemaphoreCreateMutex();
     if (actLightLock == NULL)
@@ -67,11 +66,11 @@ void actLight::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 
 rc_t actLight::start(void) {
     Log.notice("actLight::start: Starting actLight actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->getOpState() & OP_UNCONFIGURED) {
+    if (actBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("actLight::start: actLight actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
-    if (actBaseHandle->getOpState() & OP_UNDISCOVERED) {
+    if (actBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
         Log.notice("actLight::start: actLight actuator extention class object %s, on actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sysName, actPort, satAddr, satLinkNo);
         pendingStart = true;
         return RC_NOT_CONFIGURED_ERR;
@@ -110,12 +109,12 @@ void actLight::onActLightChangeHelper(const char* p_topic, const char* p_payload
 void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
     Log.notice("actLight::onMemActChange: Got a change order for light actuator %s - new value %d" CR, sysName, p_payload);
 
-    if (strcmp(p_topic, "ON")) {
+    if (strcmp(p_payload, MQTT_LIGHT_ON_PAYLOAD)) {
         orderedActLightPos = 255;
         if (!failSafe)
             actLightPos = 255;
     }
-    else if (strcmp(p_topic, "OFF")) {
+    else if (strcmp(p_payload, MQTT_LIGHT_OFF_PAYLOAD)) {
         orderedActLightPos = 0;
         if (!failSafe)
             actLightPos = 0;
@@ -148,15 +147,40 @@ void actLight::setFailSafe(bool p_failSafe) {
     setActLight();
 }
 
-void actLight::setDebug(bool p_debug) {
-    Log.notice("actLight::setDebug: Debug mode set for light %s" CR, sysName);
-    debug = p_debug;
+rc_t actLight::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
+    Log.notice("actLight::setProperty: Setting of Light property not implemented" CR);
+    return RC_NOTIMPLEMENTED_ERR;
 }
 
-bool actLight::getDebug(void) {
-    return debug;
+rc_t actLight::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
+    Log.notice("actLight::getProperty: Getting of Light property not implemented" CR);
+    return RC_NOTIMPLEMENTED_ERR;
+}
+
+rc_t actLight::setShowing(const char* p_showing) {
+    if (!strcmp(p_showing, MQTT_LIGHT_ON_PAYLOAD)) {
+        onActLightChange(NULL, MQTT_LIGHT_ON_PAYLOAD);
+        return RC_OK;
+    }
+    if (!strcmp(p_showing, MQTT_LIGHT_OFF_PAYLOAD)) {
+        onActLightChange(NULL, MQTT_LIGHT_OFF_PAYLOAD);
+        return RC_OK;
+    }
+    return RC_PARAMETERVALUE_ERR;
+}
+
+rc_t actLight::getShowing(char* p_showing, char* p_orderedShowing) {
+    if (actLightPos)
+        p_showing = (char*)MQTT_LIGHT_ON_PAYLOAD;
+    else
+        p_showing = (char*)MQTT_LIGHT_OFF_PAYLOAD;
+    if (orderedActLightPos)
+        p_orderedShowing = (char*)MQTT_LIGHT_ON_PAYLOAD;
+    else
+        p_orderedShowing = (char*)MQTT_LIGHT_OFF_PAYLOAD;
+    return RC_OK;
 }
 
 /*==============================================================================================================================================*/
-/* END Class actLight                                                                                                                             */
+/* END Class actLight                                                                                                                           */
 /*==============================================================================================================================================*/

@@ -72,10 +72,13 @@ public:
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
     rc_t getProperty(uint8_t p_propertyId, const char* p_propertyValue);
     rc_t getNoOffLeds(uint8_t* p_noOfLeds);
+    void getShowing(const char* p_showing);
+    void setShowing(const char* p_showing);
     static void onAspectChangeHelper(const char* p_topic, const char* p_payload, const void* p_mastObject);
     void onAspectChange(const char* p_topic, const char* p_payload); //Mqtt callback at aspect change
     static void onFlashHelper(bool p_flashState, void* p_flashObj);
     void onFlash(bool p_flashState);          //Flash object call back
+
 
     //Public data structures
     //--

@@ -36,8 +36,9 @@
 senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     senseBaseHandle = p_senseBaseHandle;
     sensPort = senseBaseHandle->sensPort;
-    satAddr = senseBaseHandle->satHandle->getAddr();
-    satLinkNo = senseBaseHandle->satHandle->linkHandle->getLink();
+    senseBaseHandle->satHandle->getAddr(&satAddr);
+    senseBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
+    senseBaseHandle->getSystemName(sensSysName);
     satLibHandle = NULL;
     pendingStart = false;
     sysState = 0;
@@ -66,11 +67,11 @@ void senseDigital::onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElemen
 
 rc_t senseDigital::start(void) {
     Log.notice("senseDigital::start: Starting senseDigital sensor extention object for sensor port% d, on satelite adress% d, satLink %d" CR, sensPort, satAddr, satLinkNo);
-    if (senseBaseHandle->getOpState() & OP_UNCONFIGURED) {
+    if (senseBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
         Log.notice("senseDigital::start: senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sensPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
-    if (senseBaseHandle->getOpState() & OP_UNDISCOVERED) {
+    if (senseBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
         Log.notice("senseDigital::start: senseDigital sensor extention class object for sensor port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sensPort, satAddr, satLinkNo);
         pendingStart = true;
         return RC_NOT_CONFIGURED_ERR;
@@ -98,12 +99,26 @@ void senseDigital::onSysStateChange(uint16_t p_sysState) {
 void senseDigital::onSensChange(bool p_filteredSensorVal) {
     filteredSenseVal = p_filteredSensorVal;
     if (!sysState) {
-        char* tmpSysName;
-        senseBaseHandle->getSystemName(tmpSysName);
-        const char* publishTopic[2] = { MQTT_SENS_TOPIC, tmpSysName };
+        const char* publishTopic[2] = { MQTT_SENS_TOPIC, sensSysName };
         if (mqtt::sendMsg(concatStr(publishTopic, 2), ("%s", filteredSenseVal ? MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD), false))
             Log.error("senseDigital::onSensChange: Failed to send sensor value" CR);
     }
+}
+
+rc_t senseDigital::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
+    Log.notice("senseDigital::setProperty: Setting Digital sensor property for %s, property Id %d, property value %s" CR, sensSysName, p_propertyId, p_propertyValue);
+    return RC_NOTIMPLEMENTED_ERR;
+    //......
+}
+
+rc_t senseDigital::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
+    Log.notice("senseDigital::getProperty: Not supported" CR);
+    return RC_NOTIMPLEMENTED_ERR;
+    //......
+}
+
+void senseDigital::getSensing(char* p_sensing) {
+    (filteredSenseVal ? p_sensing = (char*)MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : p_sensing = (char*)MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD);
 }
 
 void senseDigital::setDebug(bool p_debug) {

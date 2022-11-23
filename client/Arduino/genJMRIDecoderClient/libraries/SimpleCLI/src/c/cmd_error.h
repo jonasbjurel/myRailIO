@@ -7,7 +7,7 @@
 #ifndef cmd_error_h
 #define cmd_error_h
 
-#include "c/cmd_error_types.h" // cmd_error
+#include "cmd_error_types.h" // cmd_error
 
 // ===== CMD Parse Error ===== //
 

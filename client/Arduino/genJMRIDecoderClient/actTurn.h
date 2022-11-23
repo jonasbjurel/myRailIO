@@ -70,17 +70,19 @@ public:
     rc_t start(void); //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
     void onDiscovered(satelite* p_sateliteLibHandle);
     void onSysStateChange(uint16_t p_sysState);
-    static void onTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle);
-    void onTurnChange(const char* p_topic, const char* p_payload);
+    static void onActTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle);
     static void turnServoMoveHelper(actTurn* p_actTurnHandle);
-    void setDebug(bool p_debug);
-    bool getDebug(void);
+    rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal);
+    rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
+    rc_t setShowing(const char* p_showing);
+    rc_t getShowing(char* p_showing, char* p_orderedShowing);
 
     //Public data structures
     //--
 
 private:
     //Private methods
+    void onActTurnChange(const char* p_topic, const char* p_payload);
     void setTurn(void);
     void turnServoMove(void);
     void setFailSafe(bool p_failSafe);
@@ -109,7 +111,6 @@ private:
     pwm_t closedTrim;
     pwm_t pwmIncrements;
     bool failSafe;
-    bool debug;
 };
 
 /*==============================================================================================================================================*/

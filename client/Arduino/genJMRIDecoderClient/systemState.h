@@ -66,6 +66,7 @@ public:
     void setOpState(uint16_t p_opStateMap);
     void unSetOpState(uint16_t p_opStateMap);
     uint16_t getOpState(void);
+    rc_t getOpStateStr(char* p_opStateStr);
     void updateObjOpStates(void);
 
     //Public data structures

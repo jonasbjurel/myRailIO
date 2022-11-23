@@ -161,6 +161,12 @@ const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				6
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler"
 
+// Telnet
+#define CPU_TELNET_CORE								CORE_1
+#define CPU_TELNET_PRIO								10
+#define CPU_TELNET_STACKSIZE_1K						6
+#define CPU_TELNET_TASKNAME							"telnet"
+
 // WIFI parameters
 // ===============
 #define WIFI_ESP_MANUFACTURER						"ESPRESSIF" 
@@ -168,6 +174,10 @@ const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 #define WIFI_ESP_MODEL_NAME							"ESPRESSIF IOT"
 #define WIFI_ESP_DEVICE_NAME						"ESP STATION"
 #define WIFI_ESP_HOSTNAME_PREFIX					"genJmriDecoder"
+
+// TELNET parameters
+// =================
+
 
 /*
 #define CLI_POLL_PRIO                 5

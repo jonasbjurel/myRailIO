@@ -7,8 +7,8 @@
 #ifndef cmd_error_types_h
 #define cmd_error_types_h
 
-#include "c/cmd_types.h"    // cmd, arg
-#include "c/parser_types.h" // word_node
+#include "cmd_types.h"    // cmd, arg
+#include "parser_types.h" // word_node
 
 #define CMD_NULL_PTR -2
 #define CMD_EMPTY_LINE -1

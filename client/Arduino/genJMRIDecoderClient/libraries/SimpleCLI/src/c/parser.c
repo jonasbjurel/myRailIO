@@ -4,7 +4,7 @@
    Source: github.com/spacehuhn/SimpleCLI
  */
 
-#include "c/parser.h"
+#include "parser.h"
 
 #include <stdlib.h> // malloc
 

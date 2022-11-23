@@ -44,14 +44,15 @@
 //Class fixed constants
 #define CPU_HISTORY_SIZE 61                                                           //Provides samples for maximum 60 second cpu load avarage
 
+cpu CPU;
+
 class cpu {
 public:
     //methods
     static void init(void);
+    static void startCpuLoadMeasurement(void);
+    static void stopCpuLoadMeasurement(void);
     static float getAvgCpuLoadCore(uint8_t p_core, uint8_t p_period);
-    //static float get1SecCpuLoadCore(uint8_t p_core);
-    //static uint8_t get10SecCpuLoadCore(uint8_t p_core);
-    //static uint8_t get1MinCpuLoadCore(uint8_t p_core);
     static uint8_t getCpuMaxLoadCore(uint8_t p_core);
     static uint8_t clearCpuMaxLoadCore(uint8_t p_core);
     static void getTaskInfoAll(char* p_taskInfoTxt);

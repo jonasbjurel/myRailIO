@@ -7,7 +7,7 @@
 #ifndef cmd_types_h
 #define cmd_types_h
 
-#include "c/arg_types.h" // arg
+#include "arg_types.h" // arg
 
 #define CMD_DEFAULT 0
 #define CMD_BOUNDLESS 1

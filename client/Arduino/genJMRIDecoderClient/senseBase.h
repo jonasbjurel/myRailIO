@@ -33,6 +33,7 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "globalCli.h"
 #include "sat.h"
 #include "libraries/genericIOSatellite/LIB/src/Satelite.h"
 #include "senseDigital.h"
@@ -52,7 +53,7 @@ class senseDigital;
 
 
 /*==============================================================================================================================================*/
-/* Class: senseBase                                                                                                                              */
+/* Class: senseBase                                                                                                                             */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
@@ -64,14 +65,23 @@ class senseDigital;
 #define XML_SENS_TYPE					4
 #define XML_SENS_PROPERTIES				5
 
-#define CALL_EXT(ext_p, type, method)\
+#define SENSE_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "DIGITAL"))\
 			((senseDigital*)ext_p)->method;\
 		else\
 			panic("senseBase::CALL_EXT: Non supported type - rebooting")
 
+#define SENSE_CALL_EXT_RC(ext_p, type, method)\
+		rc_t EXT_RC;\
+		if(!strcmp(type, "DIGITAL"))\
+			EXT_RC = ((senseDigital*)ext_p)->method;\
+		else{\
+			EXT_RC = RC_GEN_ERR;\
+			panic("senseBase::CALL_EXT: Non supported type - rebooting");\
+		}
 
-class senseBase : public systemState {
+
+class senseBase : public systemState, globalCli {
 public:
 	//Public methods
 	senseBase(uint8_t p_sensPort, sat* p_satHandle);
@@ -86,16 +96,26 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
+	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(char* p_sysName, bool p_force = false);
 	rc_t getSystemName(const char* p_sysName);
-	rc_t setUsrName(char* p_usrName, bool p_force = false);
+	rc_t setUsrName(const char* p_usrName, bool p_force = false);
 	rc_t getUsrName(const char* p_usrName);
-	rc_t setDesc(char* p_description, bool p_force = false);
-	const char* getDesc(void);
-	rc_t setPort(const uint8_t p_port);
-	uint8_t getPort(void);
+	rc_t setDesc(const char* p_description, bool p_force = false);
+	rc_t getDesc(char* p_description);
+	rc_t setPort(uint8_t p_port);
+	rc_t getPort(uint8_t* p_port);
+	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
+	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
+	rc_t getSensing(const char* p_sensing);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
+	/* CLI decoration methods */
+	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
 
 	//Public data structures
 	sat* satHandle;

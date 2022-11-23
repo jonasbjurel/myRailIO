@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "globalCli.h"
 #include "networking.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
@@ -180,7 +181,7 @@ class satLink;
 #define XML_DECODER_MAC								12
 #define XML_DECODER_URI								13
 
-class decoder : public systemState {
+class decoder : public systemState, public globalCli {
 public:
 	//Public methods
 	decoder(void);
@@ -197,6 +198,7 @@ public:
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
 	static void onMqttChangeHelper(uint8_t p_mqttState, const void* p_decoderObj);
 	void onMqttChange(uint8_t p_mqttState);
+	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force = false);
 	const char* getMqttBrokerURI(void);
 	rc_t setMqttPort(const uint16_t p_mqttPort, bool p_force = false);
@@ -205,6 +207,8 @@ public:
 	const char* getMqttPrefix(void);
 	rc_t setKeepAlivePeriod(const float p_keepAlivePeriod, bool p_force = false);
 	float getKeepAlivePeriod(void);
+	rc_t setPingPeriod(const float p_pingPeriod, bool p_force = false);
+	float getPingPeriod(void);
 	rc_t setNtpServer(const char* p_ntpServer, bool p_force = false);
 	const char* getNtpServer(void);
 	rc_t setNtpPort(const uint16_t p_ntpPort, bool p_force = false);
@@ -227,6 +231,8 @@ public:
 	const char* getDecoderUri(void);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
+	/* CLI decoration methods */
+	// No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.
 
 	//Public data structures
 
