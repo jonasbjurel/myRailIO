@@ -154,6 +154,7 @@ rc_t senseBase::start(void) {
     const char* opSubscribeTopic[5] = { MQTT_SENS_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", tmpSysName };
     if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
         panic("senseBase::start: Failed to suscribe to opState topic - rebooting...");
+    wdt::wdtRegSensorFailsafe(wdtKickedHelper, this);
 }
 
 void senseBase::onDiscovered(const satelite* p_sateliteLibHandle) {
@@ -211,6 +212,14 @@ void senseBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     }
     else
         Log.error("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, sensPort, satAddr, satLinkNo, p_payload);
+}
+
+void senseBase::wdtKickedHelper(void* senseBaseHandle) {
+    ((senseBase*)senseBaseHandle)->wdtKicked();
+}
+
+void senseBase::wdtKicked(void) {
+    setOpState(OP_INTFAIL);
 }
 
 rc_t senseBase::getOpStateStr(char* p_opStateStr) {

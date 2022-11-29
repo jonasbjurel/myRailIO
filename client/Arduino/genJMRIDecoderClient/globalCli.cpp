@@ -68,6 +68,13 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, NULL, onCliGetUptime);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, GLOBAL_GET_UPTIME_HELP_TXT);
 
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASKS_SUB_MO_NAME, NULL, onCliShowTasks);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASKS_SUB_MO_NAME, GLOBAL_SHOW_CPUTASKS_HELP_TXT);
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASK_SUB_MO_NAME, NULL, onCliShowTask);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASK_SUB_MO_NAME, GLOBAL_SHOW_CPUTASK_HELP_TXT);
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, NULL, onCliShowMem);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_SHOW_CPUMEM_HELP_TXT);
+
 	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, WIFI_SUB_MO_NAME, NULL, onCliGetWifi);
 	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("ssid");
 	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("addr");
@@ -220,6 +227,51 @@ void globalCli::onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 	else {
 		printCli("Uptime: %i", esp_timer_get_time()/1000);
+		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+}
+
+void globalCli::onCliShowTasks(cmd* p_cmd, cliCore* p_cliContext) {
+	Command cmd(p_cmd);
+	if (cmd.getArgument(1))
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+	else {
+		char* taskShowHeadingStr = new char[200];
+		char* taskShowStr = new char[10000];
+		cpu::getTaskInfoAllTxt(taskShowStr, taskShowHeadingStr);
+		printCli("%s\n%s", taskShowHeadingStr, taskShowStr);
+		delete taskShowHeadingStr;
+		delete taskShowStr;
+		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+}
+
+void globalCli::onCliShowTask(cmd* p_cmd, cliCore* p_cliContext) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(1) || cmd.getArgument(2))
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+	else {
+		char* taskShowHeadingStr = new char[200];
+		char* taskShowStr = new char[200];
+		cpu::getTaskInfoAllByTaskTxt(cmd.getArgument(1).getValue().c_str(), taskShowStr, taskShowHeadingStr);
+		printCli("%s\n%s", taskShowHeadingStr, taskShowStr);
+		delete taskShowHeadingStr;
+		delete taskShowStr;
+		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+}
+
+void globalCli::onCliShowMem(cmd* p_cmd, cliCore* p_cliContext) {
+	Command cmd(p_cmd);
+	if (cmd.getArgument(1))
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+	else {
+		char* memShowHeadingStr = new char[200];
+		char* memShowStr = new char[200];
+		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
+		printCli("%s\n%s", memShowHeadingStr, memShowStr);
+		delete memShowHeadingStr;
+		delete memShowStr;
 		acceptedCliCommand(CLI_TERM_QUIET);
 	}
 }

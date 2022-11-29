@@ -40,6 +40,7 @@ telnetInputCb_t* telnetCore::telnetInputCb;
 void* telnetCore::telnetInputCbMetaData;
 uint8_t telnetCore::connections = 0;
 char telnetCore::ip[20];
+wdt* telnetCore::telnetWdt;
 
 rc_t telnetCore::start(void) {
 	Log.notice("telnetCore::start: Starting Telnet" CR);
@@ -120,6 +121,7 @@ void telnetCore::print(const char* p_output) {
 
 void telnetCore::poll(void* dummy) {
 	Log.notice("telnetServer::poll: telnet polling started" CR);
+	telnetWdt = new wdt(3 * 1000000, "Telnet watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
 	while (true) {
 		telnet.loop();
 		if (connections) {

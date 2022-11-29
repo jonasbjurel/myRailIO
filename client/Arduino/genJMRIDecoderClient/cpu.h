@@ -1,4 +1,4 @@
-/*============================================================================================================================================= =*/
+/*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
 // Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
@@ -18,35 +18,87 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
-#ifndef SYSTEM_ARCH_CONF_H
-#define SYSTEM_ARCH_CONF_H
+#ifndef CPU_H
+#define CPU_H
 
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-//-
+#include <stdlib.h>
+#include <cstddef>
+#include <stdio.h>
+#include <string.h>
+#include <Arduino.h>
+#include "rc.h"
+#include "libraries/QList/src/QList.h"
+#include "libraries/ArduinoLog/ArduinoLog.h"
+#include "config.h"
+#include "logHelpers.h"
+
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
 
+
+
 /*==============================================================================================================================================*/
-/* ESP32 system architecture configuration                                                                                                      */
+/* Class: cpu                                                                                                                                   */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
+/* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-// CPU Cores
-// System constants
-#define MAX_CPU_CORES					2
-#define CORE_0							0
-#define CORE_1							1
+//Class fixed constants
+#define CPU_HISTORY_SIZE 60 + 1                                                       //Provides samples for maximum 60 seconds cpu performance data
+class cpu;
 
-// SATLINK RMT configuration 
-const uint8_t SATLINK_RMT_RX_CHAN[] = { 1, 3 };
-const uint8_t SATLINK_RMT_TX_CHAN[] = { 2, 4 };
-const uint8_t SATLINK_RMT_RX_MEMBANK[] = { 1, 3 };
-const uint8_t SATLINK_RMT_TX_MEMBANK[] = { 2, 4 };
+typedef struct taskPmDesc_t {
+    const char* taskName;
+    uint busyTaskTickHistory[CPU_HISTORY_SIZE];
+    uint maxCpuLoad;
+    bool scanned;
+};
+
+typedef struct heapInfo_t {
+    int totalSize;
+    int freeSize;
+    int highWatermark;
+};
+
+class cpu {
+public:
+    //methods
+    static void startPm(void);
+    static void stopPm(void);
+    static uint getCpuAvgLoad(const char* p_task, uint8_t p_period);
+    static uint getCpuMaxLoad(const char* p_task);
+    static rc_t clearCpuMaxLoad(const char* p_task);
+    static rc_t getTaskInfoAllTxt(char* p_taskInfoTxt, char* p_taskInfoHeadingTxt);
+    static rc_t getTaskInfoAllByTaskTxt(const char* p_task, char* p_taskInfoTxt, char* p_taskInfoHeadingTxt);
+    static rc_t getHeapMemInfoAll(heapInfo_t* p_heapInfo);
+    static float getHeapMemTime(uint8_t p_time);
+    static uint getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt);
+
+    //Data structures
+    //--
+
+private:
+    //methods
+    static void cpuPmCollect(void* dummy);
+
+    //Data structures
+    static SemaphoreHandle_t cpuPMLock;
+    static bool cpuPmEnable;
+    static bool cpuPmLogging;
+    static uint8_t secondCount;
+    static uint busyTicksHistory[CPU_HISTORY_SIZE];
+    static uint idleTicksHistory[CPU_HISTORY_SIZE];
+    static uint heapHistory[CPU_HISTORY_SIZE];
+    static uint maxCpuLoad;
+    static QList<const char*> taskNameList;
+    static QList<taskPmDesc_t*> taskPmDescList;
+};
 /*==============================================================================================================================================*/
-/* End ESP32 system architecture configuration                                                                                                  */
+/* END Class cpu                                                                                                                                */
 /*==============================================================================================================================================*/
 
-#endif //SYSTEM_ARCH_CONF_H
+#endif //CPU_H

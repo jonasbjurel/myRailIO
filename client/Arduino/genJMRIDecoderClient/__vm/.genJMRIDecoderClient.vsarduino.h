@@ -122,6 +122,6 @@ public:
 #define READ_PERI_REG(addr)
 // Write Value to Register
 #define WRITE_PERI_REG(addr,val)
-#include "genJMRIClient.ino"
+#include "genJMRIDecoderClient.ino"
 #endif
 #endif

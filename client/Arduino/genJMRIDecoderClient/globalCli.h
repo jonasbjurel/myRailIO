@@ -38,6 +38,8 @@
 #include "config.h"
 #include "networking.h"
 #include "mqtt.h"
+#include "cpu.h"
+
 //class globalCli;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -75,6 +77,11 @@ private:
     static void onCliSetContextHelper(cmd* p_cmd, cliCore* p_cliContext);
     void onCliSetContext(cmd* p_cmd, cliCore* p_cliContext);
     static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext);
+
+    static void onCliShowTasks(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliShowTask(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliShowMem(cmd* p_cmd, cliCore* p_cliContext);
+
     static void onCliGetWifi(cmd* p_cmd, cliCore* p_cliContext);
     static void onClishowTopology(cmd* p_cmd, cliCore* p_cliContext);
     rc_t printTopology(bool p_begining = true);

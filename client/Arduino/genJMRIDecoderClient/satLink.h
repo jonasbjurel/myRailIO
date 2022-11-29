@@ -32,6 +32,7 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "wdt.h"
 #include "globalCli.h"
 #include "cliGlobalDefinitions.h"
 #include "decoder.h"
@@ -144,6 +145,7 @@ private:
 	char* xmlconfig[4];
 	bool debug;
 	SemaphoreHandle_t satLinkLock;
+	static wdt* satLinkWdt;
 	sateliteLink* satLinkLibHandle;
 	sat* sats[MAX_SATELITES];
 	uint32_t txUnderunErr;

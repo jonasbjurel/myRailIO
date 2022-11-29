@@ -29,13 +29,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "globalCli.h"
 #include "networking.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "logHelpers.h"
 #include "rc.h"
 #include "systemState.h"
+#include "globalCli.h"
 #include "satLink.h"
 #include "lgLink.h"
 #include "mqtt.h"
@@ -44,6 +44,7 @@
 #include "panic.h"
 #include "strHelpers.h"
 #include "xmlHelpers.h"
+#include "cpu.h"
 
 class lgLink;
 class satLink;

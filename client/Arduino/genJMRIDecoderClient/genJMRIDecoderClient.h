@@ -18,35 +18,44 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
-#ifndef SYSTEM_ARCH_CONF_H
-#define SYSTEM_ARCH_CONF_H
+
+
+#ifndef GENJMRICLIENT_INO
+#define GENJMRICLIENT_INO
+
+
 
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-//-
+#include <stdlib.h>
+#include <cstddef>
+#include <stdio.h>
+#include <string.h>
+#include <dummy.h>
+#include "libraries/ArduinoLog/ArduinoLog.h"
+#include "networking.h"
+#include "systemState.h"
+#include "decoder.h"
+//#include "cpu.h"
+class decoder;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
 
+
+
 /*==============================================================================================================================================*/
-/* ESP32 system architecture configuration                                                                                                      */
+/* ARDUINO:                                                                                                                                     */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
+/* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-// CPU Cores
-// System constants
-#define MAX_CPU_CORES					2
-#define CORE_0							0
-#define CORE_1							1
-
-// SATLINK RMT configuration 
-const uint8_t SATLINK_RMT_RX_CHAN[] = { 1, 3 };
-const uint8_t SATLINK_RMT_TX_CHAN[] = { 2, 4 };
-const uint8_t SATLINK_RMT_RX_MEMBANK[] = { 1, 3 };
-const uint8_t SATLINK_RMT_TX_MEMBANK[] = { 2, 4 };
+decoder* decoderHandle;
+void setup(void);
+void loop(void);
 /*==============================================================================================================================================*/
-/* End ESP32 system architecture configuration                                                                                                  */
+/* End ARDUINO:                                                                                                                                 */
 /*==============================================================================================================================================*/
 
-#endif //SYSTEM_ARCH_CONF_H
+#endif //GENJMRICLIENT_INO

@@ -31,8 +31,6 @@
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
 
-
-
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								2
@@ -141,7 +139,7 @@
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 
 // Satelit link
-const uint8_t CPU_SATLINK_CORE[] = { CORE_1, CORE_0 };
+const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_SATLINK_PRIO							10
 #define CPU_SATLINK_STACKSIZE_1K					6
 #define CPU_SATLINK_TASKNAME						"satLink %d"
@@ -159,13 +157,19 @@ const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 #define CPU_UPDATE_STRIP_PRIO						10
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				6
-#define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler"
+#define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 
 // Telnet
 #define CPU_TELNET_CORE								CORE_1
 #define CPU_TELNET_PRIO								10
 #define CPU_TELNET_STACKSIZE_1K						6
-#define CPU_TELNET_TASKNAME							"telnet"
+#define CPU_TELNET_TASKNAME							"telnetPoll"
+
+// CPU-PM
+#define CPU_PM_CORE									CORE_1
+#define CPU_PM_PRIO									10
+#define CPU_PM_STACKSIZE_1K							6
+#define CPU_PM_TASKNAME								"cpuPm"
 
 // WIFI parameters
 // ===============
@@ -178,11 +182,4 @@ const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 // TELNET parameters
 // =================
 
-
-/*
-#define CLI_POLL_PRIO                 5
-#define CPU_PM_POLL_PRIO              10
-#define CLI_POLL_CORE                 CORE_1
-#define CPU_PM_CORE                   CORE_1
-*/
 #endif /*CONFIG_H*/

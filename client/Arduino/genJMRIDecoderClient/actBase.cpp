@@ -162,6 +162,7 @@ rc_t actBase::start(void) {
     const char* opSubscribeTopic[5] = { MQTT_ACT_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName()};
     if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
         panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
+    wdt::wdtRegActuatorFailsafe(wdtKickedHelper, this);
 }
 
 void actBase::onDiscovered(satelite* p_sateliteLibHandle) {
@@ -219,6 +220,14 @@ void actBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     }
     else
         Log.error("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
+}
+
+void actBase::wdtKickedHelper(void* p_actuatorBaseHandle) {
+    ((actBase*)p_actuatorBaseHandle)->wdtKicked();
+}
+
+void actBase::wdtKicked(void) {
+    setOpState(OP_INTFAIL);
 }
 
 rc_t actBase::getOpStateStr(char* p_opStateStr) {

@@ -29,11 +29,12 @@
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
-#include "globalCli.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "wdt.h"
+#include "globalCli.h"
 #include "sat.h"
 #include "actTurn.h"
 #include "actLight.h"
@@ -92,7 +93,6 @@ class actMem;
 			panic("actBase::CALL_EXT_RC: Non supported type - rebooting");\
 		}
 
-
 class actBase : public systemState, globalCli {
 public:
 	//Public methods
@@ -108,6 +108,8 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
+	static void wdtKickedHelper(void* p_actuatorBaseHandle);
+	void wdtKicked(void);
 	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, const bool p_force = false);
 	const char* getSystemName(void);

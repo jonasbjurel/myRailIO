@@ -37,12 +37,14 @@
 #include "libraries/QList/src/QList.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "systemState.h"
+#include "wdt.h"
 #include "networking.h"
 #include "strHelpers.h"
 #include "panic.h"
 #include "rc.h"
 #include "config.h"
 #include "mqttTopics.h"
+#include "wdt.h"
 
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -78,7 +80,7 @@ struct mqttTopic_t {
 
 
 
-class mqtt{
+class mqtt : public wdt{
 public:
     //Public methods
     static rc_t init(const char* p_broker, uint16_t p_port, const char* p_user, const char* p_pass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain);
@@ -88,6 +90,7 @@ public:
     static void disConnect(void);
     static rc_t up(void);
     static void down(void);
+    static void wdtKicked(void* p_dummy);
     static rc_t subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback, const void* p_args);
     static rc_t unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback);
     static rc_t sendMsg(const char* p_topic, const char* p_payload, bool p_retain = defaultRetain);
@@ -95,19 +98,19 @@ public:
     static const char* getDecoderUri(void);
     static rc_t setBrokerUri(const char* p_brokerUri);
     static const char* getBrokerUri(void);
-    static void setBrokerPort(uint16_t p_brokerPort);
+    static rc_t setBrokerPort(uint16_t p_brokerPort);
     static uint16_t getBrokerPort(void);
-    static void setBrokerUser(const char* p_brokerUser);
+    static rc_t setBrokerUser(const char* p_brokerUser);
     static const char* getBrokerUser(void);
-    static void setBrokerPass(const char* p_brokerPass);
+    static rc_t setBrokerPass(const char* p_brokerPass);
     static const char* getBrokerPass(void);
-    static void setClientId(const char* p_clientId);
+    static rc_t setClientId(const char* p_clientId);
     static const char* getClientId(void);
-    static void setDefaultQoS(bool p_defaultQoS);
+    static rc_t setDefaultQoS(bool p_defaultQoS);
     static bool getDefaultQoS(void);
-    static void setKeepAlive(float p_keepAlive);
+    static rc_t setKeepAlive(float p_keepAlive);
     static float getKeepAlive(void);
-    static void setPingPeriod(float p_pingPeriod);
+    static rc_t setPingPeriod(float p_pingPeriod);
     static float getPingPeriod(void);
     static uint16_t getOpState(void);
     static uint32_t getOverRuns(void);
@@ -166,6 +169,7 @@ private:
     static QList<mqttTopic_t*> mqttTopics;
     static mqttStatusCallback_t statusCallback;
     static void* statusCallbackArgs;
+    static wdt* mqttWdt;
 };
 
 /*==============================================================================================================================================*/

@@ -33,6 +33,7 @@
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "systemState.h"
+#include "wdt.h"
 #include "globalCli.h"
 #include "cliGlobalDefinitions.h"
 #include "decoder.h"
@@ -142,6 +143,7 @@ private:
     uint8_t linkNo;
     char* xmlconfig[4];
     SemaphoreHandle_t lgLinkLock;
+    wdt* lgLinkWdt;
     char* sysName;
     char* usrName;
     char* desc;

@@ -70,6 +70,7 @@ bool mqtt::discovered;
 QList<mqttTopic_t*> mqtt::mqttTopics;
 mqttStatusCallback_t mqtt::statusCallback;
 void* mqtt::statusCallbackArgs;
+wdt* mqtt::mqttWdt;
 
 // Public methods
 rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
@@ -77,6 +78,7 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     sysState = new systemState((const void*)NULL);
     sysState->regSysStateCb(NULL, &onOpStateChange);
     sysState->setOpState(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNAVAILABLE);
+    mqttWdt = new wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     mqttLock = xSemaphoreCreateMutex();
     missedPings = 0;
     opStateTopicSet = false;
@@ -146,6 +148,7 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
         statusCallback(mqttStatus, statusCallbackArgs);
     }
     sysState->unSetOpState(OP_INIT);
+    wdt::wdtRegMqttDown(wdtKicked, NULL);
     return RC_OK;
 }
 
@@ -163,6 +166,8 @@ rc_t mqtt::regStatusCallback(const mqttStatusCallback_t p_statusCallback, const 
 rc_t mqtt::reConnect(void){
     Log.notice("mqtt::reConnect: Re-connecting MQTT Client");
     mqttClient.disconnect();
+    mqttClient.setServer(brokerUri, brokerPort);
+    mqttClient.setKeepAlive(keepAlive);
     mqttClient.connect(clientId,                                //Should we let poll establish the initial connection? A little bit more thinking?
         brokerUser,
         brokerPass);
@@ -211,12 +216,14 @@ rc_t mqtt::up(void) {
 }
 
 void mqtt::down(void) {
-    Log.notice("mqtt::down, Disconnecting Mqtt client" CR);
+    Log.notice("mqtt::down, declaring down Mqtt client" CR);
     sysState->setOpState(OP_DISABLED);
-    //esp_timer_stop(mqttPingTimerHandle); //need to fix - killing the timer process
+    vTaskDelete(mqttPingHandle);
     sendMsg(opStateTopic, downPayload, true);
-    vTaskDelay(200 / portTICK_PERIOD_MS);
-    mqttClient.disconnect();
+}
+
+void mqtt::wdtKicked(void* p_dummy) {
+    down();
 }
 
 rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback, const void* p_args) {
@@ -327,6 +334,7 @@ rc_t mqtt::setDecoderUri(const char* p_decoderUri) {
     if (decoderUri)
         delete decoderUri;
     decoderUri = createNcpystr(p_decoderUri);
+    reConnect();
     return RC_OK;
 }
 
@@ -338,6 +346,7 @@ rc_t mqtt::setBrokerUri(const char* p_brokerUri) {
     if (brokerUri)
         delete brokerUri;
     brokerUri = createNcpystr(p_brokerUri);
+    reConnect();
     return RC_OK;
 }
 
@@ -345,62 +354,77 @@ const char* mqtt::getBrokerUri(void) {
     return brokerUri;
 }
 
-void mqtt::setBrokerPort(uint16_t p_brokerPort) {
+rc_t mqtt::setBrokerPort(uint16_t p_brokerPort) {
     brokerPort = p_brokerPort;
+    reConnect();
+    return RC_OK;
 }
 
 uint16_t mqtt::getBrokerPort(void) {
     return brokerPort;
 }
 
-void mqtt::setBrokerUser(const char* p_brokerUser) {
+rc_t mqtt::setBrokerUser(const char* p_brokerUser) {
     if (brokerUser)
         delete brokerUser;
     brokerUser = createNcpystr(p_brokerUser);
+    reConnect();
+    return RC_OK;
 }
 
 const char* mqtt::getBrokerUser(void) {
     return brokerUser;
 }
 
-void mqtt::setBrokerPass(const char* p_brokerPass) {
+rc_t mqtt::setBrokerPass(const char* p_brokerPass) {
     if (brokerPass)
         delete brokerPass;
     brokerPass = createNcpystr(p_brokerPass);
+    reConnect();
+    return RC_OK;
 }
 
 const char* mqtt::getBrokerPass(void) {
     return brokerPass;
 }
 
-void mqtt::setClientId(const char* p_clientId) {
+rc_t mqtt::setClientId(const char* p_clientId) {
     if (clientId)
         delete clientId;
     clientId = createNcpystr(p_clientId);
+    reConnect();
+    return RC_OK;
 }
 
 const char* mqtt::getClientId(void) {
     return clientId;
 }
 
-void mqtt::setDefaultQoS(bool p_defaultQoS) {
+rc_t mqtt::setDefaultQoS(bool p_defaultQoS) {
     defaultQoS = p_defaultQoS;
+    reConnect();
+    return RC_OK;
 }
 
 bool mqtt::getDefaultQoS(void) {
     return defaultQoS;
 }
 
-void mqtt::setKeepAlive(float p_keepAlive) {
+rc_t mqtt::setKeepAlive(float p_keepAlive) {
     keepAlive = p_keepAlive;
+    reConnect();
+    return RC_OK;
 }
 
 float mqtt::getKeepAlive(void) {
     return keepAlive;
 }
 
-void mqtt::setPingPeriod(float p_pingPeriod) {
+rc_t mqtt::setPingPeriod(float p_pingPeriod) {
     pingPeriod = p_pingPeriod;
+    down();
+    up();
+    return RC_OK;
 }
 
 float mqtt::getPingPeriod(void) {
@@ -475,8 +499,6 @@ void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_
         if (!strcmp(mqttTopics.at(i)->topic, p_topic)) {
             for (int j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
                 subFound = true;
-                //mqttSubCallback_t cb = &(mqttTopics.at(i)->topicList->at(j)->mqttSubCallback(p_topic, payload, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs)); //We should get this working
-                //cb;
                 mqttTopics.at(i)->topicList->at(j)->mqttSubCallback(p_topic, payload, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs);
                 xSemaphoreTake(mqttLock, portMAX_DELAY);
             }
@@ -533,6 +555,7 @@ void mqtt::poll(void* dummy) {
     //esp_task_wdt_init(1, true); //enable panic so ESP32 restarts
     //esp_task_wdt_add(NULL); //add current thread to WDT watch
     while (true) {
+        mqttWdt->feed();
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
         //esp_task_wdt_reset();

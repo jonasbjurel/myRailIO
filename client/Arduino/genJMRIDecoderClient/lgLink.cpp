@@ -390,8 +390,10 @@ void lgLink::updateStrip(void) {
     overRuns = 0;
     uint32_t maxAvgIndex = floor(UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS);
     uint32_t loopTime = STRIP_UPDATE_MS * 1000;
+    lgLinkWdt = new wdt(STRIP_UPDATE_MS * 10 * 1000, "LG link watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     Log.verbose("gLink::updateStrip: Starting sriphandler channel %d" CR, linkNo);
     while (true) {
+        lgLinkWdt->feed();
         xSemaphoreTake(lgLinkLock, portMAX_DELAY);
         startTime = esp_timer_get_time();
         thisLoopTime = nextLoopTime;

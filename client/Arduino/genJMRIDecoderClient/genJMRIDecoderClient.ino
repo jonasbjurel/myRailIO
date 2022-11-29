@@ -1,4 +1,4 @@
-/*============================================================================================================================================= =*/
+/*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
 // Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
@@ -18,25 +18,13 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
-#ifndef TELNETCORE_H
-#define TELNETCORE_H
+
 
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-#include <iostream>
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <assert.h>
-#include "libraries/ESPTelnet/src/ESPTelnet.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
-#include "wdt.h"
-#include "panic.h"
-#include "rc.h"
-#include "config.h"
-class telnetCore;
+#include <dummy.h>
+#include "genJMRIDecoderClient.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -44,50 +32,55 @@ class telnetCore;
 
 
 /*==============================================================================================================================================*/
-/* Class: telneCore                                                                                                                             */
+/* ARDUINO: setup                                                                                                                               */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
+/* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-
-/* Definitions                                                                                                                                  */
-typedef void(telnetConnectCb_t)(const char* p_clientIp, bool p_connected, void* p_metaData);
-typedef void(telnetInputCb_t)(char* p_cmd, void* p_metaData);
-
-/* Methods                                                                                                                                      */
-class telnetCore {
-public:
-    //Public methods
-    static rc_t start(void);
-    static void regTelnetConnectCb(telnetConnectCb_t p_telnetConnectCb, void* p_telnetConnectCbMetaData);
-    static void onTelnetConnect(String p_clientIp);
-    static void onTelnetDisconnect(String ip);
-    static void onTelnetReconnect(String ip);
-    static void onTelnetConnectionAttempt(String ip);
-    static void regTelnetInputCb(telnetInputCb_t p_telnetInputCb, void* p_telnetInputCbMetaData);
-    static void onTelnetInput(String p_cmd);
-    static void print(const char* p_output);
-    static void poll(void* dummy);
-
-    //Public data structures
-
-
-private:
-    //Private methods
-
-    //Private data structures
-    static ESPTelnet telnet;
-    static telnetConnectCb_t* telnetConnectCb;
-    static void* telnetConnectCbMetaData;
-    static telnetInputCb_t* telnetInputCb;
-    static void* telnetInputCbMetaData;
-    static uint8_t connections;
-    static char ip[20];
-    static wdt* telnetWdt;
-
-};
+void setup() {
+    // put your setup code here, to run once:
+    Serial.begin(115200);
+    while (!Serial && !Serial.available()) {}
+    Log.begin(LOG_LEVEL_VERBOSE, &Serial);
+    //  Log.setPrefix(printPrefix); // set prefix similar to NLog
+    Log.notice("Logging started towards Serial" CR);
+    //CPU.init();
+    networking::start();
+    uint8_t wifiWait = 0;
+    while (networking::getOpState() != OP_WORKING) {
+        if (wifiWait >= 60) {
+            Log.fatal("Could not connect to wifi - rebooting..." CR);
+            ESP.restart();
+        }
+        else {
+            Log.notice("Waiting for WIFI to connect" CR);
+        }
+        wifiWait++;
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+    Log.notice("WIFI connected" CR);
+    //CLI.init();
+    decoderHandle = new decoder();
+    decoderHandle->init();
+}
 
 /*==============================================================================================================================================*/
-/* END Class telnetCore                                                                                                                         */
+/* END setup                                                                                                                                    */
 /*==============================================================================================================================================*/
-#endif //TELNETCORE_H
 
+
+
+/*==============================================================================================================================================*/
+/* ARDUINO: loop                                                                                                                                */
+/* Purpose:                                                                                                                                     */
+/* Methods:                                                                                                                                     */
+/* Data structures:                                                                                                                             */
+/*==============================================================================================================================================*/
+void loop() {
+    // put your main code here, to run repeatedly:
+    // Serial.print("Im in the background\n");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+}
+/*==============================================================================================================================================*/
+/* END loop                                                                                                                                     */
+/*==============================================================================================================================================*/

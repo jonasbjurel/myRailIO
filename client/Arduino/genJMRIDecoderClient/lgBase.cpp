@@ -167,6 +167,7 @@ rc_t lgBase::start(void) {
     const char* opSubscribeTopic[5] = { MQTT_LG_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]};
     if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
         panic("lgBase::start: Failed to suscribe to opState topic - rebooting...");
+    wdt::wdtRegLgFailsafe(wdtKickedHelper, this);
 }
 
 void lgBase::onSysStateChangeHelper(const void* p_lgBaseHandle, uint16_t p_sysState) {
@@ -219,6 +220,14 @@ void lgBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     }
     else
         Log.error("lgBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, lgAddress, lgLinkNo, p_payload);
+}
+
+void lgBase::wdtKickedHelper(void* lgBaseHandle) {
+    ((lgBase*)lgBaseHandle)->wdtKicked();
+}
+
+void lgBase::wdtKicked(void) {
+    setOpState(OP_INTFAIL);
 }
 
 rc_t lgBase::getOpStateStr(char* p_opStateStr) {

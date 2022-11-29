@@ -30,6 +30,9 @@
 #define GLOBAL_MO_NAME													"global"				// Help text definition:
 #define		CONTEXT_SUB_MO_NAME												"context"
 #define		UPTIME_SUB_MO_NAME												"uptime"
+#define		CPUTASKS_SUB_MO_NAME											"tasks"
+#define		CPUTASK_SUB_MO_NAME												"task"
+#define		CPUMEM_SUB_MO_NAME												"memory"
 #define		WIFI_SUB_MO_NAME												"wifi"
 #define		TOPOLOGY_SUB_MO_NAME											"topology"
 #define		MQTTBROKER_SUB_MO_NAME											"mqttbroker"
@@ -167,6 +170,12 @@
 																		"tree.\n"
 
 #define GLOBAL_GET_UPTIME_HELP_TXT										"get uptime:\nPrints the time in seconds sinse the previous reboot.\n"
+
+#define GLOBAL_SHOW_CPUTASKS_HELP_TXT									"show tasks:\nPrints all tasks status and statistics"
+
+#define GLOBAL_SHOW_CPUTASK_HELP_TXT									"show task {task name}:\nPrints task status and statistics for the given task"
+
+#define GLOBAL_SHOW_CPUMEM_HELP_TXT										"show memory:\nPrints global memory status and statistics"
 
 #define GLOBAL_GET_WIFI_HELP_TXT										"get (wifi,ip) [-addr] [-mask] [-gw] [-dns] [-ntp] [-host/name] [-broker]\n"\
 																		"Prints current wifi/ip configuration, if no argument is given - all wifi/ip "\
