@@ -8,3 +8,6 @@ __pycache__/
 
 #config cache
 .genJMRI main configuration
+
+# Visual studio cache
+*.vs
