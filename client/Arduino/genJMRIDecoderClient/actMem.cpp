@@ -63,8 +63,7 @@ actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actMemSolenoidActivationTime = ACTMEM_DEFAULT_SOLENOID_ACTIVATION_TIME_MS;
     sysState = OP_INIT | OP_UNCONFIGURED;
     Log.notice("actMem::actMem: Creating memory extention object for %s on actuator port %d, on satelite adress %d, satLink %d" CR, p_subType, actPort, satAddr, satLinkNo);
-    actMemLock = xSemaphoreCreateMutex();
-    if (actMemLock == NULL)
+    if (!(actMemLock = xSemaphoreCreateMutex()))
         panic("actMem::actMem: Could not create Lock objects - rebooting...");
     actMemPos = atoi(ACTMEM_DEFAULT_FAILSAFE);
     orderedActMemPos = atoi(ACTMEM_DEFAULT_FAILSAFE);
@@ -159,7 +158,7 @@ void actMem::onActMemChangeHelper(const char* p_topic, const char* p_payload, co
 
 void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
     Log.notice("actMem::onMemActChange: Got a change order for memory actuator %s - new value %d" CR, sysName, p_payload);
-
+    xSemaphoreTake(actMemLock, portMAX_DELAY);
     if (strcmp(p_payload, "ON")) {
         orderedActMemPos = 255;
         if (!failSafe)
@@ -177,6 +176,7 @@ void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
             actMemPos = orderedActMemPos;
     }
     setActMem();
+    xSemaphoreGive(actMemLock);
 }
 
 void actMem::setActMem(void) {
@@ -218,6 +218,7 @@ void actMem::setActMem(void) {
 }
 
 void actMem::setFailSafe(bool p_failSafe) {
+    xSemaphoreTake(actMemLock, portMAX_DELAY);
     failSafe = p_failSafe;
     if (failSafe) {
         Log.notice("actMem::setFailSafe: Fail-safe set for memory actuator %s" CR, sysName);
@@ -228,6 +229,7 @@ void actMem::setFailSafe(bool p_failSafe) {
         actMemPos = orderedActMemPos;
     }
     setActMem();
+    xSemaphoreGive(actMemLock);
 }
 
 rc_t actMem::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
@@ -257,19 +259,20 @@ rc_t actMem::setShowing(const char* p_showing) {
 }
 
 rc_t actMem::getShowing(char* p_showing, char* p_orderedShowing) {
+    xSemaphoreTake(actMemLock, portMAX_DELAY);
     if (actMemPos == 0)
         p_showing = (char*)MQTT_MEM_OFF_PAYLOAD;
     else if (actMemPos == 255)
         p_showing = (char*)MQTT_MEM_ON_PAYLOAD;
     else
         p_showing = itoa(actMemPos, NULL, 10);
-
     if (orderedActMemPos == 0)
         p_orderedShowing = (char*)MQTT_MEM_OFF_PAYLOAD;
     else if (orderedActMemPos == 255)
         p_orderedShowing = (char*)MQTT_MEM_ON_PAYLOAD;
     else
         p_orderedShowing = itoa(orderedActMemPos, NULL, 10);
+    xSemaphoreGive(actMemLock);
     return RC_OK;
 }
 

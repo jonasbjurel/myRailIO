@@ -43,8 +43,7 @@ actLight::actLight(actBase* p_actBaseHandle, const char* p_type, char* p_subType
     pendingStart = false;
     sysState = OP_INIT | OP_UNCONFIGURED;
     Log.notice("actLight::actLight: Creating light extention object on actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
-    actLightLock = xSemaphoreCreateMutex();
-    if (actLightLock == NULL)
+    if (!(actLightLock = xSemaphoreCreateMutex()));
         panic("actLight::actLight: Could not create Lock objects - rebooting...");
     actLightPos = ACTLIGHT_DEFAULT_FAILSAFE;
     orderedActLightPos = ACTLIGHT_DEFAULT_FAILSAFE;
@@ -108,7 +107,7 @@ void actLight::onActLightChangeHelper(const char* p_topic, const char* p_payload
 
 void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
     Log.notice("actLight::onMemActChange: Got a change order for light actuator %s - new value %d" CR, sysName, p_payload);
-
+    xSemaphoreTake(actLightLock, portMAX_DELAY);
     if (strcmp(p_payload, MQTT_LIGHT_ON_PAYLOAD)) {
         orderedActLightPos = 255;
         if (!failSafe)
@@ -120,6 +119,7 @@ void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
             actLightPos = 0;
     }
     setActLight();
+    xSemaphoreGive(actLightLock);
 }
 
 void actLight::setActLight(void) {
@@ -135,6 +135,7 @@ void actLight::setActLight(void) {
 }
 
 void actLight::setFailSafe(bool p_failSafe) {
+    xSemaphoreTake(actLightLock, portMAX_DELAY);
     failSafe = p_failSafe;
     if (failSafe) {
         Log.notice("actLight::setFailSafe: Fail-safe set for light actuator %s" CR, sysName);
@@ -145,6 +146,7 @@ void actLight::setFailSafe(bool p_failSafe) {
         actLightPos = orderedActLightPos;
     }
     setActLight();
+    xSemaphoreGive(actLightLock);
 }
 
 rc_t actLight::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
@@ -170,6 +172,7 @@ rc_t actLight::setShowing(const char* p_showing) {
 }
 
 rc_t actLight::getShowing(char* p_showing, char* p_orderedShowing) {
+    xSemaphoreTake(actLightLock, portMAX_DELAY);
     if (actLightPos)
         p_showing = (char*)MQTT_LIGHT_ON_PAYLOAD;
     else
@@ -178,6 +181,7 @@ rc_t actLight::getShowing(char* p_showing, char* p_orderedShowing) {
         p_orderedShowing = (char*)MQTT_LIGHT_ON_PAYLOAD;
     else
         p_orderedShowing = (char*)MQTT_LIGHT_OFF_PAYLOAD;
+    xSemaphoreGive(actLightLock);
     return RC_OK;
 }
 

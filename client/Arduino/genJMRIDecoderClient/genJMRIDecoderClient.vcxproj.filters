@@ -308,10 +308,8 @@
     <ClCompile Include="wdt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="genJMRIDecoderClient.ino">
+    <ClCompile Include="genJMRIDecoderClient.ino">
       <Filter>Source Files</Filter>
-    </None>
+    </ClCompile>
   </ItemGroup>
 </Project>

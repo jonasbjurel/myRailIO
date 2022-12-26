@@ -44,7 +44,8 @@ cliCore* cliCore::currentContext;
 QList<cliCmdTable_t*>* cliCore::cliCmdTable;
 
 cliCore::cliCore(const char* p_moType) {
-	cliCoreLock = xSemaphoreCreateMutex();
+	if (!(cliCoreLock = xSemaphoreCreateMutex()))
+		panic("cliCore::cliCore: Could not create Lock objects - rebooting...");
 	strcpy(cliContextDescriptor.moType, p_moType);
 	Command helpCliCmd = cliContextObjHandle.addBoundlessCommand("help", onCliCmd);
 	Command rebootCliCmd = cliContextObjHandle.addBoundlessCommand("reboot", onCliCmd);
@@ -170,6 +171,8 @@ void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {
 		Log.error("cliCore::onRootIngressCmd: Provided CLI context does not exist" CR);
 		printCli("Provided CLI context does not exist");
 	}
+	xSemaphoreGive(cliCoreLock);
+
 }
 
 rc_t cliCore::onContextIngressCmd(char* p_contextCmd, bool p_setContext) {

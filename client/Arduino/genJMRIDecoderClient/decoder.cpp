@@ -45,8 +45,7 @@ decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, true) {
     Log.notice("decoder::decoder: Creating decoder" CR);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_UNAVAILABLE);
-    decoderLock = xSemaphoreCreateMutex();
-    if (decoderLock == NULL)
+    if (!(decoderLock = xSemaphoreCreateMutex()))
         panic("decoder::decoder: Could not create Lock objects - rebooting...");
     xmlconfig[XML_DECODER_MQTT_URI] = new char[strlen(MQTT_DEFAULT_URI) + 1];
     strcpy(xmlconfig[XML_DECODER_MQTT_URI], MQTT_DEFAULT_URI);
@@ -74,7 +73,6 @@ decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, true) {
 
     // CLI
     globalCli::start();
-
 }
 
 decoder::~decoder(void) {
@@ -396,7 +394,7 @@ rc_t decoder::setMqttPort(const uint16_t p_mqttPort, bool p_force) {
     else {
         Log.notice("decoder::setMqttPort: setting MQTT Port to %s" CR, p_mqttPort);
         delete xmlconfig[XML_DECODER_MQTT_PORT];
-        xmlconfig[XML_DECODER_MQTT_PORT] = createNcpystr(itoa(p_mqttPort, NULL,  10));
+        xSemaphoreGive(decoderLock);
         mqtt::setBrokerPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]));
         mqtt::reConnect();
         return RC_OK;

@@ -38,7 +38,6 @@
 /*==============================================================================================================================================*/
 cpu CPU;
 
-SemaphoreHandle_t cpu::cpuPMLock;
 bool cpu::cpuPmEnable;
 bool cpu::cpuPmLogging = false;
 uint8_t cpu::secondCount = 0;
@@ -48,7 +47,8 @@ uint cpu::idleTicksHistory[CPU_HISTORY_SIZE];
 uint cpu::heapHistory[CPU_HISTORY_SIZE];
 QList<const char*> cpu::taskNameList;
 QList<taskPmDesc_t*> cpu::taskPmDescList;
-SemaphoreHandle_t cpuPMLock = xSemaphoreCreateMutex();
+SemaphoreHandle_t cpu::cpuPMLock = xSemaphoreCreateMutex();
+	
 
 void cpu::startPm(void) {
 	cpuPmEnable = true;

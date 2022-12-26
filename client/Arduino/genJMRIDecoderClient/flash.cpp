@@ -48,7 +48,8 @@ flash::flash(float p_freq, uint8_t p_duty) {
     flashData->offTime = uint32_t((float)(1 / (float)p_freq) * (float)((100 - (float)p_duty) / 100) * 1000000);
     Log.notice("flash::flash: Creating flash object %d with flash frequency %d Hz and dutycycle %d" CR, this, p_freq, p_duty);
     flashData->flashState = true;
-    flashLock = xSemaphoreCreateMutex();
+    if (!(flashLock = xSemaphoreCreateMutex()))
+        panic("flash::flash: Could not create Lock objects - rebooting...");
     overRuns = 0;
     maxLatency = 0;
     maxAvgSamples = p_freq * FLASH_LATENCY_AVG_TIME;
@@ -68,6 +69,7 @@ flash::~flash(void) {
     // need to stop the timer task
     delete flashData;                           //Much more to do/delete
     delete latencyVect;
+    delete flashLock;
 }
 
 rc_t flash::subscribe(flashCallback_t p_callback, void* p_args) {

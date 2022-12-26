@@ -55,8 +55,7 @@ actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) 
     turnSolenoidPushPort = true;
     sysState = OP_INIT | OP_UNCONFIGURED;
     Log.notice("actTurn::actTurn: Creating turnout extention object for %s turnout for actuator port %d, on satelite adress %d, satLink %d" CR, turnType, actPort, satAddr, satLinkNo);
-    actTurnLock = xSemaphoreCreateMutex();
-    if (actTurnLock == NULL)
+    if(!(actTurnLock = xSemaphoreCreateMutex()))
         panic("actTurn::actTurn: Could not create Lock objects - rebooting...");
     turnOutPos = TURN_DEFAULT_FAILSAFE;
     orderedTurnOutPos = TURN_DEFAULT_FAILSAFE;
@@ -140,6 +139,7 @@ void actTurn::onActTurnChangeHelper(const char* p_topic, const char* p_payload, 
 }
 
 void actTurn::onActTurnChange(const char* p_topic, const char* p_payload) {
+    xSemaphoreTake(actTurnLock, portMAX_DELAY);
     if (strcmp(p_payload, MQTT_TURN_CLOSED_PAYLOAD)) {
         Log.notice("senseDigital::onTurnChange: Got a close turnout change order for turnout %s" CR, sysName);
         orderedTurnOutPos = TURN_CLOSED_POS;
@@ -154,6 +154,7 @@ void actTurn::onActTurnChange(const char* p_topic, const char* p_payload) {
     }
     else
         Log.error("senseDigital::onTurnChange: Got an invalid turnout change order for turnout %s" CR, sysName);
+    xSemaphoreGive(actTurnLock);
     setTurn();
 }
 
@@ -213,6 +214,7 @@ void actTurn::turnServoMove(void) {
 }
 
 void actTurn::setFailSafe(bool p_failSafe) {
+    xSemaphoreTake(actTurnLock, portMAX_DELAY);
     failSafe = p_failSafe;
     if (failSafe) {
         Log.notice("actTurn::setFailSafe: Fail-safe set for turnout %s" CR, sysName);
@@ -223,6 +225,7 @@ void actTurn::setFailSafe(bool p_failSafe) {
         turnOutPos = orderedTurnOutPos;
     }
     setTurn();
+    xSemaphoreGive(actTurnLock);
 }
 
 rc_t actTurn::setProperty(uint8_t p_propertyId, const char* p_propertyVal){
@@ -247,6 +250,7 @@ rc_t actTurn::setShowing(const char* p_showing) {
 }
 
 rc_t actTurn::getShowing(char* p_showing, char* p_orderedShowing) {
+    xSemaphoreTake(actTurnLock, portMAX_DELAY);
     if (turnOutPos)
         p_showing = (char*)MQTT_TURN_THROWN_PAYLOAD;
     else
@@ -255,6 +259,7 @@ rc_t actTurn::getShowing(char* p_showing, char* p_orderedShowing) {
         p_orderedShowing = (char*)MQTT_TURN_THROWN_PAYLOAD;
     else
         p_orderedShowing = (char*)MQTT_TURN_CLOSED_PAYLOAD;
+    xSemaphoreGive(actTurnLock);
     return RC_OK;
 }
 

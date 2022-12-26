@@ -43,12 +43,11 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(this), globa
     Log.notice("actBase::actBase: Creating actBase stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, p_actPort, satAddr, satLinkNo);
     regSysStateCb(this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNAVAILABLE);
-    actLock = xSemaphoreCreateMutex();
+    if (!(actLock = xSemaphoreCreateMutex()))
+        panic("actBase::actBase: Could not create Lock objects - rebooting...");
     pendingStart = false;
     satLibHandle = NULL;
     debug = false;
-    if (actLock == NULL)
-        panic("actBase::actBase: Could not create Lock objects - rebooting...");
 
 /* CLI decoration methods */
     // get/set port
