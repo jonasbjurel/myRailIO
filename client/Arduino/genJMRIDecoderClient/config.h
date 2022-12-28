@@ -56,7 +56,7 @@
 
 // Satelite link configuration
 // ===========================
-#define MAX_SATELITES								8	
+#define MAX_SATELITES								8
 
 // Satelite configuration
 // ======================
@@ -128,24 +128,24 @@
 // ========================
 // MQTT message polling
 #define CPU_MQTT_POLL_CORE							CORE_1
-#define CPU_MQTT_POLL_PRIO							10
+#define CPU_MQTT_POLL_PRIO							16
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 
 // MQTT message supervision
 #define CPU_MQTT_PING_CORE							CORE_0
-#define CPU_MQTT_PING_PRIO							10
+#define CPU_MQTT_PING_PRIO							16
 #define CPU_MQTT_PING_STACKSIZE_1K					6
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 
 // Satelit link
 const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
-#define CPU_SATLINK_PRIO							10
+#define CPU_SATLINK_PRIO							16
 #define CPU_SATLINK_STACKSIZE_1K					6
 #define CPU_SATLINK_TASKNAME						"satLink %d"
 
 const uint8_t CPU_SATLINK_PM_CORE[] =				{CORE_0, CORE_1};
-#define CPU_SATLINK_PM_PRIO							10
+#define CPU_SATLINK_PM_PRIO							8
 #define CPU_SATLINK_PM_STACKSIZE_1K					6
 #define CPU_SATLINK_PM_TASKNAME						"satLinkPmPoll %d"
 
@@ -155,19 +155,19 @@ const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 
 // LgLink
 const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
-#define CPU_UPDATE_STRIP_PRIO						10
+#define CPU_UPDATE_STRIP_PRIO						16
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				6
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 
 // Telnet
 #define CPU_TELNET_CORE								CORE_1
-#define CPU_TELNET_PRIO								10
+#define CPU_TELNET_PRIO								4
 #define CPU_TELNET_STACKSIZE_1K						6
 #define CPU_TELNET_TASKNAME							"telnetPoll"
 
 // CPU-PM
 #define CPU_PM_CORE									CORE_1
-#define CPU_PM_PRIO									10
+#define CPU_PM_PRIO									8
 #define CPU_PM_STACKSIZE_1K							6
 #define CPU_PM_TASKNAME								"cpuPm"
 
