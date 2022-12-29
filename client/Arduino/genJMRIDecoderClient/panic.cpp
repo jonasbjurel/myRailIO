@@ -28,8 +28,19 @@
 
 
 
-void panic(const char* p_panicMessage) {
-    Log.fatal(p_panicMessage);
+void panic(const char* fmt, ...) {
+    // determine required buffer size 
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+    if (len < 0) return;
+    // format message
+    char* msg = new char[512];
+    va_start(args, fmt);
+    vsnprintf(msg, len + 1, fmt, args);
+    va_end(args);
+    Log.fatal(msg);
 //    decoderHandle->setOpState(OP_INTFAIL);
     Log.info("panic: Waiting 5 seconds before restaritng - enabling spool-out of syslog, fail-safe settings, etc");
     TimerHandle_t rebootTimer;

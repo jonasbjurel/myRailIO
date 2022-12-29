@@ -40,7 +40,7 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-void panic(const char* p_panicMessage);
+void panic(const char* fmt, ...);
 void reboot(void* p_args);
 //extern decoder* decoderHandle;
 
