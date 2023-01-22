@@ -139,7 +139,7 @@ public:
 	uint8_t satAddr;
 	uint8_t satLinkNo;
 	bool pendingStart;
-	char* xmlconfig[6];
+	char* xmlconfig[7];
 	bool debug;
 
 private:

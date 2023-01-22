@@ -128,7 +128,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     Log.notice("lgBase::onConfig: Type: %s" CR, xmlconfig[XML_LG_TYPE]);
     Log.notice("lgBase::onConfig: Properties: %s" CR, xmlconfig[XML_LG_PROPERTIES]);
     if (xmlconfig[XML_LG_PROPERTIES])
-        Log.notice("lgBase::onConfig: lg type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
+        Log.notice("lgBase::onConfig: lg type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_LG_PROPERTIES]);
     if (!strcmp((const char*)xmlconfig[XML_LG_TYPE], "SIGNAL MAST")) {
             Log.notice("lgBase::onConfig: lg-type is Signal mast - programing act-stem object by creating an lgSignalMast extention class object" CR);
             extentionLgClassObj = (void*) new lgSignalMast(this);
@@ -464,7 +464,7 @@ void lgBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
         return;
     }
     rc_t rc;
-    char* property;
+    char* property = NULL;
     if (cmd.getArgument(1)) {
         if (rc = reinterpret_cast<lgBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg property, return code: %i", rc);
@@ -509,7 +509,7 @@ void lgBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext){
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    char* showing;
+    char* showing = NULL;
     reinterpret_cast<lgBase*>(p_cliContext)->getShowing(showing);
     printCli("Lightgroup-showing: %s", showing);
     acceptedCliCommand(CLI_TERM_QUIET);

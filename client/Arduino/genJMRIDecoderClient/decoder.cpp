@@ -42,6 +42,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, true) {
+    //ITOA NEEDS FIX - WILL CRASH
     Log.notice("decoder::decoder: Creating decoder" CR);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_UNAVAILABLE);

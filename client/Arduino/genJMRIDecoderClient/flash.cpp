@@ -54,11 +54,12 @@ flash::flash(float p_freq, uint8_t p_duty) {
     maxLatency = 0;
     maxAvgSamples = p_freq * FLASH_LATENCY_AVG_TIME;
     latencyVect = new uint32_t[maxAvgSamples];
-
+    char flashTaskName[30];
+    sprintf(flashTaskName, CPU_SATLINK_PM_TASKNAME, flashInstanse);
     xTaskCreatePinnedToCore(
         flashLoopStartHelper,                   // Task function
-        "FlashLoop",                            // Task function name reference
-        6 * 1024,                               // Stack size
+        flashTaskName,                          // Task function name reference
+        FLASH_LOOP_STACKSIZE_1K * 1024,         // Stack size
         this,                                   // Parameter passing
         FLASH_LOOP_PRIO,                        // Priority 0-24, higher is more
         NULL,                                   // Task handle

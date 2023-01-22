@@ -50,11 +50,11 @@
 
 
 //Debug level
-#define DEBUG_VERBOSE                   4
-#define DEBUG_TERSE                     3
-#define DEBUG_INFO                      2
-#define DEBUG_ERROR                     1
-#define DEBUG_PANIC                     0
+#define GJMRI_DEBUG_VERBOSE             4
+#define GJMRI_DEBUG_TERSE               3
+#define GJMRI_DEBUG_INFO                2
+#define GJMRI_DEBUG_ERROR               1
+#define GJMRI_DEBUG_PANIC               0
 
 
 

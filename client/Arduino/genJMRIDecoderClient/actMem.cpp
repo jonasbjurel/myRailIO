@@ -265,12 +265,14 @@ rc_t actMem::getShowing(char* p_showing, char* p_orderedShowing) {
     else if (actMemPos == 255)
         p_showing = (char*)MQTT_MEM_ON_PAYLOAD;
     else
+        //ITOA NEEDS FIX - WILL CRASH
         p_showing = itoa(actMemPos, NULL, 10);
     if (orderedActMemPos == 0)
         p_orderedShowing = (char*)MQTT_MEM_OFF_PAYLOAD;
     else if (orderedActMemPos == 255)
         p_orderedShowing = (char*)MQTT_MEM_ON_PAYLOAD;
     else
+        //ITOA NEEDS FIX - WILL CRASH
         p_orderedShowing = itoa(orderedActMemPos, NULL, 10);
     xSemaphoreGive(actMemLock);
     return RC_OK;

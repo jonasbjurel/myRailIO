@@ -1,0 +1,5 @@
+Slogan																				Component							Priority
+================================================================================================================================
+When wifimgr config validation fails, restore of persistant wifi info fails			Networking							B
+Static IP address not working											WiFi manager						A
+

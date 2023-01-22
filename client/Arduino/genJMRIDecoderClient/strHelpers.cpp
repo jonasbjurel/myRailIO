@@ -63,6 +63,24 @@ char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings) {
     return dst;
 }
 
+bool isUri(const char* p_uri) {
+    bool prevDot = false;
+    if (p_uri[0] == '.' || p_uri[strlen(p_uri) - 1] == '.')
+        return false;
+    for (uint16_t i = 0; i < strlen(p_uri); i++) {
+        if (!(isAlphaNumeric(p_uri[i]) || p_uri[i] == '.' || p_uri[i] == '_'))
+            return false;
+        if (p_uri[i] == '.') {
+            if (prevDot)
+                return false;
+            else
+                prevDot = true;
+        }
+        else
+            prevDot = false;
+    }
+    return true;
+}
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */
 /*==============================================================================================================================================*/

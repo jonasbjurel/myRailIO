@@ -38,29 +38,29 @@
 /*==============================================================================================================================================*/
 uint8_t transformLogLevelXmlStr2Int(const char* p_loglevelXmlTxt) {
     if (!strcmp(p_loglevelXmlTxt, "DEBUG-VERBOSE"))
-        return DEBUG_VERBOSE;
+        return GJMRI_DEBUG_VERBOSE;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-TERSE"))
-        return DEBUG_TERSE;
+        return GJMRI_DEBUG_TERSE;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-INFO"))
-        return DEBUG_INFO;
+        return GJMRI_DEBUG_INFO;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-ERROR"))
-        return DEBUG_ERROR;
+        return GJMRI_DEBUG_ERROR;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-PANIC"))
-        return DEBUG_PANIC;
+        return GJMRI_DEBUG_PANIC;
     else
         return RC_GEN_ERR;
 }
 
 const char* transformLogLevelInt2XmlStr(uint8_t p_loglevelInt) {
-    if (p_loglevelInt == DEBUG_VERBOSE)
+    if (p_loglevelInt == GJMRI_DEBUG_VERBOSE)
         return "DEBUG-VERBOSE";
-    else if (p_loglevelInt == DEBUG_TERSE)
+    else if (p_loglevelInt == GJMRI_DEBUG_TERSE)
         return "DEBUG-TERSE";
-    else if (p_loglevelInt == DEBUG_INFO)
+    else if (p_loglevelInt == GJMRI_DEBUG_INFO)
         return "DEBUG-INFO";
-    else if (p_loglevelInt == DEBUG_ERROR)
+    else if (p_loglevelInt == GJMRI_DEBUG_ERROR)
         return "DEBUG-ERROR";
-    else if (p_loglevelInt ==  DEBUG_PANIC)
+    else if (p_loglevelInt ==  GJMRI_DEBUG_PANIC)
         return "DEBUG-PANIC";
     else
         return NULL;

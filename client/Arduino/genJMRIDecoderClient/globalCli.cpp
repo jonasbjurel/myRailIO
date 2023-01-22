@@ -291,23 +291,23 @@ void globalCli::onCliGetWifi(cmd* p_cmd, cliCore* p_cliContext) {
 	Argument brokerArg = cmd.getArgument("broker");
 	if (addrArg.isSet()) {
 		strcat(configHeading, "Address:\t\t");
-		strcat(config, ("%s\t\t", networking::getIpaddr().toString().c_str()));
+		strcat(config, ("%s\t\t", networking::getIpAddr().toString().c_str()));
 	}
 	if (maskArg.isSet()) {
 		strcat(configHeading, "Mask:\t\t");
-		strcat(config, ("%s\t\t", networking::getIpmask().toString().c_str()));
+		strcat(config, ("%s\t\t", networking::getIpMask().toString().c_str()));
 	}
 	if (gwArg.isSet()) {
 		strcat(configHeading, "Gateway:\t\t");
-		strcat(config, ("%s\t\t", networking::getGateway().toString().c_str()));
+		strcat(config, ("%s\t\t", networking::getGatewayIpAddr().toString().c_str()));
 	}
 	if (dnsArg.isSet()) {
 		strcat(configHeading, "DNS:\t\t");
-		strcat(config, ("%s\t\t", networking::getDns().toString().c_str()));
+		strcat(config, ("%s\t\t", networking::getDnsIpAddr().toString().c_str()));
 	}
 	if (ntpArg.isSet()) {
 		strcat(configHeading, "NTP:\t\t");
-		strcat(config, ("%s\t\t", networking::getNtp().toString().c_str()));
+		//strcat(config, ("%s\t\t", networking::getNtp().toString().c_str())); NTP NEEDS TO BE FIXED
 	}
 	if (hostArg.isSet()) {
 		strcat(configHeading, "Hostname:\t");

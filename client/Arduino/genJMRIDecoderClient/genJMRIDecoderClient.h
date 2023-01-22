@@ -37,7 +37,7 @@
 #include "networking.h"
 #include "systemState.h"
 #include "decoder.h"
-//#include "cpu.h"
+#include "fileSys.h"
 class decoder;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -52,7 +52,9 @@ class decoder;
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 decoder* decoderHandle;
+bool setupRunning;
 void setup(void);
+void setupTask(void* p_dummy);
 void loop(void);
 /*==============================================================================================================================================*/
 /* End ARDUINO:                                                                                                                                 */

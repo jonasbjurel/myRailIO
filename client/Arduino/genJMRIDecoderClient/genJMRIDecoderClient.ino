@@ -23,7 +23,28 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
+//#include <dummy.h>
+#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
+#include <Effortless_SPIFFS.h>
+#include <FS.h>
+#include <FSImpl.h>
+#include <vfs_api.h>
 #include <dummy.h>
+#include <WiFi.h>
+#include <WiFiAP.h>
+#include <WiFiClient.h>
+#include <WiFiGeneric.h>
+#include <WiFiMulti.h>
+#include <WiFiScan.h>
+#include <WiFiServer.h>
+#include <WiFiSTA.h>
+#include <WiFiType.h>
+#include <WiFiUdp.h>
+#include <wm_strings_en.h>
+#include <wm_consts_en.h>
+#include <WiFiManager.h>
+#include <strings_en.h>
 #include "genJMRIDecoderClient.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -38,30 +59,46 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 void setup() {
-    // put your setup code here, to run once:
+    setupRunning = true;
     Serial.begin(115200);
-    while (!Serial && !Serial.available()) {}
+    //while (!Serial.available()) {}
+    networking::provisioningConfigTrigger();
+    xTaskCreatePinnedToCore(                    // Spinning up a setupTask task as wee need a bigger stack than set-up provides
+        setupTask,                              // Task function
+        SETUP_TASKNAME,                         // Task function name reference
+        50 * 1024,              // Stack size
+        NULL,                                   // Parameter passing
+        SETUP_PRIO,                             // Priority 0-24, higher is more
+        NULL,                                   // Task handle
+        SETUP_CORE);                            // Core [CORE_0 | CORE_1]
+    while (setupRunning)
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    Log.notice("genJMRIDecoderClient::setup: Initial setup has successfully concluded, handing over to \"Arduino loop\"" CR);
+}
+
+void setupTask(void* p_dummy) {
+    networking::provisioningConfigTrigger();
+    Log.notice("genJMRIDecoderClient::setupTask: setupTask started" CR);
     Log.begin(LOG_LEVEL_VERBOSE, &Serial);
     //  Log.setPrefix(printPrefix); // set prefix similar to NLog
-    Log.notice("Logging started towards Serial" CR);
-    //CPU.init();
+    Log.notice("genJMRIDecoderClient::setupTask: Logging service started towards Serial" CR);
+    fileSys::start();
+    Log.notice("genJMRIDecoderClient::setupTask: File system service started" CR);
     networking::start();
-    uint8_t wifiWait = 0;
+    Log.notice("genJMRIDecoderClient::setupTask: WIFI Networking service started" CR);
     while (networking::getOpState() != OP_WORKING) {
-        if (wifiWait >= 60) {
-            Log.fatal("Could not connect to wifi - rebooting..." CR);
-            ESP.restart();
-        }
-        else {
-            Log.notice("Waiting for WIFI to connect" CR);
-        }
-        wifiWait++;
+        Log.notice("Waiting for WIFI to connect, current WiFi OP state: %X" CR, networking::getOpState());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     Log.notice("WIFI connected" CR);
+    /*
     //CLI.init();
     decoderHandle = new decoder();
-    decoderHandle->init();
+    decoderHandle->init();*/
+    setupRunning = false;
+    //while (true)
+        //vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelete(NULL);
 }
 
 /*==============================================================================================================================================*/
@@ -77,6 +114,8 @@ void setup() {
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 void loop() {
+    Serial.println("Hello World");
+
     // put your main code here, to run repeatedly:
     // Serial.print("Im in the background\n");
     vTaskDelay(1000 / portTICK_PERIOD_MS);

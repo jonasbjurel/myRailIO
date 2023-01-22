@@ -162,6 +162,7 @@ rc_t actBase::start(void) {
     if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
         panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
     wdt::wdtRegActuatorFailsafe(wdtKickedHelper, this);
+    return RC_OK;
 }
 
 void actBase::onDiscovered(satelite* p_sateliteLibHandle) {
@@ -373,7 +374,7 @@ void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
     }
     rc_t rc;
     uint8_t port;
-    if (rc = reinterpret_cast<actBase*>(p_cliContext)->getPort(&port)) {
+    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getPort(&port))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, return code: %i", rc);
         return;
     }
@@ -388,7 +389,7 @@ void actBase::onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext) {
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<actBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str()))) {
+    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str())))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator port, return code: %i", rc);
         return;
     }
@@ -402,9 +403,9 @@ void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext) {
         return;
     }
     rc_t rc;
-    char* showing;
-    char* orderedShowing;
-    if (rc = reinterpret_cast<actBase*>(p_cliContext)->getShowing(showing, orderedShowing)) {
+    char* showing = NULL;
+    char* orderedShowing = NULL;
+    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getShowing(showing, orderedShowing))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator showing, return code: %i", rc);
         return;
     }
@@ -419,7 +420,7 @@ void actBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext) {
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<actBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str())) {
+    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator showing, return code: %i", rc);
         return;
     }
@@ -433,9 +434,9 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
         return;
     }
     rc_t rc;
-    char* property;
+    char* property = NULL;
     if (cmd.getArgument(1)) {
-        if (rc = reinterpret_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
+        if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property))) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor properties, return code: %i", rc);
             return;
         }
@@ -445,7 +446,7 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
     else {
         printCli("Actuator property index:\t\t\Actuator property value:\n");
         for (uint8_t i = 0; i < 255; i++) {
-            if (rc = reinterpret_cast<actBase*>(p_cliContext)->getProperty(i, property)) {
+            if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getProperty(i, property))) {
                 if (rc == RC_NOT_FOUND_ERR)
                     break;
                 notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator property %i, return code: %i", i, rc);
@@ -465,7 +466,7 @@ void actBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<actBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str())) {
+    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
         return;
     }

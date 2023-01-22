@@ -259,6 +259,7 @@ rc_t cliCore::getFullCliContextPath(char* p_fullCliContextPath, const cliCore* p
 	else {
 		strcat(p_fullCliContextPath, ((cliCore*)cliContextHandle)->getCliContextDescriptor()->contextName);
 		strcat(p_fullCliContextPath, "-");
+		//ITOA NEEDS FIX - WILL CRASH
 		strcat(p_fullCliContextPath, itoa(((cliCore*)cliContextHandle)->getCliContextDescriptor()->contextIndex, NULL, 10));
 		strcat(p_fullCliContextPath, "/");
 		return RC_OK;

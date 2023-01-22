@@ -77,7 +77,6 @@ typedef float							lg_property_t[8];
 #define XML_LG_TYPE						4
 #define XML_LG_SUBTYPE					5
 #define XML_LG_PROPERTIES				6
-#define XML_ACT_PROPERTIES				7
 
 #define LG_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "SIGNAL MAST"))\
@@ -146,7 +145,7 @@ public:
 	lgLink* lgLinkHandle;
 	uint8_t lgAddress;
 	uint8_t lgLinkNo;
-	char* xmlconfig[8];
+	char* xmlconfig[7];
 	bool debug;
 	uint16_t stripOffset;
 

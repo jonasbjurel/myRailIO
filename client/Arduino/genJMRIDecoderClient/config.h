@@ -36,13 +36,11 @@
 #define MAX_SATLINKS								2
 #define MAX_LGLINKS									2
 #define DECODER_CONFIG_TIMEOUT_S					60
-#define MQTT_DEFAULT_URI							"myJmri.mqtt.org" //*** Needs to be aligned across the project
-#define MQTT_DEFAULT_PORT							"1883"
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
 #define NTP_DEFAULT_PORT							123
 #define NTP_DEFAULT_TZ								0
-#define DEFAULT_LOGLEVEL							DEBUG_INFO
+#define DEFAULT_LOGLEVEL							GJMRI_DEBUG_INFO
 #define DEFAULT_FAILSAFE							"Yes"
 
 // Flash Configuration
@@ -112,7 +110,7 @@
 
 // MQTT Configuration
 // ==================
-#define MQTT_DEFAULT_URI							"genJMRImqtt.org"
+#define MQTT_DEFAULT_URI							"JMRImqtt.org"
 #define MQTT_DEFAULT_PORT							1883
 #define MQTT_DEFAULT_CLIENT_ID						"Generic JMRI decoder"
 #define MQTT_DEFAULT_QOS							MQTT_QOS_0
@@ -127,6 +125,11 @@
 // CPU execution parameters
 // ========================
 // MQTT message polling
+#define SETUP_CORE									CORE_1
+#define SETUP_PRIO									8
+#define SETUP_STACKSIZE_1K							6
+#define SETUP_TASKNAME								"setup"
+
 #define CPU_MQTT_POLL_CORE							CORE_1
 #define CPU_MQTT_POLL_PRIO							16
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
@@ -152,6 +155,8 @@ const uint8_t CPU_SATLINK_PM_CORE[] =				{CORE_0, CORE_1};
 // Flash
 const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 #define FLASH_LOOP_PRIO								10
+#define FLASH_LOOP_STACKSIZE_1K						6
+#define FLASH_LOOP_TASKNAME							"FlashLoop %d"
 
 // LgLink
 const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
@@ -173,11 +178,26 @@ const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 
 // WIFI parameters
 // ===============
-#define WIFI_ESP_MANUFACTURER						"ESPRESSIF" 
-#define WIFI_ESP_MODEL_NUMBER						"ESP32"
-#define WIFI_ESP_MODEL_NAME							"ESPRESSIF IOT"
-#define WIFI_ESP_DEVICE_NAME						"ESP STATION"
-#define WIFI_ESP_HOSTNAME_PREFIX					"genJmriDecoder"
+#define WIFI_MGR_AP_NAME_PREFIX						"genJMRIconfAP"							// WiFi provisioning manager Access point name prefix, will be followed by "_<MAC address>"
+#define WIFI_MGR_STA_CONNECT_TIMEOUT_S				120										// If WiFi provisioning manager hasn't been able to connect to the provisioned Access point within this time, it will deblock and the program will continue waiting for it to connect
+#define WIFI_MGR_AP_CONFIG_TIMEOUT_S				120										// If no client has connected to the WiFi provisioning manager accesspoint within this time, it will deblock with curren current parameters (or factory default)
+#define WIFI_WD_TIMEOUT_S							180										// If network connectivity has not been established within this time, reboot escalation counter will be incremented and decoder client will be restarted.
+#define WIFI_WD_ESCALATION_CNT_THRES				3										// If the reboot escalation counter-, evaluated att reboot, is above this value, the Wifi manager provisioning access poit as well as the captive is activated to accept new configuration.
+#define WIFI_MGR_HTML_TITLE							"genJMRI decoder configuration manager" // WiFi provisioning manager captive portal HTML title
+#define WIFI_MGR_AP_IP								10,0,0,2								// WiFi provisioning manager captive portal address
+#define WIFI_MGR_AP_GW_IP							10,0,0,1								// WiFi provisioning manager captive portal gateway address
+#define WIFI_ESP_MANUFACTURER						"ESPRESSIF"								// Not yet supported
+#define WIFI_ESP_MODEL_NUMBER						"ESP32"									// Not yet supported
+#define WIFI_ESP_MODEL_NAME							"ESPRESSIF IOT"							// Not yet supported
+#define WIFI_ESP_DEVICE_NAME						"ESP STATION"							// Not yet supported
+#define WIFI_ESP_HOSTNAME_PREFIX					"genJmriDec"							// Factory default decoder client hostname prefix, will be followed by "_<MAC address>" and can be modified through 
+#define WIFI_CONFIG_JSON_OBJ_SIZE					1024									// Config JSON document object size
+#define WIFI_CONFIG_JSON_SERIAL_SIZE				1024									// Config JSON document serialized size
+#define WIFI_CONFIG_STORE_FILENAME					FS_PATH "/" "WiFiConfig.json"			// Confiuration file path/name
+
+// File system parameters
+// ======================
+#define FS_PATH										"/spiffs"								// SPIFFS filesystem path
 
 // TELNET parameters
 // =================

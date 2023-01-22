@@ -201,12 +201,6 @@
 #define COMMON_GET_SYSNAME_HELP_TXT										"[{context-path}/]get systemname: Prints system-name of current-, or provided"\
 																		"context-path/Managed object\n"
 
-#define COMMON_GET_SYSNAME_HELP_TXT										"[{context-path}/]set systemname {system-name}: Sets system-name of current-, "\
-																		""or provided context-path/Managed object\n"
-
-#define COMMON_GET_SYSNAME_HELP_TXT										"[{context-path}/]get systemname: Prints system-name of current-, or provided"\
-																		"context-path/Managed object\n"
-
 #define COMMON_SET_SYSNAME_HELP_TXT										"[{context-path}/]set systemname {system-name}: Sets system-name of current-, "\
 																		"or provided context-path/Managed object\n"
 
