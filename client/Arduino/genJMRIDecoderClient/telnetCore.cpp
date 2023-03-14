@@ -1,7 +1,7 @@
 /*============================================================================================================================================= =*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
+
+
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
@@ -30,8 +32,10 @@
 
 /*==============================================================================================================================================*/
 /* Class: telnetCore                                                                                                                            */
-/* Purpose:                                                                                                                                     */
-/* Methods:                                                                                                                                     */
+/* Purpose:  See telnetCore.h                                                                                                                   */
+/* Description:  See telnetCore.h																												*/
+/* Methods:  See telnetCore.h                                                                                                                   */
+/* Data sructures: See telnetCore.h																												*/
 /*==============================================================================================================================================*/
 ESPTelnet telnetCore::telnet;
 telnetConnectCb_t* telnetCore::telnetConnectCb;
@@ -56,23 +60,30 @@ rc_t telnetCore::start(void) {
 		});
 	if (telnet.begin()) {
 		Log.notice("decoderCli::init: CLI started" CR);
-		xTaskCreatePinnedToCore(
-			poll,													// Task function
-			CPU_TELNET_TASKNAME,									// Task function name reference
-			CPU_TELNET_STACKSIZE_1K * 1024,							// Stack size
-			NULL,													// Parameter passing
-			CPU_TELNET_PRIO,										// Priority 0-24, higher is more
-			NULL,													// Task handle
-			CPU_TELNET_CORE);										// Core [CORE_0 | CORE_1]
+		if (xTaskCreatePinnedToCore(
+			poll,																		// Task function
+			CPU_TELNET_TASKNAME,														// Task function name reference
+			CPU_TELNET_STACKSIZE_1K * 1024,												// Stack size
+			NULL,																		// Parameter passing
+			CPU_TELNET_PRIO,															// Priority 0-24, higher is more
+			NULL,																		// Task handle
+			CPU_TELNET_CORE) != pdPASS)													// Core [CORE_0 | CORE_1]
+			panic("telnetCore::start: Could not start Telnet polling task");
 	}
 	else {
-		Log.error("decoderCli::init: Failed to start CLI" CR);
+		Log.ERROR("decoderCli::init: Failed to start CLI" CR);
 		return RC_GEN_ERR;
 	}
 	return RC_OK;
 }
 
-void telnetCore::regTelnetConnectCb(telnetConnectCb_t p_telnetConnectCb, void* p_telnetConnectCbMetaData) {
+void telnetCore::reconnect(void) {
+	telnet.stop();
+	telnet.begin();
+}
+
+void telnetCore::regTelnetConnectCb(telnetConnectCb_t p_telnetConnectCb,
+									void* p_telnetConnectCbMetaData) {
 	telnetConnectCb = p_telnetConnectCb;
 	telnetConnectCbMetaData = p_telnetConnectCbMetaData;
 }
@@ -101,16 +112,19 @@ void telnetCore::onTelnetReconnect(String p_ip) {
 }
 
 void telnetCore::onTelnetConnectionAttempt(String p_ip) {
-	Log.notice("decoderCli::onTelnetConnectionAttempt: CLI connection failed from: %s" CR, p_ip);
+	Log.notice("decoderCli::onTelnetConnectionAttempt: \
+			    CLI connection failed from: %s" CR, p_ip);
 }
 
-void telnetCore::regTelnetInputCb(telnetInputCb_t p_telnetInputCb, void* p_telnetInputCbMetaData) {
+void telnetCore::regTelnetInputCb(telnetInputCb_t p_telnetInputCb,
+								  void* p_telnetInputCbMetaData) {
 	telnetInputCb = p_telnetInputCb;
 	telnetInputCbMetaData = p_telnetInputCbMetaData;
 }
 
 void telnetCore::onTelnetInput(String p_cmd) {
-	Log.verbose("telnetCore::onTelnetInput: Received input from Telnet client: %s" CR, ip);
+	Log.VERBOSE("telnetCore::onTelnetInput: \
+				 Received input from Telnet client: %s" CR, ip);
 	if (telnetInputCb)
 		telnetInputCb((char*)p_cmd.c_str(), telnetInputCbMetaData);
 }
@@ -121,7 +135,8 @@ void telnetCore::print(const char* p_output) {
 
 void telnetCore::poll(void* dummy) {
 	Log.notice("telnetServer::poll: telnet polling started" CR);
-	telnetWdt = new wdt(3 * 1000000, "Telnet watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
+	telnetWdt = new wdt(10 * 1000, "Telnet watchdog",
+						FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
 	while (true) {
 		telnet.loop();
 		if (connections) {
@@ -130,9 +145,9 @@ void telnetCore::poll(void* dummy) {
 		else {
 			vTaskDelay(1000 / portTICK_PERIOD_MS);
 		}
+		telnetWdt->feed();
 	}
 }
-
 /*==============================================================================================================================================*/
 /* END Class telnetCore                                                                                                                         */
 /*==============================================================================================================================================*/

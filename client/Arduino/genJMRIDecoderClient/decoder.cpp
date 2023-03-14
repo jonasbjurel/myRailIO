@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,39 +41,49 @@
 /*          as ntp-, rsyslog-, ntp-, watchdog- and cli configuration and is the cooridnator and root of such servicies.                         */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, true) {
-    //ITOA NEEDS FIX - WILL CRASH
+decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, true) {
     Log.notice("decoder::decoder: Creating decoder" CR);
+    debug = false;
+    mqtt::create();
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_UNAVAILABLE);
     if (!(decoderLock = xSemaphoreCreateMutex()))
         panic("decoder::decoder: Could not create Lock objects - rebooting...");
-    xmlconfig[XML_DECODER_MQTT_URI] = new char[strlen(MQTT_DEFAULT_URI) + 1];
-    strcpy(xmlconfig[XML_DECODER_MQTT_URI], MQTT_DEFAULT_URI);
-    xmlconfig[XML_DECODER_MQTT_PORT] = new char[strlen(itoa(MQTT_DEFAULT_PORT, NULL, 10)) + 1];
-    strcpy(xmlconfig[XML_DECODER_MQTT_PORT], itoa(MQTT_DEFAULT_PORT, NULL, 10));
+    xmlconfig[XML_DECODER_MQTT_URI] = new char[strlen(networking::getMqttUri()) + 1];
+    sprintf(xmlconfig[XML_DECODER_MQTT_URI], "%s", networking::getMqttUri());
+    xmlconfig[XML_DECODER_MQTT_PORT] = new char[6];
+    sprintf(xmlconfig[XML_DECODER_MQTT_PORT], "%i", networking::getMqttPort());
+
     xmlconfig[XML_DECODER_MQTT_PREFIX] = new char[strlen(MQTT_PRE_TOPIC_DEFAULT_FRAGMENT) + 1];
-    strcpy(xmlconfig[XML_DECODER_MQTT_PREFIX], MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
+    sprintf(xmlconfig[XML_DECODER_MQTT_PREFIX], "%s", MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
+
     xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = new char[10];
     sprintf(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD], "%f", MQTT_DEFAULT_PINGPERIOD_S);
-    xmlconfig[XML_DECODER_NTPURI] = new char[strlen(NTP_DEFAULT_URI) + 1];
-    strcpy(xmlconfig[XML_DECODER_NTPURI], NTP_DEFAULT_URI);
-    xmlconfig[XML_DECODER_NTPPORT] = new char[strlen(itoa(NTP_DEFAULT_PORT, NULL, 10)) + 1];
-    strcpy(xmlconfig[XML_DECODER_NTPPORT], itoa(NTP_DEFAULT_PORT, NULL, 10));
-    xmlconfig[XML_DECODER_TZ] = new char[strlen(NTP_DEFAULT_TZ) + 1];
-    strcpy(xmlconfig[XML_DECODER_TZ], NTP_DEFAULT_TZ);
-    xmlconfig[XML_DECODER_LOGLEVEL] = new char[strlen(itoa(DEFAULT_LOGLEVEL, NULL, 10)) + 1];
-    strcpy(xmlconfig[XML_DECODER_LOGLEVEL], itoa(DEFAULT_LOGLEVEL, NULL, 10));
-    xmlconfig[XML_DECODER_FAILSAFE] = new char[strlen(DEFAULT_FAILSAFE) + 1];
-    strcpy(xmlconfig[XML_DECODER_FAILSAFE], DEFAULT_FAILSAFE);
+
+    xmlconfig[XML_DECODER_NTPURI] = new char[strlen(NTP_DEFAULT_URI) + 1]; //SHOULD THIS COME FROM NETWORKING?
+    sprintf(xmlconfig[XML_DECODER_NTPURI], "%s", NTP_DEFAULT_URI);
+
+    xmlconfig[XML_DECODER_NTPPORT] = new char[6];
+    sprintf(xmlconfig[XML_DECODER_NTPPORT], "%i", NTP_DEFAULT_PORT);
+    //return; //FIND WHERE THE ISSUE IS BY MOVING THIS RETURN DOWNWARDS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //XML_DECODER_TZ SHOULD BE A STRING OF ~50 (CHECK), WILL REQUIRE A CHANGE IN THE SERVER-DECODER API CHANGE!!!
+    xmlconfig[XML_DECODER_TZ] = new char[50];
+    sprintf(xmlconfig[XML_DECODER_TZ], "%s", NTP_DEFAULT_TZ);
+
+    xmlconfig[XML_DECODER_LOGLEVEL] = new char[3];
+    sprintf(xmlconfig[XML_DECODER_LOGLEVEL], "%i", DEFAULT_LOGLEVEL);
+
+    xmlconfig[XML_DECODER_FAILSAFE] = new char[4];
+    sprintf(xmlconfig[XML_DECODER_FAILSAFE], "%s", DEFAULT_FAILSAFE);
+
     xmlconfig[XML_DECODER_SYSNAME] = NULL;
     xmlconfig[XML_DECODER_USRNAME] = NULL;
     xmlconfig[XML_DECODER_DESC] = NULL;
     xmlconfig[XML_DECODER_MAC] = NULL;
     xmlconfig[XML_DECODER_URI] = NULL;
-
-    // CLI
+    Log.notice("decoder::decoder: Starting CLI service" CR);
     globalCli::start();
+    Log.notice("decoder::decoder: Decoder created" CR);
 }
 
 decoder::~decoder(void) {
@@ -83,15 +93,15 @@ decoder::~decoder(void) {
 rc_t decoder::init(void){
     Log.notice("decoder::init: Initializing decoder" CR);
     Log.notice("decoder::init: Initializing MQTT " CR);
-    mqtt::init((char*)MQTT_DEFAULT_URI,         // Broker URI WE NEED TO GET THE BROKER FROM SOMEWHERE
-        MQTT_DEFAULT_PORT,                      // Broker port
-        (char*) "",                             // User name
-        (char*)"",                              // Password
-        (char*)MQTT_DEFAULT_CLIENT_ID,          // Client ID
-        MQTT_DEFAULT_QOS,                       // QoS
-        MQTT_DEFAULT_KEEP_ALIVE_S,              // Keep alive time
-        MQTT_DEFAULT_PINGPERIOD_S,              // Ping period
-        MQTT_RETAIN);                           // Default retain
+    mqtt::init((char*)xmlconfig[XML_DECODER_MQTT_URI],          // Broker URI WE NEED TO GET THE BROKER FROM SOMEWHERE
+        atoi(xmlconfig[XML_DECODER_MQTT_PORT]),                 // Broker port
+        (char*)"",                                              // User name
+        (char*)"",                                              // Password
+        (char*)MQTT_DEFAULT_CLIENT_ID,                          // Client ID
+        MQTT_DEFAULT_QOS,                                       // QoS
+        MQTT_DEFAULT_KEEP_ALIVE_S,                              // Keep alive time
+        MQTT_DEFAULT_PINGPERIOD_S,                              // Ping period
+        MQTT_RETAIN);                                           // Default retain
     mqtt::regStatusCallback(&onMqttChangeHelper, (const void*)this);
     Log.notice("decoder::init: Waiting for MQTT connection" CR);
     uint8_t i = 0;
@@ -210,7 +220,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     // RESET NTP CONFIGURATION
     // RESET TZ CONFIGURATION
     if (transformLogLevelXmlStr2Int(xmlconfig[XML_DECODER_LOGLEVEL]) == RC_GEN_ERR) {
-        Log.error("decoder::onConfig: Log-level %s as provided in the decoder configuration is not supported, using default: %s" CR, xmlconfig[XML_DECODER_LOGLEVEL], transformLogLevelInt2XmlStr(DEFAULT_LOGLEVEL));
+        Log.ERROR("decoder::onConfig: Log-level %s as provided in the decoder configuration is not supported, using default: %s" CR, xmlconfig[XML_DECODER_LOGLEVEL], transformLogLevelInt2XmlStr(DEFAULT_LOGLEVEL));
         delete xmlconfig[XML_DECODER_LOGLEVEL];
         xmlconfig[XML_DECODER_LOGLEVEL] = createNcpystr(transformLogLevelInt2XmlStr(DEFAULT_LOGLEVEL));
     }
@@ -298,13 +308,13 @@ void decoder::onSysStateChange(uint16_t p_sysState) {
         panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting...");
     if ((p_sysState & OP_DISCONNECTED) && !(p_sysState & OP_INIT))
         panic("decoder::onSystateChange: decoder has been disconnected after initialization phase- rebooting...");
-    if (p_sysState & ~OP_DISABLED) {
+    if (!(p_sysState & ~OP_DISABLED)) {
         Log.notice("decoder::onSystateChange: decocoder is marked fault free by server (OP_DISABLED not concidered), opState bitmap: %b - enabling mqtt supervision" CR, p_sysState);
         if (mqtt::up())
             panic("decoder::onSystateChange: Could not enable mqtt supervision - rebooting");
     }
     else {
-        Log.notice("decoder::onSystateChange: decocoder is marked faulty by server (OP_DISABLED not concidered), opState bitmap: %b - enabling mqtt supervision" CR, p_sysState);
+        Log.notice("decoder::onSystateChange: decocoder is marked faulty by server (OP_DISABLED not concidered), opState bitmap: %b - disabling mqtt supervision" CR, p_sysState);
         mqtt::down();
     }
 }
@@ -323,7 +333,7 @@ void decoder::onOpStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("decoder::onOpStateChange: got unavailable message from server" CR);
     }
     else
-        Log.error("decoder::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
+        Log.ERROR("decoder::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
 }
 
 void decoder::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
@@ -340,7 +350,7 @@ void decoder::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("decoder::onAdmStateChange: got off-line message from server" CR);
     }
     else
-        Log.error("decoder::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
+        Log.ERROR("decoder::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
 }
 
 void decoder::onMqttChangeHelper(uint8_t p_mqttState, const void* p_decoderObj) {
@@ -360,9 +370,9 @@ rc_t decoder::getOpStateStr(char* p_opStateStr) {
 
 rc_t decoder::setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force) {
     if (!debug || !p_force)
-        Log.error("decoder::setMqttBrokerURI: cannot set MQTT URI as debug is inactive" CR);
+        Log.ERROR("decoder::setMqttBrokerURI: cannot set MQTT URI as debug is inactive" CR);
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setMqttURI: cannot set MQTT URI as decoder is not configured" CR);
+        Log.ERROR("decoder::setMqttURI: cannot set MQTT URI as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -377,7 +387,7 @@ rc_t decoder::setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force) {
 
 const char* decoder::getMqttBrokerURI(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getMqttBrokerURI: cannot get MQTT URI as decoder is not configured" CR);
+        Log.ERROR("decoder::getMqttBrokerURI: cannot get MQTT URI as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_MQTT_URI];
@@ -385,11 +395,11 @@ const char* decoder::getMqttBrokerURI(void) {
 
 rc_t decoder::setMqttPort(const uint16_t p_mqttPort, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setMqttPort: cannot set MQTT Port as debug is inactive" CR);
+        Log.ERROR("decoder::setMqttPort: cannot set MQTT Port as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setMqttPort: cannot set MQTT port as decoder is not configured" CR);
+        Log.ERROR("decoder::setMqttPort: cannot set MQTT port as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -404,7 +414,7 @@ rc_t decoder::setMqttPort(const uint16_t p_mqttPort, bool p_force) {
 
 uint16_t decoder::getMqttPort(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getMqttPort: cannot get MQTT port as decoder is not configured" CR);
+        Log.ERROR("decoder::getMqttPort: cannot get MQTT port as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     return atoi(xmlconfig[XML_DECODER_MQTT_PORT]);
@@ -412,11 +422,11 @@ uint16_t decoder::getMqttPort(void) {
 
 rc_t decoder::setMqttPrefix(const char* p_mqttPrefix, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setMqttPrefix: cannot set MQTT Prefix as debug is inactive" CR);
+        Log.ERROR("decoder::setMqttPrefix: cannot set MQTT Prefix as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setMqttPrefix: cannot set MQTT prefix as decoder is not configured" CR);
+        Log.ERROR("decoder::setMqttPrefix: cannot set MQTT prefix as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -429,7 +439,7 @@ rc_t decoder::setMqttPrefix(const char* p_mqttPrefix, bool p_force) {
 
 const char* decoder::getMqttPrefix(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getMqttPrefix: cannot get MQTT prefix as decoder is not configured" CR);
+        Log.ERROR("decoder::getMqttPrefix: cannot get MQTT prefix as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_MQTT_PREFIX];
@@ -437,50 +447,50 @@ const char* decoder::getMqttPrefix(void) {
 
 rc_t decoder::setKeepAlivePeriod(const float p_keepAlivePeriod, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setKeepAlivePeriod: cannot set keep-alive period as debug is inactive" CR);
+        Log.ERROR("decoder::setKeepAlivePeriod: cannot set keep-alive period as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setKeepAlivePeriod: cannot set keep-alive period as decoder is not configured" CR);
+        Log.ERROR("decoder::setKeepAlivePeriod: cannot set keep-alive period as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.error("decoder::setKeepAlivePeriod: setting keep-alive period is not supported" CR);
+        Log.ERROR("decoder::setKeepAlivePeriod: setting keep-alive period is not supported" CR);
         return RC_NOTIMPLEMENTED_ERR;
     }
 }
 
 float decoder::getKeepAlivePeriod(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getKeepAlivePeriod: cannot get keep-alive period as decoder is not configured" CR);
+        Log.ERROR("decoder::getKeepAlivePeriod: cannot get keep-alive period as decoder is not configured" CR);
         return RC_GEN_ERR;
     }
-    Log.error("decoder::getKeepAlivePeriod: getting keep-alive period is not supported" CR);
+    Log.ERROR("decoder::getKeepAlivePeriod: getting keep-alive period is not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t decoder::setNtpServer(const char* p_ntpServer, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setNtpServer: cannot set NTP server as debug is inactive" CR);
+        Log.ERROR("decoder::setNtpServer: cannot set NTP server as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setNtpServer: cannot set NTP server as decoder is not configured" CR);
+        Log.ERROR("decoder::setNtpServer: cannot set NTP server as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.error("decoder::setNtpServer: cannot set NTP server - not implemented" CR);
+        Log.ERROR("decoder::setNtpServer: cannot set NTP server - not implemented" CR);
         return RC_NOTIMPLEMENTED_ERR;
     }
 }
 
 rc_t decoder::setPingPeriod(const float p_pingPeriod, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setPingPeriod: cannot set ping supervision period as debug is inactive" CR);
+        Log.ERROR("decoder::setPingPeriod: cannot set ping supervision period as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setPingPeriod: cannot set ping supervision period as decoder is not configured" CR);
+        Log.ERROR("decoder::setPingPeriod: cannot set ping supervision period as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -493,7 +503,7 @@ rc_t decoder::setPingPeriod(const float p_pingPeriod, bool p_force) {
 
 float decoder::getPingPeriod(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getPingPeriod: cannot get keep-alive period as decoder is not configured" CR);
+        Log.ERROR("decoder::getPingPeriod: cannot get keep-alive period as decoder is not configured" CR);
         return RC_GEN_ERR;
     }
     return atof(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]);
@@ -501,7 +511,7 @@ float decoder::getPingPeriod(void) {
 
 const char* decoder::getNtpServer(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getNtpServer: cannot get NTP server as decoder is not configured" CR);
+        Log.ERROR("decoder::getNtpServer: cannot get NTP server as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_NTPURI];
@@ -509,22 +519,22 @@ const char* decoder::getNtpServer(void) {
 
 rc_t decoder::setNtpPort(const uint16_t p_ntpPort, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setNtpPort: cannot set NTP port as debug is inactive" CR);
+        Log.ERROR("decoder::setNtpPort: cannot set NTP port as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setNtpPort: cannot set NTP port as decoder is not configured" CR);
+        Log.ERROR("decoder::setNtpPort: cannot set NTP port as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.error("decoder::setNtpPort: cannot set NTP port - not implemented" CR);
+        Log.ERROR("decoder::setNtpPort: cannot set NTP port - not implemented" CR);
         return RC_NOTIMPLEMENTED_ERR;
     }
 }
 
 uint16_t decoder::getNtpPort(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getNtpPort: cannot get NTP port as decoder is not configured" CR);
+        Log.ERROR("decoder::getNtpPort: cannot get NTP port as decoder is not configured" CR);
         return 0;
     }
     return atoi(xmlconfig[XML_DECODER_NTPPORT]);
@@ -532,55 +542,53 @@ uint16_t decoder::getNtpPort(void) {
 
 rc_t decoder::setTz(const uint8_t p_tz, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("decoder::setTz: cannot set Time zone as debug is inactive" CR);
+        Log.ERROR("decoder::setTz: cannot set Time zone as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setTz: cannot set time-zone as decoder is not configured" CR);
+        Log.ERROR("decoder::setTz: cannot set time-zone as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.error("decoder::setTz: cannot set Time zone - not implemented" CR);
+        Log.ERROR("decoder::setTz: cannot set Time zone - not implemented" CR);
         return RC_NOTIMPLEMENTED_ERR;
     }
 }
 
 uint8_t decoder::getTz(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getTz: cannot get Time-zone as decoder is not configured" CR);
+        Log.ERROR("decoder::getTz: cannot get Time-zone as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     return atoi(xmlconfig[XML_DECODER_TZ]);
 }
 
 rc_t decoder::setLogLevel(const char* p_logLevel, bool p_force) {
-    if (!debug || !p_force) {
-        Log.error("decoder::setLogLevel: cannot set Log level as debug is inactive" CR);
+    if (!debug && !p_force) {
+        Log.ERROR("decoder::setLogLevel: cannot set Log level as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
-    }
-    else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setLogLevel: cannot set log-level as decoder is not configured" CR);
-        return RC_NOT_CONFIGURED_ERR;
     }
     else {
         if (transformLogLevelXmlStr2Int(p_logLevel) == RC_GEN_ERR) {
-            Log.error("decoder::setLogLevel: cannot set Log-level %s, log-level not supported, using current log-level: %s" CR, p_logLevel, xmlconfig[XML_DECODER_LOGLEVEL]);
+            Log.ERROR("decoder::setLogLevel: cannot set Log-level %s, log-level not supported, using current log-level: %s" CR, p_logLevel, transformLogLevelInt2XmlStr(Log.getLevel()));
             return RC_GEN_ERR;
         }
         Log.notice("decoder::setLogLevel: Setting Log-level to %s" CR, p_logLevel);
         delete xmlconfig[XML_DECODER_LOGLEVEL];
         xmlconfig[XML_DECODER_LOGLEVEL] = createNcpystr(p_logLevel);
+        Log.setLevel(transformLogLevelXmlStr2Int(xmlconfig[XML_DECODER_LOGLEVEL]));
+        return RC_OK;
     }
-    Log.setLevel(transformLogLevelXmlStr2Int(xmlconfig[XML_DECODER_LOGLEVEL]));
-    return RC_OK;
 }
 
 const char* decoder::getLogLevel(void) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getLogLevel: cannot get log-level as decoder is not configured" CR);
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.WARN("decoder::getLogLevel: Could not retrieve a valid Log-level");
         return NULL;
     }
-    return xmlconfig[XML_DECODER_LOGLEVEL];
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
 }
 
 rc_t decoder::setFailSafe(const bool p_failsafe, bool p_force) {
@@ -589,7 +597,7 @@ rc_t decoder::setFailSafe(const bool p_failsafe, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setFailSafe: cannot set fail-safe as decoder is not configured" CR);
+        Log.ERROR("decoder::setFailSafe: cannot set fail-safe as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -608,7 +616,7 @@ rc_t decoder::setFailSafe(const bool p_failsafe, bool p_force) {
 
 bool decoder::getFailSafe(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getFailSafe: cannot get fail-safe as decoder is not configured" CR);
+        Log.ERROR("decoder::getFailSafe: cannot get fail-safe as decoder is not configured" CR);
         return false;
     }
     if (strcmp(xmlconfig[XML_DECODER_LOGLEVEL], MQTT_BOOL_TRUE_PAYLOAD))
@@ -618,13 +626,13 @@ bool decoder::getFailSafe(void) {
 }
 
 rc_t decoder::setSystemName(const char* p_systemName, bool p_force) {
-    Log.error("decoder::setSystemName: cannot set System name - not suppoted" CR);
+    Log.ERROR("decoder::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* decoder::getSystemName(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getSystemName: cannot get System name as decoder is not configured" CR);
+        Log.ERROR("decoder::getSystemName: cannot get System name as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_SYSNAME];
@@ -636,7 +644,7 @@ rc_t decoder::setUsrName(const char* p_usrName, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setUsrName: cannot set User name as decoder is not configured" CR);
+        Log.ERROR("decoder::setUsrName: cannot set User name as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -649,7 +657,7 @@ rc_t decoder::setUsrName(const char* p_usrName, bool p_force) {
 
 const char* decoder::getUsrName(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getUsrName: cannot get User name as decoder is not configured" CR);
+        Log.ERROR("decoder::getUsrName: cannot get User name as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_USRNAME];
@@ -661,7 +669,7 @@ rc_t decoder::setDesc(const char* p_description, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setDesc: cannot set Description as decoder is not configured" CR);
+        Log.ERROR("decoder::setDesc: cannot set Description as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -674,7 +682,7 @@ rc_t decoder::setDesc(const char* p_description, bool p_force) {
 
 const char* decoder::getDesc(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getDesc: cannot get Description as decoder is not configured" CR);
+        Log.ERROR("decoder::getDesc: cannot get Description as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_DESC];
@@ -686,7 +694,7 @@ rc_t decoder::setMac(const char* p_mac, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setMac: cannot set MAC as decoder is not configured" CR);
+        Log.ERROR("decoder::setMac: cannot set MAC as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -697,7 +705,7 @@ rc_t decoder::setMac(const char* p_mac, bool p_force) {
 
 const char* decoder::getMac(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getMac: cannot get MAC as decoder is not configured" CR);
+        Log.ERROR("decoder::getMac: cannot get MAC as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_MAC];
@@ -709,7 +717,7 @@ rc_t decoder::setDecoderUri(const char* p_decoderUri, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::setDecoderUri: cannot set Decoder URI as decoder is not configured" CR);
+        Log.ERROR("decoder::setDecoderUri: cannot set Decoder URI as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -720,7 +728,7 @@ rc_t decoder::setDecoderUri(const char* p_decoderUri, bool p_force) {
 
 const char* decoder::getDecoderUri(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("decoder::getDecoderUri: cannot get Decoder URI as decoder is not configured" CR);
+        Log.ERROR("decoder::getDecoderUri: cannot get Decoder URI as decoder is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_DECODER_URI];

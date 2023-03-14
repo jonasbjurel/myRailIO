@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ char* createNcpystr(const char* src) {
     int length = strlen(src);
     char* dst = new char[length + 1];
     if (dst == NULL) {
-        Log.error("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
+        Log.ERROR("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
         ESP.restart();
     }
     strcpy(dst, src);
@@ -81,6 +81,28 @@ bool isUri(const char* p_uri) {
     }
     return true;
 }
+
+bool isIntNumberStr(const char* p_numberStr) {
+    for (uint8_t i = 0; i < strlen(p_numberStr); i++) {
+        if (!isDigit(*(p_numberStr + i)))
+            return false;
+    }
+    return true;
+}
+
+bool isFloatNumberStr(const char* p_numberStr) {
+    char* floatItter;
+    char* floatTok;
+    floatTok = (char*)p_numberStr;
+    if (!(floatItter = strtok(floatTok, ".")))
+        return false;
+    if (!isIntNumberStr(floatItter))
+        return false;
+    if (!isIntNumberStr(floatTok))
+        return false;
+    return true;
+}
+
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */
 /*==============================================================================================================================================*/

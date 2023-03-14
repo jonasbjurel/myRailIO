@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,10 @@
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
 #define NTP_DEFAULT_PORT							123
-#define NTP_DEFAULT_TZ								0
+#define NTP_DEFAULT_TZ								"CET-1"
+#define NTP_MAX_NTPSERVERS							3
+#define NTP_POLL_PERIOD_S							60
+#define NTP_DEFAULT_SYNCMODE						SNTP_SYNC_MODE_SMOOTH //SNTP_SYNC_MODE_SMOOTH | SNTP_SYNC_MODE_IMMED
 #define DEFAULT_LOGLEVEL							GJMRI_DEBUG_INFO
 #define DEFAULT_FAILSAFE							"Yes"
 
@@ -126,7 +129,7 @@
 // ========================
 // MQTT message polling
 #define SETUP_CORE									CORE_1
-#define SETUP_PRIO									8
+#define SETUP_PRIO									16
 #define SETUP_STACKSIZE_1K							6
 #define SETUP_TASKNAME								"setup"
 
@@ -167,7 +170,7 @@ const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 // Telnet
 #define CPU_TELNET_CORE								CORE_1
 #define CPU_TELNET_PRIO								4
-#define CPU_TELNET_STACKSIZE_1K						6
+#define CPU_TELNET_STACKSIZE_1K						50
 #define CPU_TELNET_TASKNAME							"telnetPoll"
 
 // CPU-PM

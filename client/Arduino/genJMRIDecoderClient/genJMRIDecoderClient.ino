@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,13 +66,21 @@ void setup() {
     xTaskCreatePinnedToCore(                    // Spinning up a setupTask task as wee need a bigger stack than set-up provides
         setupTask,                              // Task function
         SETUP_TASKNAME,                         // Task function name reference
-        50 * 1024,              // Stack size
+        50 * 1024,                             // Stack size 6K VERIFIED FOR THE NETWORKING SERVICE, NEEDS TO BE EVALUATED FOR ALL OTHER SERVICES AND EVENTUALLY DEFINED BY SETUP_STACKSIZE_1K
         NULL,                                   // Parameter passing
         SETUP_PRIO,                             // Priority 0-24, higher is more
         NULL,                                   // Task handle
         SETUP_CORE);                            // Core [CORE_0 | CORE_1]
     while (setupRunning)
         vTaskDelay(100 / portTICK_PERIOD_MS);
+    Log.notice("setup: Starting the runtime web-portal" CR);
+    wifiManager = new WiFiManager;
+    wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
+    wifiManager->setShowStaticFields(true);
+    wifiManager->setShowDnsFields(true);
+    wifiManager->setShowInfoErase(true);
+    wifiManager->setShowInfoUpdate(true);
+    wifiManager->startWebPortal();
     Log.notice("genJMRIDecoderClient::setup: Initial setup has successfully concluded, handing over to \"Arduino loop\"" CR);
 }
 
@@ -86,18 +94,21 @@ void setupTask(void* p_dummy) {
     Log.notice("genJMRIDecoderClient::setupTask: File system service started" CR);
     networking::start();
     Log.notice("genJMRIDecoderClient::setupTask: WIFI Networking service started" CR);
+    Log.notice("genJMRIDecoderClient::setupTask: Connecting to WIFI..." CR);
     while (networking::getOpState() != OP_WORKING) {
         Log.notice("Waiting for WIFI to connect, current WiFi OP state: %X" CR, networking::getOpState());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    Log.notice("WIFI connected" CR);
-    /*
-    //CLI.init();
+    Log.INFO("setupTask: Connected to WIFI and operational, got IP Address %s" CR, networking::getIpAddr().toString().c_str());
+    Log.notice("genJMRIDecoderClient::setupTask: Initializing time- and NTP- service" CR);
+    esp_timer_init();
+    ntpTime::init();
+    Log.INFO("setupTask: Time- and NTP- service initialized" CR);
     decoderHandle = new decoder();
-    decoderHandle->init();*/
+    //decoderHandle->init();
+    //decoderHandle->start();
     setupRunning = false;
-    //while (true)
-        //vTaskDelay(1000 / portTICK_PERIOD_MS);
+    Log.notice("genJMRIDecoderClient::setupTask: Setup finished, killing setup task..." CR);
     vTaskDelete(NULL);
 }
 
@@ -114,11 +125,8 @@ void setupTask(void* p_dummy) {
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 void loop() {
-    Serial.println("Hello World");
-
-    // put your main code here, to run repeatedly:
-    // Serial.print("Im in the background\n");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    wifiManager->process(); //WHY PROCESS WIFIMANAGER FROM HERE?
+    vTaskDelay(100 / portTICK_PERIOD_MS);
 }
 /*==============================================================================================================================================*/
 /* END loop                                                                                                                                     */

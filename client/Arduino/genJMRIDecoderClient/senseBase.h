@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -114,11 +114,11 @@ public:
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	/* CLI decoration methods */
-	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 	//Public data structures
 	sat* satHandle;
@@ -137,6 +137,7 @@ private:
 	const satelite* satLibHandle;
 	void* extentionSensClassObj;
 	SemaphoreHandle_t sensLock;
+	static uint16_t sensIndex;
 };
 
 #endif /*SENSBASE_H*/

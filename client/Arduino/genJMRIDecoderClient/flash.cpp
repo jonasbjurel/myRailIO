@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ rc_t flash::subscribe(flashCallback_t p_callback, void* p_args) {
 }
 
 rc_t flash::unSubscribe(flashCallback_t p_callback) {
-    Log.info("flash::unSubcribe: Unsubscribing flash callback %d from flash object %d" CR, p_callback, this);
+    Log.INFO("flash::unSubcribe: Unsubscribing flash callback %d from flash object %d" CR, p_callback, this);
     uint16_t i = 0;
     bool found = false;
     xSemaphoreTake(flashLock, portMAX_DELAY);
@@ -95,7 +95,7 @@ rc_t flash::unSubscribe(flashCallback_t p_callback) {
         }
         if (flashData->callbackSubs.get(i)->callback == p_callback)
             found = true;
-        Log.info("flash::unSubcribe: Deleting flash subscription %d from flash object %d" CR, p_callback, this);
+        Log.INFO("flash::unSubcribe: Deleting flash subscription %d from flash object %d" CR, p_callback, this);
         delete flashData->callbackSubs.get(i);
         flashData->callbackSubs.clear(i);
     }
@@ -104,7 +104,7 @@ rc_t flash::unSubscribe(flashCallback_t p_callback) {
         return RC_OK;
     }
     else {
-        Log.error("flash::unSubcribe: Could not find flash subscription %d from flash object %d to delete" CR, p_callback, this);
+        Log.ERROR("flash::unSubcribe: Could not find flash subscription %d from flash object %d to delete" CR, p_callback, this);
         xSemaphoreGive(flashLock);
         return RC_NOT_FOUND_ERR;
     }
@@ -149,7 +149,7 @@ void flash::flashLoop(void) {
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
-            Log.verbose("flash::flashLoop: Flash object %d overrun" CR, this);
+            Log.VERBOSE("flash::flashLoop: Flash object %d overrun" CR, this);
             xSemaphoreTake(flashLock, portMAX_DELAY);
             overRuns++;
             xSemaphoreGive(flashLock);

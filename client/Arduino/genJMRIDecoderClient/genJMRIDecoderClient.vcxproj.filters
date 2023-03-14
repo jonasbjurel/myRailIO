@@ -186,6 +186,9 @@
     <ClInclude Include="fileSys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ntpTime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libraries\ArduinoLog\ArduinoLog.cpp">
@@ -269,9 +272,6 @@
     <ClCompile Include="globalCli.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cliCore.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="telnetCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -315,6 +315,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="fileSys.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ntpTime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cliCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

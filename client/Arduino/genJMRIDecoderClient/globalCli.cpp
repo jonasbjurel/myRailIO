@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,16 +36,17 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 globalCli* globalCli::rootHandle;
+char* globalCli::testBuff = NULL;
 
-
-globalCli::globalCli(const char* p_moType, bool p_root) : cliCore(p_moType) {
-	if (p_root)
+globalCli::globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex, bool p_root) : cliCore(p_moType, p_moName, p_moIndex, p_root) {
+	if (p_root) {
 		rootHandle = this;
+		setRoot();
+	}
 	regCliMOCmds();
 }
 
 globalCli::~globalCli(void) {
-
 }
 
 void globalCli::regCliMOCmds(void) {
@@ -54,561 +55,2165 @@ void globalCli::regCliMOCmds(void) {
 }
 
 void globalCli::regGlobalCliMOCmds(void) {
-	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, NULL, NULL, onCliHelp);
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: help																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, NULL, onCliHelp);
 	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, NULL, GLOBAL_HELP_HELP_TXT);
+	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, HELP_SUB_MO_NAME, onCliHelp);
+	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, HELP_SUB_MO_NAME, GLOBAL_HELP_HELP_TXT);
+	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, CLIHELP_SUB_MO_NAME, onCliHelp);
+	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, CLIHELP_SUB_MO_NAME, GLOBAL_FULL_CLI_HELP_TXT);
+//	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, SUBMOS_SUB_MO_NAME, onCliHelp);
+//	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, SUBMOS_SUB_MO_NAME, GLOBAL_FULL_CLI_HELP_TXT);
 
-	regCmdMoArg(REBOOT_CLI_CMD, GLOBAL_MO_NAME, NULL, NULL, onCliReboot);
-	regCmdHelp(REBOOT_CLI_CMD, GLOBAL_MO_NAME, NULL, GLOBAL_REBOOT_HELP_TXT);
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: context																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, NULL, onCliGetContextHelper);
+//NEEDS TO BE WORKED ON
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, onCliGetContextHelper);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, GLOBAL_GET_CONTEXT_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, NULL, onCliSetContextHelper);
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, onCliSetContextHelper);
 	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, GLOBAL_SET_CONTEXT_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, NULL, onCliGetUptime);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, GLOBAL_GET_UPTIME_HELP_TXT);
-
-	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASKS_SUB_MO_NAME, NULL, onCliShowTasks);
-	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASKS_SUB_MO_NAME, GLOBAL_SHOW_CPUTASKS_HELP_TXT);
-	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASK_SUB_MO_NAME, NULL, onCliShowTask);
-	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUTASK_SUB_MO_NAME, GLOBAL_SHOW_CPUTASK_HELP_TXT);
-	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, NULL, onCliShowMem);
-	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_SHOW_CPUMEM_HELP_TXT);
-
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, WIFI_SUB_MO_NAME, NULL, onCliGetWifi);
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("ssid");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("addr");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("mask");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("gw");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("dns");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("ntp");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("host/name");
-	getCliCmdHandleByType(GET_CLI_CMD).addFlagArgument("broker");
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, WIFI_SUB_MO_NAME, GLOBAL_GET_WIFI_HELP_TXT);
-
-	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, NULL, onClishowTopology);
+	//Topolgy SubMo - needs work to be integrated with context
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, onClishowTopology);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, GLOBAL_SHOW_TOPOLOGY_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTTBROKER_SUB_MO_NAME, this, onCliGetMqttBrokerURIHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, MQTTBROKER_SUB_MO_NAME, DECODER_GET_MQTTBROKER_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTTBROKER_SUB_MO_NAME, this, onCliSetMqttBrokerURIHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, MQTTBROKER_SUB_MO_NAME, DECODER_SET_MQTTBROKER_HELP_TXT);
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTTPORT_SUB_MO_NAME, this, onCliGetMqttPortHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, MQTTPORT_SUB_MO_NAME, DECODER_GET_MQTTPORT_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTTPORT_SUB_MO_NAME, this, onCliSetMqttPortHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, MQTTPORT_SUB_MO_NAME, DECODER_SET_MQTTPORT_HELP_TXT);
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: reboot																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, KEEPALIVE_SUB_MO_NAME, this, onCliGetKeepaliveHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, KEEPALIVE_SUB_MO_NAME, DECODER_GET_KEEPALIVE_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, KEEPALIVE_SUB_MO_NAME, this, onCliSetKeepaliveHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, KEEPALIVE_SUB_MO_NAME, DECODER_SET_KEEPALIVE_HELP_TXT);
+	regCmdMoArg(REBOOT_CLI_CMD, GLOBAL_MO_NAME, NULL, onCliReboot);
+	regCmdHelp(REBOOT_CLI_CMD, GLOBAL_MO_NAME, NULL, GLOBAL_REBOOT_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, PINGSUPERVISION_SUB_MO_NAME, this, onCliGetPingHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, PINGSUPERVISION_SUB_MO_NAME, DECODER_GET_PINGSUPERVISION_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, PINGSUPERVISION_SUB_MO_NAME, this, onCliSetPingHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, PINGSUPERVISION_SUB_MO_NAME, DECODER_SET_PINGSUPERVISION_HELP_TXT);
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: uptime																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, NTPSERVER_SUB_MO_NAME, this, onCliGetNtpserverHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, NTPSERVER_SUB_MO_NAME, DECODER_GET_NTPSERVER_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, NTPSERVER_SUB_MO_NAME, this, onCliSetNtpserverHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, NTPSERVER_SUB_MO_NAME, DECODER_SET_NTPSERVER_HELP_TXT);
+//global uptime SubMo
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, onCliGetUptime);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, GLOBAL_GET_UPTIME_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, NTPPORT_SUB_MO_NAME, this, onCliGetNtpportHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, NTPPORT_SUB_MO_NAME, DECODER_GET_NTPPORT_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, NTPPORT_SUB_MO_NAME, this, onCliSetNtpportHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, NTPPORT_SUB_MO_NAME, DECODER_SET_NTPPORT_HELP_TXT);
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: cpu																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+	regCmdMoArg(START_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, onCliStartCpu);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "stats", 1, false);
+	regCmdHelp(START_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, GLOBAL_START_CPU_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, TZ_SUB_MO_NAME, this, onCliGetTzHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, TZ_SUB_MO_NAME, DECODER_GET_TZ_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, TZ_SUB_MO_NAME, this, onCliSetTzHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, TZ_SUB_MO_NAME, DECODER_SET_TZ_HELP_TXT);
+	regCmdMoArg(STOP_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, onCliStopCpu);
+	regCmdFlagArg(STOP_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "stats", 1, false);
+	regCmdHelp(STOP_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, GLOBAL_STOP_CPU_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOGLEVEL_SUB_MO_NAME, this, onCliGetLoglevelHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, LOGLEVEL_SUB_MO_NAME, DECODER_GET_LOGLEVEL_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, LOGLEVEL_SUB_MO_NAME, this, onCliSetLoglevelHelper);
-	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, LOGLEVEL_SUB_MO_NAME, DECODER_SET_LOGLEVEL_HELP_TXT);
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, onCliGetCpu);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "tasks", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "task", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "cpuusage", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "watermark", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, "stats", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, GLOBAL_GET_CPU_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, this, onCliGetFailsafeHelper);
-	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, DECODER_GET_FAILSAFE_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, this, onCliSetFailsafeHelper);
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, onCliShowCpu);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, GLOBAL_SHOW_CPU_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: memory																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliGetMem);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "total", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "available", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "used", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "watermark", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "average", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "trend", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "maxblock", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "allocation", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "free", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_GET_CPUMEM_HELP_TXT);
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliShowMem);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_SHOW_CPUMEM_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: network																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, onCliSetNetwork);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "hostname", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "address", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "mask", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "gw", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "dns", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "persist", 1, false);
+	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, GLOBAL_SET_NETWORK_HELP_TXT);
+
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, onCliGetNetwork);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "ssid", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "bssid", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "channel", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "auth", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "rssi", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "mac", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "hostname", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "address", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "mask", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "gw", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "dns", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "opstate", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "scanap", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, GLOBAL_GET_NETWORK_HELP_TXT);
+
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, onCliShowNetwork);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, GLOBAL_SHOW_NETWORK_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: mqtt																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, onCliSetMqtt);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "uri", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "port", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "clientid", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "qos", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "keepalive", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "ping", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "persist", 1, false);
+	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_SET_MQTT_HELP_TXT);
+
+	regCmdMoArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, onCliClearMqtt);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "maxlatency", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "overruns", 1, false);
+	regCmdHelp(CLEAR_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_CLEAR_MQTT_HELP_TXT);
+
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, onCliGetMqtt);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "uri", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "port", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "clientid", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "qos", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "keepalive", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "ping", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "maxlatency", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "meanlatency", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "overruns", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "opstate", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_GET_MQTT_HELP_TXT);
+
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, onCliShowMqtt);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_SHOW_MQTT_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: time																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+	regCmdMoArg(ADD_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliAddTime);
+	regCmdFlagArg(ADD_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpserver", 1, true);
+	regCmdFlagArg(ADD_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpport", 1, true);
+	regCmdHelp(ADD_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_ADD_TIME_HELP_TXT);
+
+	regCmdMoArg(DELETE_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliDeleteTime);
+	regCmdFlagArg(DELETE_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpserver", 1, true);
+	regCmdHelp(DELETE_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_DELETE_TIME_HELP_TXT);
+
+	regCmdMoArg(START_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliStartTime);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpclient", 1, false);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpdhcp", 1, false);
+	regCmdHelp(START_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_START_TIME_HELP_TXT);
+
+	regCmdMoArg(STOP_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliStopTime);
+	regCmdFlagArg(STOP_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpclient", 1, false);
+	regCmdHelp(STOP_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_STOP_TIME_HELP_TXT);
+
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliSetTime);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timeofday", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "tod", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "epochtime", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timezone", 1, true);
+	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_SET_TIME_HELP_TXT);
+
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliGetTime);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timeofday", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "tod", 1, false);							//Synonym for timeofday
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "utc", 2, false);							//Looking for UTC time
+
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "epochtime", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timezone", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "daylightsaving", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpdhcp", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpservers", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpsyncstatus", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpsyncmode", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "ntpopstate", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_GET_TIME_HELP_TXT);
+
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliShowTime);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_SHOW_TIME_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: log																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+//Common Log SubMo - needs work
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, onCliSetLogHelper);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "loglevel", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "logmo", 1, true); //which MO the order refers to, not yet implemented, if not specified global log properties are assuned
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "logdestination", 1, true); // Not yet implemented
+	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, GLOBAL_SET_LOG_HELP_TXT);
+
+	regCmdMoArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, onCliUnSetLogHelper);
+	regCmdFlagArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "logdestination", 1, false); // Not yet implemented
+	regCmdHelp(UNSET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, GLOBAL_UNSET_LOG_HELP_TXT);
+
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, onCliGetLogHelper);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "loglevel", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "logmo", 1, false); //which MO the order refers to, not yet implemented, if not specified global log properties are assuned
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "tail", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "continous", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "logdestination", 1, false); // Not yet implemented
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, GLOBAL_GET_LOG_HELP_TXT);
+
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, onCliShowLogHelper);
+	regCmdFlagArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "tail", 1, true); // Not yet implemented
+	regCmdFlagArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, "continious", 1, true); // Not yet implemented
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, GLOBAL_SHOW_LOG_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: debug																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+	//Common Debug SubMo - needs work
+	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, onCliSetDebugHelper);
+	regCmdHelp(SET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, COMMON_SET_DEBUG_HELP_TXT);
+	regCmdMoArg(UNSET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, onCliUnSetDebugHelper);
+	regCmdHelp(UNSET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, COMMON_UNSET_DEBUG_HELP_TXT);
+	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, onCliGetDebugHelper);
+	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, COMMON_GET_DEBUG_HELP_TXT);
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: failsafe																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, onCliSetFailsafeHelper);
 	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, DECODER_SET_FAILSAFE_HELP_TXT);
-	regCmdMoArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, this, onCliUnsetFailsafeHelper);
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, onCliGetFailsafeHelper);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, DECODER_GET_FAILSAFE_HELP_TXT);
+	//regCmdMoArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, onCliUnsetFailsafeHelper); Add
 	regCmdHelp(UNSET_CLI_CMD, GLOBAL_MO_NAME, FAILSAFE_SUB_MO_NAME, DECODER_UNSET_FAILSAFE_HELP_TXT);
 }
 
 void globalCli::regCommonCliMOCmds(void) {
-	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, OPSTATE_SUB_MO_NAME, this, onCliGetOpStateHelper);
+	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, OPSTATE_SUB_MO_NAME, onCliGetOpStateHelper);
 	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, OPSTATE_SUB_MO_NAME, COMMON_GET_OPSTATE_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, SYSNAME_SUB_MO_NAME, this, onCliGetSysNameHelper);
+	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, SYSNAME_SUB_MO_NAME, onCliGetSysNameHelper);
 	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, SYSNAME_SUB_MO_NAME, COMMON_GET_SYSNAME_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, SYSNAME_SUB_MO_NAME, this, onCliSetSysNameHelper);
+	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, SYSNAME_SUB_MO_NAME, onCliSetSysNameHelper);
 	regCmdHelp(SET_CLI_CMD, COMMON_MO_NAME, SYSNAME_SUB_MO_NAME, COMMON_SET_SYSNAME_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, USER_SUB_MO_NAME, this, onCliGetUsrNameHelper);
+	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, USER_SUB_MO_NAME, onCliGetUsrNameHelper);
 	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, USER_SUB_MO_NAME, COMMON_GET_USRNAME_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, USER_SUB_MO_NAME, this, onCliSetUsrNameHelper);
+	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, USER_SUB_MO_NAME, onCliSetUsrNameHelper);
 	regCmdHelp(SET_CLI_CMD, COMMON_MO_NAME, USER_SUB_MO_NAME, COMMON_SET_USRNAME_HELP_TXT);
 
-	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, DESC_SUB_MO_NAME, this, onCliGetDescHelper);
+	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, DESC_SUB_MO_NAME, onCliGetDescHelper);
 	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, DESC_SUB_MO_NAME, COMMON_GET_DESCRIPTION_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, DESC_SUB_MO_NAME, this, onCliSetDescHelper);
+	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, DESC_SUB_MO_NAME, onCliSetDescHelper);
 	regCmdHelp(SET_CLI_CMD, COMMON_MO_NAME, DESC_SUB_MO_NAME, COMMON_SET_DESCRIPTION_HELP_TXT);
-
-	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, this, onCliGetDebugHelper);
-	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, DECODER_GET_DEBUG_HELP_TXT);
-	regCmdMoArg(SET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, this, onCliSetDebugHelper);
-	regCmdHelp(SET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, DECODER_SET_DEBUG_HELP_TXT);
-	regCmdMoArg(UNSET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, this, onCliUnsetDebugHelper);
-	regCmdHelp(UNSET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, DECODER_UNSET_DEBUG_HELP_TXT);
 }
 
 void globalCli::regContextCliMOCmds(void) {
-	Log.notice("globalCli::regContextCliMOCmds: No context unique MOs supported for CLI context BlaBla - would be good to have full path: full-path/contextName-context-index");
+	Log.notice("globalCli::regContextCliMOCmds: No context unique \
+				MOs supported for CLI context" CR);
 }
 
-
 /* Global CLI decoration methods */
-void globalCli::onCliHelp(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliHelp(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_dummy) {
 	Command cmd(p_cmd);
 	rc_t rc;
-	if (rc=p_cliContext->getHelp((char*)cmd.getArgument(0).getValue().c_str(), (char*)cmd.getArgument(1).getValue().c_str()))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Help request not accepted, return code: %i", rc);
+	if (rc=p_cliContext->getHelp(p_cmd))
+		notAcceptedCliCommand(CLI_GEN_ERR, "Help request not accepted, return code: %i",
+							  rc);
 	else
 		acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void globalCli::onCliReboot(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliGetContextHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(0)) 
+	char fullCliContextPath[100];
+	strcpy(fullCliContextPath, "");
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-	else {
-		printCli("rebooting...");
-		acceptedCliCommand(CLI_TERM_EXECUTED);
-		panic("\"CLI reboot order\" - rebooting...");
+		Log.VERBOSE("globalCli::onCliSetContext: Bad number of arguments" CR);
 	}
-}
-
-void globalCli::onCliGetContextHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliGetContext(p_cmd, p_cliContext);
-}
-
-void globalCli::onCliGetContext(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1))
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 	else {
-		char fullCliContextPath[100];
-		getFullCliContextPath(fullCliContextPath);
+		static_cast<globalCli*>(p_cliContext)->onCliGetContext(fullCliContextPath);
 		printCli("Current context: %s", fullCliContextPath);
 		acceptedCliCommand(CLI_TERM_QUIET);
 	}
 }
 
-void globalCli::onCliSetContextHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliSetContext(p_cmd, p_cliContext);
+rc_t globalCli::onCliGetContext(char* p_fullContextPath) {
+	return getFullCliContextPath(p_fullContextPath);
 }
 
-void globalCli::onCliSetContext(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliSetContextHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliSetContext(p_cmd);
+}
+
+void globalCli::onCliSetContext(cmd* p_cmd) {
 	Command cmd(p_cmd);
-	if (!cmd.getArgument(1))
+	cliCore* targetContext;
+	if (!cmd.getArgument(0) || !cmd.getArgument(1) || cmd.getArgument(2)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onCliSetContext: Bad number of arguments" CR);
+	}
+	else if (!(targetContext = getCliContextHandleByPath(cmd.getArg(1).getValue().
+														 c_str()))) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Context %s does not exist",
+													  cmd.getArg(0).getValue().c_str());
+		Log.VERBOSE("globalCli::onCliSetContext: Context %s does not exist" CR,
+					cmd.getArg(0).getValue().c_str());
+	}
 	else {
-		printCli("Setting context to: %s\n", cmd.getArgument(1));
-		Log.notice("Current context changed: %s\n", getCurrentContext());
-		setCurrentContext(this);
+		Log.VERBOSE("Setting context to: %s" CR, cmd.getArgument(1).getValue().c_str());
+		setCurrentContext(targetContext);
 		acceptedCliCommand(CLI_TERM_EXECUTED);
 	}
 }
 
-void globalCli::onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onClishowTopology(cmd* p_cmd, cliCore* p_cliContext,
+								  cliCmdTable_t* p_cmdTable) {
+	char contextPath[150];
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1))
+	if (!cmd.getArgument(0) || cmd.getArgument(2)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onClishowTopology: Bad number of arguments" CR);
+	}
+	if (cmd.getArgument(1)) {
+		strcpy(contextPath, cmd.getArgument(1).getValue().c_str());
+	}
+	else
+		strcpy(contextPath, "/");
+	static_cast<globalCli*>(getCliContextHandleByPath(contextPath))->printTopology();
+	acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+rc_t globalCli::printTopology(bool p_start) {
+	uint8_t noOfChilds;
+	char contextPath[150];
+	if(p_start)
+		printCli("| %*s | %*s | %*s |", -50, "Context-path:", -20, "Context:",
+										-20, "System-name");
+	getFullCliContextPath(contextPath);
+	printCli("| %*s | %*s-%i | %*s |",
+			 -50, contextPath,
+			 -20, getCliContextDescriptor()->contextName,
+			 getCliContextDescriptor()->contextIndex,
+			 -20, getCliContextDescriptor()->contextSysName);
+	for (uint8_t i = 0; i < getChildContexts(NULL)->size(); i++) {
+		static_cast<globalCli*>(getChildContexts(NULL)->at(i))->printTopology(false);
+	}
+	if (p_start) {
+		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+	return RC_OK;
+}
+
+void globalCli::onCliReboot(cmd* p_cmd, cliCore* p_cliContext,
+							cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (cmd.getArgument(0))
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 	else {
-		printCli("Uptime: %i", esp_timer_get_time()/1000);
+		printCli("rebooting...");
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+		panic("\"CLI reboot ordered\" - rebooting...");
+	}
+}
+
+void globalCli::onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,
+							   cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(0) || cmd.getArgument(1))
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+	else {
+		printCli("Uptime: %i seconds", (uint32_t)esp_timer_get_time()/1000000);
 		acceptedCliCommand(CLI_TERM_QUIET);
 	}
 }
 
-void globalCli::onCliShowTasks(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,
+							  cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1))
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-	else {
+		Log.WARN("globalCli::onCliStartCpu: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliStartCpu: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onCliStartCpu: Bad number of arguments" CR);
+		return;
+	}
+	if ((p_cmdTable->commandFlags->isPresent("stats"))) {
+		if (cpu::getPm()) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "CPU statistics collection \
+												is already active");
+			Log.VERBOSE("globalCli::onCliStartCpu: Cannot start CPU statistics \
+					     collection - already active" CR);
+		}
+		else {
+			cpu::startPm();
+			cmdHandled = true;
+		}
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliStopCpu(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliStopPm: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliStopCpu: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onCliStopCpu: Bad number of arguments" CR);
+		return;
+	}
+	if ((p_cmdTable->commandFlags->isPresent("stats"))) {
+		if (!cpu::getPm()) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "CPU statistics collection \
+												is already inactive");
+			Log.VERBOSE("globalCli::onCliStopPm: Cannot stop CPU statistics collection \
+						 - already inactive" CR);
+			return;
+		}
+		else {
+			cpu::stopPm();
+			cmdHandled = true;
+		}
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,
+							cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	rc_t rc;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliGetCpu: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliGetCpu: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+	//Same as show cpu
+		return;
+	}
+	if ((p_cmdTable->commandFlags->isPresent("tasks"))) {
 		char* taskShowHeadingStr = new char[200];
 		char* taskShowStr = new char[10000];
-		cpu::getTaskInfoAllTxt(taskShowStr, taskShowHeadingStr);
-		printCli("%s\n%s", taskShowHeadingStr, taskShowStr);
+		if (rc = cpu::getTaskInfoAllTxt(taskShowStr, taskShowHeadingStr)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not provide task information, \
+												return code %i", rc);
+			Log.WARN("globalCli::onCliGetCpu: Could not provide task information, \
+					  return code %i" CR, rc);
+			return;
+		}
+		else{
+		printCli("%s\r\n%s", taskShowHeadingStr, taskShowStr);
 		delete taskShowHeadingStr;
 		delete taskShowStr;
-		acceptedCliCommand(CLI_TERM_QUIET);
+		cmdHandled = true;
+		}
 	}
-}
-
-void globalCli::onCliShowTask(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2))
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-	else {
+	if ((p_cmdTable->commandFlags->isPresent("task"))) {
 		char* taskShowHeadingStr = new char[200];
 		char* taskShowStr = new char[200];
-		cpu::getTaskInfoAllByTaskTxt(cmd.getArgument(1).getValue().c_str(), taskShowStr, taskShowHeadingStr);
-		printCli("%s\n%s", taskShowHeadingStr, taskShowStr);
-		delete taskShowHeadingStr;
-		delete taskShowStr;
-		acceptedCliCommand(CLI_TERM_QUIET);
+		if (rc = cpu::getTaskInfoAllByTaskTxt(cmd.getArgument(1).getValue().c_str(),
+											  taskShowStr, taskShowHeadingStr)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not provide task information, \
+								  return code %i", rc);
+			Log.WARN("globalCli::onCliGetCpu: Could not provide task information, \
+					  return code %i" CR, rc);
+			return;
+		}
+		else {
+			printCli("%s\n%s", taskShowHeadingStr, taskShowStr);
+			delete taskShowHeadingStr;
+			delete taskShowStr;
+			cmdHandled = true;
+		}
 	}
+	if ((p_cmdTable->commandFlags->isPresent("cpuusage"))) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not implemented");
+		Log.WARN("globalCli::onCliGetCpu: Not implemented" CR);
+		return;
+	}
+	if ((p_cmdTable->commandFlags->isPresent("watermark"))) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not implemented");
+		Log.WARN("globalCli::onCliGetCpu: Not implemented" CR);
+		return;
+	}
+	if ((p_cmdTable->commandFlags->isPresent("stats"))) {
+		if (cpu::getPm())
+			printCli("CPU statistics collection is active");
+		else
+			printCli("CPU statistics collection is inactive");
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-void globalCli::onCliShowMem(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliShowCpu(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1))
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-	else {
-		char* memShowHeadingStr = new char[200];
-		char* memShowStr = new char[200];
+		Log.WARN("globalCli::onCliShowCpu: Bad number of arguments" CR);
+		return;
+	}
+	notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not implemented");
+	Log.WARN("globalCli::onCliShowCpu: Not implemented" CR);
+}
+
+void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
+							cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	heapInfo_t memInfo;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliGetMem: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliGetMem: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {							//WE NEED TO WORK ON THIS - SHOULD BE THE SAME AS show
+		char* memShowHeadingStr = new char[300];
+		char* memShowStr = new char[300];
 		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
-		printCli("%s\n%s", memShowHeadingStr, memShowStr);
+		printCli("%s\r\n%s", memShowHeadingStr, memShowStr);
+		delete memShowHeadingStr;
+		delete memShowStr;
+		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
+	}
+	if ((p_cmdTable->commandFlags->isPresent("allocation")) &&
+		(p_cmdTable->commandFlags->isPresent("free"))) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Cannot allocate and \
+							  free memory at the same time");
+		Log.WARN("globalCli::onCliGetMem: Cannot allocate and \
+				  free memory at the same time" CR);
+		return;
+	}
+	cpu::getHeapMemInfoAll(&memInfo);
+	if (p_cmdTable->commandFlags->isPresent("total")){
+		printCli("Total amount of memory: %i", memInfo.totalSize);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("used")) {
+		printCli("Used memory: %i", memInfo.totalSize - memInfo.freeSize);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("available")) {
+		printCli("Available memory: %i", memInfo.freeSize);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("watermark")) {
+		printCli("Lowest ever available memory: %i", memInfo.highWatermark);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("average")) {
+		if (atoi(p_cmdTable->commandFlags->isPresent("average")->getValue()) >
+			CPU_HISTORY_SIZE){
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, 
+								  "Could not provide average memory usage, given period \
+								   exceeds the maximum %i seconds",
+								  CPU_HISTORY_SIZE);
+			Log.VERBOSE("globalCli::onCliGetMem: Could not provide average memory usage, \
+						 given period exceeds the maximum %i seconds" CR, 
+						CPU_HISTORY_SIZE);
+			return;
+		}
+		else{
+			printCli("Average memory usage over a period of %i seconds: %i", 
+					atoi(p_cmdTable->commandFlags->isPresent("average")->getValue()),
+						memInfo.totalSize - cpu::getAverageMemTime(
+							atoi(p_cmdTable->commandFlags->isPresent("average")->
+								getValue())));
+			cmdHandled = true;
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("trend")) {
+		if (atoi(p_cmdTable->commandFlags->isPresent("trend")->getValue()) >
+			CPU_HISTORY_SIZE){
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Could not provide memory usage trend, given period exceeds \
+				 the maximum  %i seconds", CPU_HISTORY_SIZE);
+			Log.VERBOSE("globalCli::onCliGetMem: Could not provide memory usage trend, \
+						 given period exceeds the maximum %i seconds" CR,
+						CPU_HISTORY_SIZE);
+			return;
+		}
+		else {
+			printCli("Memory usage trend over period %i seconds: %i",
+				atoi(p_cmdTable->commandFlags->isPresent("trend")->getValue()),
+				cpu::getTrendMemTime(atoi(p_cmdTable->commandFlags->
+					isPresent("trend")->getValue())));
+			cmdHandled = true;
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("maxblock")) {
+		printCli("Max allocatable block-size is: %i", cpu::getMaxAllocMemBlockSize());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("allocation")) {
+		if (testBuff) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Test buffer already allocated");
+			Log.VERBOSE("globalCli::onCliGetMem: Test buffer already allocated" CR);
+			return;
+		}
+		else {
+			testBuff = new char[atoi(p_cmdTable->commandFlags->isPresent("allocation")->
+				getValue())];
+			if (!testBuff) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Failed to allocate %i bytes",
+					atoi(p_cmdTable->commandFlags->isPresent("allocation")->
+						getValue()));
+				Log.VERBOSE("globalCli::onCliGetMem: Failed to allocate %i bytes" CR,
+					atoi(p_cmdTable->commandFlags->isPresent("allocation")->
+						getValue()));
+				return;
+			}
+			else {
+				printCli("Successfully allocated %i bytes",
+					atoi(p_cmdTable->commandFlags->isPresent("allocation")->
+						getValue()));
+				cmdHandled = true;
+			}
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("free")) {
+		if (!testBuff) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Test buffer not allocated");
+			Log.VERBOSE("globalCli::onCliGetMem: Test buffer not allocated" CR);
+			return;
+		}
+		else {
+			delete testBuff;
+			testBuff = NULL;
+			printCli("Successfully freed test buffer");
+			cmdHandled = true;
+		}
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+void globalCli::onCliShowMem(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliShowTasks: Bad number of arguments" CR);
+		return;
+	}
+	else {
+		char* memShowHeadingStr = new char[300];
+		char* memShowStr = new char[300];
+		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
+		printCli("%s\r\n%s", memShowHeadingStr, memShowStr);
 		delete memShowHeadingStr;
 		delete memShowStr;
 		acceptedCliCommand(CLI_TERM_QUIET);
 	}
 }
 
-void globalCli::onCliGetWifi(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliSetNetwork(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (!cmd.getArgument(1))
+	rc_t rc;
+	bool persist = false;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-	char configHeading[150];
-	char config[150];
-	Argument addrArg = cmd.getArgument("addr");
-	Argument maskArg = cmd.getArgument("mask");
-	Argument gwArg = cmd.getArgument("gw");
-	Argument dnsArg = cmd.getArgument("dns");
-	Argument ntpArg = cmd.getArgument("ntp");
-	Argument hostArg = cmd.getArgument("hostname");
-	Argument brokerArg = cmd.getArgument("broker");
-	if (addrArg.isSet()) {
-		strcat(configHeading, "Address:\t\t");
-		strcat(config, ("%s\t\t", networking::getIpAddr().toString().c_str()));
+		Log.VERBOSE("globalCli::onCliSetNetwork: Bad number of arguments" CR);
+		return;
 	}
-	if (maskArg.isSet()) {
-		strcat(configHeading, "Mask:\t\t");
-		strcat(config, ("%s\t\t", networking::getIpMask().toString().c_str()));
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, p_cmdTable->commandFlags->
+			getParsErrs());
+		Log.VERBOSE("globalCli::onCliSetNetwork: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
 	}
-	if (gwArg.isSet()) {
-		strcat(configHeading, "Gateway:\t\t");
-		strcat(config, ("%s\t\t", networking::getGatewayIpAddr().toString().c_str()));
-	}
-	if (dnsArg.isSet()) {
-		strcat(configHeading, "DNS:\t\t");
-		strcat(config, ("%s\t\t", networking::getDnsIpAddr().toString().c_str()));
-	}
-	if (ntpArg.isSet()) {
-		strcat(configHeading, "NTP:\t\t");
-		//strcat(config, ("%s\t\t", networking::getNtp().toString().c_str())); NTP NEEDS TO BE FIXED
-	}
-	if (hostArg.isSet()) {
-		strcat(configHeading, "Hostname:\t");
-		strcat(config, ("%s\t", networking::getHostname()));
-	}
-	if (brokerArg.isSet()) {
-		strcat(configHeading, "Broker:\t");
-		strcat(config, ("%s\t", mqtt::getBrokerUri()));
-	}
-	printCli("%s\n%s", configHeading, config);
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-void globalCli::onClishowTopology(cmd* p_cmd, cliCore* p_cliContext) {
-	char contextPath[150];
-	Command cmd(p_cmd);
-	if (cmd.getArgument(2))
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-	if (cmd.getArgument(1)) {
-		strcpy(contextPath, cmd.getArgument(1).getValue().c_str());
+		Log.VERBOSE("globalCli::onCliSetNetwork: Bad number of arguments" CR);
+		return;
 	}
+	if (p_cmdTable->commandFlags->isPresent("persist")) {
+		if (!(p_cmdTable->commandFlags->isPresent("hostname") ||
+			p_cmdTable->commandFlags->isPresent("address") ||
+			p_cmdTable->commandFlags->isPresent("mask") ||
+			p_cmdTable->commandFlags->isPresent("gw") ||
+			p_cmdTable->commandFlags->isPresent("dns"))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Can only persist Network \
+								  Address-, Mask-, Gateway-, & DNS");
+			Log.VERBOSE("globalCli::onCliSetNetwork: Can only persist MQTT URI and \
+						MQTT Port" CR);
+			return;
+		}
+		else{
+			persist = true;
+			cmdHandled = true;
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("hostname")) {
+		if (rc = networking::setHostname(p_cmdTable->commandFlags->
+			isPresent("hostname")->getValue(), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the Hostname, \
+								  return code %i", rc);
+			Log.WARN("globalCli::onCliSetNetwork: Could not set the Hostname, \
+					  return code %i" CR, rc);
+			return;
+		}
+		Log.INFO("globalCli::onCliSetNetwork: Hostname changed to %s" CR,
+				 networking::getHostname());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("address")) {
+		IPAddress ip;
+		if (!ip.fromString(p_cmdTable->commandFlags->
+			isPresent("address")->getValue())) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid IP-address");
+			Log.VERBOSE("globalCli::onCliSetNetwork: Not a valid IP-address" CR);
+			return;
+		}
+		if (rc = networking::setStaticIpAddr(ip, networking::getIpMask(), 
+											 networking::getGatewayIpAddr(),
+											 networking::getDnsIpAddr(), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the IP-Address, \
+												return code %i", rc);
+			Log.WARN("globalCli::onCliSetNetwork: Could not set the IP-Address, \
+					  return code %i" CR, rc);
+			return;
+		}
+		printCli("IP-address changed to % s", networking::getIpAddr().
+				 toString().c_str());
+		Log.INFO("globalCli::onCliSetNetwork: IP-address changed to %s" CR,
+				 networking::getIpAddr().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("mask")) {
+		IPAddress mask;
+		if (!mask.fromString(p_cmdTable->commandFlags->isPresent("mask")->getValue())) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid IP-mask");
+			Log.VERBOSE("globalCli::onCliSetNetwork: Not a valid IP-mask" CR);
+			return;
+		}
+		if (rc = networking::setStaticIpAddr(networking::getIpAddr(), mask,
+			networking::getGatewayIpAddr(),
+			networking::getDnsIpAddr(), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the IP-mask, \
+								  return code %i", rc);
+			Log.WARN("globalCli::onCliSetNetwork: Could not set the IP-mask, \
+					 return code %i" CR, rc);
+			return;
+		}
+		printCli("IP-mask changed to % s", networking::getIpMask().
+				 toString().c_str());
+		Log.INFO("globalCli::onCliSetNetwork: IP-mask changed to %s" CR,
+				 networking::getIpMask().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("gw")) {
+		IPAddress gw;
+		if (!gw.fromString(p_cmdTable->commandFlags->isPresent("gw")->getValue())) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid Gateway-address");
+			Log.VERBOSE("globalCli::onCliSetNetwork: Not a valid Gateway-address" CR);
+			return;
+		}
+		if (rc = networking::setStaticIpAddr(networking::getIpAddr(),
+			networking::getIpMask(), gw,
+			networking::getDnsIpAddr(), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the Gateway-Address, \
+												return code %i", rc);
+			Log.WARN("globalCli::onCliSetNetwork: Could not set the Gateway-Address, \
+					  return code %i" CR, rc);
+			return;
+		}
+		printCli("Gateway IP address changed to % s",
+				 networking::getGatewayIpAddr().toString().c_str());
+		Log.INFO("globalCli::onCliSetNetwork: Gateway IP address changed to %s" CR,
+				 networking::getGatewayIpAddr().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("dns")){
+			IPAddress dns;
+		if (!dns.fromString(p_cmdTable->commandFlags->isPresent("dns")->getValue())) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid DNS-address");
+			Log.VERBOSE("globalCli::onCliSetNetwork: Not a valid DNS-address" CR);
+			return;
+		}
+		if (rc = networking::setStaticIpAddr(networking::getIpAddr(),
+											 networking::getIpMask(),
+											 networking::getGatewayIpAddr(),
+											 dns, persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the DNS-Address, \
+												return code %i", rc);
+			Log.WARN("globalCli::onCliSetNetwork: Could not set the DNS-Address, \
+												return code %i" CR, rc);
+			return;
+		}
+		printCli("DNS IP address changed to % s", networking::getDnsIpAddr().
+				 toString().c_str());
+		Log.INFO("globalCli::onCliSetNetwork: DNS IP address changed to %s" CR,
+				 networking::getDnsIpAddr().toString().c_str());
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
 	else
-		strcpy(contextPath, "/");	
-	reinterpret_cast<globalCli*>(getCliContextHandleByPath(contextPath))->printTopology();
-	acceptedCliCommand(CLI_TERM_QUIET);
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-rc_t globalCli::printTopology(bool p_begining) {
-	uint8_t noOfChilds;
-	char contextPath[150];
-	if (p_begining)
-		printCli("Context-path:\t\t\tContext:\t\t\tSystem name:");
-	getFullCliContextPath(contextPath);
-	printCli("%s\t\t\t%s-%i\t\t\t%s",
-		contextPath,
-		getCliContextDescriptor()->contextName,
-		getCliContextDescriptor()->contextIndex,
-		getCliContextDescriptor()->contextSysName);
-
-	for (uint8_t i = 0; i < getChildContexts(NULL)->size(); i++) {
-		reinterpret_cast<globalCli*>(getChildContexts(NULL)->at(i))->printTopology(false);
+void globalCli::onCliGetNetwork(cmd* p_cmd, cliCore* p_cliContext,
+								cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliGetNetwork: Bad number of arguments" CR);
+		return;
 	}
-	if (p_begining) {
-		printCli("END");
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliGetNetwork: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		showNetwork();
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ssid")){
+		printCli("SSID: %s", networking::getSsid());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("bssid")){
+		printCli("BSSID: %s", networking::getBssid());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("channel")){
+		printCli("Channel: %i", networking::getChannel());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("auth")){
+		printCli("Encryption: %s", networking::getAuth());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("rssi")){
+		printCli("RSSI: %i", networking::getRssi());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("mac")){
+		printCli("MAC: %s", networking::getMac());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("hostname")){
+		printCli("Hostname: %s", networking::getHostname());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("address")){
+		printCli("IP address: %s", networking::getIpAddr().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("mask")){
+		printCli("Mask: %s", networking::getIpMask().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("gw")){
+		printCli("Gateway: %s", networking::getGatewayIpAddr().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("dns")){
+		printCli("DNS: %s", networking::getDnsIpAddr().toString().c_str());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("opstate")) {
+		char opState[30];
+		printCli("Network Operational state: %s", networking::getOpStateStr(opState));
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("scanap")) {
+		QList<apStruct_t*> aps;
+		networking::getAps(&aps, false);
+		char apsStr[200];
+		sprintf(apsStr, "| %*s | %*s | %*s | %*s | %*s |",
+						-30, "SSID:",
+						-20, "BSSID:",
+						-10, "Channel:",
+						-10, "RSSI:",
+						-20, "Encryption:");
+		printCli(apsStr);
+		for (uint8_t i = 0; i < aps.size(); i++) {
+			sprintf(apsStr, "| %*s | %*s | %*i | %*i | %*s |", 
+							-30, aps.at(i)->ssid,
+							-20, aps.at(i)->bssid,
+							-10, aps.at(i)->channel,
+							-10, aps.at(i)->rssi,
+							-20, aps.at(i)->encryption);
+			printCli(apsStr);
+		}
+		networking::unGetAps(&aps);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_QUIET);
-		return RC_OK;
-	}
-}
-
-void globalCli::onCliGetMqttBrokerURIHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	printCli("MQTT broker: %s", rootHandle->getMqttBrokerURI());
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-const char* globalCli::getMqttBrokerURI(void) {
-	return NULL;
-}
-
-void globalCli::onCliSetMqttBrokerURIHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (rc = rootHandle->setMqttBrokerURI(cmd.getArgument(0).getValue().c_str()))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of MQTT broker not accepted, return code: %i", rc);
 	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-rc_t globalCli::setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetMqttPortHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliShowNetwork(cmd* p_cmd, cliCore* p_cliContext,
+								 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onCliShowNetwork: Bad number of arguments" CR);
 		return;
 	}
-	rc_t rc;
-	printCli("MQTT port: %i", rootHandle->getMqttPort());
+	showNetwork();
+}
+
+void globalCli::showNetwork(void) {
+	char ssid[20];																		//It apears that sprintf is multi-threaded, networking is not thread safe.
+	strcpy(ssid, networking::getSsid());
+	char bssid[18];
+	strcpy(bssid, networking::getBssid());
+	uint8_t channel = networking::getChannel();
+	char auth[11];
+	strcpy(auth, networking::getAuth());
+	int rssi = networking::getRssi();
+	char mac[18];
+	strcpy(mac, networking::getMac());
+	char hostname[35];
+	strcpy(hostname, networking::getHostname());
+	char ipaddr[16];
+	strcpy(ipaddr, networking::getIpAddr().toString().c_str());
+	char mask[16];
+	strcpy(mask, networking::getIpAddr().toString().c_str());
+	char gw[16];
+	strcpy(gw, networking::getGatewayIpAddr().toString().c_str());
+	char dns[16];
+	strcpy(dns, networking::getDnsIpAddr().toString().c_str());
+	uint8_t ch = networking::getChannel();
+	printCli("| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |", 
+			-20, "SSID:",
+			-18, "BSSID:",
+			-8, "Channel:",
+			-11, "Encryption:",
+			-7, "RSSI:",
+			-18, "MAC:",
+			-30, "Host-name:",
+			-16, "IP-Address:",
+			-16, "IP-Mask",
+			-16, "Gateway:",
+			-16, "DNS");
+	printCli("| %*s | %*s | %*i | %*s | %*i | %*s | %*s | %*s | %*s | %*s | %*s |",
+			 -20, ssid,
+			 -18, bssid,
+			 -8, channel,
+			 -11, auth,
+			 -7, rssi,
+			 -18, mac,
+			 -30, hostname,
+			 -16, ipaddr,
+			 -16, mask,
+			 -16, gw,
+			 -16, dns);
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-uint16_t globalCli::getMqttPort(void){}
-
-void globalCli::onCliSetMqttPortHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+	bool persist = false;
+	rc_t rc;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliSetMqttHelper: Bad number of arguments" CR);
 		return;
 	}
-	rc_t rc;
-	if (rc = rootHandle->setMqttPort(atoi(cmd.getArgument(0).getValue().c_str())))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of MQTT port not accepted, return code: %i", rc);
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliSetMqtt: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onCliSetMqtt: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("persist")) {
+		if (!(p_cmdTable->commandFlags->isPresent("uri") ||
+			p_cmdTable->commandFlags->isPresent("port"))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+								  "Can only persist MQTT URI and MQTT Port");
+			Log.VERBOSE("globalCli::onCliSetMqtt: \
+						 Can only persist MQTT URI and MQTT Port" CR);
+			return;
+		}
+		else{
+			persist = true;
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("uri")) {
+		if (rc = mqtt::setBrokerUri(p_cmdTable->commandFlags->
+			isPresent("uri")->getValue(), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT URI, \
+												return code %i", rc);
+			return;
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("port")) {
+		if (rc = mqtt::setBrokerPort(atoi(p_cmdTable->commandFlags->
+			isPresent("port")->getValue()), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT Port, \
+												return code %i", rc);
+			return;
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("clientid")) {
+		if (rc = mqtt::setClientId(p_cmdTable->commandFlags->
+			isPresent("clientid")->getValue())) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT Client Id, \
+												return code %i", rc);
+			return;
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("qos")) {
+		if (rc = mqtt::setDefaultQoS(atoi(p_cmdTable->commandFlags->
+			isPresent("qos")->getValue()))) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT Client Id, \
+												return code %i", rc);
+			return;
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("keepalive")) {
+		if (rc = mqtt::setKeepAlive(atof(p_cmdTable->commandFlags->
+			isPresent("keepalive")->getValue()))) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT KeepAlive, \
+												return code %i", rc);
+			return;
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ping")) {
+		if (rc = mqtt::setPingPeriod(atof(p_cmdTable->commandFlags->
+			isPresent("ping")->getValue()))) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT Ping period, \
+												return code %i", rc);
+			return;
+		}
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
 	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-rc_t globalCli::setMqttPort(const uint16_t p_mqttPort, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetKeepaliveHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliClearMqtt(cmd* p_cmd, cliCore* p_cliContext,
+							   cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliClearMqtt: Bad number of arguments" CR);
 		return;
 	}
-	rc_t rc;
-	printCli("MQTT keep-alive period: %i", rootHandle->getKeepAlivePeriod());
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-float globalCli::getKeepAlivePeriod(void){}
-
-void globalCli::onCliSetKeepaliveHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliClearMqtt: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
 		return;
 	}
-	rc_t rc;
-	if (rc = rootHandle->setKeepAlivePeriod(atof(cmd.getArgument(0).getValue().c_str())))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of MQTT Keep-alive period not accepted, return code: %i", rc);
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliClearMqtt: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("maxlatency"))
+		mqtt::clearMaxLatency();
+	if (p_cmdTable->commandFlags->isPresent("overruns"))
+		mqtt::clearOverRuns();
+	acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void globalCli::onCliGetMqtt(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliGetMqtt: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliGetMqtt: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		char uri[20];
+		if (mqtt::getBrokerUri())
+			strcpy(uri, mqtt::getBrokerUri());
+		else
+			strcpy(uri, "-");
+		uint16_t port = mqtt::getBrokerPort();
+		char clientId[20];
+		if (mqtt::getClientId())
+			strcpy(clientId, mqtt::getClientId());
+		else
+			strcpy(clientId, "-");
+		uint8_t qos = mqtt::getDefaultQoS();
+		float keepAlive = mqtt::getKeepAlive();
+		float ping = mqtt::getPingPeriod();
+		uint32_t maxLatency = mqtt::getMaxLatency();
+		uint32_t meanLatency = mqtt::getMeanLatency();
+		uint32_t overRuns = mqtt::getOverRuns();
+		char opState[100];
+		mqtt::getOpStateStr(opState);
+		char mqttInfo[200];
+		sprintf(mqttInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | \
+							 %*s | %*s | %*s | %*s |",
+						  -20, "MQTT URI:",
+						  -7, "Port:",
+						  -12, "Client-Id:",
+						  -6, "QoS:",
+						  -13, "Keep-alive:",
+						  -7, "Ping:",
+						  -14, "Max latency:",
+						  -15, "Mean latency:",
+						  -11, "Overruns:",
+						  -40, "OP-State:");
+		printCli("%s", mqttInfo);
+		sprintf(mqttInfo, "| %*s | %*i | %*s | %*i | %*.2f | %*.2f | \
+							 %*i | %*i | %*i | %*s |",
+						 -20, uri,
+						 -7, port,
+						 -12, clientId,
+						 -6, qos,
+						 -13, keepAlive,
+						 -7, ping,
+						 -14, maxLatency,
+						 -15, meanLatency,
+						 -11, overRuns,
+						 -40, opState);
+		printCli("%s", mqttInfo);
+		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+	if (p_cmdTable->commandFlags->isPresent("uri")) {
+		if(mqtt::getBrokerUri())
+			printCli("MQTT URI: %s", mqtt::getBrokerUri());
+		else
+			printCli("MQTT URI: -");
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("port")) {
+		printCli("MQTT Port: %i", mqtt::getBrokerPort());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("clientid")){
+		if(mqtt::getClientId())
+			printCli("MQTT Client Id: %s", mqtt::getClientId());
+		else
+			printCli("MQTT Client Id: -");
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("qos")) {
+		printCli("MQTT QoS: %i", mqtt::getDefaultQoS());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("keepalive")) {
+		printCli("MQTT Keep-alive: %.2f", mqtt::getKeepAlive());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ping")) {
+		printCli("MQTT Ping: %.2f", mqtt::getPingPeriod());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("maxlatency")){
+		printCli("MQTT Max latency: %i", mqtt::getMaxLatency());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("meanlatency")) {
+		printCli("MQTT Mean Latency: %i", mqtt::getMeanLatency());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("overruns")) {
+		printCli("MQTT Overruns: %i", mqtt::getOverRuns());
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("opstate")) {
+		char opState[100];
+		mqtt::getOpStateStr(opState);
+		printCli("MQTT Operational state: %s", opState);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
 	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-rc_t globalCli::setKeepAlivePeriod(const float p_keepAlivePeriod, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetPingHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliShowMqtt(cmd * p_cmd, cliCore * p_cliContext,
+							  cliCmdTable_t * p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliShowMqtt: Bad number of arguments" CR);
 		return;
 	}
-	rc_t rc;
-	printCli("Ping supervision period: %i", rootHandle->getPingPeriod());
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-float globalCli::getPingPeriod(void){}
-
-void globalCli::onCliSetPingHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (rc = rootHandle->setPingPeriod(atof(cmd.getArgument(0).getValue().c_str())))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of Ping supervision period not accepted, rerurn code: %i", rc);
+	char uri[20];
+	if (mqtt::getBrokerUri())
+		strcpy(uri, mqtt::getBrokerUri());
 	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-rc_t globalCli::setPingPeriod(const float p_pingPeriod, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetNtpserverHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	printCli("NTP server: %s", rootHandle->getNtpServer());
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-const char* globalCli::getNtpServer(void) {
-	return NULL;
-}
-
-void globalCli::onCliSetNtpserverHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (rc = rootHandle->setNtpServer(cmd.getArgument(0).getValue().c_str()))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of NTP server URI not accepted, return code: %i", rc);
+		strcpy(uri, "-");
+	uint16_t port = mqtt::getBrokerPort();
+	char clientId[20];
+	if (mqtt::getClientId())
+		strcpy(clientId, mqtt::getClientId());
 	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-rc_t globalCli::setNtpServer(const char* p_ntpServer, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetNtpportHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	printCli("NTP port: %i", rootHandle->getNtpPort());
+		strcpy(clientId, "-");
+	uint8_t qos = mqtt::getDefaultQoS();
+	float keepAlive = mqtt::getKeepAlive();
+	float ping = mqtt::getPingPeriod();
+	uint32_t maxLatency = mqtt::getMaxLatency();
+	uint32_t meanLatency = mqtt::getMeanLatency();
+	uint32_t overRuns = mqtt::getOverRuns();
+	char opState[100];
+	mqtt::getOpStateStr(opState);
+	char mqttInfo[200];
+	sprintf(mqttInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | \
+						 %*s | %*s | %*s | %*s |",
+					  -20, "URI:",
+					  -7, "Port:", 
+					  -12, "Client-Id:",
+					  -6, "QoS:",
+					  -13, "Keep-alive:",
+					  -7, "Ping:",
+					  -14, "Max latency:",
+					  -15, "Mean latency:",
+					  -11, "Overruns:",
+					  -40, "OP-State");
+	printCli("%s", mqttInfo);
+	sprintf(mqttInfo, "| %*s | %*i | %*s | %*i | %*.2f | %*.2f | \
+						 %*i | %*i | %*i | %*s |",
+					  -20, uri,
+					  -7, port,
+					  -12, clientId,
+					  -6, qos,
+					  -13, keepAlive,
+					  -7, ping,
+					  -14, maxLatency,
+					  -15, meanLatency,
+					  -11, overRuns,
+					  -40, opState);
+	printCli("%s", mqttInfo);
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-uint16_t globalCli::getNtpPort(void) {}
-
-void globalCli::onCliSetNtpportHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliAddTime(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+	IPAddress ipAddr;
+	uint16_t ipPort;
+	rc_t rc;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliAddTime: Bad number of arguments" CR);
 		return;
 	}
-	rc_t rc;
-	if (rc = rootHandle->setNtpPort(atoi(cmd.getArgument(0).getValue().c_str())))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of NTP port URI not accepted, return code: %i", rc);
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliAddTime: Flag parsing failed: %s" CR, 
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size() ||
+		!p_cmdTable->commandFlags->isPresent("ntpserver")->getValue()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments - \
+							  mandatory flags missing");
+		Log.WARN("globalCli::onCliAddTime: Bad number of arguments - \
+				  mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpserver")) {
+		Log.INFO("globalCli::onCliAddTime: Adding NTP server" CR);
+		if (ipAddr.fromString(p_cmdTable->commandFlags->
+			isPresent("ntpserver")->getValue())) {
+			if (p_cmdTable->commandFlags->isPresent("ntpport") &&
+				(ipPort = atoi(p_cmdTable->commandFlags->
+					isPresent("ntpport")->getValue()))) {
+				if (rc = ntpTime::addNtpServer(ipAddr, ipPort)) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not add NTP server - \
+														return code: %i", rc);
+					Log.WARN("globalCli::onCliAddTime: Could not add NTP server - \
+							  return code: %i" CR, rc);
+					return;
+				}
+			}
+			else{
+				if (rc = ntpTime::addNtpServer(ipAddr)) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not add NTP server - \
+										  return code: %i", rc);
+					Log.WARN("globalCli::onCliAddTime: Could not add NTP server - \
+							  return code: %i" CR, rc);
+					return;
+				}
+			}
+		}
+		else if(isUri(p_cmdTable->commandFlags->isPresent("ntpserver")->getValue())){
+			if (p_cmdTable->commandFlags->isPresent("ntpport") &&
+				(ipPort = atoi(p_cmdTable->commandFlags->
+					isPresent("ntpport")->getValue()))){
+				if (rc = ntpTime::addNtpServer(p_cmdTable->commandFlags->
+					isPresent("ntpserver")->getValue(), ipPort)) {
+						notAcceptedCliCommand(CLI_GEN_ERR, "Could not add NTP server - \
+															return code: %i", rc);
+						Log.WARN("globalCli::onCliAddTime: Could not add NTP server - \
+								  return code: %i" CR, rc);
+						return;
+				}
+			}
+			else {
+				if (rc = ntpTime::addNtpServer(p_cmdTable->commandFlags->
+					isPresent("ntpserver")->getValue())) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not add NTP server - \
+														return code: %i", rc);
+					Log.WARN("globalCli::onCliAddTime: Could not add NTP server - \
+							  return code: %i" CR, rc);
+					return;
+				}
+			}
+		}
+		else {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+								  "%s is not a valid IP address or URI",
+								  p_cmdTable->commandFlags->
+										isPresent("ntpserver")->getValue());
+			Log.WARN("globalCli::onCliAddTime: %s is not a valid IP address or URI" CR,
+					 p_cmdTable->commandFlags->isPresent("ntpserver")->getValue());
+			return;
+		}
+		Log.VERBOSE("globalCli::onCliAddTime: NTP server successfully added" CR);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
 	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliDeleteTime(cmd* p_cmd, cliCore* p_cliContext,
+								cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	IPAddress ipAddr;
+	rc_t rc;
+	bool cmdHandled = false;
+
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliDeleteTime:: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliDeleteTime:: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size() ||
+		!p_cmdTable->commandFlags->isPresent("ntpserver")->getValue()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments - \
+													  mandatory flags missing");
+		Log.WARN("globalCli::onCliDeleteTime:: Bad number of arguments - \
+				  mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpserver")) {
+		Log.INFO("globalCli::onCliDeleteTime: Deleting NTP server" CR);
+		if (ipAddr.fromString(p_cmdTable->commandFlags->
+			isPresent("ntpserver")->getValue())) {
+			if (rc = ntpTime::deleteNtpServer(ipAddr)) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Could not delete NTP server - \
+													return code: %i", rc);
+				Log.WARN("globalCli::onCliDeleteTime: Could not delete NTP server - \
+						  return code: %i" CR, rc);
+				return;
+			}
+		}
+		else if (isUri(p_cmdTable->commandFlags->isPresent("ntpserver")->getValue())) {
+			if (rc = ntpTime::deleteNtpServer(p_cmdTable->commandFlags->
+				isPresent("ntpserver")->getValue())) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Could not delete NTP server - \
+													return code: %i", rc);
+				Log.WARN("globalCli::onCliDeleteTime: Could not delete NTP server - \
+						  return code: %i" CR, rc);
+				return;
+			}
+		}
+		else {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+								  "%s is not a valid IP address or URI",
+								  p_cmdTable->commandFlags->
+										isPresent("ntpserver")->getValue());
+			Log.WARN("globalCli::onCliDeleteTime: %s is not a valid IP address \
+					  or URI" CR,
+					 p_cmdTable->commandFlags->isPresent("ntpserver")->getValue());
+			return;
+		}
+		Log.VERBOSE("globalCli::onCliDeleteTime: NTP server successfully deleted" CR);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-rc_t globalCli::setNtpPort(const uint16_t p_ntpPort, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetTzHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	printCli("Time zone: %i", rootHandle->getTz());
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-uint8_t globalCli::getTz(void){}
-
-void globalCli::onCliSetTzHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (rc = rootHandle->setTz(atoi(cmd.getArgument(0).getValue().c_str())))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of TZ not accepted, return code: %i", rc);
 	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-rc_t globalCli::setTz(const uint8_t p_tz, bool p_force) {
-	return RC_GEN_ERR;
-}
-
-void globalCli::onCliGetLoglevelHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliStartTime(cmd* p_cmd, cliCore* p_cliContext,
+							   cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
+	ntpOpState_t ntpOpState;
+	rc_t rc;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliStartTime: Bad number of arguments" CR);
 		return;
 	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliStartTime: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments - \
+													  mandatory flags missing");
+		Log.WARN("globalCli::onCliStartTime: Bad number of arguments - \
+				  mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpclient")) {
+		Log.INFO("globalCli::onCliStartTime: Starting NTP server" CR);
+		ntpTime::getNtpOpState(&ntpOpState);
+		if (ntpOpState & NTP_CLIENT_DISABLED) {
+			if(p_cmdTable->commandFlags->isPresent("ntpdhcp")){
+				if (rc = ntpTime::start(true)) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not start NTP-Client - \
+														return code: %i", rc);
+					Log.WARN("globalCli::onCliStartTime: Could not start NTP-Client - \
+							  return code: %i" CR, rc);
+					return;
+				}
+			}
+			else {
+				if (rc = ntpTime::start(false)) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not start NTP-Client - \
+														return code: %i", rc);
+					Log.WARN("globalCli:onCliStartTime: Could not start NTP-Client - \
+							  return code: %i" CR, rc);
+					return;
+				}
+			}
+		}
+		else{
+			notAcceptedCliCommand(CLI_GEN_ERR, "NTP client is already running");
+			Log.WARN("globalCli:onCliStartTime: NTP client is already running" CR);
+			return;
+		}
+		Log.VERBOSE("globalCli:onCliStartTime:: NTP server successfully started" CR);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliStopTime(cmd* p_cmd, cliCore* p_cliContext,
+							  cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	ntpOpState_t ntpOpState;
 	rc_t rc;
-	printCli("Log-level: %i", rootHandle->getLogLevel());
+	bool cmdHandled = false;
+
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliStopTime: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliStopTime: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments - \
+													  mandatory flags missing");
+		Log.WARN("globalCli::onCliStopTime: Bad number of arguments - \
+				  mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpclient")) {
+		Log.INFO("globalCli::onCliStopTime: Stoping NTP server" CR);
+		ntpTime::getNtpOpState(&ntpOpState);
+		if (!(ntpOpState & NTP_CLIENT_DISABLED)) {
+			if (rc = ntpTime::stop()) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Could not stop NTP-Client - \
+													return code: %i", rc);
+				Log.WARN("globalCli::onCliStopTime: Could not stop NTP-Client - \
+													return code: %i" CR, rc);
+				return;
+			}
+		}
+		else {
+			notAcceptedCliCommand(CLI_GEN_ERR, "NTP client is not running");
+			Log.WARN("globalCli::onCliStopTime: NTP client is not running" CR);
+			return;
+		}
+		Log.VERBOSE("globalCli::onCliStopTime:: NTP server successfully stopped" CR);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliSetTime(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	rc_t rc;
+	char response[300];
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliSetTime: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliSetTime: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments - \
+													  mandatory flags missing");
+		Log.WARN("globalCli::onCliSetTime: Bad number of arguments - \
+				  mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("timeofday") ||
+		p_cmdTable->commandFlags->isPresent("tod")) {
+		Log.INFO("globalCli::onCliSetTime: Setting time of day" CR);
+		if (p_cmdTable->commandFlags->isPresent("timeofday")){
+			if (ntpTime::setTimeOfDay(p_cmdTable->commandFlags->
+				isPresent("timeofday")->getValue(), response)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "%s", response);
+				Log.WARN("globalCli::onCliSetTime: %s" CR, response);
+				return;
+			}
+		}
+		else {
+			if (ntpTime::setTimeOfDay(p_cmdTable->commandFlags->
+				isPresent("tod")->getValue(), response)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "%s", response);
+				Log.WARN("globalCli::onCliSetTime: %s" CR, response);
+				return;
+			}		
+		}
+		Log.VERBOSE("globalCli::onCliSetTime: Successfully set time of day" CR);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("epochtime")) {
+		Log.INFO("globalCli::onCliSetTime: Setting epoch time" CR);
+		if (ntpTime::setEpochTime(p_cmdTable->commandFlags->
+			isPresent("epochtime")->getValue(), response)) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "%s", response);
+			Log.WARN("globalCli::onCliSetTime: %s" CR, response);
+			return;
+		}
+		Log.VERBOSE("globalCli::onCliSetTime: Successfully set epoch time" CR);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("timezone")) {
+		Log.INFO("globalCli::onCliSetTime: Setting time zone" CR);
+		if (ntpTime::setTz(p_cmdTable->commandFlags->
+			isPresent("timezone")->getValue(), response)) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "%s", response);
+			Log.WARN("globalCli::onCliSetTime: %s" CR, response);
+			return;
+		}
+		Log.VERBOSE("globalCli::onCliSetTime: Successfully set time zone" CR);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliGetTime(cmd* p_cmd, cliCore* p_cliContext,
+							 cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	rc_t rc;
+	bool cmdHandled = true;
+	char outputBuff[300];
+
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliGetTime: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliGetTime: Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		showTime();
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("timeofday") ||
+		p_cmdTable->commandFlags->isPresent("tod")) {
+		if (p_cmdTable->commandFlags->isPresent("utc")) {
+			ntpTime::getTimeOfDay(outputBuff, true);
+			printCli("Universal time: %s", outputBuff);
+		}
+		else {
+		ntpTime::getTimeOfDay(outputBuff);
+		printCli("Local time: %s", outputBuff);
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("epochtime")) {
+		ntpTime::getEpochTime(outputBuff);
+		printCli("Epoch time: %s", outputBuff);
+	}
+	if (p_cmdTable->commandFlags->isPresent("timezone")) {
+		ntpTime::getTz(outputBuff);
+		printCli("Current time-zone: %s", outputBuff);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("daylightsaving")) {
+		bool dls;
+		ntpTime::getDayLightSaving(&dls);
+		if (dls)
+			sprintf(outputBuff, "True");
+		else
+			sprintf(outputBuff, "False");
+		printCli("Daylight saving is %s", outputBuff);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpdhcp")) {
+		if (ntpTime::getNtpDhcp())
+			sprintf(outputBuff, "True");
+		else
+			sprintf(outputBuff, "False");
+		printCli("NTP server is provided by DHCP: %s", outputBuff);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpservers")) {
+		QList<ntpServerHost_t*>* ntpServers;
+		if (ntpTime::getNtpServers(&ntpServers)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not get NTP servers");
+			Log.ERROR("globalCli::onCliGetTime: Could not get NTP servers");
+			return;
+		}
+		else {
+			sprintf(outputBuff, "| %*s | %*s | %*s | %*s | %*s | %*s |",
+								-6, "Index:",
+								- 30, "NTP Server URI:",
+								-22, "NTP Server IP Address:",
+								-5, "Port:",
+								-8, "Stratum:",
+								-13, "Reachability:");
+			printCli(outputBuff);
+			for (uint8_t i = 0; i < ntpServers->size(); i++) {
+				char stratum[10];
+				if (!ntpServers->at(i)->stratum)
+					strcpy(stratum, "Unknown");
+				else
+					strcpy(stratum, itoa(ntpServers->at(i)->stratum, stratum, 10));
+				sprintf(outputBuff, "| %*i | %*s | %*s | %*i | %*s | 0x%*X |",
+									-6, ntpServers->at(i)->index,
+									-30, ntpServers->at(i)->ntpHostName,
+									-22, ntpServers->at(i)->
+											ntpHostAddress.toString().c_str(),
+									-5, ntpServers->at(i)->ntpPort,
+									-8, stratum,
+									-11, ntpTime::getReachability(i));
+				printCli(outputBuff);
+			}
+			cmdHandled = true;
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpsyncstatus")) {
+		char syncStatusStr[50];
+		ntpTime::getNtpSyncStatusStr(syncStatusStr);
+		sprintf(outputBuff, "%s", syncStatusStr);
+		printCli("NTP sync status: %s", outputBuff);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpsyncmode")) {
+		char syncModeStr[50];
+		ntpTime::getSyncModeStr(syncModeStr);
+		sprintf(outputBuff, "%s", syncModeStr);
+		printCli("NTP sync mode: %s", outputBuff);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("ntpopstate")) {
+		char opStateStr[50];
+		ntpTime::getNtpOpStateStr(opStateStr);
+		sprintf(outputBuff, "%s", opStateStr);
+		printCli("NTP Operational state: %s", outputBuff);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliShowTime(cmd* p_cmd, cliCore* p_cliContext,
+							  cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	rc_t rc;
+	QList<ntpServerHost_t*>* ntpServers;
+	char outputBuff[300];
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliShowTime: Bad number of arguments" CR);
+		return;
+	}
+	showTime();
+}
+
+void globalCli::showTime(void) {
+	rc_t rc;
+	QList<ntpServerHost_t*>* ntpServers;
+	char timeOfDayUTC[50];
+	char timeOfDayLocal[50];
+	timeval tv;
+	char timeOfDayEpochTimeStr[15];
+	char opState[30];
+	char syncState[30];
+	char syncMode[30];
+	char tz[20];
+	bool daylightSaving;
+	uint8_t noOfNtpServers;
+	char daylightSavingStr[10];
+	ntpTime::getTimeOfDay(timeOfDayUTC, true);
+	ntpTime::getTimeOfDay(timeOfDayLocal);
+	ntpTime::getEpochTime(&tv);
+	strcpy(timeOfDayEpochTimeStr, itoa(tv.tv_sec, timeOfDayEpochTimeStr, 10));
+	printCli("Time:");
+	printCli("| %*s | %*s | %*s |",
+			 -40, "UTC:",
+			 -40, "Local:",
+			 -15, "Epoch time:");
+	printCli("| %*s | %*s | %*s |",
+			 -40, timeOfDayUTC,
+			 -40, timeOfDayLocal,
+			 -15, timeOfDayEpochTimeStr);
+	ntpTime::getNtpOpStateStr(opState);
+	ntpTime::getNtpSyncStatusStr(&syncState[0]);
+	ntpTime::getSyncModeStr(syncMode);
+	ntpTime::getTz(tz);
+	ntpTime::getDayLightSaving(&daylightSaving);
+	ntpTime::getNoOfNtpServers(&noOfNtpServers);
+	if (daylightSaving)
+		strcpy(daylightSavingStr, "True");
+	else
+		strcpy(daylightSavingStr, "False");
+	printCli("\n\rNTP-Client:");
+	printCli("| %*s | %*s | %*s | %*s | %*s | %*s |",
+			 -30, "OpState:",
+			 -30, "Sync status:",
+			 -25, "Sync mode",
+			 -14, "No of servers:",
+			 -20, "Time zone:",
+			 -16, "Daylight saving:");
+	printCli("| %*s | %*s | %*s | %*i | %*s | %*s |",
+			-30, opState,
+			-30, syncState,
+			-25, syncMode,
+			-14, noOfNtpServers,
+			-20, tz,
+			-16, daylightSavingStr);
+	if (ntpTime::getNtpServers(&ntpServers)) {
+		notAcceptedCliCommand(CLI_GEN_ERR, "Could not get NTP servers");
+		Log.ERROR("globalCli::onCliGetTime: Could not get NTP servers");
+		return;
+	}
+	printCli("\n\rNTP-Servers:");
+	printCli("| %*s | %*s | %*s | %*s | %*s | %*s |",
+			-6, "Index:",
+			-30, "NTP Server URI:",
+			-22, "NTP Server IP Address:",
+			-5, "Port:",
+			-8, "Stratum:",
+			-12, "Reachability:");
+	for (uint8_t i = 0; i < ntpServers->size(); i++) {
+		char stratum[10];
+		if (!ntpServers->at(i)->stratum)
+			strcpy(stratum, "Unknown");
+		else
+			strcpy(stratum, itoa(ntpServers->at(i)->stratum, stratum, 10));
+		printCli("| %*i | %*s | %*s | %*i | %*s | 0x%*X |",
+				 -6, ntpServers->at(i)->index,
+				 -30, ntpServers->at(i)->ntpHostName,
+				 -22, ntpServers->at(i)->ntpHostAddress.toString().c_str(),
+				 -5, ntpServers->at(i)->ntpPort,
+				 -8, stratum,
+				 -11,ntpTime::getReachability(i));
+	}
 	acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void globalCli::onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,
+								  cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	rc_t rc;
+	if (!cmd.getArgument(0) || !cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliSetLogHelper: Bad number of arguments");
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliSetLogHelper: Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, 
+							  "Bad number of arguments - mandatory flags missing");
+		Log.WARN("globalCli::onCliSetLogHelper: \
+				  Bad number of arguments - mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("loglevel")) {
+		if (rc = static_cast<globalCli*>(rootHandle)->
+			setLogLevel(p_cmdTable->commandFlags->
+				isPresent("loglevel")->getValue())) {
+			if (rc == RC_DEBUG_NOT_SET_ERR) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Setting of Log-level \
+				not accepted, debug flag not set");
+				Log.WARN("globalCli::onCliSetLoglevelHelper: Setting of Log-level \
+						  not accepted, debug flag not set" CR);
+				return;
+			}
+			else {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Setting of Log-level unsuccessfull, \
+													unknown error - return code: %i", rc);
+				Log.WARN("globalCli::onCliSetLoglevelHelper: Setting of Log-level \
+						  unsuccessfull, unknown error - return code: %i" CR, rc);
+				return;
+			}
+		}
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("logmo")) {
+		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of Log-level for MO/SubMo \
+											not accepted, not implemented", rc);
+		Log.WARN("globalCli::onCliSetLogHelper: Setting of Log-level for MO/SubMo \
+				  not accepted, not implemented" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("logdestination")) {
+		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of log-destination not accepted, \
+											not implemented", rc);
+		Log.WARN("globalCli::onCliSetLogHelper: Setting of log-destination \
+				  not accepted, not implemented" CR);
+		return;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+rc_t globalCli::setLogLevel(const char* p_logLevel, bool p_force){
+	return RC_NOTIMPLEMENTED_ERR;
+}
+
+
+void globalCli::onCliUnSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,
+									cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	rc_t rc;
+	if (!cmd.getArgument(0) || !cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliUnSetLogHelper: Bad number of arguments");
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, 
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliUnSetLogHelper: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments - \
+													  mandatory flags missing");
+		Log.WARN("globalCli::onCliUnSetLogHelper: Bad number of arguments - \
+				  mandatory flags missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("logdestination")) {
+		Log.WARN("globalCli::onCliUnSetLogHelper: Un-Setting of \
+				  log-destination not accepted, not implemented" CR);
+		return;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliGetLogHelper(cmd* p_cmd, cliCore* p_cliContext,
+								  cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	rc_t rc;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliGetLoglevelHelper: Bad number of arguments");
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliGetLogHelper: Flag parsing failed: %s" CR,
+					p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		onCliShowLog();
+		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("loglevel")) {
+		if (p_cmdTable->commandFlags->isPresent("logmo")) {
+			//Get logmo log preferences
+			notAcceptedCliCommand(CLI_GEN_ERR, "Getting Log-level for MO/SubMo \
+												not accepted, not implemented");
+			Log.WARN("globalCli::onCliGetLogHelper: Getting Log-level for MO/SubMo \
+					  not accepted, not implemented");
+			return;
+		}
+		else {
+			printCli("Log-level: %s",
+					 static_cast<globalCli*>(rootHandle)->getLogLevel());
+			cmdHandled = true;
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("logdestination")) {
+		notAcceptedCliCommand(CLI_GEN_ERR, "Getting log-destination not accepted, \
+											not implemented", rc);
+		Log.WARN("globalCli::onCliSetLogHelper: Getting log-destination not accepted, \
+				  not implemented");
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("tail")) {
+		// Need to parse -tail n and -tail n -continous
+		// If continous wee need to define a break sequence
+		notAcceptedCliCommand(CLI_GEN_ERR, "Getting log -tail not accepted, \
+											not implemented", rc);
+		Log.WARN("globalCli::onCliSetLogHelper: Getting log -tail not accepted, \
+				  not implemented");
+		return;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
 const char* globalCli::getLogLevel(void) {
 	return NULL;
 }
 
-void globalCli::onCliSetLoglevelHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliShowLogHelper(cmd* p_cmd, cliCore* p_cliContext,
+								   cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+	QList<cliCore*>* contexts;
+	if (!cmd.getArgument(0) && cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliShowLogHelper: Bad number of arguments");
+		return;
+	}
+	onCliShowLog();
+	acceptedCliCommand(CLI_TERM_QUIET);
+	return;
+}
+
+void globalCli::onCliShowLog(void) {
+	QList<cliCore*>* contexts;
+	printCli("Log receiver: %s", "-");
+	printCli("| %*s | %*s | %*s |",
+			 -30, "Context:",
+			 -15, "Debug-state:",
+			 -15, "Log-level:");
+	contexts = (QList<cliCore*>*)getAllContexts();
+	for (uint16_t i = 0; i < contexts->size(); i++) {
+		char contextStr[30];
+		sprintf(contextStr, "%s-%i", contexts->at(i)->getContextName(),
+				contexts->at(i)->getContextIndex());
+		char debugStr[15];
+		if (((globalCli*)contexts->at(i))->getDebug())
+			strcpy(debugStr, "On");
+		else
+			strcpy(debugStr, "Off");
+
+		printCli("| %*s | %*s | %*s |",
+				 -30, contextStr,
+				 -15, debugStr,
+				 -15, ((globalCli*)contexts->at(i))->getLogLevel());
+	}
+}
+
+void globalCli::onCliSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,
+									   cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	rc_t rc;
+	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		return;
 	}
-	rc_t rc;
-	if (rc = rootHandle->setLogLevel(cmd.getArgument(0).getValue().c_str()))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Setting of NTP port URI not accepted, return code: %i", rc);
+	if (rc = rootHandle->setFailSafe(true))
+		notAcceptedCliCommand(CLI_GEN_ERR, "Activating fail-safe not accepted, \
+											unknown error - return code: %i", rc);
 	else
 		acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-rc_t globalCli::setLogLevel(const char* p_logLevel, bool p_force) {
-	return RC_GEN_ERR;
+rc_t globalCli::setFailSafe(const bool p_failsafe, bool p_force) {
+	return RC_NOTIMPLEMENTED_ERR;
 }
 
-void globalCli::onCliGetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliUnSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
+	rc_t rc;
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		return;
 	}
+	if (rc = rootHandle->setFailSafe(false))
+		notAcceptedCliCommand(CLI_GEN_ERR, "In-activating fail-safe not accepted, \
+											return code: %i", rc);
+	else
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+rc_t globalCli::unSetFailSafe(const bool p_failsafe, bool p_force) {
+	return RC_NOTIMPLEMENTED_ERR;
+}
+
+void globalCli::onCliGetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,
+									   cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
 	rc_t rc;
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		return;
+	}
 	if (rootHandle->getFailSafe())
 		printCli("Failsafe: Active");
 	else
@@ -616,48 +2221,57 @@ void globalCli::onCliGetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext) {
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-bool globalCli::getFailSafe(void){}
-
-void globalCli::onCliSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (rc = rootHandle->setFailSafe(true))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Activating fail-safe not accepted, return code: %i", rc);
-	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-void globalCli::onCliUnsetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (rc = rootHandle->setFailSafe(false))
-		notAcceptedCliCommand(CLI_GEN_ERR, "In-activating fail-safe not accepted, return code: %i", rc);
-	else
-		acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-rc_t globalCli::setFailSafe(const bool p_failsafe, bool p_force) {
-	return RC_GEN_ERR;
+bool globalCli::getFailSafe(void){
+	return false;
 }
 
 /* Common CLI decoration methods */
-void globalCli::onCliGetOpStateHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliGetOpState(p_cmd, p_cliContext);
+void globalCli::onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
+									cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->setDebug(true);
+	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void globalCli::onCliGetOpState(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->setDebug(false);
+	acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void globalCli::setDebug(bool p_debug) {
+}
+
+void globalCli::onCliGetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
+									cliCmdTable_t* p_cmdTable) {
+	if (static_cast<globalCli*>(p_cliContext)->getDebug())
+		printCli("Debug flag for context %s-%i is set",
+				 p_cliContext->getContextName(),
+				 p_cliContext->getContextIndex());
+	else
+		printCli("Debug flag for context %s-%i is not set",
+				 p_cliContext->getContextName(),
+				 p_cliContext->getContextIndex());
+	acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+bool globalCli::getDebug(void) {
+	Log.warning("globalCli::getDebug: debug flag not implemented");
+	return false;
+}
+
+void globalCli::onCliGetOpStateHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliGetOpState(p_cmd);
+}
+
+void globalCli::onCliGetOpState(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	char opStateStr[100];
-	if (!cmd.getArgument(1))
+	strcpy(opStateStr, "");
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		return;
+	}
 	if (!getOpStateStr(opStateStr)){
 		printCli("OP-state: %s", opStateStr);
 		acceptedCliCommand(CLI_TERM_QUIET);
@@ -668,15 +2282,17 @@ void globalCli::onCliGetOpState(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::getOpStateStr(char* p_opStateStr){
-	notAcceptedCliCommand(CLI_GEN_ERR, "getOpstate not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR, "getOpstate not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 	return NULL;
 }
 
-void globalCli::onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliGetSysName(p_cmd, p_cliContext);
+void globalCli::onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliGetSysName(p_cmd);
 }
 
-void globalCli::onCliGetSysName(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliGetSysName(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	if (cmd.getArgument(1))
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -687,14 +2303,17 @@ void globalCli::onCliGetSysName(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::getSystemName(const char* p_systemName) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "getSystemName not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR, 
+						  "getSystemName not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 	return RC_NOTIMPLEMENTED_ERR;
 }
 
-void globalCli::onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliSetSysName(p_cmd, p_cliContext);
+void globalCli::onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliSetSysName(p_cmd);
 }
-void globalCli::onCliSetSysName(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliSetSysName(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -705,15 +2324,18 @@ void globalCli::onCliSetSysName(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::setSystemName(const char* p_systemName) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "setSystemName not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR,
+						  "setSystemName not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 	return RC_NOTIMPLEMENTED_ERR;
 }
 
-void globalCli::onCliGetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliGetUsrName(p_cmd, p_cliContext);
+void globalCli::onCliGetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliGetUsrName(p_cmd);
 }
 
-void globalCli::onCliGetUsrName(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliGetUsrName(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	if (cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -726,14 +2348,16 @@ void globalCli::onCliGetUsrName(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::getUsrName(const char* p_usrName) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "getUsrName not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR, "getUsrName not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 }
 
-void globalCli::onCliSetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliSetUsrName(p_cmd, p_cliContext);
+void globalCli::onCliSetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,
+									  cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliSetUsrName(p_cmd);
 }
 
-void globalCli::onCliSetUsrName(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliSetUsrName(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -744,14 +2368,16 @@ void globalCli::onCliSetUsrName(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::setUsrName(const char* p_usrName) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "setUsrName not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR, "setUsrName not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 }
 
-void globalCli::onCliGetDescHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliGetDesc(p_cmd, p_cliContext);
+void globalCli::onCliGetDescHelper(cmd* p_cmd, cliCore* p_cliContext,
+								   cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliGetDesc(p_cmd);
 }
 
-void globalCli::onCliGetDesc(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliGetDesc(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	if (cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -764,14 +2390,16 @@ void globalCli::onCliGetDesc(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::getDesc(const char* p_description) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "getDesc not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR, "getDesc not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 }
 
-void globalCli::onCliSetDescHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	reinterpret_cast<globalCli*>(p_cliContext)->onCliSetDesc(p_cmd, p_cliContext);
+void globalCli::onCliSetDescHelper(cmd* p_cmd, cliCore* p_cliContext,
+								   cliCmdTable_t* p_cmdTable) {
+	static_cast<globalCli*>(p_cliContext)->onCliSetDesc(p_cmd);
 }
 
-void globalCli::onCliSetDesc(cmd* p_cmd, cliCore* p_cliContext) {
+void globalCli::onCliSetDesc(cmd* p_cmd) {
 	Command cmd(p_cmd);
 	if (!cmd.getArgument(1) || cmd.getArgument(2)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -782,47 +2410,9 @@ void globalCli::onCliSetDesc(cmd* p_cmd, cliCore* p_cliContext) {
 }
 
 rc_t globalCli::setDesc(const char* p_description) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "setDesc not implemented for context %s-%i", getContextName(), getContextIndex());
+	notAcceptedCliCommand(CLI_GEN_ERR, "setDesc not implemented for context %s-%i",
+						  getContextName(), getContextIndex());
 }
-
-void globalCli::onCliGetDebugHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	rc_t rc;
-	if (reinterpret_cast<globalCli*>(p_cliContext)->getDebug())
-		printCli("Debug: Active");
-	else
-		printCli("Debug: Inactive");
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
-
-bool globalCli::getDebug(void) {}
-
-void globalCli::onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	reinterpret_cast<globalCli*>(p_cliContext)->setDebug(true);
-	acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-void globalCli::onCliUnsetDebugHelper(cmd* p_cmd, cliCore* p_cliContext) {
-	Command cmd(p_cmd);
-	if (cmd.getArgument(1)) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
-		return;
-	}
-	reinterpret_cast<globalCli*>(p_cliContext)->setDebug(false);
-	acceptedCliCommand(CLI_TERM_EXECUTED);
-}
-
-void globalCli::setDebug(bool p_debug){}
-
 /*==============================================================================================================================================*/
 /* END Class cliCore                                                                                                                            */
 /*==============================================================================================================================================*/

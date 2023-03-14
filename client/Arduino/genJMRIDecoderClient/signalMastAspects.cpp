@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ rc_t signalMastAspects::onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement) {
                 }
             }
             if (mastAlreadyExist) {
-                Log.warning("signalMastAspects::onConfig: Parsing Mast type %s for Aspect %s already exists, skipping..." CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+                Log.WARN("signalMastAspects::onConfig: Parsing Mast type %s for Aspect %s already exists, skipping..." CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
                 break;
             }
             else { //Creating a new signal mast type'
@@ -181,7 +181,7 @@ void signalMastAspects::dumpConfig(void) {
 
 rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** p_appearance) {
     if (parentHandle->systemState::getOpState() != OP_WORKING) {
-        Log.error("signalMastAspects::getAppearance: OP_State is not OP_WORKING, doing nothing..." CR);
+        Log.ERROR("signalMastAspects::getAppearance: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_appearance = NULL;
         return RC_GEN_ERR;
     }
@@ -191,14 +191,14 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
     }
     for (uint8_t i = 0; true; i++) {
         if (i > aspects.size() - 1) {
-            Log.error("signalMastAspects::getAppearance: Aspect doesnt exist, setting mast to failsafe appearance and continuing..." CR);
+            Log.ERROR("signalMastAspects::getAppearance: Aspect doesnt exist, setting mast to failsafe appearance and continuing..." CR);
             *p_appearance = failsafeMastAppearance;
             return RC_GEN_ERR;
         }
         if (!strcmp(p_aspect, aspects.at(i)->name)) {
             for (uint8_t j = 0; true; j++) {
                 if (j > aspects.at(i)->mastTypes.size() - 1) {
-                    Log.error("signalMastAspects::getAppearance: Mast type doesnt exist, setting to failsafe appearance and continuing..." CR);
+                    Log.ERROR("signalMastAspects::getAppearance: Mast type doesnt exist, setting to failsafe appearance and continuing..." CR);
                     *p_appearance = failsafeMastAppearance;
                     return RC_GEN_ERR;
                 }
@@ -213,7 +213,7 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
 
 rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads) {
     if (parentHandle->systemState::getOpState() != OP_WORKING) { //NEEDS ATTENTION
-        Log.error("signalMastAspects::getNoOfHeads: OP_State is not OP_WORKING, doing nothing..." CR);
+        Log.ERROR("signalMastAspects::getNoOfHeads: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_noOfHeads = 0;
         return RC_GEN_ERR;
     }
@@ -225,7 +225,7 @@ rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads)
             }
         }
     }
-    Log.error("signalMastAspects::getNoOfHeads: Mast type not found, doing nothing..." CR);
+    Log.ERROR("signalMastAspects::getNoOfHeads: Mast type not found, doing nothing..." CR);
     *p_noOfHeads = 0;
     return RC_GEN_ERR;
 }

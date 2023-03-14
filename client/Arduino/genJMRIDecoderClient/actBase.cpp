@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,10 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(this), globalCli(ACTUATOR_MO_NAME) {
+uint16_t actBase::actIndex = 0;
+
+actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(this), globalCli(ACTUATOR_MO_NAME, ACTUATOR_MO_NAME, actIndex) {
+    actIndex++;
     satHandle = p_satHandle;
     actPort = p_actPort;
     satHandle->getAddr(&satAddr);
@@ -51,19 +54,19 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(this), globa
 
 /* CLI decoration methods */
     // get/set port
-    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, this, onCliGetPortHelper);
+    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliGetPortHelper);
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_GET_ACTPORT_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, this, onCliSetPortHelper);
+    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliSetPortHelper);
     regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_SET_ACTPORT_HELP_TXT);
     // get/set showing
-    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, this, onCliGetShowingHelper);
+    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliGetShowingHelper);
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_GET_ACTSHOWING_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, this, onCliSetShowingHelper);
+    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
     regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_SET_ACTSHOWING_HELP_TXT);
     // get/set property
-    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, this, onCliGetPropertyHelper);
+    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_GET_ACTPROPERTY_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, this, onCliSetPropertyHelper);
+    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
     regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_SET_ACTPROPERTY_HELP_TXT);
 }
 
@@ -202,7 +205,7 @@ void actBase::onOpStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("actBase::onOpStateChange: actuator port %d, on satelite adress %d, satLink %d got unavailable message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
     }
     else
-        Log.error("actBase::onOpStateChange: actuator port %d, on satelite address %d on satlink %d got an invalid availability message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
+        Log.ERROR("actBase::onOpStateChange: actuator port %d, on satelite address %d on satlink %d got an invalid availability message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
 }
 
 void actBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_actHandle) {
@@ -219,7 +222,7 @@ void actBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
     }
     else
-        Log.error("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
+        Log.ERROR("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
 }
 
 void actBase::wdtKickedHelper(void* p_actuatorBaseHandle) {
@@ -235,13 +238,13 @@ rc_t actBase::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {
-    Log.error("actBase::setSystemName: cannot set System name - not suppoted" CR);
+    Log.ERROR("actBase::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* actBase::getSystemName(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::getSystemName: cannot get System name as actuator is not configured" CR);
+        Log.ERROR("actBase::getSystemName: cannot get System name as actuator is not configured" CR);
         return NULL;
     }
     return (const char*)xmlconfig[XML_ACT_SYSNAME];
@@ -249,11 +252,11 @@ const char* actBase::getSystemName(void) {
 
 rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("actBase::setUsrName: cannot set User name as debug is inactive" CR);
+        Log.ERROR("actBase::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::setUsrName: cannot set System name as actuator is not configured" CR);
+        Log.ERROR("actBase::setUsrName: cannot set System name as actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -266,7 +269,7 @@ rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
 
 const char* actBase::getUsrName(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::getUsrName: cannot get User name as actuator is not configured" CR);
+        Log.ERROR("actBase::getUsrName: cannot get User name as actuator is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_ACT_USRNAME];
@@ -274,11 +277,11 @@ const char* actBase::getUsrName(void) {
 
 rc_t actBase::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("actBase::setDesc: cannot set Description as debug is inactive" CR);
+        Log.ERROR("actBase::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::setDesc: cannot set Description as actuator is not configured" CR);
+        Log.ERROR("actBase::setDesc: cannot set Description as actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -291,20 +294,20 @@ rc_t actBase::setDesc(const char* p_description, bool p_force) {
 
 const char* actBase::getDesc(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::getDesc: cannot get Description as actuator is not configured" CR);
+        Log.ERROR("actBase::getDesc: cannot get Description as actuator is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_ACT_DESC];
 }
 
 rc_t actBase::setPort(uint8_t p_port) {
-    Log.error("actBase::setPort: cannot set port - not supported" CR);
+    Log.ERROR("actBase::setPort: cannot set port - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t actBase::getPort(uint8_t* p_port) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::getPort: cannot get port as actuator is not configured" CR);
+        Log.ERROR("actBase::getPort: cannot get port as actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     *p_port = atoi(xmlconfig[XML_ACT_PORT]);
@@ -313,11 +316,11 @@ rc_t actBase::getPort(uint8_t* p_port) {
 
 rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("actBase::setProperty: cannot set Actuator property as debug is inactive" CR);
+        Log.ERROR("actBase::setProperty: cannot set Actuator property as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::setProperty: cannot set Actuator property as Actuator is not configured" CR);
+        Log.ERROR("actBase::setProperty: cannot set Actuator property as Actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setProperty(p_propertyId, p_propertyVal));
@@ -326,7 +329,7 @@ rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool 
 
 rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::getProperty: cannot get Actuator property as Actuator is not configured" CR);
+        Log.ERROR("actBase::getProperty: cannot get Actuator property as Actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getProperty(p_propertyId, p_propertyVal));
@@ -335,7 +338,7 @@ rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
 
 rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::getShowing: cannot get Actuator showing as Actuator is not configured" CR);
+        Log.ERROR("actBase::getShowing: cannot get Actuator showing as Actuator is not configured" CR);
         p_showing = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -346,11 +349,11 @@ rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing) {
 
 rc_t actBase::setShowing(const char* p_showing, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("actBase::setShowing: cannot set Actuator showing as debug is inactive" CR);
+        Log.ERROR("actBase::setShowing: cannot set Actuator showing as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("actBase::setShowing: cannot set Actuator showing as Actuator is not configured" CR);
+        Log.ERROR("actBase::setShowing: cannot set Actuator showing as Actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setShowing(p_showing));
@@ -366,7 +369,7 @@ bool actBase::getDebug(void) {
 }
 
 /* CLI decoration methods */
-void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
+void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -374,7 +377,7 @@ void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
     }
     rc_t rc;
     uint8_t port;
-    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getPort(&port))) {
+    if ((rc = static_cast<actBase*>(p_cliContext)->getPort(&port))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, return code: %i", rc);
         return;
     }
@@ -382,21 +385,21 @@ void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void actBase::onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void actBase::onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str())))) {
+    if ((rc = static_cast<actBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str())))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator port, return code: %i", rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -405,7 +408,7 @@ void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext) {
     rc_t rc;
     char* showing = NULL;
     char* orderedShowing = NULL;
-    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getShowing(showing, orderedShowing))) {
+    if ((rc = static_cast<actBase*>(p_cliContext)->getShowing(showing, orderedShowing))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator showing, return code: %i", rc);
         return;
     }
@@ -413,21 +416,21 @@ void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext) {
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void actBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void actBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str()))) {
+    if ((rc = static_cast<actBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator showing, return code: %i", rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -436,7 +439,7 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
     rc_t rc;
     char* property = NULL;
     if (cmd.getArgument(1)) {
-        if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property))) {
+        if ((rc = static_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property))) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor properties, return code: %i", rc);
             return;
         }
@@ -446,7 +449,7 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
     else {
         printCli("Actuator property index:\t\t\Actuator property value:\n");
         for (uint8_t i = 0; i < 255; i++) {
-            if ((rc = reinterpret_cast<actBase*>(p_cliContext)->getProperty(i, property))) {
+            if ((rc = static_cast<actBase*>(p_cliContext)->getProperty(i, property))) {
                 if (rc == RC_NOT_FOUND_ERR)
                     break;
                 notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator property %i, return code: %i", i, rc);
@@ -459,14 +462,14 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
     }
 }
 
-void actBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void actBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if ((rc = reinterpret_cast<actBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str()))) {
+    if ((rc = static_cast<actBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
         return;
     }

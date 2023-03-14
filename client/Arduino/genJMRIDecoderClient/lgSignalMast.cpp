@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
         smDimTime = SM_DIM_SLOW_MS;
     }
     else {
-        Log.error("mastDecoder::onConfig: smDimTime is non of FAST, NORMAL or SLOW - using NORMAL..." CR);
+        Log.ERROR("mastDecoder::onConfig: smDimTime is non of FAST, NORMAL or SLOW - using NORMAL..." CR);
         smDimTime = SM_DIM_NORMAL_MS;
     }
     if (!strcmp(xmlConfig[SM_BRIGHTNESS], "HIGH")) {
@@ -106,7 +106,7 @@ rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
         smBrightness = SM_BRIGHNESS_LOW;
     }
     else {
-        Log.error("mastDecoder::onConfig: smBrighness is non of HIGH, NORMAL or LOW - using NORMAL..." CR);
+        Log.ERROR("mastDecoder::onConfig: smBrighness is non of HIGH, NORMAL or LOW - using NORMAL..." CR);
         smBrightness = SM_BRIGHNESS_NORMAL;
     }
     return RC_OK;
@@ -124,7 +124,7 @@ rc_t lgSignalMast::start(void) {
         lgLinkHandle->getFlashObj(SM_FLASH_SLOW)->subscribe(&onFlashHelper, this);
     }
     else {
-        Log.error("mastDecoder::start: smFlashFreq is non of FAST, NORMAL or SLOW - using NORMAL..." CR);
+        Log.ERROR("mastDecoder::start: smFlashFreq is non of FAST, NORMAL or SLOW - using NORMAL..." CR);
         lgLinkHandle->getFlashObj(SM_FLASH_NORMAL)->subscribe(&onFlashHelper, this);
     }
     char subscribeTopic[300];
@@ -184,16 +184,16 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
     if (lgBaseObjHandle->systemState::getOpState()) {
         xSemaphoreGive(lgSignalMastLock);
         xSemaphoreGive(lgSignalMastReentranceLock);
-        Log.error("mastDecoder::onAspectChange: A new aspect received, but mast decoder opState is not OP_WORKING - continuing..." CR);
+        Log.ERROR("mastDecoder::onAspectChange: A new aspect received, but mast decoder opState is not OP_WORKING - continuing..." CR);
         return;
     }
     xSemaphoreGive(lgSignalMastLock);
     if (parseXmlAppearance(p_payload, aspect)) {
         xSemaphoreGive(lgSignalMastReentranceLock);
-        Log.error("mastDecoder::onAspectChange: Failed to parse appearance - continuing..." CR);
+        Log.ERROR("mastDecoder::onAspectChange: Failed to parse appearance - continuing..." CR);
         return;
     }
-    Log.verbose("mastDecoder::onAspectChange: A new aspect: %s received for signal mast %s" CR, aspect, lgSysName);
+    Log.VERBOSE("mastDecoder::onAspectChange: A new aspect: %s received for signal mast %s" CR, aspect, lgSysName);
     lgLinkHandle->getSignalMastAspectObj()->getAppearance(xmlConfig[SM_TYPE], aspect, &appearance);
     for (uint8_t i = 0; i < lgNoOfLed; i++) {
         appearanceDimBuff[i] = smDimTime;
@@ -216,7 +216,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
             }
             break;
         default:
-            Log.error("mastDecoder::onAspectChange: The appearance is none of LIT, UNLIT, FLASH or UNUSED - setting mast to SM_BRIGHNESS_FAIL and continuing..." CR);
+            Log.ERROR("mastDecoder::onAspectChange: The appearance is none of LIT, UNLIT, FLASH or UNUSED - setting mast to SM_BRIGHNESS_FAIL and continuing..." CR);
             appearanceWriteBuff[i] = SM_BRIGHNESS_FAIL; //HERE WE SHOULD SET THE HOLE MAST TO FAIL ASPECT
         }
     }
@@ -228,7 +228,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
 rc_t lgSignalMast::parseXmlAppearance(const char* p_aspectXml, char* p_aspect) {
     tinyxml2::XMLDocument aspectXmlDocument;
     if (aspectXmlDocument.Parse(p_aspectXml) || aspectXmlDocument.FirstChildElement("p_showing") == NULL || aspectXmlDocument.FirstChildElement("Aspect")->GetText() == NULL) {
-        Log.error("mastDecoder::parseXmlAppearance: Failed to parse the new aspect - continuing..." CR);
+        Log.ERROR("mastDecoder::parseXmlAppearance: Failed to parse the new aspect - continuing..." CR);
         return RC_PARSE_ERR;
     }
     strcpy(p_aspect, aspectXmlDocument.FirstChildElement("Aspect")->GetText());

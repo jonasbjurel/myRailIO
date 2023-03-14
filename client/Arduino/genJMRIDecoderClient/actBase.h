@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -126,12 +126,12 @@ public:
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	/* CLI decoration methods */
-	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 	//Public data structures
 	sat* satHandle;
@@ -150,6 +150,7 @@ private:
 	satelite* satLibHandle;
 	void* extentionActClassObj;
 	SemaphoreHandle_t actLock;
+	static uint16_t actIndex;
 };
 
 #endif /*ACTBASE_H*/

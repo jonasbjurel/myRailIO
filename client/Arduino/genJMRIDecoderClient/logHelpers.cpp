@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,10 +43,14 @@ uint8_t transformLogLevelXmlStr2Int(const char* p_loglevelXmlTxt) {
         return GJMRI_DEBUG_TERSE;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-INFO"))
         return GJMRI_DEBUG_INFO;
+    else if (!strcmp(p_loglevelXmlTxt, "DEBUG-WARN"))
+        return GJMRI_DEBUG_WARN;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-ERROR"))
         return GJMRI_DEBUG_ERROR;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-PANIC"))
         return GJMRI_DEBUG_PANIC;
+    else if (!strcmp(p_loglevelXmlTxt, "DEBUG-SILENT"))
+        return GJMRI_DEBUG_SILENT;
     else
         return RC_GEN_ERR;
 }
@@ -58,10 +62,14 @@ const char* transformLogLevelInt2XmlStr(uint8_t p_loglevelInt) {
         return "DEBUG-TERSE";
     else if (p_loglevelInt == GJMRI_DEBUG_INFO)
         return "DEBUG-INFO";
+    else if (p_loglevelInt == GJMRI_DEBUG_WARN)
+        return "DEBUG-WARN";
     else if (p_loglevelInt == GJMRI_DEBUG_ERROR)
         return "DEBUG-ERROR";
     else if (p_loglevelInt ==  GJMRI_DEBUG_PANIC)
         return "DEBUG-PANIC";
+    else if (p_loglevelInt == GJMRI_DEBUG_SILENT)
+        return "DEBUG-SILENT";
     else
         return NULL;
 }

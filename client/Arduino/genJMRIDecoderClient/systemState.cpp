@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,33 +35,33 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 systemState::systemState(const void* p_parent) {
-    Log.info("systemState::systemState: Creating systemState object to parent object %d", p_parent);
+    Log.INFO("systemState::systemState: Creating systemState object to parent object %d" CR, p_parent);
     parent = p_parent;
     opState = 0;
     childList = new QList<void*>;
 }
 
 systemState::~systemState(void) {
-    Log.info("systemState::~systemState: Deleting systemState object for object %d", parent);
+    Log.INFO("systemState::~systemState: Deleting systemState object for object %d" CR, parent);
     if (childList->size() > 0)
-        Log.warning("systemState::~systemState: SystemState object for object %d still hav registered childs, the reference to those will be deleted", parent);
+        Log.WARN("systemState::~systemState: SystemState object for object %d still hav registered childs, the reference to those will be deleted" CR, parent);
     childList->clear();
     delete childList;
 }
 
 void systemState::regSysStateCb(void* p_miscCbData, const sysStateCb_t p_cb) {
-    Log.info("systemState::regSysStateCb: Registering systemState callback %d to parent object %d", p_cb, parent);
+    Log.INFO("systemState::regSysStateCb: Registering systemState callback %d to parent object %d" CR, p_cb, parent);
     cb = p_cb;
     miscCbData = p_miscCbData;
 }
 
 void systemState::addSysStateChild(void* p_child) {
     if (childList->indexOf(p_child) >= 0) {
-        Log.warning("systemState::addChild: Child object %d already exists for object %d - doing nothing", p_child, parent);
+        Log.WARN("systemState::addChild: Child object %d already exists for object %d - doing nothing" CR, p_child, parent);
         return;
     }
     else {
-        Log.info("systemState::addChild: adding child object %d to parent object %d", p_child, parent);
+        Log.INFO("systemState::addChild: adding child object %d to parent object %d" CR, p_child, parent);
         childList->push_back(p_child);
     }
 }
@@ -70,10 +70,10 @@ void systemState::delSysStateChild(void* p_child) {
     int i;
     i = childList->indexOf(p_child);
     if (i < 0) {
-        Log.warning("systemState::delChild: Child does not exist - doing nothing");
+        Log.WARN("systemState::delChild: Child does not exist - doing nothing" CR);
     }
     else {
-        Log.info("systemState::delChild: deleting child object %d to parent object %d", p_child, parent);
+        Log.INFO("systemState::delChild: deleting child object %d to parent object %d" CR, p_child, parent);
         childList->clear(i);
     }
 }
@@ -82,7 +82,7 @@ void systemState::setOpState(const uint16_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState | p_opStateMap;
     if (opState != prevOpState) {
-        Log.info("systemState::opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b", prevOpState, opState, parent);
+        Log.INFO("systemState::opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, prevOpState, opState, parent);
         updateObjOpStates();
     }
 }
@@ -91,7 +91,7 @@ void systemState::unSetOpState(const uint16_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState & ~p_opStateMap;
     if (opState != prevOpState) {
-        Log.info("systemState::unSetOpState: opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b", prevOpState, opState, parent);
+        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, prevOpState, opState, parent);
         updateObjOpStates();
     }
 }
@@ -101,6 +101,7 @@ uint16_t systemState::getOpState(void) {
 }
 
 rc_t systemState::getOpStateStr(char* p_opStateStr) {
+    strcpy(p_opStateStr, "");
     if (opState & OP_INIT)
         strcat(p_opStateStr, "INIT|");
     if (opState & OP_DISCONNECTED)
@@ -118,15 +119,17 @@ rc_t systemState::getOpStateStr(char* p_opStateStr) {
     if (opState & OP_UNUSED)
         strcat(p_opStateStr, "UNUSED|");
     if (strlen(p_opStateStr))
-        p_opStateStr[strlen(p_opStateStr) - 1] = ' ';
+        p_opStateStr[strlen(p_opStateStr) - 1] = '\0';
     else
+        strcpy(p_opStateStr, "WORKING");
+    if (!strlen(p_opStateStr))
         strcpy(p_opStateStr, "WORKING");
     return RC_OK;
 }
 
 void systemState::updateObjOpStates(void) {
     if (cb == NULL) {
-        Log.info("systemState::updateObjOpStates: opState has changed for object %d, but no registered call-back to inform - doing nothing", parent);
+        Log.INFO("systemState::updateObjOpStates: opState has changed for object %d, but no registered call-back to inform - doing nothing" CR, parent);
     }
     else
         cb(miscCbData, opState);

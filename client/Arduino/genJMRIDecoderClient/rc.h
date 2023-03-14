@@ -1,7 +1,7 @@
-/*==============================================================================================================================================*/
+ /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,8 +21,21 @@
 #ifndef RC_H
 #define RC_H
 
+/*==============================================================================================================================================*/
+/* Include files                                                                                                                                */
+/*==============================================================================================================================================*/
+#include <Arduino.h>
+#include <stdlib.h>
+#include <cstddef>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+/*==============================================================================================================================================*/
+/* END Include files                                                                                                                            */
+/*==============================================================================================================================================*/
+
 // Return Codes
-#define rc_t						int8_t
+typedef int8_t rc_t;
 #define RC_OK						0														// Do not change, 0 should always be success
 #define RC_GEN_ERR					-127													// Do not change, 255 should always be unspecified error 
 #define RC_OUT_OF_MEM_ERR			-1														// No more memory
@@ -33,7 +46,9 @@
 #define RC_NOT_CONFIGURED_ERR		-6														// Not configured
 #define RC_DISCOVERY_ERR			-7														// Discovery failed
 #define RC_ALREADYEXISTS_ERR		-8														// Object already exists
-#define RC_PARAMETERVALUE_ERR		-9														// Parameter value error
-
+#define RC_ALREADYRUNNING_ERR		-9														// Object already running
+#define RC_NOTRUNNING_ERR			-10														// Object not running
+#define RC_PARAMETERVALUE_ERR		-11														// Parameter value error
+#define RC_MAX_REACHED_ERR			-12														// Maximum number of objects reached
 #define RC_NOTIMPLEMENTED_ERR		-126													// Called method not implemented
 #endif /*RC_H*/

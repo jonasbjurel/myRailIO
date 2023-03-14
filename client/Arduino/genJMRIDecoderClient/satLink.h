@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -115,24 +115,24 @@ public:
 	//uint32_t lgLink::getMeanRuntime(void) {}
 	//uint32_t lgLink::getMaxRuntime(void) {}
 	//void lgLink::clearMaxRuntime(void) {}
-	static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetRxOverrrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearRxOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetRxOverrrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearRxOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 	//Public data structures
 
@@ -156,9 +156,9 @@ private:
 	uint32_t rxSymbolErr;
 	uint32_t rxDataSizeErr;
 	uint32_t wdErr;
+	static uint16_t satLinkIndex;
 };
 /*==============================================================================================================================================*/
 /* END Class satLink                                                                                                                            */
 /*==============================================================================================================================================*/
-
 #endif /*SATLINK_H*/

@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ void senseDigital::onSensChange(bool p_filteredSensorVal) {
     if (!sysState) {
         const char* publishTopic[2] = { MQTT_SENS_TOPIC, sensSysName };
         if (mqtt::sendMsg(concatStr(publishTopic, 2), ("%s", filteredSenseVal ? MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD), false))
-            Log.error("senseDigital::onSensChange: Failed to send sensor value" CR);
+            Log.ERROR("senseDigital::onSensChange: Failed to send sensor value" CR);
     }
 }
 

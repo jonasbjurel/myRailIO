@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,8 +35,12 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(this), globalCli(SAT_MO_NAME) {
+
+uint16_t sat::satIndex = 0;
+
+sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(this), globalCli(SAT_MO_NAME, SAT_MO_NAME, satIndex) {
     Log.notice("sat::sat: Creating Satelite adress %d" CR, p_satAddr);
+    satIndex++;
     linkHandle = p_linkHandle;
     satAddr = p_satAddr;
     regSysStateCb((void*)this, &onSysStateChangeHelper);
@@ -47,24 +51,24 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(this), globalCl
     }
     /* CLI decoration methods */
     // get/set address
-    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, this, onCliGetAddrHelper);
+    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, onCliGetAddrHelper);
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, SAT_GET_SATADDR_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, this, onCliSetAddrHelper);
+    regCmdMoArg(SET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, onCliSetAddrHelper);
     regCmdHelp(SET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, SAT_SET_SATADDR_HELP_TXT);
     // get/clear rxcrcerr
-    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATRXCRCERR_SUB_MO_NAME, this, onCliGetRxCrcErrsHelper);
+    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATRXCRCERR_SUB_MO_NAME, onCliGetRxCrcErrsHelper);
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATRXCRCERR_SUB_MO_NAME, SAT_GET_SATRXCRCERR_HELP_TXT);
-    regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATRXCRCERR_SUB_MO_NAME, this, onCliClearRxCrcErrsHelper);
+    regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATRXCRCERR_SUB_MO_NAME, onCliClearRxCrcErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SAT_MO_NAME, SATRXCRCERR_SUB_MO_NAME, SAT_CLEAR_SATRXCRCERR_HELP_TXT);
     // get/clear txcrcerr
-    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATTXCRCERR_SUB_MO_NAME, this, onCliGetTxCrcErrsHelper);
+    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATTXCRCERR_SUB_MO_NAME, onCliGetTxCrcErrsHelper);
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATTXCRCERR_SUB_MO_NAME, SAT_GET_SATTXCRCERR_HELP_TXT);
-    regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATTXCRCERR_SUB_MO_NAME, this, onCliClearTxCrcErrsHelper);
+    regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATTXCRCERR_SUB_MO_NAME, onCliClearTxCrcErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SAT_MO_NAME, SATTXCRCERR_SUB_MO_NAME, SAT_CLEAR_SATTXCRCERR_HELP_TXT);
     // get/clear wderr
-    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, this, onCliGetWdErrsHelper);
+    regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, onCliGetWdErrsHelper);
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, SAT_GET_SATWDERR_HELP_TXT);
-    regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, this, onCliClearWdErrsHelper);
+    regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, onCliClearWdErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, SAT_CLEAR_SATWDERR_HELP_TXT);
 }
 
@@ -249,7 +253,7 @@ void sat::onPmPoll(void) {
     if (mqtt::sendMsg(concatStr(pmPublishTopic, 4), 
                                 pmPublishPayload,
                                 false))
-        Log.error("sat::onPmPoll: Failed to send PM report" CR);
+        Log.ERROR("sat::onPmPoll: Failed to send PM report" CR);
 }
 
 void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
@@ -298,7 +302,7 @@ void sat::onOpStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("sat::onOpStateChange: satelite address %d on satlink %d got unavailable message from server" CR, satAddr, link);
     }
     else
-        Log.error("sat::onOpStateChange: satelite address %d on satlink %d got an invalid availability message from server - doing nothing" CR, satAddr, link);
+        Log.ERROR("sat::onOpStateChange: satelite address %d on satlink %d got an invalid availability message from server - doing nothing" CR, satAddr, link);
 }
 
 void sat::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkHandle) {
@@ -317,7 +321,7 @@ void sat::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("sat::onAdmStateChange: satelite address %d on satlink %d got off-line message from server" CR, satAddr, link);
     }
     else
-        Log.error("sat::onAdmStateChange: satelite address %d on satlink %d got an invalid admstate message from server - doing nothing" CR, satAddr, link);
+        Log.ERROR("sat::onAdmStateChange: satelite address %d on satlink %d got an invalid admstate message from server - doing nothing" CR, satAddr, link);
 }
 
 rc_t sat::getOpStateStr(char* p_opStateStr) {
@@ -325,13 +329,13 @@ rc_t sat::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t sat::setSystemName(const char* p_systemName, bool p_force) {
-    Log.error("sat::setSystemName: cannot set System name - not suppoted" CR);
+    Log.ERROR("sat::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* sat::getSystemName(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("sat::getSystemName: cannot get System name as satelite is not configured" CR);
+        Log.ERROR("sat::getSystemName: cannot get System name as satelite is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_SAT_SYSNAME];
@@ -339,11 +343,11 @@ const char* sat::getSystemName(void) {
 
 rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("sat::setUsrName: cannot set User name as debug is inactive" CR);
+        Log.ERROR("sat::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("sat::setUsrName: cannot set System name as satelite is not configured" CR);
+        Log.ERROR("sat::setUsrName: cannot set System name as satelite is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -356,7 +360,7 @@ rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
 
 const char* sat::getUsrName(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("sat::getUsrName: cannot get User name as satelite is not configured" CR);
+        Log.ERROR("sat::getUsrName: cannot get User name as satelite is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_SAT_USRNAME];
@@ -364,11 +368,11 @@ const char* sat::getUsrName(void) {
 
 rc_t sat::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("sat::setDesc: cannot set Description as debug is inactive" CR);
+        Log.ERROR("sat::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("sat::setDesc: cannot set Description as satelite is not configured" CR);
+        Log.ERROR("sat::setDesc: cannot set Description as satelite is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -381,20 +385,20 @@ rc_t sat::setDesc(const char* p_description, bool p_force) {
 
 const char* sat::getDesc(void) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("sat::getDesc: cannot get Description as satelite is not configured" CR);
+        Log.ERROR("sat::getDesc: cannot get Description as satelite is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_SAT_DESC];
 }
 
 rc_t sat::setAddr(uint8_t p_addr) {
-    Log.error("sat::setAddr: cannot set Address - not supported" CR);
+    Log.ERROR("sat::setAddr: cannot set Address - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t sat::getAddr(uint8_t* p_addr) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("satLink::getLink: cannot get Link No as satLink is not configured" CR);
+        Log.ERROR("satLink::getLink: cannot get Link No as satLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     *p_addr = atoi(xmlconfig[XML_SAT_ADDR]);
@@ -434,7 +438,7 @@ void sat::clearWdErrs(void) {
 }
 
 /* CLI decoration methods */
-void sat::onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext){
+void sat::onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -442,7 +446,7 @@ void sat::onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext){
     }
     rc_t rc;
     uint8_t addr;
-    if (rc = reinterpret_cast<sat*>(p_cliContext)->getAddr(&addr)) {
+    if (rc = static_cast<sat*>(p_cliContext)->getAddr(&addr)) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Satelit address, return code: %i", rc);
         return;
     }
@@ -450,78 +454,78 @@ void sat::onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext){
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void sat::onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<sat*>(p_cliContext)->setAddr(atoi(cmd.getArgument(1).getValue().c_str()))) {
+    if (rc = static_cast<sat*>(p_cliContext)->setAddr(atoi(cmd.getArgument(1).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address, return code: %i", rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void sat::onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite RX CRC errors: %i", reinterpret_cast<sat*>(p_cliContext)->getRxCrcErrs());
+    printCli("Satelite RX CRC errors: %i", static_cast<sat*>(p_cliContext)->getRxCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void sat::onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    reinterpret_cast<sat*>(p_cliContext)->clearRxCrcErrs();
+    static_cast<sat*>(p_cliContext)->clearRxCrcErrs();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void sat::onCliGetTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliGetTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite TX CRC errors: %i", reinterpret_cast<sat*>(p_cliContext)->getTxCrcErrs());
+    printCli("Satelite TX CRC errors: %i", static_cast<sat*>(p_cliContext)->getTxCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void sat::onCliClearTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliClearTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    reinterpret_cast<sat*>(p_cliContext)->clearTxCrcErrs();
+    static_cast<sat*>(p_cliContext)->clearTxCrcErrs();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void sat::onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite watchdog errors: %i", reinterpret_cast<sat*>(p_cliContext)->getWdErrs());
+    printCli("Satelite watchdog errors: %i", static_cast<sat*>(p_cliContext)->getWdErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void sat::onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void sat::onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    reinterpret_cast<sat*>(p_cliContext)->clearWdErrs();
+    static_cast<sat*>(p_cliContext)->clearWdErrs();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 

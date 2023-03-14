@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,50 +36,54 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-TaskHandle_t* mqtt::supervisionTaskHandle;
-systemState* mqtt::sysState;
-sysStateCb_t mqtt::systemStateCb;
-void* mqtt::systemStateCbArgs;
-SemaphoreHandle_t mqtt::mqttLock;
+TaskHandle_t* mqtt::supervisionTaskHandle = NULL;
+systemState* mqtt::sysState = NULL;
+sysStateCb_t mqtt::systemStateCb = NULL;
+void* mqtt::systemStateCbArgs = NULL;
+SemaphoreHandle_t mqtt::mqttLock = NULL;
 WiFiClient mqtt::espClient;
 PubSubClient mqtt::mqttClient;
-uint32_t mqtt::overRuns;
-uint32_t mqtt::maxLatency;
-uint16_t mqtt::avgSamples;
-uint32_t* mqtt::latencyVect;
-char* mqtt::decoderUri;
-char* mqtt::brokerUri;
-uint16_t mqtt::brokerPort;
-char* mqtt::brokerUser;
-char* mqtt::brokerPass;
-char* mqtt::clientId;
-uint8_t mqtt::defaultQoS;
-uint8_t mqtt::keepAlive;
-TaskHandle_t* mqtt::mqttPingHandle;
-bool mqtt::opStateTopicSet;
-char* mqtt::opStateTopic;
-char* mqtt::upPayload;
-char* mqtt::downPayload;
-char* mqtt::mqttPingUpstreamTopic;
-uint8_t mqtt::missedPings;
+uint32_t mqtt::overRuns = 0;
+uint32_t mqtt::maxLatency = 0;
+uint16_t mqtt::avgSamples = 0;
+uint32_t* mqtt::latencyVect = NULL;
+char* mqtt::decoderUri = NULL;
+char* mqtt::brokerUri = NULL;
+uint16_t mqtt::brokerPort = 0;
+char* mqtt::brokerUser = NULL;
+char* mqtt::brokerPass = NULL;
+char* mqtt::clientId = NULL;
+uint8_t mqtt::defaultQoS = 0;
+uint8_t mqtt::keepAlive = 0;
+TaskHandle_t mqtt::mqttPingHandle = NULL;
+bool mqtt::opStateTopicSet = false;
+char* mqtt::opStateTopic = NULL;
+char* mqtt::upPayload = NULL;
+char* mqtt::downPayload = NULL;
+char* mqtt::mqttPingUpstreamTopic = NULL;
+uint8_t mqtt::missedPings = 0;
 int mqtt::mqttStatus;
-uint8_t mqtt::qos;
-bool mqtt::defaultRetain;
-float mqtt::pingPeriod;
-bool mqtt::discovered;
+uint8_t mqtt::qos = 0;
+bool mqtt::defaultRetain = false;
+float mqtt::pingPeriod = 0 ;
+bool mqtt::discovered = false;
 QList<mqttTopic_t*> mqtt::mqttTopics;
-mqttStatusCallback_t mqtt::statusCallback;
-void* mqtt::statusCallbackArgs;
-wdt* mqtt::mqttWdt;
+mqttStatusCallback_t mqtt::statusCallback = NULL;
+void* mqtt::statusCallbackArgs = NULL;
+wdt* mqtt::mqttWdt = NULL;
 
 // Public methods
-rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
-    Log.notice("mqtt::mqtt: Creating, initializing and starting MQTT client" CR);
+void mqtt::create(void) {
+    Log.notice("mqtt::create: Creating MQTT client" CR);
     sysState = new systemState((const void*)NULL);
     sysState->regSysStateCb(NULL, &onOpStateChange);
     sysState->setOpState(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNAVAILABLE);
-    mqttWdt = new wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     mqttLock = xSemaphoreCreateMutex();
+}
+
+rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
+    Log.notice("mqtt::init: Initializing and starting MQTT client" CR);
+    mqttWdt = new wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     missedPings = 0;
     opStateTopicSet = false;
     discovered = false;
@@ -191,7 +195,7 @@ void mqtt::disConnect(void) {
 
 rc_t mqtt::up(void) {
     if (sysState->getOpState() & OP_DISCONNECTED) {
-        Log.warning("mqtt::up, could not declare MQTT up as opState is OP_DISCONNECTED");
+        Log.WARN("mqtt::up, could not declare MQTT up as opState is OP_DISCONNECTED");
         return RC_GEN_ERR;
     }
     Log.notice("mqtt::up: Starting MQTT ping supervision" CR);
@@ -210,16 +214,19 @@ rc_t mqtt::up(void) {
         CPU_MQTT_PING_STACKSIZE_1K * 1024,  // Stack size
         NULL,                               // Parameter passing
         CPU_MQTT_PING_PRIO,                 // Priority 0-24, higher is more
-        mqttPingHandle,                     // Task handle
+        &mqttPingHandle,                    // Task handle
         CPU_MQTT_PING_CORE);                // Core [CORE_0 | CORE_1]
     return RC_OK;
 }
 
 void mqtt::down(void) {
-    Log.notice("mqtt::down, declaring down Mqtt client" CR);
+    Log.notice("mqtt::down, declaring Mqtt client down" CR);
     sysState->setOpState(OP_DISABLED);
+    if (mqttPingHandle){
+        sendMsg(opStateTopic, downPayload, true);
     vTaskDelete(mqttPingHandle);
-    sendMsg(opStateTopic, downPayload, true);
+    mqttPingHandle = NULL;
+    }
 }
 
 void mqtt::wdtKicked(void* p_dummy) {
@@ -262,7 +269,7 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
     else {
         for (j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
             if (mqttTopics.at(i)->topicList->at(j)->mqttSubCallback == p_callback) {
-                Log.warning("mqtt::subscribeTopic: MQTT-subscribeTopic: subscribeTopic was called, but the callback 0x%x for Topic %s already exists - doing nothing" CR, (int)p_callback, topic);
+                Log.WARN("mqtt::subscribeTopic: MQTT-subscribeTopic: subscribeTopic was called, but the callback 0x%x for Topic %s already exists - doing nothing" CR, (int)p_callback, topic);
                 return RC_OK;
             }
         }
@@ -280,7 +287,6 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
     bool cbFound = false;
     char* topic = createNcpystr(p_topic);
     Log.notice("MQTT-Unsubscribe, Un-subscribing to topic %s" CR, topic);
-    xSemaphoreTake(mqttLock, portMAX_DELAY);
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, topic)) {
             topicFound = true;
@@ -294,7 +300,7 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
                         delete mqttTopics.at(i)->topic;
                         mqttTopics.clear(i);
                         if (!mqttClient.unsubscribe(topic)) {
-                            Log.error("mqtt::unSubscribeTopic: could not unsubscribe Topic: %s from broker" CR, topic);
+                            Log.ERROR("mqtt::unSubscribeTopic: could not unsubscribe Topic: %s from broker" CR, topic);
                             delete topic;
                             return RC_GEN_ERR;
                         }
@@ -307,12 +313,12 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
         }
     }
     if (!topicFound) {
-        Log.error("mqtt::unSubscribeTopic: Topic %s not found" CR, topic);
+        Log.ERROR("mqtt::unSubscribeTopic: Topic %s not found" CR, topic);
         delete topic;
         return RC_GEN_ERR;
     }
     if (!cbFound) {
-        Log.error("MQTT-Unsubscribe, callback not found while unsubscribing topic %s" CR, topic);
+        Log.ERROR("MQTT-Unsubscribe, callback not found while unsubscribing topic %s" CR, topic);
         return 1;
     }
     delete topic;
@@ -321,11 +327,11 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
 
 rc_t mqtt::sendMsg(const char* p_topic, const char* p_payload, bool p_retain) {
     if (!mqttClient.publish(p_topic, p_payload, p_retain)) {
-        Log.error("mqtt::sendMsg: could not send message, topic: %s, payload: %s" CR, p_topic, p_payload);
+        Log.ERROR("mqtt::sendMsg: could not send message, topic: %s, payload: %s" CR, p_topic, p_payload);
         return RC_GEN_ERR;
     }
     else {
-        Log.verbose("mqtt::sendMsg: sent a message, topic: %s, payload: %s" CR, p_topic, p_payload);
+        Log.VERBOSE("mqtt::sendMsg: sent a message, topic: %s, payload: %s" CR, p_topic, p_payload);
     }
     return RC_OK;
 }
@@ -334,7 +340,8 @@ rc_t mqtt::setDecoderUri(const char* p_decoderUri) {
     if (decoderUri)
         delete decoderUri;
     decoderUri = createNcpystr(p_decoderUri);
-    reConnect();
+    if(!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -342,11 +349,13 @@ const char* mqtt::getDecoderUri(void) {
     return decoderUri;
 }
 
-rc_t mqtt::setBrokerUri(const char* p_brokerUri) {
+rc_t mqtt::setBrokerUri(const char* p_brokerUri, bool p_persist) {
     if (brokerUri)
         delete brokerUri;
     brokerUri = createNcpystr(p_brokerUri);
-    reConnect();
+    networking::setMqttUri(p_brokerUri, p_persist);
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -354,9 +363,13 @@ const char* mqtt::getBrokerUri(void) {
     return brokerUri;
 }
 
-rc_t mqtt::setBrokerPort(uint16_t p_brokerPort) {
+rc_t mqtt::setBrokerPort(uint16_t p_brokerPort, bool p_persist) {
+    if (p_brokerPort < 1 || p_brokerPort > 65535)
+        return RC_PARAMETERVALUE_ERR;
     brokerPort = p_brokerPort;
-    reConnect();
+    networking::setMqttPort(p_brokerPort, p_persist);
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -368,7 +381,8 @@ rc_t mqtt::setBrokerUser(const char* p_brokerUser) {
     if (brokerUser)
         delete brokerUser;
     brokerUser = createNcpystr(p_brokerUser);
-    reConnect();
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -380,7 +394,8 @@ rc_t mqtt::setBrokerPass(const char* p_brokerPass) {
     if (brokerPass)
         delete brokerPass;
     brokerPass = createNcpystr(p_brokerPass);
-    reConnect();
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -392,7 +407,8 @@ rc_t mqtt::setClientId(const char* p_clientId) {
     if (clientId)
         delete clientId;
     clientId = createNcpystr(p_clientId);
-    reConnect();
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -400,19 +416,25 @@ const char* mqtt::getClientId(void) {
     return clientId;
 }
 
-rc_t mqtt::setDefaultQoS(bool p_defaultQoS) {
+rc_t mqtt::setDefaultQoS(uint8_t p_defaultQoS) {
+    if (p_defaultQoS < 0 || p_defaultQoS > 2)
+        return RC_PARAMETERVALUE_ERR;
     defaultQoS = p_defaultQoS;
-    reConnect();
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
-bool mqtt::getDefaultQoS(void) {
+uint8_t mqtt::getDefaultQoS(void) {
     return defaultQoS;
 }
 
 rc_t mqtt::setKeepAlive(float p_keepAlive) {
+    if (p_keepAlive < 0 || p_keepAlive > 600)
+        return RC_PARAMETERVALUE_ERR;
     keepAlive = p_keepAlive;
-    reConnect();
+    if (!(sysState->getOpState() & OP_INIT))
+        reConnect();
     return RC_OK;
 }
 
@@ -421,9 +443,13 @@ float mqtt::getKeepAlive(void) {
 }
 
 rc_t mqtt::setPingPeriod(float p_pingPeriod) {
+    if (p_pingPeriod < 0 || p_pingPeriod > 600)
+        return RC_PARAMETERVALUE_ERR;
     pingPeriod = p_pingPeriod;
-    down();
-    up();
+    if (!(sysState->getOpState() & OP_INIT)){
+        down();
+        up();
+    }
     return RC_OK;
 }
 
@@ -433,6 +459,10 @@ float mqtt::getPingPeriod(void) {
 
 uint16_t mqtt::getOpState(void) {
     return sysState->getOpState();
+}
+
+rc_t mqtt::getOpStateStr(char* p_opState) {
+    return sysState->getOpStateStr(p_opState);
 }
 
 // Private methods
@@ -493,19 +523,17 @@ void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_
     char* payload = new char[p_length + 1];
     memcpy(payload, p_payload, p_length);
     payload[p_length] = '\0';
-    Log.verbose("mqtt::onMqttMsg, Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, payload, p_length);
-    xSemaphoreTake(mqttLock, portMAX_DELAY);
+    Log.VERBOSE("mqtt::onMqttMsg, Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, payload, p_length);
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, p_topic)) {
             for (int j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
                 subFound = true;
                 mqttTopics.at(i)->topicList->at(j)->mqttSubCallback(p_topic, payload, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs);
-                xSemaphoreTake(mqttLock, portMAX_DELAY);
             }
         }
     }
     if (!subFound) {
-        Log.error("mqtt::onMqttMsg, could not find any subscription for received message topic: %s" CR, p_topic);
+        Log.ERROR("mqtt::onMqttMsg, could not find any subscription for received message topic: %s" CR, p_topic);
         delete payload;
         return;
     }
@@ -522,10 +550,11 @@ void mqtt::clearOverRuns(void) {
 }
 
 uint32_t mqtt::getMeanLatency(void) {
+    if (avgSamples == 0)
+        return 0;
     uint32_t* tmpLatencyVect = new uint32_t[avgSamples]; //Wee need to fix all latencies to type int32_t, and all other performance metrics to int....
     uint32_t accLatency;
     uint32_t meanLatency;
-    xSemaphoreTake(mqttLock, portMAX_DELAY);
     memcpy(tmpLatencyVect, latencyVect, avgSamples);
     for (uint16_t latencyIndex = 0; latencyIndex < avgSamples; latencyIndex++) {
         accLatency += latencyVect[latencyIndex];
@@ -536,7 +565,6 @@ uint32_t mqtt::getMeanLatency(void) {
 }
 
 uint32_t mqtt::getMaxLatency(void) {
-    xSemaphoreTake(mqttLock, portMAX_DELAY);
     uint32_t tmpMaxLatency = maxLatency;
     return tmpMaxLatency;
 }
@@ -598,7 +626,7 @@ void mqtt::poll(void* dummy) {
             }
             Log.notice("mqtt::poll: Tried to connect");
             if (mqttStatus != stat) {
-                Log.error("mqtt::poll, MQTT connection not established or lost - opState set to OP_FAIL, cause: %d - retrying..." CR, stat); //This never times out but freezes
+                Log.ERROR("mqtt::poll, MQTT connection not established or lost - opState set to OP_FAIL, cause: %d - retrying..." CR, stat); //This never times out but freezes
             }
             retryCnt++;
             break;
@@ -629,7 +657,7 @@ void mqtt::poll(void* dummy) {
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
-            Log.verbose("mqtt::poll: MQTT Overrun" CR);
+            Log.VERBOSE("mqtt::poll: MQTT Overrun" CR);
             overRuns++;
             nextLoopTime = esp_timer_get_time();
         }
@@ -656,7 +684,7 @@ void mqtt::mqttPingTimer(void* dummy) {
 }
 
 void mqtt::onMqttPing(const char* p_topic, const char* p_payload, const void* p_dummy) { //Relying on the topic, not parsing the payload for performance
-    Log.verbose("mqtt::onMqttPing: Received a Ping response" CR);
+    Log.VERBOSE("mqtt::onMqttPing: Received a Ping response" CR);
     if (sysState->getOpState() & OP_UNAVAILABLE)
             sysState->unSetOpState(OP_UNAVAILABLE);
     missedPings = 0;

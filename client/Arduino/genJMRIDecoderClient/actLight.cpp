@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -125,11 +125,11 @@ void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
 void actLight::setActLight(void) {
     if (actLightPos) {
         if (satLibHandle->setSatActMode(SATMODE_HIGH, actPort))
-            Log.error("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
+            Log.ERROR("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
     }
     else {
         if (satLibHandle->setSatActMode(SATMODE_LOW, actPort))
-            Log.error("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
+            Log.ERROR("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
     }
     Log.notice("actLight::setActLight: Light actuator change order for %s fininished" CR, sysName);
 }

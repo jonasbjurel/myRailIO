@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,8 +33,10 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-lgLink::lgLink(uint8_t p_linkNo) : systemState(this), globalCli(LGLINK_MO_NAME) {
+uint16_t lgLink::lgLinkIndex = 0;
+lgLink::lgLink(uint8_t p_linkNo) : systemState(this), globalCli(LGLINK_MO_NAME, LGLINK_MO_NAME, lgLinkIndex) {
     Log.notice("lgLink::lgLink: Creating Lightgroup link channel %d" CR, p_linkNo);
+    lgLinkIndex++;
     linkNo = p_linkNo;
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNAVAILABLE);
@@ -49,31 +51,31 @@ lgLink::lgLink(uint8_t p_linkNo) : systemState(this), globalCli(LGLINK_MO_NAME) 
 
     /* CLI decoration methods */
     // get/set lgLinkNo
-    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, this, onCliGetLinkHelper);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, onCliGetLinkHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, LGLINKNO_GET_LGLINK_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, this, onCliSetLinkHelper);
+    regCmdMoArg(SET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, onCliSetLinkHelper);
     regCmdHelp(SET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, LGLINKNO_SET_LGLINK_HELP_TXT);
 
     // get/clear lgLink overrun stats
-    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, this, onCliGetLinkOverrunsHelper);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, onCliGetLinkOverrunsHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, LGLINKNO_GET_LGLINKOVERRUNS_HELP_TXT);
-    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, this, onCliClearLinkOverrunsHelper);
+    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, onCliClearLinkOverrunsHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKOVERRUNS_HELP_TXT);
 
     // get/clear lgLink latency stats
-    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, this, onCliGetMeanLatencyHelper);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, onCliGetMeanLatencyHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, LGLINKNO_GET_LGLINKMEANLATENCY_HELP_TXT);
-    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, this, onCliGetMaxLatencyHelper);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, onCliGetMaxLatencyHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, LGLINKNO_GET_LGLINKMAXLATENCY_HELP_TXT);
-    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, this, onCliClearMaxLatencyHelper);
+    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, onCliClearMaxLatencyHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXLATENCY_HELP_TXT);
 
     // get/clear lgLink runtime stats
-    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, this, onCliGetMeanRuntimeHelper);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, onCliGetMeanRuntimeHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMEANRUNTIME_HELP_TXT);
-    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, this, onCliGetMaxRuntimeHelper);
+    regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, onCliGetMaxRuntimeHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMAXRUNTIME_HELP_TXT);
-    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, this, onCliClearMaxRuntimeHelper);
+    regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, onCliClearMaxRuntimeHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXRUNTIME_HELP_TXT);
 }
 
@@ -238,7 +240,7 @@ void lgLink::onOpStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("lgLink::onOpStateChange: got unavailable message from server" CR);
     }
     else
-        Log.error("lgLink::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
+        Log.ERROR("lgLink::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
 }
 
 void lgLink::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject) {
@@ -255,7 +257,7 @@ void lgLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("lgLink::onAdmStateChange: got off-line message from server" CR);
     }
     else
-        Log.error("lgLink::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
+        Log.ERROR("lgLink::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
 }
 
 rc_t lgLink::getOpStateStr(char* p_opStateStr) {
@@ -263,13 +265,13 @@ rc_t lgLink::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t lgLink::setSystemName(char* p_systemName, bool p_force) {
-    Log.error("lgLink::setSystemName: cannot set System name - not suppoted" CR);
+    Log.ERROR("lgLink::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgLink::getSystemName(const char* p_systemName){
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgLink::getSystemName: cannot get System name as lgLink is not configured" CR);
+        Log.ERROR("lgLink::getSystemName: cannot get System name as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     p_systemName = xmlconfig[XML_LGLINK_SYSNAME];
@@ -278,11 +280,11 @@ rc_t lgLink::getSystemName(const char* p_systemName){
 
 rc_t lgLink::setUsrName(char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("lgLink::setUsrName: cannot set User name as debug is inactive" CR);
+        Log.ERROR("lgLink::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgLink::setUsrName: cannot set System name as lgLink is not configured" CR);
+        Log.ERROR("lgLink::setUsrName: cannot set System name as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -295,7 +297,7 @@ rc_t lgLink::setUsrName(char* p_usrName, bool p_force) {
 
 rc_t  lgLink::getUsrName(const char* p_userName){
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgLink::getUsrName: cannot get User name as lgLink is not configured" CR);
+        Log.ERROR("lgLink::getUsrName: cannot get User name as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     p_userName = xmlconfig[XML_LGLINK_USRNAME];
@@ -304,11 +306,11 @@ rc_t  lgLink::getUsrName(const char* p_userName){
 
 rc_t lgLink::setDesc(char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("lgLink::setDesc: cannot set Description as debug is inactive" CR);
+        Log.ERROR("lgLink::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgLink::setDesc: cannot set Description as lgLink is not configured" CR);
+        Log.ERROR("lgLink::setDesc: cannot set Description as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -321,7 +323,7 @@ rc_t lgLink::setDesc(char* p_description, bool p_force) {
 
 rc_t lgLink::getDesc(const char* p_desc){
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgLink::getDesc: cannot get Description as lgLink is not configured" CR);
+        Log.ERROR("lgLink::getDesc: cannot get Description as lgLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     p_desc = xmlconfig[XML_LGLINK_DESC];
@@ -329,13 +331,13 @@ rc_t lgLink::getDesc(const char* p_desc){
 }
 
 rc_t lgLink::setLink(uint8_t p_link) {
-    Log.error("lgLink::setLink: cannot set Link No - not supported" CR);
+    Log.ERROR("lgLink::setLink: cannot set Link No - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgLink::getLink(uint8_t* p_link) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("lgLink::getLink: cannot get Link No as lgLink is not configured" CR);
+        Log.ERROR("lgLink::getLink: cannot get Link No as lgLink is not configured" CR);
         return RC_GEN_ERR;
     }
     *p_link = atoi(xmlconfig[XML_LGLINK_LINK]);
@@ -391,7 +393,7 @@ void lgLink::updateStrip(void) {
     uint32_t maxAvgIndex = floor(UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS);
     uint32_t loopTime = STRIP_UPDATE_MS * 1000;
     lgLinkWdt = new wdt(STRIP_UPDATE_MS * 10 * 1000, "LG link watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
-    Log.verbose("gLink::updateStrip: Starting sriphandler channel %d" CR, linkNo);
+    Log.VERBOSE("gLink::updateStrip: Starting sriphandler channel %d" CR, linkNo);
     while (true) {
         lgLinkWdt->feed();
         xSemaphoreTake(lgLinkLock, portMAX_DELAY);
@@ -408,7 +410,7 @@ void lgLink::updateStrip(void) {
         }
         if (!strip->canShow()) {
             overRuns++;
-            Log.verbose("Couldnt update strip channel %d, continuing..." CR, linkNo);
+            Log.VERBOSE("Couldnt update strip channel %d, continuing..." CR, linkNo);
         }
         else {
             for (int i = 0; i < dirtyList.size(); i++) {
@@ -448,7 +450,7 @@ void lgLink::updateStrip(void) {
         vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
     }
     else {
-        Log.verbose("Strip channel %d overrun" CR, linkNo);
+        Log.VERBOSE("Strip channel %d overrun" CR, linkNo);
         overRuns++;
         xSemaphoreGive(lgLinkLock);
         nextLoopTime = esp_timer_get_time();
@@ -509,7 +511,7 @@ void lgLink::clearMaxRuntime(void) {
 
 flash* lgLink::getFlashObj(uint8_t p_flashType) {
     if (systemState::getOpState() == OP_INIT) {
-        Log.error("lgLink::getFlashObj: opState %d does not allow to provide flash objects - returning NULL - and continuing..." CR, systemState::getOpState());
+        Log.ERROR("lgLink::getFlashObj: opState %d does not allow to provide flash objects - returning NULL - and continuing..." CR, systemState::getOpState());
         return NULL;
     }
     switch (p_flashType) {
@@ -529,7 +531,7 @@ return signalMastAspectsObject;
 }
 
 /* CLI decoration methods */
-void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -537,7 +539,7 @@ void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
     }
     rc_t rc;
     uint8_t link;
-    if (rc = reinterpret_cast<lgLink*>(p_cliContext)->getLink(&link)) {
+    if (rc = static_cast<lgLink*>(p_cliContext)->getLink(&link)) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg link, return code: %i", rc);
         return;
     }
@@ -545,97 +547,97 @@ void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void lgLink::onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<lgLink*>(p_cliContext)->setLink(atoi(cmd.getArgument(1).getValue().c_str()))) {
+    if (rc = static_cast<lgLink*>(p_cliContext)->setLink(atoi(cmd.getArgument(1).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg link, return code: %i", rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void lgLink::onCliGetLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliGetLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Lightgroup-link overruns: %i", reinterpret_cast<lgLink*>(p_cliContext)->getOverRuns());
+    printCli("Lightgroup-link overruns: %i", static_cast<lgLink*>(p_cliContext)->getOverRuns());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void lgLink::onCliClearLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliClearLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    reinterpret_cast<lgLink*>(p_cliContext)->clearOverRuns();
+    static_cast<lgLink*>(p_cliContext)->clearOverRuns();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void lgLink::onCliGetMeanLatencyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliGetMeanLatencyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Lightgroup-link mean latency: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMeanLatency());
+    printCli("Lightgroup-link mean latency: %i", static_cast<lgLink*>(p_cliContext)->getMeanLatency());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void lgLink::onCliGetMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliGetMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Lightgroup-link max latency: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMaxLatency());
+    printCli("Lightgroup-link max latency: %i", static_cast<lgLink*>(p_cliContext)->getMaxLatency());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void lgLink::onCliClearMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliClearMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    reinterpret_cast<lgLink*>(p_cliContext)->clearMaxLatency();
+    static_cast<lgLink*>(p_cliContext)->clearMaxLatency();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void lgLink::onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Lightgroup-link mean run-time: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMeanRuntime());
+    printCli("Lightgroup-link mean run-time: %i", static_cast<lgLink*>(p_cliContext)->getMeanRuntime());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void lgLink::onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Lightgroup-link max run-time: %i", reinterpret_cast<lgLink*>(p_cliContext)->getMaxRuntime());
+    printCli("Lightgroup-link max run-time: %i", static_cast<lgLink*>(p_cliContext)->getMaxRuntime());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void lgLink::onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void lgLink::onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    reinterpret_cast<lgLink*>(p_cliContext)->clearMaxRuntime();
+    static_cast<lgLink*>(p_cliContext)->clearMaxRuntime();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 

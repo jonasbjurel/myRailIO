@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -183,35 +183,35 @@ void actMem::setActMem(void) {
     if (actMemType == ACTMEM_TYPE_SOLENOID) {
         if ((actMemPos) ^ actMemSolenoidPushPort) {
             if (satLibHandle->setSatActVal(actMemSolenoidActivationTime, actPort))
-                Log.error("actMem::setActMem: Failed to execute order for memory solenoid actuator %s" CR, sysName);
+                Log.ERROR("actMem::setActMem: Failed to execute order for memory solenoid actuator %s" CR, sysName);
             Log.notice("actMem::setActMem: Memory solenoid actuator change order for %s fininished" CR, sysName);
         }
     }
     else if (actMemType == ACTMEM_TYPE_SERVO) {
         uint8_t tmpServoPwmPos = SERVO_LEFT_PWM_VAL + (actMemPos * (SERVO_RIGHT_PWM_VAL - SERVO_LEFT_PWM_VAL) / 256);
         if (satLibHandle->setSatActVal(tmpServoPwmPos, actPort))
-            Log.error("actMem::setActMem: Failed to execute order for memory servo actuator %s" CR, sysName);
+            Log.ERROR("actMem::setActMem: Failed to execute order for memory servo actuator %s" CR, sysName);
         Log.notice("actMem::setActMem: Memory servo actuator change order for %s fininished" CR, sysName);
     }
     else if (actMemType == ACTMEM_TYPE_PWM100) {
         if (satLibHandle->setSatActVal(actMemPos, actPort))
-            Log.error("actMem::setActMem: Failed to execute order for memory PWM 100 Hz actuator %s" CR, sysName);
+            Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 100 Hz actuator %s" CR, sysName);
 
         Log.notice("actMem::setActMem: Memory 100 Hz PWM actuator change order for %s fininished" CR, sysName);
     }
     else if (actMemType == ACTMEM_TYPE_PWM125K) {
         if (satLibHandle->setSatActVal(actMemPos, actPort))
-            Log.error("actMem::setActMem: Failed to execute order for memory PWM 125 KHz actuator %s" CR, sysName);
+            Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 125 KHz actuator %s" CR, sysName);
         Log.notice("actMem::setActMem: Memory 125 KHz PWM actuator change order for %s fininished" CR, sysName);
     }
     else if (actMemType == ACTMEM_TYPE_ONOFF) {
         if (actMemPos) {
             if (satLibHandle->setSatActMode(SATMODE_HIGH, actPort))
-                Log.error("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
+                Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
         }
         else {
             if (satLibHandle->setSatActMode(SATMODE_LOW, actPort))
-                Log.error("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
+                Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
         }
         Log.notice("actMem::setActMem: Memory ON/OFF actuator change order for %s fininished" CR, sysName);
     }

@@ -1,7 +1,7 @@
 /*============================================================================================================================================= */
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,9 +31,10 @@
 #include <stdio.h>
 #include<ctype.h>
 #include <string.h>
-#include <cstddef> //FIX
+#include <cstddef>
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
+#include "logHelpers.h"
 
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -49,6 +50,8 @@
 char* createNcpystr(const char* src);
 char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings);
 bool isUri(const char* p_uri);
+bool isIntNumberStr(const char* p_numberStr);
+bool isFloatNumberStr(const char* p_numberStr);
 
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */

@@ -1,5 +1,19 @@
 Slogan																				Component							Priority
 ================================================================================================================================
 When wifimgr config validation fails, restore of persistant wifi info fails			Networking							B
-Static IP address not working											WiFi manager						A
-
+Static IP address not working														WiFi manager						A
+SPIFFS sometimes gets corrupted, especially after power fail						Networking							A
+Thread safing																		All									A
+Network doesnt always come up Mix between NW Mask/GW, etc.							Networking							A
+Doesnt receive DNS address from DHCP												Networking							A
+Data consistency handling for MQTT URI/Port between mqtt, networking and decoder	Mqtt, Networking, Decoder			A
+set network -dns does not work - freezes the CLI									GlobalCli, Network					A
+set network seems to be flawed alltogether											GlobalCLI, Network					A
+Enforce debug flag for intrusive CLI commands - eg get memory -allocation XXXX		All including CPU					B
+Time management needs much more care												Time and globalCli					A
+Tune stack-sizes																	All for the March commit			A
+Tidy up the code from prints, linelengths, descriptions, etc						All for the March commit			A
+CLI history and line editing														SimpleCLI							C
+CLI auto-completion																	SimpleCLI							D
+NTP DHCP not tested																	ntpTime								B
+Daylightsaving does not show correct												ntpTime								A

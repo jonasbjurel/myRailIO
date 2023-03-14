@@ -1,7 +1,7 @@
 /*============================================================================================================================================= =*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,10 +34,14 @@
 #include <string.h>
 #include <dummy.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
+#include "globalCli.h"
 #include "networking.h"
 #include "systemState.h"
 #include "decoder.h"
 #include "fileSys.h"
+
+
+
 class decoder;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -51,7 +55,8 @@ class decoder;
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-decoder* decoderHandle;
+decoder* decoderHandle = NULL;
+WiFiManager* wifiManager = NULL;
 bool setupRunning;
 void setup(void);
 void setupTask(void* p_dummy);

@@ -1,7 +1,7 @@
 /*============================================================================================================================================= */
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -83,6 +83,7 @@ struct mqttTopic_t {
 class mqtt : public wdt{
 public:
     //Public methods
+    static void create(void);
     static rc_t init(const char* p_broker, uint16_t p_port, const char* p_user, const char* p_pass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain);
     static void regOpStateCb(sysStateCb_t p_systemStateCb, void* p_systemStateCbArgs);
     static rc_t regStatusCallback(const mqttStatusCallback_t p_statusCallback, const void* args);
@@ -96,9 +97,9 @@ public:
     static rc_t sendMsg(const char* p_topic, const char* p_payload, bool p_retain = defaultRetain);
     static rc_t setDecoderUri(const char* p_decoderUri);
     static const char* getDecoderUri(void);
-    static rc_t setBrokerUri(const char* p_brokerUri);
+    static rc_t setBrokerUri(const char* p_brokerUri, bool p_persist = false);
     static const char* getBrokerUri(void);
-    static rc_t setBrokerPort(uint16_t p_brokerPort);
+    static rc_t setBrokerPort(uint16_t p_brokerPort, bool p_persist = false);
     static uint16_t getBrokerPort(void);
     static rc_t setBrokerUser(const char* p_brokerUser);
     static const char* getBrokerUser(void);
@@ -106,13 +107,14 @@ public:
     static const char* getBrokerPass(void);
     static rc_t setClientId(const char* p_clientId);
     static const char* getClientId(void);
-    static rc_t setDefaultQoS(bool p_defaultQoS);
-    static bool getDefaultQoS(void);
+    static rc_t setDefaultQoS(uint8_t p_defaultQoS);
+    static uint8_t getDefaultQoS(void);
     static rc_t setKeepAlive(float p_keepAlive);
     static float getKeepAlive(void);
     static rc_t setPingPeriod(float p_pingPeriod);
     static float getPingPeriod(void);
     static uint16_t getOpState(void);
+    static rc_t getOpStateStr(char* p_opState);
     static uint32_t getOverRuns(void);
     static void clearOverRuns(void);
     static uint32_t getMeanLatency(void);
@@ -154,7 +156,7 @@ private:
     static char* clientId;
     static uint8_t defaultQoS;
     static uint8_t keepAlive;
-    static TaskHandle_t* mqttPingHandle;
+    static TaskHandle_t mqttPingHandle;
     static bool opStateTopicSet;
     static char* opStateTopic;
     static char* upPayload;

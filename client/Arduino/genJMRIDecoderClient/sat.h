@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -99,14 +99,14 @@ public:
 	uint32_t getWdErrs(void);
 	void clearWdErrs(void);
 	/* CLI decoration methods */
-	static void onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 	//Public data structures
 	satLink* linkHandle;
@@ -132,12 +132,9 @@ private:
 	uint32_t rxSymbolErr;
 	uint32_t rxDataSizeErr;
 	uint32_t wdErr;
-
-	//Private data structures
+	static uint16_t satIndex;
 };
-
 /*==============================================================================================================================================*/
 /* END Class sat                                                                                                                                */
 /*==============================================================================================================================================*/
-
 #endif /*SAT_H*/

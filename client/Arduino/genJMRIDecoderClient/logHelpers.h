@@ -1,16 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-/*==============================================================================================================================================*/
-/* License                                                                                                                                      */
-/*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,11 +41,20 @@
 
 
 //Debug level
-#define GJMRI_DEBUG_VERBOSE             4
-#define GJMRI_DEBUG_TERSE               3
-#define GJMRI_DEBUG_INFO                2
-#define GJMRI_DEBUG_ERROR               1
-#define GJMRI_DEBUG_PANIC               0
+#define GJMRI_DEBUG_VERBOSE             6
+#define GJMRI_DEBUG_TERSE               5
+#define GJMRI_DEBUG_INFO                4
+#define GJMRI_DEBUG_WARN                3
+#define GJMRI_DEBUG_ERROR               2
+#define GJMRI_DEBUG_PANIC               1
+#define GJMRI_DEBUG_SILENT              0
+
+#define VERBOSE							verbose
+#define TERSE							trace
+#define INFO							info
+#define WARN							warning
+#define ERROR							error
+#define PANIC							fatal
 
 
 

@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2023 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2023 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ void fileSys::start(void) {
            esp_spiffs_check(NULL)) {
         char err[30];
         esp_err_to_name_r(esp_vfs_spiffs_register(&spiffsPartitionConfig), err, 30);
-        Log.error("fileSys::start: Could not mount fs partition: %s, Partition does "
+        Log.ERROR("fileSys::start: Could not mount fs partition: %s, Partition does "
                   "not exist-, or is corrupted - will (re-)format the partition, "
                   "all configurations will be lost..." CR, err);
         if (format())
@@ -64,11 +64,11 @@ void fileSys::start(void) {
 rc_t fileSys::format(void) {
     Log.notice("fileSys::format: Formatting SPIFFS filesystem" CR);
     if (esp_spiffs_format(NULL)) {
-        Log.error("fileSys::format: Failed to format the SPIFS filesystem partition, "
+        Log.ERROR("fileSys::format: Failed to format the SPIFS filesystem partition, "
                   "the flash may be weared or otherwise broken" CR);
         return RC_GEN_ERR;
     }
-    Log.verbose("fileSys::format: SPIFFS filesystem successfully formatted" CR);
+    Log.VERBOSE("fileSys::format: SPIFFS filesystem successfully formatted" CR);
     return RC_OK;
 }
 
@@ -77,7 +77,7 @@ rc_t fileSys::getFile(const char* p_fileName, char* p_buff, uint p_buffSize,
     FILE* fp;
     fp = fopen(p_fileName, "r");
     if (fp == NULL) {
-        Log.error("fileSys:getFile: Could not open file %s, %s" CR, p_fileName,
+        Log.ERROR("fileSys:getFile: Could not open file %s, %s" CR, p_fileName,
                   strerror(errno));
         return RC_NOT_FOUND_ERR;
     }
@@ -91,7 +91,7 @@ rc_t fileSys::putFile(const char* p_fileName, const char* p_buff, uint p_buffSiz
     FILE* fp;
     fp = fopen(p_fileName, "w");
     if (fp == NULL) {
-        Log.error("fileSys:putFile: Could not open or create file %s, %s" CR, p_fileName, strerror(errno));
+        Log.ERROR("fileSys:putFile: Could not open or create file %s, %s" CR, p_fileName, strerror(errno));
         return RC_GEN_ERR;
     }
     *p_writeSize = fwrite(p_buff, p_buffSize, 1, fp) * p_buffSize;
@@ -109,24 +109,24 @@ bool fileSys::fileExists(const char* p_fileName) {
 }
 
 rc_t fileSys::deleteFile(const char* p_fileName) {
-    Log.verbose("fileSys::deleteFile: Deleting file: %s" CR, p_fileName);
+    Log.VERBOSE("fileSys::deleteFile: Deleting file: %s" CR, p_fileName);
 
     if (remove(p_fileName)) {
-        Log.error("fileSys:deleteFile: Could not delete file %s, %s" CR, p_fileName, strerror(errno));
+        Log.ERROR("fileSys:deleteFile: Could not delete file %s, %s" CR, p_fileName, strerror(errno));
         return RC_GEN_ERR;
     }
-    Log.verbose("fileSys::deleteFile: File: %s successfully deleted" CR, p_fileName);
+    Log.VERBOSE("fileSys::deleteFile: File: %s successfully deleted" CR, p_fileName);
     return RC_OK;
 }
 
 rc_t fileSys::renameFile(const char* p_oldFileName, const char* p_newFileName) {
-    Log.verbose("fileSys:renameFile: Renaming file %s to %s" CR, p_oldFileName, p_newFileName);
+    Log.VERBOSE("fileSys:renameFile: Renaming file %s to %s" CR, p_oldFileName, p_newFileName);
     if (rename(p_oldFileName, p_newFileName)) {
-        Log.error("fileSys:renameFile: Could not rename file %s to %s, %s" CR, p_oldFileName, p_oldFileName,
+        Log.ERROR("fileSys:renameFile: Could not rename file %s to %s, %s" CR, p_oldFileName, p_oldFileName,
                   strerror(errno));
         return RC_GEN_ERR;
     }
-    Log.verbose("fileSys:renameFile: File %s successfully renamed to %s" CR, p_oldFileName, p_newFileName);
+    Log.VERBOSE("fileSys:renameFile: File %s successfully renamed to %s" CR, p_oldFileName, p_newFileName);
     return RC_OK;
 }
 
@@ -137,10 +137,10 @@ rc_t fileSys::listDir(QList<char*>* p_fileList, bool p_printOut) {
     d = opendir(FS_PATH);
     if (d) {
         if (p_printOut)
-            Serial.printf("Following files exist:\n");
+            Log.INFO("fileSys::listDir: Following files exist:\n");
         while ((dir = readdir(d)) != NULL) {
             if (p_printOut)
-                Serial.printf("%s\n", dir->d_name);
+                Log.INFO("fileSys::listDir: %s\n", dir->d_name);
             if (p_fileList) {
                 fileName = new char[strlen(dir->d_name)];
                 p_fileList->push_back(fileName);
@@ -149,7 +149,7 @@ rc_t fileSys::listDir(QList<char*>* p_fileList, bool p_printOut) {
         closedir(d);
     }
     else{
-        Serial.printf("No files found:\n");
+        Log.INFO("fileSys::listDir: No files found:\n");
         return RC_NOT_FOUND_ERR;
     }
     return(RC_OK);

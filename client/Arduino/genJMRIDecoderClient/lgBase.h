@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -130,16 +130,16 @@ public:
 	void setStripOffset(const uint16_t p_stripOffset);
 	uint16_t getStripOffset(void);
 	/* CLI decoration methods */
-	static void onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
-	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext);
+	static void onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 	//Public data structures
 	lgLink* lgLinkHandle;
@@ -156,6 +156,7 @@ private:
 	//Private data structures
 	void* extentionLgClassObj;
 	SemaphoreHandle_t lgBaseLock;
+	static uint16_t lgIndex;
 };
 
 #endif /*LGBASE_H*/

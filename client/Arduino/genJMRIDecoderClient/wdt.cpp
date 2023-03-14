@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ void wdt::kick(void) {
     }
     if (wdtData->wdtAction & FAULTACTION_REBOOT) {
         callFailsafeCbs(&(wdtCbLists.mqttDownWdtCbs));
-        panic("wdt::kick: Watchdog triggered - rebooting...");
+        panic("wdt::kick: Watchdog triggered from %s - rebooting..." CR, wdtData->wdtDescription);
     }
 }
 

@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,18 +18,30 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
+
+
+/*==============================================================================================================================================*/
+/* .h Definitions                                                                                                                               */
+/*==============================================================================================================================================*/
 #ifndef GLOBALCLI_H
 #define GLOBALCLI_H
+/*==============================================================================================================================================*/
+/* END .h Definitions                                                                                                                           */
+/*==============================================================================================================================================*/
+
+
 
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
+#include <Arduino.h>
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <IPAddress.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "cliCore.h"
 #include "cliGlobalDefinitions.h"
@@ -39,8 +51,8 @@
 #include "networking.h"
 #include "mqtt.h"
 #include "cpu.h"
-
-//class globalCli;
+#include "ntpTime.h"
+#include "strHelpers.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -58,101 +70,171 @@
 class globalCli : public cliCore {
 public:
     //Public methods
-    globalCli(const char* p_moType, bool p_root=false);
-    ~globalCli(void);
+    globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex,           //globalCLI instance constructor, one for each MO instance
+              bool p_root=false);                                                       //set root if top MO instance
+
+    ~globalCli(void);                                                                   //globalCLI instance destructor
 
     //Public data structures
+    // -
 
 private:
     //Private methods
-    void regCliMOCmds(void);
-    void regGlobalCliMOCmds(void);
-    void regCommonCliMOCmds(void);
-    virtual void regContextCliMOCmds(void);
+    void regCliMOCmds(void);                                                            //Internal class procedure, register global and common MOs and sub-MOs
+
+    void regGlobalCliMOCmds(void);                                                      //Internal class procedure, register global MOs and sub-MOs
+
+    void regCommonCliMOCmds(void);                                                      //Internal class procedure, register common MOs and sub-MOs
+
+    virtual void regContextCliMOCmds(void);                             
+
     /* Global CLI decoration methods */
-    static void onCliHelp(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliReboot(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetContextHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliGetContext(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliSetContextHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliSetContext(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliHelp(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);//Prints help-text
 
-    static void onCliShowTasks(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliShowTask(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliShowMem(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetContextHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get CLI-context helper
+                                      cliCmdTable_t* p_cmdTable);
+    rc_t onCliGetContext(char* p_fullContextPath);                                      //Get CLI-context
 
-    static void onCliGetWifi(cmd* p_cmd, cliCore* p_cliContext);
-    static void onClishowTopology(cmd* p_cmd, cliCore* p_cliContext);
-    rc_t printTopology(bool p_begining = true);
-    static void onCliGetMqttBrokerURIHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual const char* getMqttBrokerURI(void);
-    static void onCliSetMqttBrokerURIHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force = false);
-    static void onCliGetMqttPortHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual uint16_t getMqttPort(void);
-    static void onCliSetMqttPortHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setMqttPort(const uint16_t p_mqttPort, bool p_force = false);
-    static void onCliGetKeepaliveHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual float getKeepAlivePeriod(void);
-    static void onCliSetKeepaliveHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setKeepAlivePeriod(const float p_keepAlivePeriod, bool p_force = false);
-    static void onCliGetPingHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual float getPingPeriod(void);
-    static void onCliSetPingHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setPingPeriod(const float p_pingPeriod, bool p_force = false);
-    static void onCliGetNtpserverHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual const char* getNtpServer(void);
-    static void onCliSetNtpserverHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setNtpServer(const char* p_ntpServer, bool p_force = false);
-    static void onCliGetNtpportHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual uint16_t getNtpPort(void);
-    static void onCliSetNtpportHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setNtpPort(const uint16_t p_ntpPort, bool p_force = false);
-    static void onCliGetTzHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual uint8_t getTz(void);
-    static void onCliSetTzHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setTz(const uint8_t p_tz, bool p_force = false);
-    static void onCliGetLoglevelHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual const char* getLogLevel(void);
-    static void onCliSetLoglevelHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setLogLevel(const char* p_logLevel, bool p_force = false);
-    static void onCliGetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual bool getFailSafe(void);
-    static void onCliSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliUnsetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setFailSafe(const bool p_failsafe, bool p_force = false);
+    static void onCliSetContextHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set CLI-context helper
+                                      cliCmdTable_t* p_cmdTable);
+    void onCliSetContext(cmd* p_cmd);                                                   //Set CLI-context
 
-    /* Common CLI decoration methods */
-    static void onCliGetOpStateHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliGetOpState(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t getOpStateStr(char* p_opStateStr);
-    static void onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliGetSysName(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t getSystemName(const char* p_systemName);
-    static void onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliSetSysName(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setSystemName(const char* p_systemName);
-    static void onCliGetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliGetUsrName(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t getUsrName(const char* p_usrName);
-    static void onCliSetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliSetUsrName(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setUsrName(const char* p_usrName);
-    static void onCliGetDescHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliGetDesc(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t getDesc(const char* p_description);
-    static void onCliSetDescHelper(cmd* p_cmd, cliCore* p_cliContext);
-    void onCliSetDesc(cmd* p_cmd, cliCore* p_cliContext);
-    virtual rc_t setDesc(const char* p_description);
-    static void onCliGetDebugHelper(cmd* p_cmd, cliCore* p_cliContext);
-    bool getDebug(void);
-    static void onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliUnsetDebugHelper(cmd* p_cmd, cliCore* p_cliContext);
-    virtual void setDebug(bool p_debug);
+    static void onClishowTopology(cmd* p_cmd, cliCore* p_cliContext,                    //Show CLI-context
+                                  cliCmdTable_t* p_cmdTable);
+    rc_t printTopology(bool p_start = true);                                            //Print CLI topology
+
+    static void onCliReboot(cmd* p_cmd, cliCore* p_cliContext,                          //Reboot sub-MO command
+                            cliCmdTable_t* p_cmdTable);
+    static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,                       //Get decoder uptime sub-MO command
+                               cliCmdTable_t* p_cmdTable);
+    static void onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,                        //Start CPU sub-MO
+                              cliCmdTable_t* p_cmdTable);
+    static void onCliStopCpu(cmd* p_cmd, cliCore* p_cliContext,                         //Stop CPU sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,                          //Get CPU sub-MO
+                            cliCmdTable_t* p_cmdTable);
+    static void onCliShowCpu(cmd* p_cmd, cliCore* p_cliContext,                         //Show CPU sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,                          //Get Mem sub-MO
+                            cliCmdTable_t* p_cmdTable);
+    static void onCliShowMem(cmd* p_cmd, cliCore* p_cliContext,                         //Show Mem sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliSetNetwork(cmd* p_cmd, cliCore* p_cliContext,                      //Set Network sub-MO
+                                cliCmdTable_t* p_cmdTable);
+    static void onCliGetNetwork(cmd* p_cmd, cliCore* p_cliContext,                      //Get Network sub-MO
+                                cliCmdTable_t* p_cmdTable);
+    static void onCliShowNetwork(cmd* p_cmd, cliCore* p_cliContext,                     //Show Network sub-MO
+                                 cliCmdTable_t* p_cmdTable);
+    static void showNetwork(void);                                                      //Show Network sub-MO
+
+    static void onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,                         //Set MQTT sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliClearMqtt(cmd* p_cmd, cliCore* p_cliContext,                       //Clear MQTT sub-MO
+                               cliCmdTable_t* p_cmdTable);
+    static void onCliGetMqtt(cmd* p_cmd, cliCore* p_cliContext,                         //Get MQTT sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliShowMqtt(cmd* p_cmd, cliCore* p_cliContext,                        //Show MQTT sub-MO
+                              cliCmdTable_t* p_cmdTable);
+    static void onCliAddTime(cmd* p_cmd, cliCore* p_cliContext,                         //Add time sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliDeleteTime(cmd* p_cmd, cliCore* p_cliContext,                      //Delete time sub-MO
+                                cliCmdTable_t* p_cmdTable);
+    static void onCliStartTime(cmd* p_cmd, cliCore* p_cliContext,                       //Start time sub-MO
+                               cliCmdTable_t* p_cmdTable);
+    static void onCliStopTime(cmd* p_cmd, cliCore* p_cliContext,                        //Stop time sub-MO
+                              cliCmdTable_t* p_cmdTable);
+    static void onCliSetTime(cmd* p_cmd, cliCore* p_cliContext,                         //Set time sub-MO
+                             cliCmdTable_t * p_cmdTable);
+    static void onCliGetTime(cmd* p_cmd, cliCore* p_cliContext,                         //Get time sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliShowTime(cmd* p_cmd, cliCore* p_cliContext,                        //Show time sub-MO
+                              cliCmdTable_t* p_cmdTable);
+    static void showTime(void);                                                         //Show time sub-MO
+
+    static void onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Set log level helper sub-MO
+                                  cliCmdTable_t* p_cmdTable);
+    static void onCliUnSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Un-set log level helper sub-MO
+        cliCmdTable_t* p_cmdTable);
+    virtual rc_t setLogLevel(const char* p_logLevel, bool p_force = false);             //Set log level for context - not yet supported
+
+    static void onCliGetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Get log level helper
+                                  cliCmdTable_t* p_cmdTable);
+    virtual const char* getLogLevel(void);                                              //Get log level for context - not yet supported
+
+    static void onCliShowLogHelper(cmd* p_cmd, cliCore* p_cliContext,
+                                   cliCmdTable_t* p_cmdTable);
+    static void onCliShowLog(void);                                                     //Show log for context- not supported
+
+    static void onCliSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,               //Set failsafe helper
+                                       cliCmdTable_t* p_cmdTable);
+
+    virtual rc_t setFailSafe(const bool p_failsafe, bool p_force = false);              //Set failsafe for context - not supported
+
+    static void onCliUnSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,             //Un-set failsafe helper
+                                       cliCmdTable_t* p_cmdTable);
+
+    virtual rc_t unSetFailSafe(const bool p_failsafe, bool p_force = false);            //Un-set failsafe for context - not supported
+
+    static void onCliGetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,               //Get failsafe property helper
+                                       cliCmdTable_t* p_cmdTable);
+
+    virtual bool getFailSafe(void);                                                     //Get failsafe for context - not supported
+
+    static void onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Set Debugflag helper
+                                    cliCmdTable_t* p_cmdTable);
+    static void onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set Debugflag helper
+                                      cliCmdTable_t* p_cmdTable);
+    virtual void setDebug(bool p_debug);                                                //Set Debugflag for context - not supported
+
+    static void onCliGetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Get Debugflag helper
+                                    cliCmdTable_t* p_cmdTable);
+    virtual bool getDebug(void);                                                        //Get Debugflag for context - not supported
+
+    static void onCliGetOpStateHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get OP-state (Operational-state) helper
+                                      cliCmdTable_t* p_cmdTable);
+    void onCliGetOpState(cmd* p_cmd);                                                   //Get context OP-state (Operational-state)
+
+    virtual rc_t getOpStateStr(char* p_opStateStr);                                     //Get context OP-state string (Operational-state)
+
+    static void onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get System name helper
+                                      cliCmdTable_t* p_cmdTable);
+    void onCliGetSysName(cmd* p_cmd);                                                   //Get System name for context parser
+
+    virtual rc_t getSystemName(const char* p_systemName);                               //Get System name for context
+
+    static void onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set System name helper
+                                      cliCmdTable_t* p_cmdTable);
+    void onCliSetSysName(cmd* p_cmd);                                                   //Set System name for context parser
+
+    virtual rc_t setSystemName(const char* p_systemName);                               //Set System name for context
+
+    static void onCliGetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get User name helper
+                                      cliCmdTable_t* p_cmdTable);
+    void onCliGetUsrName(cmd* p_cmd);                                                   //Get User name for context parser
+
+    virtual rc_t getUsrName(const char* p_usrName);                                     //Get User name for context
+
+    static void onCliSetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set User name helper
+                                      cliCmdTable_t* p_cmdTable);
+    void onCliSetUsrName(cmd* p_cmd);                                                   //Set User name for context parser
+
+    virtual rc_t setUsrName(const char* p_usrName);                                     //Set User name for context
+
+    static void onCliGetDescHelper(cmd* p_cmd, cliCore* p_cliContext,                   //Get Description helper
+                                   cliCmdTable_t* p_cmdTable);
+    void onCliGetDesc(cmd* p_cmd);                                                      //Get Description for context parser
+
+    virtual rc_t getDesc(const char* p_description);                                    //Get Description for context
+
+    static void onCliSetDescHelper(cmd* p_cmd, cliCore* p_cliContext,                   //Set Description helper
+                                   cliCmdTable_t* p_cmdTable);
+    void onCliSetDesc(cmd* p_cmd);                                                      //Set Description for context parser
+
+    virtual rc_t setDesc(const char* p_description);                                    //Set Description for context
 
     //Private data structures
-    static globalCli* rootHandle;
+    static globalCli* rootHandle;                                                       //root context handle
+    static char* testBuff;                                                              //memory allocation test buffer
 };
 /*==============================================================================================================================================*/
 /* END Class globalCli                                                                                                                          */

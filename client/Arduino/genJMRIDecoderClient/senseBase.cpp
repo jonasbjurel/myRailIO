@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,11 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(this), globalCli(SENSOR_MO_NAME) {
+
+uint16_t senseBase::sensIndex = 0;
+
+senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(this), globalCli(SENSOR_MO_NAME, SENSOR_MO_NAME, sensIndex) {
+    sensIndex++;
     satHandle = p_satHandle;
     sensPort = p_sensPort;
     satHandle->linkHandle->getLink(&satLinkNo);
@@ -52,17 +56,17 @@ senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(this), 
 
 /* CLI decoration methods */
     // get/set port
-    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, this, onCliGetPortHelper);
+    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliGetPortHelper);
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, SENS_GET_SENSPORT_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, this, onCliSetPortHelper);
+    regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliSetPortHelper);
     regCmdHelp(SET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, SENS_SET_SENSPORT_HELP_TXT);
     // get sensing
-    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, this, onCliGetSensingHelper);
+    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliGetSensingHelper);
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, SENS_GET_SENSING_HELP_TXT);
     // get/set property
-    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, this, onCliGetPropertyHelper);
+    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_GET_SENSORPROPERTY_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, this, onCliSetPropertyHelper);
+    regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
     regCmdHelp(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_SET_SENSORPROPERTY_HELP_TXT);
 }
 
@@ -194,7 +198,7 @@ void senseBase::onOpStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("senseBase::onOpStateChange: sensor port %d, on satelite adress %d, satLink %d got unavailable message from server %s" CR, sensPort, satAddr, satLinkNo, p_payload);
     }
     else
-        Log.error("senseBase::onOpStateChange: sensor port %d, on satelite address %d on satlink %d got an invalid availability message from server %s - doing nothing" CR, sensPort, satAddr, satLinkNo, p_payload);
+        Log.ERROR("senseBase::onOpStateChange: sensor port %d, on satelite address %d on satlink %d got an invalid availability message from server %s - doing nothing" CR, sensPort, satAddr, satLinkNo, p_payload);
 }
 
 void senseBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle) {
@@ -211,7 +215,7 @@ void senseBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.notice("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, sensPort, satAddr, satLinkNo, p_payload);
     }
     else
-        Log.error("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, sensPort, satAddr, satLinkNo, p_payload);
+        Log.ERROR("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, sensPort, satAddr, satLinkNo, p_payload);
 }
 
 void senseBase::wdtKickedHelper(void* senseBaseHandle) {
@@ -227,13 +231,13 @@ rc_t senseBase::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t senseBase::setSystemName(char* p_sysName, bool p_force) {
-    Log.error("senseBase::setSystemName: cannot set System name - not suppoted" CR);
+    Log.ERROR("senseBase::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t senseBase::getSystemName(const char* p_sysName) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::getSystemName: cannot get System name as sensor is not configured" CR);
+        Log.ERROR("senseBase::getSystemName: cannot get System name as sensor is not configured" CR);
         p_sysName = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -243,11 +247,11 @@ rc_t senseBase::getSystemName(const char* p_sysName) {
 
 rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("senseBase::setUsrName: cannot set User name as debug is inactive" CR);
+        Log.ERROR("senseBase::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::setUsrName: cannot set System name as sensor is not configured" CR);
+        Log.ERROR("senseBase::setUsrName: cannot set System name as sensor is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -260,7 +264,7 @@ rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
 
  rc_t senseBase::getUsrName(const char* p_usrName) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::getUsrName: cannot get User name as sensor is not configured" CR);
+        Log.ERROR("senseBase::getUsrName: cannot get User name as sensor is not configured" CR);
         p_usrName = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -270,11 +274,11 @@ rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
 
 rc_t senseBase::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        Log.error("senseBase::setDesc: cannot set Description as debug is inactive" CR);
+        Log.ERROR("senseBase::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::setDesc: cannot set Description as sensor is not configured" CR);
+        Log.ERROR("senseBase::setDesc: cannot set Description as sensor is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -287,7 +291,7 @@ rc_t senseBase::setDesc(const char* p_description, bool p_force) {
 
 rc_t senseBase::getDesc(char* p_desc) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::getDesc: cannot get Description as sensor is not configured" CR);
+        Log.ERROR("senseBase::getDesc: cannot get Description as sensor is not configured" CR);
         p_desc = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -296,13 +300,13 @@ rc_t senseBase::getDesc(char* p_desc) {
 }
 
 rc_t senseBase::setPort(const uint8_t p_port) {
-    Log.error("senseBase::setPort: cannot set port - not supported" CR);
+    Log.ERROR("senseBase::setPort: cannot set port - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t senseBase::getPort(uint8_t* p_port) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::getPort: cannot get port as sensor is not configured" CR);
+        Log.ERROR("senseBase::getPort: cannot get port as sensor is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     *p_port = atoi(xmlconfig[XML_SENS_PORT]);
@@ -311,11 +315,11 @@ rc_t senseBase::getPort(uint8_t* p_port) {
 
 rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force){
     if (!debug || !p_force) {
-        Log.error("senseBase::setProperty: cannot set Sensor property as debug is inactive" CR);
+        Log.ERROR("senseBase::setProperty: cannot set Sensor property as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::setProperty: cannot set Sensor property as sensor is not configured" CR);
+        Log.ERROR("senseBase::setProperty: cannot set Sensor property as sensor is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], setProperty(p_propertyId, p_propertyVal));
@@ -324,7 +328,7 @@ rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, boo
 
 rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::getProperty: cannot set Sensor property as sensor is not configured" CR);
+        Log.ERROR("senseBase::getProperty: cannot set Sensor property as sensor is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getProperty(p_propertyId, p_propertyVal));
@@ -333,7 +337,7 @@ rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
 
 rc_t senseBase::getSensing(const char* p_sensing) {
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.error("senseBase::getSensing: cannot get sensing as sensor is not configured" CR);
+        Log.ERROR("senseBase::getSensing: cannot get sensing as sensor is not configured" CR);
         p_sensing = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -350,7 +354,7 @@ bool senseBase::getDebug(void) {
 }
 
 /* CLI decoration methods */
-void senseBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
+void senseBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -358,7 +362,7 @@ void senseBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
     }
     rc_t rc;
     uint8_t port;
-    if (rc = reinterpret_cast<senseBase*>(p_cliContext)->getPort(&port)) {
+    if (rc = static_cast<senseBase*>(p_cliContext)->getPort(&port)) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, return code: %i", rc);
         return;
     }
@@ -366,21 +370,21 @@ void senseBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext){
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void senseBase::onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void senseBase::onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<senseBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str()))) {
+    if (rc = static_cast<senseBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str()))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor port, return code: %i", rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-void senseBase::onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void senseBase::onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -388,7 +392,7 @@ void senseBase::onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext) {
     }
     rc_t rc;
     char* sensing;
-    if (rc = reinterpret_cast<senseBase*>(p_cliContext)->getSensing(sensing)) {
+    if (rc = static_cast<senseBase*>(p_cliContext)->getSensing(sensing)) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor sensing, return code: %i", rc);
         return;
     }
@@ -396,7 +400,7 @@ void senseBase::onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext) {
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -405,7 +409,7 @@ void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
     rc_t rc;
     char* property;
     if (cmd.getArgument(1)) {
-        if (rc = reinterpret_cast<senseBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
+        if (rc = static_cast<senseBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor properties, return code: %i", rc);
             return;
         }
@@ -415,7 +419,7 @@ void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
     else {
         printCli("Sensor property index:\t\t\Sensor property value:\n");
         for (uint8_t i = 0; i < 255; i++) {
-            if (rc = reinterpret_cast<senseBase*>(p_cliContext)->getProperty(i, property)) {
+            if (rc = static_cast<senseBase*>(p_cliContext)->getProperty(i, property)) {
                 if (rc == RC_NOT_FOUND_ERR)
                     break;
                 notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor property %i, return code: %i", i, rc);
@@ -427,14 +431,14 @@ void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
         acceptedCliCommand(CLI_TERM_QUIET);
     }
 }
-void senseBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext) {
+void senseBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
-    if (rc = reinterpret_cast<senseBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str())) {
+    if (rc = static_cast<senseBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str())) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
         return;
     }

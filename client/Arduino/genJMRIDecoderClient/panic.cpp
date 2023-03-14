@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ void panic(const char* fmt, ...) {
     va_end(args);
     Log.fatal(msg);
 //    decoderHandle->setOpState(OP_INTFAIL);
-    Log.info("panic: Waiting 5 seconds before restaritng - enabling spool-out of syslog, fail-safe settings, etc");
+    Log.INFO("panic: Waiting 5 seconds before restaritng - enabling spool-out of syslog, fail-safe settings, etc\n");
     TimerHandle_t rebootTimer;
     rebootTimer = xTimerCreate("rebootTimer",                       // Just a text name, not used by the kernel.
         (5000 / portTICK_PERIOD_MS),                                // The timer period in ticks.

@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 /*==============================================================================================================================================*/
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
+
 
 
 /*==============================================================================================================================================*/
@@ -49,6 +50,8 @@
 #include "panic.h"
 #include "rc.h"
 #include "fileSys.h"
+#include "mqtt.h"
+#include "telnetCore.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -86,6 +89,7 @@
 /* Methods: See below                                                                                                                           */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
+/* Definitions                                                                                                                                  */
 typedef struct apStruct_t {                                                             // WIFI parameters struct
     char ssid[50];                                                                      // WIFI AP SSID
     char bssid[18];                                                                     // WIFI AP BSSID
@@ -156,6 +160,7 @@ typedef struct wifiProvisionCallbackInstance_t {                                
     void* args;
 };
 
+/* Methods                                                                                                                                      */
 class networking {
 public:
     //Public methods
@@ -172,14 +177,16 @@ public:
     static void unRegWifiProvisionCallback(const wifiProvisionCallback_t p_callback);   // Un-Register callback for WiFi provisioning 
     static uint16_t getAps(QList<apStruct_t*>* p_apList, bool p_printOut=true);         // Scan all APs, print out all AP details, and provide a list of
                                                                                         //   apStruct_t* unless p_apList is NULL
+    static void unGetAps(QList<apStruct_t*>* p_apList);                                 // Frees the p_aplist structure created by getAps
     static char* getSsid(void);                                                         // Get WIFI SSID
+    static char* getBssid(void);                                                        // Get connected AP BSSID
     static char* getAuth();                                                             // Get WIFI Authentication method
     static uint8_t getChannel(void);                                                    // Get provisioned WIFI Channel
     static long getRssi(void);                                                          // Get connected WIFI signal SNR
     static char* getMac(void);                                                          // Get MAC adress
     static rc_t setStaticIpAddr(IPAddress p_ipAddr, IPAddress p_ipMask,
-                                IPAddress p_gatewayIpAddr, IPAddress p_dnsIpAddr);      // Set static IP adresses, if persist is true the static 
-                                                                                        //   configuration will be persisted
+        IPAddress p_gatewayIpAddr, IPAddress p_dnsIpAddr,                               // Set static IP adresses, if p_persist is true the static 
+        bool p_persist = false);                                                        //   configuration will be persisted
     static rc_t unSetStaticIpAddr(void);                                                // Set host DHCP adress option, if p_persist option is set
                                                                                         //   it will be persisted to non volatile memory
     static IPAddress getIpAddr(void);                                                   // Get host IP address received by DHCP or provisioned 
@@ -190,14 +197,16 @@ public:
                                                                                         //   by WiFi manager
     static IPAddress getDnsIpAddr(void);                                                // Get DNS server address received by DHCP or provisioned
                                                                                         //   by WiFi manager
-    static rc_t setHostname(const char* p_hostname, bool p_save=true);                  // Set hostname
+    static rc_t setHostname(const char* p_hostname, bool p_persist=true);               // Set hostname
     static char* getHostname(void);                                                     // Get hostname received - either factory defined-, or defined
                                                                                         //   by WiFi manager- or defined by setHostname()
-    static rc_t setMqttUri(const char* p_mqttUri, bool p_save=true);                    // Set Mqtt URI, IP Address or URL
+    static rc_t setMqttUri(const char* p_mqttUri, bool p_persist=true);                 // Set Mqtt URI, IP Address or URL
     static char* getMqttUri(void);                                                      // Get Mqtt URI, IP Address or URL
-    static rc_t setMqttPort(int p_mqttPort, bool p_save=true);                          // Set MQTT broker port
+    static rc_t setMqttPort(uint16_t p_mqttPort, bool p_persist=true);                  // Set MQTT broker port
     static uint16_t getMqttPort(void);                                                  // Get MQTT broker port
     static uint8_t getOpState(void);                                                    // Get current Networking Operational state
+    static char* getOpStateStr(char* p_opStateStr);                                     // Get current Networking Operational state as string
+
 
     //Public data structures
     //-

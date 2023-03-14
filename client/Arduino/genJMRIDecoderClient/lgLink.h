@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonas.bjurel@hotmail.com)
+// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -119,16 +119,16 @@ public:
     uint32_t getMaxRuntime(void);
     void clearMaxRuntime(void);
     /* CLI decoration methods */
-    static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliClearLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetMeanLatencyHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliClearMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext);
-    static void onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext);
+    static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliGetLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliClearLinkOverrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliGetMeanLatencyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliGetMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliClearMaxLatencyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+    static void onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 
     //Public data structures
@@ -165,6 +165,7 @@ private:
     signalMastAspects* signalMastAspectsObject;
     lgBase* lgs[MAX_LGSTRIPLEN];
     bool debug;
+    static uint16_t lgLinkIndex;
 };
 
 /*==============================================================================================================================================*/
