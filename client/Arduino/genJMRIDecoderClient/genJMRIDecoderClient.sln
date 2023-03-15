@@ -5,14 +5,6 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "genJMRIDecoderClient", "genJMRIDecoderClient.vcxproj", "{816D0A37-F38A-4083-A96D-E1653E0B8AF7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ESP32-2.0.0", "Libraries\ESP32\2.0.0\ESP32\ESP32-2.0.0.vcxitems", "{785DDA91-C8D6-4345-AF5D-17DA454F9EE9}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FS-2.0.0", "Libraries\FS\2.0.0\FS\FS-2.0.0.vcxitems", "{3CFC7E35-AB01-490E-8D4C-D2DE4FF28C48}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Effortless-SPIFFS-2.3.0", "Libraries\Effortless-SPIFFS\2.3.0\Effortless-SPIFFS\Effortless-SPIFFS-2.3.0.vcxitems", "{DD08ECF3-2F73-41B2-9F44-BB6BEEBB3BC5}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ArduinoJson-6.20.0", "Libraries\ArduinoJson\6.20.0\ArduinoJson\ArduinoJson-6.20.0.vcxitems", "{A6257B89-AB70-437E-A514-714DB2E143B8}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -35,15 +27,5 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F9481D45-D5D7-4A08-A544-E0E6531B4AE1}
-	EndGlobalSection
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Libraries\FS\2.0.0\FS\FS-2.0.0.vcxitems*{3cfc7e35-ab01-490e-8d4c-d2de4ff28c48}*SharedItemsImports = 9
-		Libraries\ESP32\2.0.0\ESP32\ESP32-2.0.0.vcxitems*{785dda91-c8d6-4345-af5d-17da454f9ee9}*SharedItemsImports = 9
-		Libraries\ArduinoJson\6.20.0\ArduinoJson\ArduinoJson-6.20.0.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
-		Libraries\Effortless-SPIFFS\2.3.0\Effortless-SPIFFS\Effortless-SPIFFS-2.3.0.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
-		Libraries\ESP32\2.0.0\ESP32\ESP32-2.0.0.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
-		Libraries\FS\2.0.0\FS\FS-2.0.0.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
-		Libraries\ArduinoJson\6.20.0\ArduinoJson\ArduinoJson-6.20.0.vcxitems*{a6257b89-ab70-437e-a514-714db2e143b8}*SharedItemsImports = 9
-		Libraries\Effortless-SPIFFS\2.3.0\Effortless-SPIFFS\Effortless-SPIFFS-2.3.0.vcxitems*{dd08ecf3-2f73-41b2-9f44-bb6beebb3bc5}*SharedItemsImports = 9
 	EndGlobalSection
 EndGlobal

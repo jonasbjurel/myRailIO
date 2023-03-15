@@ -41,7 +41,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "libraries/ESPTelnet/src/ESPTelnet.h"
+#include <ESPTelnet.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "wdt.h"
 #include "panic.h"

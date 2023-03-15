@@ -23,28 +23,6 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-//#include <dummy.h>
-#include <ArduinoJson.h>
-#include <ArduinoJson.hpp>
-#include <Effortless_SPIFFS.h>
-#include <FS.h>
-#include <FSImpl.h>
-#include <vfs_api.h>
-#include <dummy.h>
-#include <WiFi.h>
-#include <WiFiAP.h>
-#include <WiFiClient.h>
-#include <WiFiGeneric.h>
-#include <WiFiMulti.h>
-#include <WiFiScan.h>
-#include <WiFiServer.h>
-#include <WiFiSTA.h>
-#include <WiFiType.h>
-#include <WiFiUdp.h>
-#include <wm_strings_en.h>
-#include <wm_consts_en.h>
-#include <WiFiManager.h>
-#include <strings_en.h>
 #include "genJMRIDecoderClient.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -57,7 +35,7 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
-/*==============================================================================================================================================*/
+/*=============================================================================================================================================*/
 void setup() {
     setupRunning = true;
     Serial.begin(115200);
@@ -73,14 +51,6 @@ void setup() {
         SETUP_CORE);                            // Core [CORE_0 | CORE_1]
     while (setupRunning)
         vTaskDelay(100 / portTICK_PERIOD_MS);
-    Log.notice("setup: Starting the runtime web-portal" CR);
-    wifiManager = new WiFiManager;
-    wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
-    wifiManager->setShowStaticFields(true);
-    wifiManager->setShowDnsFields(true);
-    wifiManager->setShowInfoErase(true);
-    wifiManager->setShowInfoUpdate(true);
-    wifiManager->startWebPortal();
     Log.notice("genJMRIDecoderClient::setup: Initial setup has successfully concluded, handing over to \"Arduino loop\"" CR);
 }
 
@@ -103,10 +73,21 @@ void setupTask(void* p_dummy) {
     Log.notice("genJMRIDecoderClient::setupTask: Initializing time- and NTP- service" CR);
     esp_timer_init();
     ntpTime::init();
-    Log.INFO("setupTask: Time- and NTP- service initialized" CR);
+    Log.INFO("genJMRIDecoderClient::setupTask: Time- and NTP- service initialized" CR);
+    Log.notice("genJMRIDecoderClient::setupTask: Starting the runtime web-portal service" CR);
+    wifiManager = new WiFiManager;
+    wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
+    wifiManager->setShowStaticFields(true);
+    wifiManager->setShowDnsFields(true);
+    wifiManager->setShowInfoErase(true);
+    wifiManager->setShowInfoUpdate(true);
+    wifiManager->startWebPortal();
+    Log.notice("genJMRIDecoderClient::setupTask: Runtime web-portal service started" CR);
+    Log.notice("genJMRIDecoderClient::setupTask: Starting the decoder service" CR);
     decoderHandle = new decoder();
-    //decoderHandle->init();
-    //decoderHandle->start();
+    decoderHandle->init();
+    decoderHandle->start();
+    Log.notice("genJMRIDecoderClient::setupTask: Decoder service started" CR);
     setupRunning = false;
     Log.notice("genJMRIDecoderClient::setupTask: Setup finished, killing setup task..." CR);
     vTaskDelete(NULL);

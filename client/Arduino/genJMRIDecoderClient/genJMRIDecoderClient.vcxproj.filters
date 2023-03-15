@@ -57,12 +57,6 @@
     <ClInclude Include="xmlHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="libraries\pubsubclient\src\PubSubClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="libraries\QList\src\QList.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="libraries\tinyxml2\tinyxml2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -70,9 +64,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lgLink.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="libraries\Adafruit_NeoPixel\Adafruit_NeoPixel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="flash.h">
@@ -171,9 +162,6 @@
     <ClInclude Include="libraries\SimpleCLI\src\c\parser_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="libraries\ESPTelnet\src\ESPTelnet.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="cpu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -218,16 +206,10 @@
     <ClCompile Include="systemState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="libraries\pubsubclient\src\PubSubClient.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="libraries\tinyxml2\tinyxml2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lgLink.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="libraries\Adafruit_NeoPixel\Adafruit_NeoPixel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="flash.cpp">
@@ -300,9 +282,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="libraries\SimpleCLI\src\Argument.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="libraries\ESPTelnet\src\ESPTelnet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cpu.cpp">

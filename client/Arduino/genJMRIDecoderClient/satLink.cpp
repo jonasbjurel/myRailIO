@@ -240,9 +240,9 @@ void satLink::pmPollHelper(void* metaData_p) {
     int64_t  nextLoopTime = esp_timer_get_time();
     int64_t  thisLoopTime;
     TickType_t delay;
-    satLinkWdt = new wdt(2*1000000, "SAT link watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
+    ((satLink*)metaData_p)->satLinkWdt = new wdt(2*1000000, "SAT link watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     while (true) {
-        satLinkWdt->feed();
+        ((satLink*)metaData_p)->satLinkWdt->feed();
         thisLoopTime = nextLoopTime;
         nextLoopTime += 1000000; //1E6 uS = 1S
         ((satLink*)metaData_p)->onPmPoll();

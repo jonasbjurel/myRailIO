@@ -23,7 +23,7 @@
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
 #include <cstddef>
-#include "libraries/QList/src/QList.h"
+#include <QList.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "logHelpers.h"

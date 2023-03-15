@@ -41,9 +41,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdarg.h>
-#include "libraries/ESPTelnet/src/ESPTelnet.h"
+#include <ESPTelnet.h>
+#include <QList.h>
 #include "libraries/SimpleCLI/src/SimpleCLI.h"
-#include "libraries/QList/src/QList.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
 #include "telnetCore.h"

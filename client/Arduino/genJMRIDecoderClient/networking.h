@@ -42,7 +42,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
-#include "libraries/QList/src/QList.h"
+#include <QList.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "strHelpers.h"
 #include "config.h"

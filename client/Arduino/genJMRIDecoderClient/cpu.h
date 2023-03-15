@@ -35,7 +35,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "rc.h"
-#include "libraries/QList/src/QList.h"
+#include <QList.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "config.h"
 #include "logHelpers.h"

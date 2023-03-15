@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <Adafruit_NeoPixel.h>
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
@@ -47,7 +48,6 @@
 #include "strHelpers.h"
 #include "xmlHelpers.h"
 #include "pinout.h"
-#include "libraries/Adafruit_NeoPixel/Adafruit_NeoPixel.h"
 #include "esp32SysConfig.h"
 
 class flash;

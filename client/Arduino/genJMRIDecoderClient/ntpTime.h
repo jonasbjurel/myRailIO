@@ -42,9 +42,9 @@
 #include <stdint.h>
 #include <esp_sntp.h>
 #include <time.h>
+#include <QList.h>
 #include "config.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
-#include "libraries/QList/src/QList.h"
 #include "rc.h"
 #include "strHelpers.h"
 /*==============================================================================================================================================*/

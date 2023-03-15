@@ -65,8 +65,7 @@ decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, DECODER_M
 
     xmlconfig[XML_DECODER_NTPPORT] = new char[6];
     sprintf(xmlconfig[XML_DECODER_NTPPORT], "%i", NTP_DEFAULT_PORT);
-    //return; //FIND WHERE THE ISSUE IS BY MOVING THIS RETURN DOWNWARDS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //XML_DECODER_TZ SHOULD BE A STRING OF ~50 (CHECK), WILL REQUIRE A CHANGE IN THE SERVER-DECODER API CHANGE!!!
+
     xmlconfig[XML_DECODER_TZ] = new char[50];
     sprintf(xmlconfig[XML_DECODER_TZ], "%s", NTP_DEFAULT_TZ);
 
@@ -114,12 +113,14 @@ rc_t decoder::init(void){
     Log.notice("decoder::init: MQTT connected");
     Log.notice("decoder::init: Waiting for discovery process" CR);
     i = 0;
-    while (mqtt::getBrokerUri() == NULL) {
+    while (mqtt::getOpState() & OP_UNDISCOVERED) {
         if (i++ >= DECODER_DISCOVERY_TIMEOUT_S * 2)
             panic("decoder::init: Discovery process failed - rebooting...");
         vTaskDelay(500 / portTICK_PERIOD_MS);
     }
     unSetOpState(OP_UNDISCOVERED);
+    Log.notice("decoder::init: Decoder discovered" CR);
+
     Log.notice("decoder::init: Discovered" CR);
     Log.notice("decoder::init: Creating lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
@@ -272,7 +273,7 @@ while (systemState::getOpState() & OP_UNCONFIGURED) {
     if (i == 0)
         Log.notice("decoder::start: Waiting for decoder to be configured before it can start" CR);
     if (i++ >= 120)
-        panic("decoder::start: Discovery process failed - rebooting...");
+        panic("decoder::start: Configured process failed - rebooting...");
     Serial.print('.');
     vTaskDelay(500 / portTICK_PERIOD_MS);
 }

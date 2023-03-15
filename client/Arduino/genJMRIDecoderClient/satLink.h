@@ -145,7 +145,7 @@ private:
 	char* xmlconfig[4];
 	bool debug;
 	SemaphoreHandle_t satLinkLock;
-	static wdt* satLinkWdt;
+	wdt* satLinkWdt;
 	sateliteLink* satLinkLibHandle;
 	sat* sats[MAX_SATELITES];
 	uint32_t txUnderunErr;

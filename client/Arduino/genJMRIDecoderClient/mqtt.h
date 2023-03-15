@@ -32,9 +32,9 @@
 #include <string.h>
 #include <stdint.h>
 #include <WiFi.h>
-#include "libraries/pubsubclient/src/PubSubClient.h"
+#include <QList.h>
+#include <PubSubClient.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
-#include "libraries/QList/src/QList.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "systemState.h"
 #include "wdt.h"

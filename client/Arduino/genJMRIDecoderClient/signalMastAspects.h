@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "libraries/QList/src/QList.h"
+#include <QList.h>
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "lgLink.h"
