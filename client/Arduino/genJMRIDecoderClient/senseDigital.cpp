@@ -45,7 +45,7 @@ senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     filteredSenseVal = false;
     debug = false;
 
-    Log.notice("senseDigital::senseDigital: Creating senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseDigital::senseDigital: Creating senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     senseDigitalLock = xSemaphoreCreateMutex();
     if (senseDigitalLock == NULL)
         panic("senseDigital::senseDigital: Could not create Lock objects - rebooting...");
@@ -56,7 +56,7 @@ senseDigital::~senseDigital(void) {
 }
 
 rc_t senseDigital::init(void) {
-    Log.notice("senseDigital::init: Initializing senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseDigital::init: Initializing senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
@@ -66,26 +66,26 @@ void senseDigital::onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElemen
 }
 
 rc_t senseDigital::start(void) {
-    Log.notice("senseDigital::start: Starting senseDigital sensor extention object for sensor port% d, on satelite adress% d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseDigital::start: Starting senseDigital sensor extention object for sensor port% d, on satelite adress% d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     if (senseBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.notice("senseDigital::start: senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sensPort, satAddr, satLinkNo);
+        Log.INFO("senseDigital::start: senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sensPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
     if (senseBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
-        Log.notice("senseDigital::start: senseDigital sensor extention class object for sensor port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sensPort, satAddr, satLinkNo);
+        Log.INFO("senseDigital::start: senseDigital sensor extention class object for sensor port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sensPort, satAddr, satLinkNo);
         pendingStart = true;
         return RC_NOT_CONFIGURED_ERR;
     }
-    Log.notice("senseDigital::start: Configuring and startings senseDigital extention class object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseDigital::start: Configuring and startings senseDigital extention class object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     satLibHandle->setSenseFilter(DEFAULT_SENS_FILTER_TIME, sensPort);
     return RC_OK;
 }
 
 void senseDigital::onDiscovered(satelite* p_sateliteLibHandle) {
     satLibHandle = p_sateliteLibHandle;
-    Log.notice("senseDigital::onDiscovered: sensor extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseDigital::onDiscovered: sensor extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
     if (senseBaseHandle->pendingStart) {
-        Log.notice("senseDigital::onDiscovered: Initiating pending start for digital sensor extention class object for sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+        Log.INFO("senseDigital::onDiscovered: Initiating pending start for digital sensor extention class object for sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
         start();
     }
 }
@@ -106,13 +106,13 @@ void senseDigital::onSensChange(bool p_filteredSensorVal) {
 }
 
 rc_t senseDigital::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
-    Log.notice("senseDigital::setProperty: Setting Digital sensor property for %s, property Id %d, property value %s" CR, sensSysName, p_propertyId, p_propertyValue);
+    Log.INFO("senseDigital::setProperty: Setting Digital sensor property for %s, property Id %d, property value %s" CR, sensSysName, p_propertyId, p_propertyValue);
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }
 
 rc_t senseDigital::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
-    Log.notice("senseDigital::getProperty: Not supported" CR);
+    Log.INFO("senseDigital::getProperty: Not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }

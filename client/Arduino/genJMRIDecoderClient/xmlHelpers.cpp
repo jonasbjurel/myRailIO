@@ -37,23 +37,44 @@
 /*==============================================================================================================================================*/
 void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xmlTxtBuff[], int len) {
     int i;
+    bool found = false;
+    bool foundTags[256] = { false };
     while (xmlNode != NULL) {
         for (i = 0; i < len; i++) {
-            if (!strcmp(tags[i], xmlNode->Name())) {
-                if (xmlNode->GetText() != NULL) {
-                    if (xmlTxtBuff[i] != NULL) {
-                        delete xmlTxtBuff[i];
-                    }
-                    xmlTxtBuff[i] = new char[strlen(xmlNode->GetText()) + 1];
-                    strcpy(xmlTxtBuff[i], xmlNode->GetText());
-                }
-                break;
+            found = false;
+            if (!tags[i]) {
+                Serial.printf("### Search-tag %i is NULL\n", i);
+                foundTags[i] = true;
             }
+            else {
+                Serial.printf("Search-tag: \"%s\", xml-tag: \"%s\"\n", tags[i], xmlNode->Name());
+                if (!strcmp(tags[i], xmlNode->Name())) {
+                    if (xmlNode->GetText() != NULL) {
+                        Log.VERBOSE("getTagTxt: XML search match, tag: \"%s\", value: \"%s\"" CR, xmlNode->Name(), xmlNode->GetText());
+                        found = true;
+                        foundTags[i] = true;
+                        if (xmlTxtBuff[i])
+                            delete xmlTxtBuff[i];
+                        xmlTxtBuff[i] = new char[strlen(xmlNode->GetText()) + 1];
+                        strcpy(xmlTxtBuff[i], xmlNode->GetText());
+                    }
+                    else {
+                        Log.ERROR("getTagTxt: XML search match, tag: \"%s\", but with a NULL value" CR, xmlNode->Name());
+                    }
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            Log.VERBOSE("getTagTxt: XML tag: \"%s\" present, but was not searched for" CR, xmlNode->Name());
         }
         xmlNode = xmlNode->NextSiblingElement();
     }
+    for (uint8_t j=0; j < len; j++) {
+        if (!foundTags[j])
+            Log.ERROR("getTagTxt: XML tag: \"%s\" was searched for, but not found" CR, tags[j]);
+    }
 }
-
 /*==============================================================================================================================================*/
 /* END xmlHelpers                                                                                                                               */
 /*==============================================================================================================================================*/

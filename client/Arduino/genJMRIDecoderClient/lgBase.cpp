@@ -35,24 +35,32 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-uint16_t lgBase::lgIndex = 0;
 
-lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this), globalCli(LG_MO_NAME, LG_MO_NAME, lgIndex) {
-    lgIndex++;
+//lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this), globalCli(LG_MO_NAME, LG_MO_NAME, lgIndex) {
+lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this) {
     lgLinkHandle = (lgLink*)p_lgLinkHandle;
     lgAddress = p_lgAddress;
     lgLinkHandle->getLink(&lgLinkNo);
-    Log.notice("lgBase::lgBase: Creating lgBase stem-object for lg address %d, on lgLink %d" CR, p_lgAddress, lgLinkNo);
+    Log.INFO("lgBase::lgBase: Creating lgBase stem-object for lg address %d, on lgLink %d" CR, p_lgAddress, lgLinkNo);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNAVAILABLE);
     lgBaseLock = xSemaphoreCreateMutex();
     if (lgBaseLock == NULL)
-        panic("lgBase::lgBase: Could not create Lock objects - rebooting...");
+        panic("lgBase::lgBase: Could not create Lock objects - rebooting..." CR);
+    xmlconfig[XML_LG_SYSNAME] = NULL;
+    xmlconfig[XML_LG_USRNAME] = NULL;
+    xmlconfig[XML_LG_DESC] = NULL;
+    xmlconfig[XML_LG_LINKADDR] = NULL;
+    xmlconfig[XML_LG_TYPE] = NULL;
+    xmlconfig[XML_LG_PROPERTY1] = NULL;
+    xmlconfig[XML_LG_PROPERTY2] = NULL;
+    xmlconfig[XML_LG_PROPERTY3] = NULL;
     debug = false;
     stripOffset = 0;
 
-    /* CLI decoration definitions*/
+    //CLI decoration definitions
     // get/set address
+/*
     regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, onCliGetAddressHelper);
     regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_GET_LGADDR_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, onCliSetAddressHelper);
@@ -81,95 +89,115 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(this),
     regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_GET_LGSHOWING_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
     regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_SET_LGSHOWING_HELP_TXT);
+    */
 }
 
 lgBase::~lgBase(void) {
-    panic("lgBase::~lgBase: lgBase destructior not supported - rebooting...");
+    panic("lgBase::~lgBase: lgBase destructior not supported - rebooting..." CR);
 }
 
 rc_t lgBase::init(void) {
-    Log.notice("lgBase::init: Initializing stem-object for lg-address %d, on lgLink %d" CR, lgAddress, lgLinkNo);
+    Log.INFO("lgBase::init: Initializing stem-object for lg-address %d, on lgLink %d" CR, lgAddress, lgLinkNo);
     return RC_OK;
 }
 
 void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     if (!(systemState::getOpState() & OP_UNCONFIGURED))
-        panic("lgBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported rebooting...");
-    Log.notice("lgBase::onConfig: lg-address %d, on lgLink %d received an unverified configuration, parsing and validating it...", lgAddress, lgLinkNo);
-    xmlconfig[XML_LG_SYSNAME] = NULL;
-    xmlconfig[XML_LG_USRNAME] = NULL;
-    xmlconfig[XML_LG_DESC] = NULL;
-    xmlconfig[XML_LG_LINKADDR] = NULL;
-    xmlconfig[XML_LG_TYPE] = NULL;
-    xmlconfig[XML_LG_SUBTYPE] = NULL;
-    xmlconfig[XML_LG_PROPERTIES] = NULL;
-    const char* lgSearchTags[7];
-    lgSearchTags[XML_LG_SYSNAME] = "SystemName";
-    lgSearchTags[XML_LG_USRNAME] = "UserName";
-    lgSearchTags[XML_LG_DESC] = "Description";
+        panic("lgBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported rebooting..." CR);
+    Log.INFO("lgBase::onConfig: lg-address %d, on lgLink %d received an unverified configuration, parsing and validating it..." CR, lgAddress, lgLinkNo);
+
+    //PARSING CONFIGURATION
+    const char* lgSearchTags[8];
+    lgSearchTags[XML_LG_SYSNAME] = "JMRISystemName";
+    lgSearchTags[XML_LG_USRNAME] = "JMRIUserName";
+    lgSearchTags[XML_LG_DESC] = "JMRIDescription";
     lgSearchTags[XML_LG_LINKADDR] = "LinkAddress";
     lgSearchTags[XML_LG_TYPE] = "Type";
-    lgSearchTags[XML_LG_SUBTYPE] = "SubType";
-    lgSearchTags[XML_LG_PROPERTIES] = "Properties";
-    getTagTxt(p_lgXmlElement, lgSearchTags, xmlconfig, sizeof(lgSearchTags) / 4); // Need to fix the addressing for portability
+    lgSearchTags[XML_LG_PROPERTY1] = "Property1";
+    lgSearchTags[XML_LG_PROPERTY2] = "Property2";
+    lgSearchTags[XML_LG_PROPERTY3] = "Property3";
+    getTagTxt(p_lgXmlElement->FirstChildElement(), lgSearchTags, xmlconfig, sizeof(lgSearchTags) / 4); // Need to fix the addressing for portability
+
+    //VALIDATING AND SETTING OF CONFIGURATION
     if (!xmlconfig[XML_LG_SYSNAME])
-        panic("lgBase::onConfig: System Name missing for lg %s - rebooting...");
-    if (!xmlconfig[XML_LG_USRNAME])
-        panic("lgBase::onConfig: User name missing for lg %s - rebooting...");
-    if (!xmlconfig[XML_LG_DESC])
-        panic("lgBase::onConfig: Description missing for lg %s - rebooting...");
+        panic("lgBase::onConfig: System Name missing for lg-address %d, on lgLink %d - rebooting..." CR, lgAddress, lgLinkNo);
+    if (!xmlconfig[XML_LG_USRNAME]){
+        Log.WARN("lgBase::onConfig: User name was not provided - using \"%s-UserName\"" CR);
+        xmlconfig[XML_LG_USRNAME] = new char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
+        const char* usrName[2] = { xmlconfig[XML_LG_SYSNAME], "- UserName" };
+        strcpy(xmlconfig[XML_LG_USRNAME], concatStr(usrName, 2));
+    }
+    if (!xmlconfig[XML_LG_DESC]) {
+        Log.WARN("lgBase::onConfig: Description was not provided - using \"-\"" CR);
+        xmlconfig[XML_LG_DESC] = new char[2];
+        strcpy(xmlconfig[XML_LG_DESC], "-");
+        }
     if (!xmlconfig[XML_LG_LINKADDR])
-        panic("lgBase::onConfig: Address missing for lg %s - rebooting...");
-    if (!xmlconfig[XML_LG_TYPE])
-        panic("lgBase::onConfig: Type missing for lg %s - rebooting...");
+        panic("lgBase::onConfig: Link address missing for lg-Systemname: %, lg-address %d, on lgLink %d - rebooting..." CR, xmlconfig[XML_LG_SYSNAME], lgAddress, lgLinkNo);
     if (atoi((const char*)xmlconfig[XML_LG_LINKADDR]) != lgAddress)
-        panic("lgBase::onConfig: lg address inconsistant for lg %s- rebooting...");
-    Log.notice("lgBase::onConfig: Configuring lg %s with the follwing configuration" CR, xmlconfig[XML_LG_SYSNAME]);
-    Log.notice("lgBase::onConfig: System name: %s" CR, xmlconfig[XML_LG_SYSNAME]);
-    Log.notice("lgBase::onConfig: User name:" CR, xmlconfig[XML_LG_USRNAME]);
-    Log.notice("lgBase::onConfig: Description: %s" CR, xmlconfig[XML_LG_DESC]);
-    Log.notice("lgBase::onConfig: Type: %s" CR, xmlconfig[XML_LG_TYPE]);
-    Log.notice("lgBase::onConfig: Properties: %s" CR, xmlconfig[XML_LG_PROPERTIES]);
-    if (xmlconfig[XML_LG_PROPERTIES])
-        Log.notice("lgBase::onConfig: lg type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_LG_PROPERTIES]);
+        panic("lgBase::onConfig: provided lgLinkAddress inconsistant with the constructor provided address - rebooting..." CR);
+    if (!xmlconfig[XML_LG_TYPE])
+        panic("lgBase::onConfig: lgType missing for lg-Systemname: %, lg-address %d, on lgLink %d - rebooting..." CR, xmlconfig[XML_LG_SYSNAME], lgAddress, lgLinkNo);
+
+    //SHOW FINAL CONFIGURATION
+    Log.INFO("lgBase::onConfig: Configuring lg %s with the follwing configuration" CR, xmlconfig[XML_LG_SYSNAME]);
+    Log.INFO("lgBase::onConfig: System name: %s" CR, xmlconfig[XML_LG_SYSNAME]);
+    Log.INFO("lgBase::onConfig: User name %s:" CR, xmlconfig[XML_LG_USRNAME]);
+    Log.INFO("lgBase::onConfig: Description: %s" CR, xmlconfig[XML_LG_DESC]);
+    Log.INFO("lgBase::onConfig: Type: %s" CR, xmlconfig[XML_LG_TYPE]);
+     if (xmlconfig[XML_LG_PROPERTY1])
+        Log.INFO("lgBase::onConfig: lg type specific \"property1\" provided with value %s, will be passed to the LG extention class object" CR, xmlconfig[XML_LG_PROPERTY1]);
+    if (xmlconfig[XML_LG_PROPERTY2])
+        Log.INFO("lgBase::onConfig: lg type specific \"property2\" provided with value %s, will be passed to the LG extention class object" CR, xmlconfig[XML_LG_PROPERTY2]);
+    if (xmlconfig[XML_LG_PROPERTY3])
+        Log.INFO("lgBase::onConfig: lg type specific \"property3\" provided with value %s, will be passed to the LG extention class object" CR, xmlconfig[XML_LG_PROPERTY3]);
+
+    //CONFIFIGURING STEM OBJECT WITH PROPERTIES
     if (!strcmp((const char*)xmlconfig[XML_LG_TYPE], "SIGNAL MAST")) {
-            Log.notice("lgBase::onConfig: lg-type is Signal mast - programing act-stem object by creating an lgSignalMast extention class object" CR);
+            Log.INFO("lgBase::onConfig: lg-type is Signal mast - programing act-stem object by creating an lgSignalMast extention class object" CR);
             extentionLgClassObj = (void*) new lgSignalMast(this);
         }
     else
-        panic("lgBase::onConfig: lg type not supported");
+        panic("lgBase::onConfig: lg type not supported" CR);
+
     LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], init());
     if (EXT_RC)
-        panic("lgBase::onConfig: Failed to initialize Lg extention object - Rebooting...");
-    if (xmlconfig[XML_LG_PROPERTIES]) {
-        Log.notice("lgBase::onConfig: Configuring the lg base stem-object - Lg Adress: %d, Lg Link %d, Lg System Name %s: with properties" CR, lgAddress, lgLinkNo, xmlconfig[XML_LG_SYSNAME]);
-        LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onConfig(((tinyxml2::XMLElement*) p_lgXmlElement)->FirstChildElement("Properties")));
+        panic("lgBase::onConfig: Failed to initialize Lg extention object - Rebooting..." CR);
+    if (xmlconfig[XML_LG_PROPERTY1] || xmlconfig[XML_LG_PROPERTY2] || xmlconfig[XML_LG_PROPERTY3]) {
+        tinyxml2::XMLDocument propertiesXmlDoc;                 //TEMPORARY FIX, the XML API shall eventually be fixed
+        propertiesXmlDoc.NewElement("properties");
+        tinyxml2::XMLElement* propertiesXmlElement = propertiesXmlDoc.RootElement();
+        propertiesXmlElement->InsertNewChildElement("property1")->SetText(xmlconfig[XML_LG_PROPERTY1]);
+        propertiesXmlElement->InsertNewChildElement("property2")->SetText(xmlconfig[XML_LG_PROPERTY2]);
+        propertiesXmlElement->InsertNewChildElement("property3")->SetText(xmlconfig[XML_LG_PROPERTY3]);
+        Log.INFO("lgBase::onConfig: Configuring the lg base stem-object - Lg Adress: %d, Lg Link %d, Lg System Name %s: with properties" CR, lgAddress, lgLinkNo, xmlconfig[XML_LG_SYSNAME]);
+        LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onConfig(propertiesXmlElement));
     }
     else
-        Log.notice("lgBase::onConfig: No properties provided for base stem-object" CR);
+        Log.INFO("lgBase::onConfig: No properties provided for base stem-object" CR);
     unSetOpState(OP_UNCONFIGURED);
-    Log.notice("lgBase::onConfig: Configuration successfully finished" CR);
+    Log.INFO("lgBase::onConfig: Configuration successfully finished" CR);
 }
 
 rc_t lgBase::start(void) {
-    Log.notice("lgBase::start: Starting lg address %d on lgLink %d" CR, lgAddress, lgLinkNo);
+    Log.INFO("lgBase::start: Starting lg address %d on lgLink %d" CR, lgAddress, lgLinkNo);
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.notice("lgBase::start: lg address %d on lgLink %d not configured - will not start it" CR, lgAddress, lgLinkNo);
+        Log.INFO("lgBase::start: lg address %d on lgLink %d not configured - will not start it" CR, lgAddress, lgLinkNo);
         setOpState(OP_UNUSED);
         unSetOpState(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
-    Log.notice("lgBase::start: lg address %d on lgLink %d  - starting extention class" CR, lgAddress, lgLinkNo);
+    Log.INFO("lgBase::start: lg address %d on lgLink %d  - starting extention class" CR, lgAddress, lgLinkNo);
     LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], start());
     if (EXT_RC)
-        panic("lgBase::onConfig: Failed to start Light group");
-    Log.notice("lgBase::start: Subscribing to adm- and op state topics");
+        panic("lgBase::onConfig: Failed to start Light group" CR);
+    Log.INFO("lgBase::start: Subscribing to adm- and op state topics" CR);
     const char* admSubscribeTopic[5] = { MQTT_LG_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]};
     if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), onAdmStateChangeHelper, this))
-        panic("lgBase::start: Failed to suscribe to admState topic - rebooting...");
+        panic("lgBase::start: Failed to suscribe to admState topic - rebooting..." CR);
     const char* opSubscribeTopic[5] = { MQTT_LG_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]};
     if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
-        panic("lgBase::start: Failed to suscribe to opState topic - rebooting...");
+        panic("lgBase::start: Failed to suscribe to opState topic - rebooting..." CR);
     wdt::wdtRegLgFailsafe(wdtKickedHelper, this);
 }
 
@@ -181,13 +209,13 @@ void lgBase::onSysStateChange(uint16_t p_sysState) {
     if (!(p_sysState & OP_UNCONFIGURED)){
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(p_sysState));
         if (p_sysState & OP_INTFAIL && p_sysState & OP_INIT)
-            Log.notice("lgBase::onSysStateChange: lg address %d on lgLink %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, lgAddress, lgLinkNo);
+            Log.INFO("lgBase::onSysStateChange: lg address %d on lgLink %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, lgAddress, lgLinkNo);
         else if (p_sysState & OP_INTFAIL)
-            panic("lgBase::onSysStateChange: lg has experienced an internal error - rebooting...");
+            panic("lgBase::onSysStateChange: lg has experienced an internal error - rebooting..." CR);
         if (p_sysState)
-            Log.notice("lgBase::onSysStateChange: lg address %d on lgLink %d has received Opstate %b - doing nothing" CR, lgAddress, lgLinkNo);
+            Log.INFO("lgBase::onSysStateChange: lg address %d on lgLink %d has received Opstate %b - doing nothing" CR, lgAddress, lgLinkNo);
         else
-            Log.notice("lgBase::onSysStateChange: lg address %d on lgLink %d has received a cleared Opstate - doing nothing" CR, lgAddress, lgLinkNo);
+            Log.INFO("lgBase::onSysStateChange: lg address %d on lgLink %d has received a cleared Opstate - doing nothing" CR, lgAddress, lgLinkNo);
     }
 }
 
@@ -198,11 +226,11 @@ void lgBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, c
 void lgBase::onOpStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_OP_AVAIL_PAYLOAD)) {
         unSetOpState(OP_UNAVAILABLE);
-        Log.notice("lgBase::onOpStateChange: lg address %d on lgLink %d got available message from server: %s" CR, lgAddress, lgLinkNo, p_payload);
+        Log.INFO("lgBase::onOpStateChange: lg address %d on lgLink %d got available message from server: %s" CR, lgAddress, lgLinkNo, p_payload);
     }
     else if (!strcmp(p_payload, MQTT_OP_UNAVAIL_PAYLOAD)) {
         setOpState(OP_UNAVAILABLE);
-        Log.notice("lgBase::onOpStateChange: lg address %d on lgLink %d got unavailable message from server %s" CR, lgAddress, lgLinkNo, p_payload);
+        Log.INFO("lgBase::onOpStateChange: lg address %d on lgLink %d got unavailable message from server %s" CR, lgAddress, lgLinkNo, p_payload);
     }
     else
         Log.ERROR("lgBase::onOpStateChange: lg address %d on lgLink %d got an invalid availability message from server %s - doing nothing" CR, lgAddress, lgLinkNo, p_payload);
@@ -215,11 +243,11 @@ void lgBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, 
 void lgBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         unSetOpState(OP_DISABLED);
-        Log.notice("lgBase::onAdmStateChange: lg address %d on lgLink %d got online message from server %s" CR, lgAddress, lgLinkNo, p_payload);
+        Log.INFO("lgBase::onAdmStateChange: lg address %d on lgLink %d got online message from server %s" CR, lgAddress, lgLinkNo, p_payload);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpState(OP_DISABLED);
-        Log.notice("lgBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, lgAddress, lgLinkNo, p_payload);
+        Log.INFO("lgBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, lgAddress, lgLinkNo, p_payload);
     }
     else
         Log.ERROR("lgBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, lgAddress, lgLinkNo, p_payload);
@@ -238,12 +266,16 @@ rc_t lgBase::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {
+    if (!debug && !p_force) {
+        Log.ERROR("lgBase::setSystemName: cannot set System name as debug is inactive" CR);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
     Log.ERROR("lgBase::setSystemName: cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-rc_t lgBase::getSystemName(const char* p_systemName) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+rc_t lgBase::getSystemName(char* p_systemName, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getSystemName: cannot get System name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -252,79 +284,74 @@ rc_t lgBase::getSystemName(const char* p_systemName) {
 }
 
 rc_t lgBase::setUsrName(const char* p_usrName, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         Log.ERROR("lgBase::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.ERROR("lgBase::setUsrName: cannot set System name as lg is not configured" CR);
-        return RC_NOT_CONFIGURED_ERR;
-    }
-    else {
-        Log.notice("lgBase::setUsrName: Setting User name to %s" CR, p_usrName);
-        delete (char*)xmlconfig[XML_LG_USRNAME];
-        xmlconfig[XML_LG_USRNAME] = createNcpystr(p_usrName);
-        return RC_OK;
-    }
+    Log.INFO("lgBase::setUsrName: Setting User name to %s" CR, p_usrName);
+    delete (char*)xmlconfig[XML_LG_USRNAME];
+    xmlconfig[XML_LG_USRNAME] = createNcpystr(p_usrName);
+    return RC_OK;
 }
 
-rc_t lgBase::getUsrName(const char* p_userName) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+rc_t lgBase::getUsrName(char* p_userName, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getUsrName: cannot get User name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
-    p_userName = xmlconfig[XML_LG_USRNAME];
+    strcpy(p_userName, xmlconfig[XML_LG_USRNAME]);
     return RC_OK;
 }
 
 rc_t lgBase::setDesc(const char* p_description, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         Log.ERROR("lgBase::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.ERROR("lgBase::setDesc: cannot set Description as lg is not configured" CR);
-        return RC_NOT_CONFIGURED_ERR;
-    }
-    else {
-        Log.notice("lgBase::setDesc: Setting Description to %s" CR, p_description);
+        Log.INFO("lgBase::setDesc: Setting Description to %s" CR, p_description);
         delete xmlconfig[XML_LG_DESC];
         xmlconfig[XML_LG_DESC] = createNcpystr(p_description);
         return RC_OK;
-    }
 }
 
-rc_t lgBase::getDesc(const char* p_desc) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+rc_t lgBase::getDesc(char* p_desc, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getDesc: cannot get Description as lg is not configured" CR);
-        p_desc = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
-    p_desc = xmlconfig[XML_LG_DESC];
+    strcpy(p_desc, xmlconfig[XML_LG_DESC]);
     return RC_OK;
 }
 
-rc_t lgBase::setAddress(uint8_t p_address) {
-    Log.ERROR("lgBase::setPort: cannot set port - not supported" CR);
+rc_t lgBase::setAddress(uint8_t p_address, bool p_force) {
+    if (!debug && !p_force) {
+        Log.ERROR("lgBase::setAddress: cannot set Address as debug is inactive" CR);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    Log.ERROR("lgBase::setPort: cannot set Address - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-rc_t lgBase::getAddress(uint8_t* p_address) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.ERROR("lgBase::getPort: cannot get port as lg is not configured" CR);
+rc_t lgBase::getAddress(uint8_t* p_address, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+        Log.ERROR("lgBase::getAddress: cannot get Description as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     *p_address = lgAddress;
     return RC_OK;
 }
 
-rc_t lgBase::setNoOffLeds(uint8_t p_noOfLeds){
+rc_t lgBase::setNoOffLeds(uint8_t p_noOfLeds, bool p_force){
+    if (!debug && !p_force) {
+        Log.ERROR("lgBase::setNoOffLeds: cannot set number of leds as debug is inactive" CR);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
     Log.ERROR("lgBase::NoOfLeds: cannot set number of leds - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getNoOffLeds: cannot get lg number of Leds as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -333,7 +360,7 @@ rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds) {
 }
 
 rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         Log.ERROR("lgBase::setProperty: cannot set lg property as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -345,8 +372,8 @@ rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool
     return EXT_RC;
 }
 
-rc_t lgBase::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+rc_t lgBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getProperty: cannot get port as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -354,12 +381,22 @@ rc_t lgBase::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
     return EXT_RC;
 }
 
-void lgBase::setShowing(const char* p_showing) {
+rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
+    if (!debug && !p_force) {
+        Log.ERROR("lgBase::setShowing: cannot set showing as debug is inactive" CR);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
     LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], setShowing(p_showing));
+    return RC_OK;
 }
 
-void lgBase::getShowing(const char* p_showing) {
+rc_t lgBase::getShowing(char* p_showing, bool p_force) {
+    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+        Log.ERROR("lgBase::getShowing: cannot get showing as lg is not configured" CR);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getShowing(p_showing));
+    return RC_OK;
 }
 
 void lgBase::setDebug(const bool p_debug) {
@@ -380,6 +417,7 @@ uint16_t lgBase::getStripOffset(void) {
 }
 
 /* CLI decoration methods*/
+/*
 void lgBase::onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
@@ -527,6 +565,7 @@ void lgBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
     static_cast<lgBase*>(p_cliContext)->getShowing(cmd.getArgument(1).getValue().c_str());
     acceptedCliCommand(CLI_TERM_ORDERED);
 }
+*/
 
 /*==============================================================================================================================================*/
 /* END Class lgBase                                                                                                                             */

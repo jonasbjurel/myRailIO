@@ -549,7 +549,7 @@ def getAdmStateStr(admState):
 # 		<ServerURI>lightcontroller1.bjurel.com</ServerURI>
 # 		<ClientURL>lightcontroller1.bjurel.com</ClientURL>
 # 		<NTPServer>pool.ntp.org</NTPServer>
-# 		<TIMEZONE>+1</TIMEZONE>
+# 		<TimeZoneGmtOffset>+1</TimeZoneGmtOffset>
 # 		<RSyslogServer>jmri.bjurel.com</RSyslogServer>
 # 		<LogLevel>INFO</LogLevel>
 # 	</Top>
@@ -668,7 +668,7 @@ class topDeoderCordidinator:
                     "Version": OPTSTR,
                     "Date": OPTSTR,
                     "NTPServer": OPTSTR,
-                    "TIMEZONE": OPTINT,
+                    "TimeZoneGmtOffset": OPTINT,
                     "RSyslogServer": OPTSTR,
                     "LogLevel": OPTSTR,
                     "PowerOffAtFault" : OPTSTR,
@@ -681,7 +681,7 @@ class topDeoderCordidinator:
             if topDecoderXmlConfig.get("Version") != None: topDeoderCordidinator.xmlVersion = topDecoderXmlConfig.get("Version")
             if topDecoderXmlConfig.get("Date") != None: topDeoderCordidinator.xmlDate = topDecoderXmlConfig.get("Date")
             if topDecoderXmlConfig.get("NTPServer") != None: topDeoderCordidinator.NTPServer = topDecoderXmlConfig.get("NTPServer")
-            if topDecoderXmlConfig.get("TIMEZONE") != None: topDeoderCordidinator.TimeZone = str(topDecoderXmlConfig.get("TIMEZONE"))
+            if topDecoderXmlConfig.get("TimeZoneGmtOffset") != None: topDeoderCordidinator.TimeZone = str(topDecoderXmlConfig.get("TimeZoneGmtOffset"))
             if topDecoderXmlConfig.get("RsyslogReceiver") != None: topDeoderCordidinator.RsyslogReceiver = topDecoderXmlConfig.get("RsyslogReceiver")
             if topDecoderXmlConfig.get("LogLevel") != None:
                 topDeoderCordidinator.logLevelStr = topDecoderXmlConfig.get("LogLevel")

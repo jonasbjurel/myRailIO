@@ -40,9 +40,9 @@ void panic(const char* fmt, ...) {
     va_start(args, fmt);
     vsnprintf(msg, len + 1, fmt, args);
     va_end(args);
-    Log.fatal(msg);
+    Log.fatal("%s\n", msg);
 //    decoderHandle->setOpState(OP_INTFAIL);
-    Log.INFO("panic: Waiting 5 seconds before restaritng - enabling spool-out of syslog, fail-safe settings, etc\n");
+    Log.fatal("panic: Waiting 5 seconds before restaritng - enabling spool-out of syslog, fail-safe settings, etc\n");
     TimerHandle_t rebootTimer;
     rebootTimer = xTimerCreate("rebootTimer",                       // Just a text name, not used by the kernel.
         (5000 / portTICK_PERIOD_MS),                                // The timer period in ticks.

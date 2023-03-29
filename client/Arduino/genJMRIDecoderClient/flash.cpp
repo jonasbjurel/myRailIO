@@ -46,7 +46,7 @@ flash::flash(float p_freq, uint8_t p_duty) {
     }
     flashData->onTime = uint32_t((float)(1 / (float)p_freq) * (float)((float)p_duty / 100) * 1000000);
     flashData->offTime = uint32_t((float)(1 / (float)p_freq) * (float)((100 - (float)p_duty) / 100) * 1000000);
-    Log.notice("flash::flash: Creating flash object %d with flash frequency %d Hz and dutycycle %d" CR, this, p_freq, p_duty);
+    Log.INFO("flash::flash: Creating flash object %i with flash frequency %f Hz and dutycycle %i" CR, this, p_freq, p_duty); //DOES NOT PRINT DATA CORRECTLY
     flashData->flashState = true;
     if (!(flashLock = xSemaphoreCreateMutex()))
         panic("flash::flash: Could not create Lock objects - rebooting...");
@@ -74,7 +74,7 @@ flash::~flash(void) {
 }
 
 rc_t flash::subscribe(flashCallback_t p_callback, void* p_args) {
-    Log.notice("flash::subcribe: Subscribing to flash object %d with callback %d" CR, this, p_callback);
+    Log.INFO("flash::subcribe: Subscribing to flash object %d with callback %d" CR, this, p_callback);
     callbackSub_t* newCallbackSub = new callbackSub_t;
     xSemaphoreTake(flashLock, portMAX_DELAY);
     flashData->callbackSubs.push_back(newCallbackSub);
@@ -120,7 +120,8 @@ void flash::flashLoop(void) {
     int64_t  thisLoopTime;
     uint16_t latencyIndex = 0;
     uint32_t latency = 0;
-    Log.notice("flash::flashLoop: Starting flash object %d" CR, this);
+    flashData->flashState = false;
+    Log.INFO("flash::flashLoop: Starting flash object %d" CR, this);
     while (true) {
         thisLoopTime = nextLoopTime;
         if (flashData->flashState) {
@@ -144,12 +145,12 @@ void flash::flashLoop(void) {
             maxLatency = latency;
         }
         xSemaphoreGive(flashLock);
-        TickType_t delay;
-        if ((int)(delay = nextLoopTime - esp_timer_get_time()) > 0) {
+        uint64_t delay = nextLoopTime - esp_timer_get_time();
+        if ((int)delay > 0) {
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
-            Log.VERBOSE("flash::flashLoop: Flash object %d overrun" CR, this);
+            Log.VERBOSE("flash::flashLoop: Flash object %d overrun - %i uS" CR, this, - delay);
             xSemaphoreTake(flashLock, portMAX_DELAY);
             overRuns++;
             xSemaphoreGive(flashLock);

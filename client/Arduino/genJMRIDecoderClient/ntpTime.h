@@ -106,6 +106,7 @@ class ntpTime {                                                                 
     static rc_t addNtpServer(const char* p_ntpServerName, uint16_t p_port = 123);       //Add an NTP server with an URL to the list of NTP servers to synchronize with
     static rc_t deleteNtpServer(IPAddress p_ntpServerAddr);                             //Delete an NTP server with an IP-Address from the list of NTP servers to synchronize with
     static rc_t deleteNtpServer(const char* p_ntpServerName);                           //Delete an NTP server with an URL from the list of NTP servers to synchronize with
+    static rc_t deleteNtpServer(void);                                                  //Delete an NTP server with an URL from the list of NTP servers to synchronize with
     static rc_t getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_ntpServerHost); // Get the NTP server reccord for the NTP server with the given IP-Address
     static rc_t getNtpServer(const char* p_ntpServerName, ntpServerHost_t* p_ntpServerHost);//Get the NTP server reccord for the NTP server with the given URL
     static rc_t getNtpServers(QList<ntpServerHost_t*>** p_ntpServerHosts);              //Get the list of all defined NTP server reccords

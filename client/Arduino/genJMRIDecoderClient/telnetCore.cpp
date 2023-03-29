@@ -47,7 +47,7 @@ char telnetCore::ip[20];
 wdt* telnetCore::telnetWdt;
 
 rc_t telnetCore::start(void) {
-	Log.notice("telnetCore::start: Starting Telnet" CR);
+	Log.INFO("telnetCore::start: Starting Telnet" CR);
 	connections = 0;
 	telnet.onConnect(onTelnetConnect);
 	telnet.onConnectionAttempt(onTelnetConnectionAttempt);
@@ -59,7 +59,7 @@ rc_t telnetCore::start(void) {
 		onTelnetInput(str);
 		});
 	if (telnet.begin()) {
-		Log.notice("decoderCli::init: CLI started" CR);
+		Log.INFO("decoderCli::init: CLI started" CR);
 		if (xTaskCreatePinnedToCore(
 			poll,																		// Task function
 			CPU_TELNET_TASKNAME,														// Task function name reference
@@ -89,7 +89,7 @@ void telnetCore::regTelnetConnectCb(telnetConnectCb_t p_telnetConnectCb,
 }
 
 void telnetCore::onTelnetConnect(String p_ip) {
-	Log.notice("telnetCore::onTelnetConnect: CLI connected from: %s" CR, p_ip);
+	Log.INFO("telnetCore::onTelnetConnect: CLI connected from: %s" CR, p_ip);
 	connections++;
 	strcpy(ip, p_ip.c_str());
 	if (telnetConnectCb)
@@ -97,7 +97,7 @@ void telnetCore::onTelnetConnect(String p_ip) {
 }
 
 void telnetCore::onTelnetDisconnect(String p_ip) {
-	Log.notice("decoderCli::onTelnetDisconnect: CLI disconnected from: %s" CR, p_ip);
+	Log.INFO("decoderCli::onTelnetDisconnect: CLI disconnected from: %s" CR, p_ip);
 	connections--;
 	strcpy(ip, "");
 	if (telnetConnectCb)
@@ -105,14 +105,14 @@ void telnetCore::onTelnetDisconnect(String p_ip) {
 }
 
 void telnetCore::onTelnetReconnect(String p_ip) {
-	Log.notice("decoderCli::onTelnetReconnect: CLI reconnected from: %s" CR, p_ip);
+	Log.INFO("decoderCli::onTelnetReconnect: CLI reconnected from: %s" CR, p_ip);
 	strcpy(ip, p_ip.c_str());
 	if (telnetConnectCb)
 		telnetConnectCb(p_ip.c_str(), true, telnetConnectCbMetaData);
 }
 
 void telnetCore::onTelnetConnectionAttempt(String p_ip) {
-	Log.notice("decoderCli::onTelnetConnectionAttempt: \
+	Log.INFO("decoderCli::onTelnetConnectionAttempt: \
 			    CLI connection failed from: %s" CR, p_ip);
 }
 
@@ -134,7 +134,7 @@ void telnetCore::print(const char* p_output) {
 }
 
 void telnetCore::poll(void* dummy) {
-	Log.notice("telnetServer::poll: telnet polling started" CR);
+	Log.INFO("telnetServer::poll: telnet polling started" CR);
 	telnetWdt = new wdt(10 * 1000, "Telnet watchdog",
 						FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
 	while (true) {

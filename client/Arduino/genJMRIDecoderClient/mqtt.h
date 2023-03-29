@@ -45,6 +45,8 @@
 #include "config.h"
 #include "mqttTopics.h"
 #include "wdt.h"
+//DEBUG
+#include "cpu.h"
 
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -109,7 +111,7 @@ public:
     static const char* getClientId(void);
     static rc_t setDefaultQoS(uint8_t p_defaultQoS);
     static uint8_t getDefaultQoS(void);
-    static rc_t setKeepAlive(float p_keepAlive);
+    static rc_t setKeepAlive(uint8_t p_keepAlive);
     static float getKeepAlive(void);
     static rc_t setPingPeriod(float p_pingPeriod);
     static float getPingPeriod(void);
@@ -143,7 +145,7 @@ private:
     static void* systemStateCbArgs;
     static SemaphoreHandle_t mqttLock;
     static WiFiClient espClient;
-    static PubSubClient mqttClient;
+    static PubSubClient* mqttClient;
     static uint32_t overRuns;
     static uint32_t maxLatency;
     static uint16_t avgSamples;

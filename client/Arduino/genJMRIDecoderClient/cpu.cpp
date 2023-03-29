@@ -146,7 +146,7 @@ void cpu::cpuPmCollect(void* dummy) {
 			secondCount++;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
-	Log.notice("cpu::cpuPmCollect: CPU PM ordered to be stopped, killing the pm collection task");
+	Log.INFO("cpu::cpuPmCollect: CPU PM ordered to be stopped, killing the pm collection task");
 	cpuPmLogging = false;
 	vTaskDelete(NULL);
 }

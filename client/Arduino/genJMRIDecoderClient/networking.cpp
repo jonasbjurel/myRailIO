@@ -73,8 +73,12 @@ void networking::provisioningConfigTrigger(void) {
 }
 
 void networking::start(void) {
-    Log.notice("networking::start: Starting networking service" CR);
+    Serial.printf("networking1: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    Log.INFO("networking::start: Starting networking service" CR);
     regWifiOpStateCallback(wifiWd, NULL);
+    Serial.printf("networking2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFiWdTimerArgs.arg = NULL;
     WiFiWdTimerArgs.callback = static_cast<esp_timer_cb_t>
                                                (&networking::wifiWdTimeout);
@@ -82,13 +86,27 @@ void networking::start(void) {
     WiFiWdTimerArgs.name = "WiFi WD timer";
     if (esp_timer_create(&WiFiWdTimerArgs, &WiFiWdTimerHandle))
         panic("networking::start: Could not initialize WiFi watch-dog timer" CR);
+    Serial.printf("networking2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     setOpState(WIFI_OP_INIT | WIFI_OP_DISCONNECTED | WIFI_OP_NOIP | WIFI_OP_UNCONFIG);
+    Serial.printf("networking2.1: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking2.1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     if (!getAps(NULL))
         panic("networking::start: No WiFi networks found - cannot continue, "
               "rebooting..." CR);
+    Serial.printf("networking2.2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking2.2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    Serial.printf("networking3: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFi.useStaticBuffers(true);
+    Serial.printf("networking3.1: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking3.1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFi.onEvent(&WiFiEvent);
+    Serial.printf("networking3.2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking3.2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFi.mode(WIFI_MODE_STA);
+    Serial.printf("networking4: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("networking4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
 
     if (!(provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET)) {
         if (recoverPersistantConfig(&networkConfig) || setNetworkConfig(&networkConfig))
@@ -118,7 +136,7 @@ void networking::start(void) {
         wifiManager.setConfigPortalTimeoutCallback(configurePortalConnectTimeoutCb);
 
         if (provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET) {
-            Log.notice("networking::start: Config button was hold down for more "
+            Log.INFO("networking::start: Config button was hold down for more "
                        "than 30 seconds or file system was not available - "
                        "formatting filesystem, resetting to factory default settings "
                        "and starting provisioning AP, "
@@ -132,7 +150,7 @@ void networking::start(void) {
             getNetworkConfig(&networkConfig);
         }
         else if (provisionAction | PROVISION_DEFAULT_FROM_FILE) {
-            Log.notice("networking::start: Config button was hold down for more than "
+            Log.INFO("networking::start: Config button was hold down for more than "
                         "5 seconds or restart escalation - starting provisioning AP, "
                         "connect to SSID: %s_%s and navigate to http://%s to configure "
                         "the device" CR, WIFI_MGR_AP_NAME_PREFIX, getMac(),
@@ -154,16 +172,20 @@ void networking::start(void) {
         sprintf(apSsid, "%s_%s", WIFI_MGR_AP_NAME_PREFIX, getMac());
         wifiManager.startConfigPortal(apSsid);
         wifiManager.stopConfigPortal();
-        Log.notice("networking::start: Starting the runtime web-portal" CR);
+        Log.INFO("networking::start: Starting the runtime web-portal" CR);
     }
     else {
+        Serial.printf("networking5: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("networking5: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         setNetworkConfig(&networkConfig);
         getNetworkConfig(&networkConfig);
         unSetOpState(WIFI_OP_UNCONFIG);
-        Log.notice("networking::start: A valid networking configuration was found "
+        Log.INFO("networking::start: A valid networking configuration was found "
                    "- starting the networking service, connecting to SSID: %s" CR,
                    getSsid());
         WiFi.begin();
+        Serial.printf("networking6: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("networking6: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     }
 }
 
@@ -222,40 +244,56 @@ void networking::unRegWifiProvisionCallback(const wifiProvisionCallback_t p_call
 }
 
 uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
+    Serial.printf("getAps1: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("getAps1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     uint16_t networks = 0;
     networks = WiFi.scanNetworks();
+    Serial.printf("getAps2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("getAps2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     if (networks)
-        Log.notice("networking::getAps: %i WiFi networks were found" CR, networks);
+        Log.INFO("networking::getAps: %i WiFi networks were found" CR, networks);
     else {
-        Log.notice("networking::getAps: No WiFi networks were found:" CR, networks);
+        Log.INFO("networking::getAps: No WiFi networks were found:" CR, networks);
         return 0;
     }
+    Serial.printf("getAps3: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("getAps3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    char apPrintOut[300];
     if (p_printOut) {
         Log.INFO("networking::getAps: Following networks were found:" CR);
-        Log.INFO("%*s | %*s | %*s | %*s | %*s" CR,
-                      -30, "SSID:", -20, "BSSID:", 
-                      -10, "RSSI:", -10, "Channel:", -20, "Encryption:");
+        sprintf(apPrintOut, "%*s | %*s | %*s | %*s | %*s |",
+                             -30, "SSID:", -20, "BSSID:", 
+                             -10, "RSSI:", -10, "Channel:", -20, "Encryption:");
+        Log.info("%s" CR, apPrintOut);
     }
+    Serial.printf("getAps4: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("getAps4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     for (int i = 0; i < networks; i++) {
+        Serial.printf("getAps5: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("getAps5: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         apStruct_t* apInfo = new apStruct_t;
         strcpy(apInfo->ssid, WiFi.SSID(i).c_str());
         apInfo->rssi = WiFi.RSSI(i);
         apInfo->channel = WiFi.channel(i);
         sprintf(apInfo->bssid, "%s", WiFi.BSSIDstr(i).c_str());
         strcpy(apInfo->encryption, getEncryptionStr(WiFi.encryptionType(i)));
+        Serial.printf("getAps6: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("getAps6: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         if (p_printOut){
-            Log.INFO("%*s | %*s | %*s | %*s | %*s" CR,
-                          -30, "-", -20, "-", -10, "-",
-                          -10, "-", -20, "-");
-            Log.INFO("%*s | %*i | %*i | %*i | %*s" CR,
-                          -30, apInfo->ssid, -20, apInfo->bssid, -10, apInfo->rssi,
-                          -10, apInfo->channel, -20, apInfo->encryption);
+            sprintf(apPrintOut, "%*s | %*i | %*i | %*i | %*s |",
+                                 -30, apInfo->ssid, -20, apInfo->bssid,
+                                 -10, apInfo->rssi, -10, apInfo->channel, -20, apInfo->encryption);
+            Log.INFO("%s" CR, apPrintOut);
         }
+        Serial.printf("getAps7: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("getAps7: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         if (p_apList)
             p_apList->push_back(apInfo);
         else
             delete apInfo;
         vTaskDelay(100 / portTICK_PERIOD_MS);
+        Serial.printf("getAps8: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("getAps8: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     }
     return networks;
 }
@@ -615,37 +653,37 @@ char* networking::getEncryptionStr(wifi_auth_mode_t p_wifi_auth_mode) {
 void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
     switch (p_event) {
     case ARDUINO_EVENT_WIFI_READY:
-        Log.notice("networking::WiFiEvent: WiFi service ready" CR);
+        Log.INFO("networking::WiFiEvent: WiFi service ready" CR);
         break;
     case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        Log.notice("networking::WiFiEvent: WiFi APs have been scanned" CR);
+        Log.INFO("networking::WiFiEvent: WiFi APs have been scanned" CR);
         break;
     case SYSTEM_EVENT_STA_START:
-        Log.notice("networking::WiFiEvent: Station Mode Started" CR);
+        Log.INFO("networking::WiFiEvent: Station Mode Started" CR);
         unSetOpState(WIFI_OP_INIT);
         break;
     case SYSTEM_EVENT_STA_STOP:
-        Log.notice("networking::WiFiEvent: Station Mode Stoped" CR);
+        Log.INFO("networking::WiFiEvent: Station Mode Stoped" CR);
         setOpState(WIFI_OP_INIT);
         break;
     case SYSTEM_EVENT_STA_CONNECTED:
         unSetOpState(WIFI_OP_INIT | WIFI_OP_DISCONNECTED);                                  //Sometimes the start event is missing for unknown reasons
-        Log.notice("networking::WiFiEvent: Station connected to AP-SSID: %s, "
+        Log.INFO("networking::WiFiEvent: Station connected to AP-SSID: %s, "
                    "channel: %d, RSSI: %d" CR, getSsid(), getChannel(), getRssi());
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
         setOpState(WIFI_OP_DISCONNECTED);
-        Log.notice("networking::WiFiEvent: Station disconnected from AP-SSID: %s, "
+        Log.INFO("networking::WiFiEvent: Station disconnected from AP-SSID: %s, "
                    "attempting reconnection" CR, getSsid());
         WiFi.reconnect();
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        Log.notice("networking::WiFiEvent: Authentication mode changed to: %s"
+        Log.INFO("networking::WiFiEvent: Authentication mode changed to: %s"
                    CR, getAuth());
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
         unSetOpState(WIFI_OP_NOIP);
-        Log.notice("networking::WiFiEvent: Station got IP-address:%s, Mask: %s, \n"
+        Log.INFO("networking::WiFiEvent: Station got IP-address:%s, Mask: %s, \n"
                     "Gateway: %s, DNS: %s, Hostname: %s" CR,
                     getIpAddr().toString().c_str(), getIpMask().toString().c_str(),
                     getGatewayIpAddr().toString().c_str(),
@@ -658,37 +696,37 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
         WiFi.reconnect();
         break;
     case ARDUINO_EVENT_WPS_ER_SUCCESS:
-        Log.notice("networking::WiFiEvent: Station WPS success" CR);
+        Log.INFO("networking::WiFiEvent: Station WPS success" CR);
         break;
     case ARDUINO_EVENT_WPS_ER_FAILED:
-        Log.notice("networking::WiFiEvent: Station WPS failed" CR);
+        Log.INFO("networking::WiFiEvent: Station WPS failed" CR);
         break;
     case ARDUINO_EVENT_WPS_ER_TIMEOUT:
-        Log.notice("networking::WiFiEvent: Station WPS timeout" CR);
+        Log.INFO("networking::WiFiEvent: Station WPS timeout" CR);
         break;
     case ARDUINO_EVENT_WPS_ER_PIN:
-        Log.notice("networking::WiFiEvent: Station WPS PIN failure" CR);
+        Log.INFO("networking::WiFiEvent: Station WPS PIN failure" CR);
         break;
     case ARDUINO_EVENT_WIFI_AP_START:
-        Log.notice("networking::WiFiEvent: AP started with SSID %s, "
+        Log.INFO("networking::WiFiEvent: AP started with SSID %s, "
                    "IP address: %s" CR, WiFi.softAPSSID().c_str(),
                    WiFi.softAPIP().toString().c_str());
         break;
     case ARDUINO_EVENT_WIFI_AP_STOP:
-        Log.notice("networking::WiFiEvent: AP stoped" CR);
+        Log.INFO("networking::WiFiEvent: AP stoped" CR);
         break;
     case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
-        Log.notice("networking::WiFiEvent: A Client connected to the AP" CR);
+        Log.INFO("networking::WiFiEvent: A Client connected to the AP" CR);
         break;
     case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
-        Log.notice("networking::WiFiEvent: A Client disconnected from the AP" CR);
+        Log.INFO("networking::WiFiEvent: A Client disconnected from the AP" CR);
         break;
     case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
-        Log.notice("networking::WiFiEvent: The AP asigned an IP address to "
+        Log.INFO("networking::WiFiEvent: The AP asigned an IP address to "
                    "a client" CR);
         break;
     case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
-        Log.notice("networking::WiFiEvent: The AP received a probe request" CR);
+        Log.INFO("networking::WiFiEvent: The AP received a probe request" CR);
         break;
     default:
         Log.ERROR("networking::WiFiEvent: Received a non recognized WIFI event: %i"
@@ -708,7 +746,7 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
 }
 
 void networking::configModeCb(WiFiManager* p_WiFiManager) {
-    Log.notice("networking::configModeCb: genJMRIdecoder provisioning manager "
+    Log.INFO("networking::configModeCb: genJMRIdecoder provisioning manager "
                "started - SSID: %s, IP address %s" CR,
                wifiManager.getConfigPortalSSID().c_str(), WiFi.softAPIP().toString().c_str());
     for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
@@ -720,7 +758,7 @@ void networking::configModeCb(WiFiManager* p_WiFiManager) {
 }
 
 void networking::preSaveConfigCb() {
-    Log.notice("networking::preSaveConfigCb: genJMRIdecoder provisioning manager "
+    Log.INFO("networking::preSaveConfigCb: genJMRIdecoder provisioning manager "
                "parameters are about to be saved, creating a backup of the configuration" CR);
     memcpy(&networkConfigBackup, &networkConfig, sizeof(networkConfig));
     for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
@@ -758,7 +796,7 @@ void networking::saveConfigCb() {
         Log.ERROR("networking::saveConfigCb: Could not peristantly store "
                     "configuration" CR);
     else
-        Log.notice("networking::saveConfigCb: Configuration peristantly stored" CR);
+        Log.INFO("networking::saveConfigCb: Configuration peristantly stored" CR);
     for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
         Log.VERBOSE("networking::saveConfigCb: Calling callback function: 0x%x" CR,
                     wifiProvisionCallbackList.at(i)->cb);

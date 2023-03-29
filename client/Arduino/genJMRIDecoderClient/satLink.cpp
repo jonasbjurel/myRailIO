@@ -39,7 +39,7 @@
 uint16_t satLink::satLinkIndex = 0;
 
 satLink::satLink(uint8_t p_linkNo) : systemState(this), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, satLinkIndex) {
-    Log.notice("satLink::satLink: Creating Satelite link channel %d" CR, p_linkNo);
+    Log.INFO("satLink::satLink: Creating Satelite link channel %d" CR, p_linkNo);
     satLinkIndex++;
     linkNo = p_linkNo;
     regSysStateCb(this, &onSysStateChangeHelper);
@@ -109,8 +109,8 @@ satLink::~satLink(void) {
 }
 
 rc_t satLink::init(void) {
-    Log.notice("satLink::init: Initializing Satelite link channel %d" CR, linkNo);
-    Log.notice("satLink::init: Creating satelites for link channel %d" CR, linkNo);
+    Log.INFO("satLink::init: Initializing Satelite link channel %d" CR, linkNo);
+    Log.INFO("satLink::init: Creating satelites for link channel %d" CR, linkNo);
     for (uint8_t satAddress = 0; satAddress < MAX_SATELITES; satAddress++) {
         sats[satAddress] = new sat(satAddress, this);
     if (sats[satAddress] == NULL)
@@ -144,7 +144,7 @@ rc_t satLink::init(void) {
 void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
     if (!(systemState::getOpState() & OP_UNCONFIGURED))
         panic("satLink:onConfig: satLink channel received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
-    Log.notice("satLink::onConfig: satLink channel %d received an uverified configuration, parsing and validating it..." CR, linkNo);
+    Log.INFO("satLink::onConfig: satLink channel %d received an uverified configuration, parsing and validating it..." CR, linkNo);
     xmlconfig[XML_SATLINK_SYSNAME] = NULL;
     xmlconfig[XML_SATLINK_USRNAME] = NULL;
     xmlconfig[XML_SATLINK_DESC] = NULL;
@@ -165,12 +165,12 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
         panic("satLink::onConfig: Link missing - rebooting...");
     if (atoi(xmlconfig[XML_SATLINK_LINK]) != linkNo)
         panic("satLink::onConfig: Link no inconsistant - rebooting...");
-    Log.notice("satLink::onConfig: System name: %s" CR, xmlconfig[XML_SATLINK_SYSNAME]);
-    Log.notice("satLink::onConfig: User name:" CR, xmlconfig[XML_SATLINK_USRNAME]);
-    Log.notice("satLink::onConfig: Description: %s" CR, xmlconfig[XML_SATLINK_DESC]);
-    Log.notice("satLink::onConfig: Link: %s" CR, xmlconfig[XML_SATLINK_LINK]);
-    Log.notice("satLink::onConfig: Creating and configuring signal mast aspect description object");
-    Log.notice("satLink::onConfig: Configuring Satelites");
+    Log.INFO("satLink::onConfig: System name: %s" CR, xmlconfig[XML_SATLINK_SYSNAME]);
+    Log.INFO("satLink::onConfig: User name:" CR, xmlconfig[XML_SATLINK_USRNAME]);
+    Log.INFO("satLink::onConfig: Description: %s" CR, xmlconfig[XML_SATLINK_DESC]);
+    Log.INFO("satLink::onConfig: Link: %s" CR, xmlconfig[XML_SATLINK_LINK]);
+    Log.INFO("satLink::onConfig: Creating and configuring signal mast aspect description object");
+    Log.INFO("satLink::onConfig: Configuring Satelites");
     tinyxml2::XMLElement* satXmlElement;
     satXmlElement = p_satLinkXmlElement->FirstChildElement("Satelite");
     const char* satSearchTags[8];
@@ -189,18 +189,18 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
         satXmlElement = p_satLinkXmlElement->NextSiblingElement("Satelite");
     }
     unSetOpState(OP_UNCONFIGURED);
-    Log.notice("satLink::onConfig: Configuration successfully finished" CR);
+    Log.INFO("satLink::onConfig: Configuration successfully finished" CR);
 }
 
 rc_t satLink::start(void) {
-    Log.notice("satLink::start: Starting Satelite link: %d" CR, linkNo);
+    Log.INFO("satLink::start: Starting Satelite link: %d" CR, linkNo);
     if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.notice("satLink::start: Satelite Link %d not configured - will not start it" CR, linkNo);
+        Log.INFO("satLink::start: Satelite Link %d not configured - will not start it" CR, linkNo);
         setOpState(OP_UNUSED);
         unSetOpState(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
-    Log.notice("satLink::start: Subscribing to adm- and op state topics");
+    Log.INFO("satLink::start: Subscribing to adm- and op state topics");
     const char* admSubscribeTopic[5] = { MQTT_SATLINK_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName()};
     if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), &onAdmStateChangeHelper, this))
         panic("satLink::start: Failed to suscribe to admState topic - rebooting...");
@@ -223,7 +223,7 @@ rc_t satLink::start(void) {
         NULL,                                                                           // Task handle
         ((linkNo % MAX_SATELITES) ? CPU_SATLINK_PM_CORE[0] : CPU_SATLINK_PM_CORE[1]));    // Core [CORE_0 | CORE_1]
     unSetOpState(OP_INIT);
-    Log.notice("lgLink::start: lightgroups link %d and all its lightgroupDecoders have started" CR, linkNo);
+    Log.INFO("lgLink::start: lightgroups link %d and all its lightgroupDecoders have started" CR, linkNo);
     return RC_OK;
 }
 
@@ -236,7 +236,7 @@ void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t 
 void satLink::pmPollHelper(void* metaData_p) {
     uint8_t link;
     ((satLink*)metaData_p)->getLink(&link);
-    Log.notice("satLink::pmPollHelper: Starting PM polling for satLink %d" CR, link);
+    Log.INFO("satLink::pmPollHelper: Starting PM polling for satLink %d" CR, link);
     int64_t  nextLoopTime = esp_timer_get_time();
     int64_t  thisLoopTime;
     TickType_t delay;
@@ -302,13 +302,13 @@ void satLink::onSysStateChangeHelper(const void* p_satLinkHandle, uint16_t p_sys
 
 void satLink::onSysStateChange(uint16_t p_sysState) {
     if (p_sysState & OP_INTFAIL && p_sysState & OP_INIT)
-        Log.notice("satLink::onSystateChange: satelite link %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, linkNo);
+        Log.INFO("satLink::onSystateChange: satelite link %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, linkNo);
     else if (p_sysState & OP_INTFAIL)
         panic("satLink::onSystateChange: satelite link has experienced an internal error - rebooting...");
     if (p_sysState)
-        Log.notice("satLink::onSystateChange: satelite link %d has received Opstate %b - doing nothing" CR, linkNo, p_sysState);
+        Log.INFO("satLink::onSystateChange: satelite link %d has received Opstate %b - doing nothing" CR, linkNo, p_sysState);
     else
-        Log.notice("lgLink::onSystateChange: satelite link %d has received a cleared Opstate - doing nothing" CR, linkNo);
+        Log.INFO("lgLink::onSystateChange: satelite link %d has received a cleared Opstate - doing nothing" CR, linkNo);
 }
 
 void satLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject) {
@@ -318,11 +318,11 @@ void satLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, 
 void satLink::onOpStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_OP_AVAIL_PAYLOAD)) {
         unSetOpState(OP_UNAVAILABLE);
-        Log.notice("satLink::onOpStateChange: got available message from server" CR);
+        Log.INFO("satLink::onOpStateChange: got available message from server" CR);
     }
     else if (!strcmp(p_payload, MQTT_OP_UNAVAIL_PAYLOAD)) {
         setOpState(OP_UNAVAILABLE);
-        Log.notice("satLink::onOpStateChange: got unavailable message from server" CR);
+        Log.INFO("satLink::onOpStateChange: got unavailable message from server" CR);
     }
     else
         Log.ERROR("satLink::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
@@ -335,11 +335,11 @@ void satLink::onAdmStateChangeHelper(const char* p_topic, const char* p_payload,
 void satLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         unSetOpState(OP_DISABLED);
-        Log.notice("satLink::onAdmStateChange: got online message from server" CR);
+        Log.INFO("satLink::onAdmStateChange: got online message from server" CR);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpState(OP_DISABLED);
-        Log.notice("satLink::onAdmStateChange: got off-line message from server" CR);
+        Log.INFO("satLink::onAdmStateChange: got off-line message from server" CR);
     }
     else
         Log.ERROR("satLink::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
@@ -372,7 +372,7 @@ rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.notice("satLink::setUsrName: Setting User name to %s" CR, p_usrName);
+        Log.INFO("satLink::setUsrName: Setting User name to %s" CR, p_usrName);
         delete xmlconfig[XML_SATLINK_USRNAME];
         xmlconfig[XML_SATLINK_USRNAME] = createNcpystr(p_usrName);
         return RC_OK;
@@ -397,7 +397,7 @@ rc_t satLink::setDesc(const char* p_description, const bool p_force) {
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.notice("satLink::setDesc: Setting Description to %s" CR, p_description);
+        Log.INFO("satLink::setDesc: Setting Description to %s" CR, p_description);
         delete xmlconfig[XML_SATLINK_DESC];
         xmlconfig[XML_SATLINK_DESC] = createNcpystr(p_description);
         return RC_OK;

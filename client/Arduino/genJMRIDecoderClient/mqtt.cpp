@@ -42,7 +42,7 @@ sysStateCb_t mqtt::systemStateCb = NULL;
 void* mqtt::systemStateCbArgs = NULL;
 SemaphoreHandle_t mqtt::mqttLock = NULL;
 WiFiClient mqtt::espClient;
-PubSubClient mqtt::mqttClient;
+PubSubClient* mqtt::mqttClient;
 uint32_t mqtt::overRuns = 0;
 uint32_t mqtt::maxLatency = 0;
 uint16_t mqtt::avgSamples = 0;
@@ -74,7 +74,7 @@ wdt* mqtt::mqttWdt = NULL;
 
 // Public methods
 void mqtt::create(void) {
-    Log.notice("mqtt::create: Creating MQTT client" CR);
+    Log.INFO("mqtt::create: Creating MQTT client" CR);
     sysState = new systemState((const void*)NULL);
     sysState->regSysStateCb(NULL, &onOpStateChange);
     sysState->setOpState(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNAVAILABLE);
@@ -82,7 +82,7 @@ void mqtt::create(void) {
 }
 
 rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
-    Log.notice("mqtt::init: Initializing and starting MQTT client" CR);
+    Log.INFO("mqtt::init: Initializing and starting MQTT client, BrokerURI: %s, BrokerPort: %i, User: %s, Password: %s, ClientId: %s" CR, p_brokerUri, p_brokerPort, p_brokerUser, p_brokerPass, p_clientId);
     mqttWdt = new wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     missedPings = 0;
     opStateTopicSet = false;
@@ -100,23 +100,32 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     defaultRetain = p_defaultRetain;
     avgSamples = int(MQTT_POLL_LATENCY_AVG_TIME_MS * 1000 / MQTT_POLL_PERIOD_MS);
     latencyVect = new uint32_t[avgSamples];
-    mqttClient.setServer(brokerUri, brokerPort);
-    mqttClient.setKeepAlive(keepAlive);
-    mqttStatus = mqttClient.state();
-    if (!mqttClient.setBufferSize(MQTT_BUFF_SIZE)) {
+    mqttClient = new PubSubClient(espClient);
+    mqttClient->setServer(brokerUri, brokerPort);
+    mqttClient->setKeepAlive(keepAlive);
+    mqttStatus = mqttClient->state();
+    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
+    Serial.printf("Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    Serial.printf("MaxMemBlock: %i\n", cpu::getMaxAllocMemBlockSize());
+    uint8_t* ptr = (uint8_t*)malloc((size_t)MQTT_BUFF_SIZE);
+    uint8_t* newPtr = (uint8_t*)realloc(ptr, (size_t)MQTT_BUFF_SIZE);
+    if (!mqttClient->setBufferSize(MQTT_BUFF_SIZE)) {
         sysState->setOpState(OP_INTFAIL);
         panic("mqtt::init: Could not allocate MQTT buffers - rebooting...");
         return RC_OUT_OF_MEM_ERR;
     }
-    mqttClient.setCallback(&onMqttMsg);
-    mqttClient.connect(clientId,
+    mqttClient->setCallback(&onMqttMsg);
+    /*
+    mqttClient->connect(clientId,
                        brokerUser,
                        brokerPass);
-    mqttStatus = mqttClient.state();
+    mqttStatus = mqttClient->state();
     if (statusCallback != NULL) {
         statusCallback(mqttStatus, statusCallbackArgs);
     }
-    Log.notice("mqtt::init: Spawning MQTT poll task" CR);
+    */
+    Log.INFO("mqtt::init: Spawning MQTT poll task" CR);
     xTaskCreatePinnedToCore(poll,                               // Task function
                             CPU_MQTT_POLL_TASKNAME,             // Task function name reference
                             CPU_MQTT_POLL_STACKSIZE_1K * 1024,  // Stack size
@@ -125,14 +134,15 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
                             NULL,                               // Task handle
                             CPU_MQTT_POLL_CORE);                // Core [CORE_0 | CORE_1]
 
+    Log.INFO("mqtt::init: Waiting for MQTT client to connect (I.e. opState ~OP_DISCONNECTED)..." CR);
     while (true) {
-        Log.notice("mqtt::init: Waiting for opState to become OP_WORKING..." CR);
-        if (getOpState() == OP_WORKING) {
+        if (!(getOpState() & OP_DISCONNECTED)) {
             break;
         }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
-    Log.notice("mqtt::init: Starting discovery process..." CR);
+    Log.INFO("mqtt::init: MQTT client successfully connected (I.e. opState ~OP_DISCONNECTED)..." CR);
+    Log.INFO("mqtt::init: Starting discovery process..." CR);
     discover();
     uint8_t tries = 0;
     while (true) {
@@ -147,7 +157,7 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
             return RC_DISCOVERY_ERR;
         }
     }
-    Log.notice("mqtt::init: Decoder successfully discovered; URI: %s" CR, decoderUri);
+    Log.INFO("mqtt::init: Decoder successfully discovered; URI: %s" CR, decoderUri);
     if (statusCallback != NULL) {
         statusCallback(mqttStatus, statusCallbackArgs);
     }
@@ -168,29 +178,23 @@ rc_t mqtt::regStatusCallback(const mqttStatusCallback_t p_statusCallback, const 
 }
 
 rc_t mqtt::reConnect(void){
-    Log.notice("mqtt::reConnect: Re-connecting MQTT Client");
-    mqttClient.disconnect();
-    mqttClient.setServer(brokerUri, brokerPort);
-    mqttClient.setKeepAlive(keepAlive);
-    mqttClient.connect(clientId,                                //Should we let poll establish the initial connection? A little bit more thinking?
-        brokerUser,
-        brokerPass);
+    Log.INFO("mqtt::reConnect: Re-connecting MQTT Client" CR);
+    mqttClient->disconnect();
+    mqttClient->setServer(brokerUri, brokerPort);
+    mqttClient->setKeepAlive(keepAlive);
     uint8_t tries = 0;
-    while (sysState->getOpState() != OP_WORKING) {
-        if (tries++ >= 100) {
-            panic("mqtt::reConnect: Failed to reconnect MQTT client");
+    while (sysState->getOpState() & OP_DISCONNECTED) {
+        if (tries++ >= 10) {
+            Log.ERROR("mqtt::reConnect: Failed to reconnect MQTT client, will continue to try in the background...");
             return RC_GEN_ERR;
         }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
-    if (reSubscribe()) {
-        panic("mqtt::reConnect: Could not re-subscribe to topics - rebooting...");
-    }
-    Log.notice("mqtt::reConnect: MQTT Client reconnected");
+    Log.INFO("mqtt::reConnect: MQTT Client reconnected" CR);
 }
 
 void mqtt::disConnect(void) {
-    mqttClient.disconnect();
+    mqttClient->disconnect();
 }
 
 rc_t mqtt::up(void) {
@@ -198,7 +202,7 @@ rc_t mqtt::up(void) {
         Log.WARN("mqtt::up, could not declare MQTT up as opState is OP_DISCONNECTED");
         return RC_GEN_ERR;
     }
-    Log.notice("mqtt::up: Starting MQTT ping supervision" CR);
+    Log.INFO("mqtt::up: Starting MQTT ping supervision" CR);
     sysState->unSetOpState(OP_DISABLED);
     const char* pingUpstreamTopicStrings[3] = { MQTT_PING_UPSTREAM_TOPIC, "/", decoderUri };
     mqttPingUpstreamTopic = concatStr(pingUpstreamTopicStrings, 3);
@@ -220,7 +224,7 @@ rc_t mqtt::up(void) {
 }
 
 void mqtt::down(void) {
-    Log.notice("mqtt::down, declaring Mqtt client down" CR);
+    Log.INFO("mqtt::down, declaring Mqtt client down" CR);
     sysState->setOpState(OP_DISABLED);
     if (mqttPingHandle){
         sendMsg(opStateTopic, downPayload, true);
@@ -244,7 +248,7 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
         panic("mqtt::subscribeTopic: Could not subscribe to topic as the MQTT client is not running - rebooting...");
         return RC_GEN_ERR;
     }
-    Log.notice("mqtt::subscribeTopic: Subscribing to topic %s" CR, topic);
+    Log.INFO("mqtt::subscribeTopic: Subscribing to topic %s" CR, topic);
     for (i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, topic)) {
             found = true;
@@ -252,6 +256,7 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
         }
     }
     if (!found) {
+        Log.VERBOSE("mqtt::subscribeTopic: Adding new subscription topic %s with related callback" CR, topic);
         mqttTopics.push_back(new(mqttTopic_t));
         mqttTopics.back()->topic = topic;
         mqttTopics.back()->topicList = new QList<mqttSub_t*>;
@@ -259,7 +264,7 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
         mqttTopics.back()->topicList->back()->topic = topic;
         mqttTopics.back()->topicList->back()->mqttSubCallback = p_callback;
         mqttTopics.back()->topicList->back()->mqttCallbackArgs = (void*)p_args;
-        if (!mqttClient.subscribe(topic, defaultQoS)) {
+        if (!mqttClient->subscribe(topic, defaultQoS)) {
             sysState->setOpState(OP_INTFAIL);
             panic("mqtt::subscribeTopic: Could not subscribe to topic from broker - rebooting...");
             return RC_GEN_ERR;
@@ -273,6 +278,7 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
                 return RC_OK;
             }
         }
+        Log.VERBOSE("mqtt::subscribeTopic: Adding new callback to existing topic %s" CR, topic);
         mqttTopics.at(i)->topicList->push_back(new(mqttSub_t));
         mqttTopics.at(i)->topicList->back()->topic = topic;
         mqttTopics.at(i)->topicList->back()->mqttSubCallback = p_callback;
@@ -286,7 +292,7 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
     bool topicFound = false;
     bool cbFound = false;
     char* topic = createNcpystr(p_topic);
-    Log.notice("MQTT-Unsubscribe, Un-subscribing to topic %s" CR, topic);
+    Log.INFO("MQTT-Unsubscribe, Un-subscribing to topic %s" CR, topic);
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, topic)) {
             topicFound = true;
@@ -294,17 +300,17 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
                 if (mqttTopics.at(i)->topicList->at(j)->mqttSubCallback == p_callback) {
                     cbFound = true;
                     mqttTopics.at(i)->topicList->clear(j);
-                    Log.notice("MQTT-Unsubscribe, Removed callback for %s" CR, topic);
+                    Log.INFO("MQTT-Unsubscribe, Removed callback for %s" CR, topic);
                     if (mqttTopics.at(i)->topicList->size() == 0) {
                         delete mqttTopics.at(i)->topicList;
                         delete mqttTopics.at(i)->topic;
                         mqttTopics.clear(i);
-                        if (!mqttClient.unsubscribe(topic)) {
+                        if (!mqttClient->unsubscribe(topic)) {
                             Log.ERROR("mqtt::unSubscribeTopic: could not unsubscribe Topic: %s from broker" CR, topic);
                             delete topic;
                             return RC_GEN_ERR;
                         }
-                        Log.notice("mqtt::unSubscribeTopic: Last callback for %s unsubscribed - unsubscribed Topic from broker" CR, topic);
+                        Log.INFO("mqtt::unSubscribeTopic: Last callback for %s unsubscribed - unsubscribed Topic from broker" CR, topic);
                         delete topic;
                         return RC_OK;
                     }
@@ -326,7 +332,7 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
 }
 
 rc_t mqtt::sendMsg(const char* p_topic, const char* p_payload, bool p_retain) {
-    if (!mqttClient.publish(p_topic, p_payload, p_retain)) {
+    if (!mqttClient->publish(p_topic, p_payload, p_retain)) {
         Log.ERROR("mqtt::sendMsg: could not send message, topic: %s, payload: %s" CR, p_topic, p_payload);
         return RC_GEN_ERR;
     }
@@ -429,7 +435,7 @@ uint8_t mqtt::getDefaultQoS(void) {
     return defaultQoS;
 }
 
-rc_t mqtt::setKeepAlive(float p_keepAlive) {
+rc_t mqtt::setKeepAlive(uint8_t p_keepAlive) {
     if (p_keepAlive < 0 || p_keepAlive > 600)
         return RC_PARAMETERVALUE_ERR;
     keepAlive = p_keepAlive;
@@ -474,14 +480,14 @@ void mqtt::discover(void) {
 
 void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const void* p_dummy) {
     if (discovered) {
-        Log.notice("mqtt::discover: Discovery response receied several times - doing nothing ..." CR);
+        Log.INFO("mqtt::discover: Discovery response receied several times - doing nothing ..." CR);
         return;
     }
-    Log.notice("mqtt::discover: Got a discover response, parsing and validating it..." CR);
+    Log.INFO("mqtt::discover: Got a discover response, parsing and validating it..." CR);
     tinyxml2::XMLDocument* xmlDiscoveryDoc;
     xmlDiscoveryDoc = new tinyxml2::XMLDocument;
     tinyxml2::XMLElement* xmlDiscoveryElement;
-    Log.notice("mqtt::onDiscoverResponse: Parsing discovery response: %s" CR, p_payload);
+    Log.INFO("mqtt::onDiscoverResponse: Parsing discovery response: %s" CR, p_payload);
     if (xmlDiscoveryDoc->Parse(p_payload) || (xmlDiscoveryElement = xmlDiscoveryDoc->FirstChildElement("DiscoveryResponse")) == NULL) {
         sysState->setOpState(OP_INTFAIL);
         panic("mqtt::discover: Discovery response parsing or validation failed - Rebooting...");
@@ -501,20 +507,20 @@ void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const 
         panic("mqtt::discover: Discovery response doesn't provide any information about this decoder (MAC) - rebooting...");
     }
     discovered = true;
-    Log.notice("mqtt::discover: Discovery response successful, set URI to %s for this decoders MAC %s" CR, decoderUri, networking::getMac());
+    Log.INFO("mqtt::discover: Discovery response successful, set URI to %s for this decoders MAC %s" CR, decoderUri, networking::getMac());
     sysState->unSetOpState(OP_UNDISCOVERED);
 }
 
 rc_t mqtt::reSubscribe(void) {
-    Log.notice("mqtt::reSubscribe: Resubscribing all registered topics" CR);
+    Log.INFO("mqtt::reSubscribe: Resubscribing all registered topics" CR);
     for (int i = 0; i < mqttTopics.size(); i++) {
-        if (!mqttClient.subscribe(mqttTopics.at(i)->topic, defaultQoS)) {
+        if (!mqttClient->subscribe(mqttTopics.at(i)->topic, defaultQoS)) {
             sysState->setOpState(OP_INTFAIL);
-            panic("mqtt::reSubscribe: Failed to resubscribe topic from broker");
+            panic("mqtt::reSubscribe: Failed to resubscribe topic from broker - rebooting...");
             return RC_GEN_ERR;
         }
     }
-    Log.notice("mqtt::reSubscribe: Successfully resubscribed to all registered topics" CR);
+    Log.INFO("mqtt::reSubscribe: Successfully resubscribed to all registered topics" CR);
     return RC_OK;
 }
 
@@ -587,13 +593,14 @@ void mqtt::poll(void* dummy) {
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
         //esp_task_wdt_reset();
-        mqttClient.loop();
-        stat = mqttClient.state();
+        mqttClient->loop();
+        stat = mqttClient->state();
         switch (stat) {
         case MQTT_CONNECTED:
-            sysState->unSetOpState(OP_DISCONNECTED);
             if (mqttStatus != stat) {
-                Log.notice("mqtt::poll, MQTT connection established - opState set to OP_WORKING" CR);
+                sysState->unSetOpState(OP_DISCONNECTED);
+                //resubscribe
+                Log.INFO("mqtt::poll, MQTT connection established - unsetting opstate OP_DISCONNECTED" CR);
             }
             retryCnt = 0;
             break;
@@ -601,16 +608,17 @@ void mqtt::poll(void* dummy) {
         case MQTT_CONNECTION_LOST:
         case MQTT_CONNECT_FAILED:
         case MQTT_DISCONNECTED:
+            Serial.printf("!!!DISCONNECTED!!!" CR);
             sysState->setOpState(OP_DISCONNECTED);
-            if (retryCnt >= MAX_MQTT_CONNECT_ATTEMPTS) {
+            if (retryCnt++ >= MAX_MQTT_CONNECT_ATTEMPTS) {
                 sysState->setOpState(OP_INTFAIL);
                 panic("mqtt::poll, Max number of MQTT connect/reconnect attempts reached - rebooting...");
                 return;
             }
-            Log.notice("mqtt::poll: Connecting to Mqtt" CR);
+            Log.INFO("mqtt::poll: Connecting to Mqtt" CR);
             if (opStateTopicSet) {
-                Log.notice("mqtt::poll: reconnecting with Last will" CR);
-                mqttClient.connect(clientId,
+                Log.INFO("mqtt::poll: reconnecting with Last will" CR);
+                mqttClient->connect(clientId,
                     brokerUser,
                     brokerPass,
                     opStateTopic,
@@ -619,16 +627,13 @@ void mqtt::poll(void* dummy) {
                     downPayload);
             }
             else {
-                mqttClient.connect(clientId,
+                mqttClient->connect(clientId,
                     brokerUser,
                     brokerPass);
-
             }
-            Log.notice("mqtt::poll: Tried to connect");
             if (mqttStatus != stat) {
                 Log.ERROR("mqtt::poll, MQTT connection not established or lost - opState set to OP_FAIL, cause: %d - retrying..." CR, stat); //This never times out but freezes
             }
-            retryCnt++;
             break;
         case MQTT_CONNECT_BAD_PROTOCOL:
         case MQTT_CONNECT_BAD_CLIENT_ID:
@@ -637,6 +642,7 @@ void mqtt::poll(void* dummy) {
         case MQTT_CONNECT_UNAUTHORIZED:
             sysState->setOpState(OP_INTFAIL);
             panic("mqtt::poll, Fatal MQTT error, one of BAD_PROTOCOL, BAD_CLIENT_ID, UNAVAILABLE, BAD_CREDETIALS, UNOTHORIZED - rebooting...");
+            break;
         }
         if (mqttStatus != stat) {
             mqttStatus = stat;
@@ -652,8 +658,9 @@ void mqtt::poll(void* dummy) {
         if (latency > maxLatency) {
             maxLatency = latency;
         }
-        TickType_t delay;
-        if ((int)(delay = nextLoopTime - esp_timer_get_time()) > 0) {
+        int64_t delay = nextLoopTime - esp_timer_get_time();
+        int64_t now = esp_timer_get_time();
+        if ((int)delay > 0) {
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
@@ -671,7 +678,7 @@ void mqtt::onOpStateChange(const void* p_dummy, uint16_t p_systemState) {
 
 void mqtt::mqttPingTimer(void* dummy) {
     while (!(sysState->getOpState() & OP_DISABLED)) {
-        Log.notice("mqtt::poll: MQTT Ping timer started" CR);
+        Log.INFO("mqtt::poll: MQTT Ping timer started" CR);
         if (sysState->getOpState() == OP_WORKING && pingPeriod != 0) {
             if (++missedPings >= MAX_MQTT_LOST_PINGS) {
                 sysState->setOpState(OP_UNAVAILABLE);

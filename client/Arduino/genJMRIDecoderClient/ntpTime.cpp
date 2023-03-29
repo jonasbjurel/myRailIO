@@ -43,7 +43,9 @@ void ntpTime::init(void) {
 	ntpDescriptor.ntpServerIndexMap = 0;
 	ntpDescriptor.opState = NTP_CLIENT_DISABLED | NTP_CLIENT_NOT_SYNCHRONIZED;
 	ntpDescriptor.dhcp = true;
-	setTz(NTP_DEFAULT_TZ);
+	char defaultTz[20];
+	sprintf(defaultTz, "%s%+.2i", NTP_DEFAULT_TZ_AREA, NTP_DEFAULT_TZ_GMTOFFSET);
+	setTz(defaultTz);
 	ntpDescriptor.syncMode = NTP_DEFAULT_SYNCMODE;
 	ntpDescriptor.syncStatus = SNTP_SYNC_STATUS_RESET;
 	ntpDescriptor.noOfServers = 0;
@@ -202,6 +204,14 @@ rc_t ntpTime::deleteNtpServer(const char* p_ntpServerName) {
 	ntpDescriptor.noOfServers--;
 	updateNtpDescriptorStr(&ntpDescriptor);
 	return RC_OK;
+}
+
+rc_t ntpTime::deleteNtpServer(void) {
+	while (ntpDescriptor.ntpServerHosts.size()) {
+		sntp_setservername(ntpDescriptor.ntpServerHosts.back()->index, NULL);
+		delete ntpDescriptor.ntpServerHosts.back();
+		ntpDescriptor.ntpServerHosts.pop_back();
+	}
 }
 
 rc_t ntpTime::getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_serverStatus) {

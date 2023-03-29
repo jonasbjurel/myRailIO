@@ -94,7 +94,7 @@ cliCore::~cliCore(void) {
 }
 
 void cliCore::regParentContext(const cliCore* p_parentContext) {
-	Log.notice("cliCore::regParentContext: Registing parent context: %s-%i\
+	Log.INFO("cliCore::regParentContext: Registing parent context: %s-%i\
                 to context: %s-%i" CR,
 				((cliCore*)p_parentContext)->getCliContextDescriptor()->contextName,
 				((cliCore*)p_parentContext)->getCliContextDescriptor()->contextIndex,
@@ -104,7 +104,7 @@ void cliCore::regParentContext(const cliCore* p_parentContext) {
 }
 
 void cliCore::unRegParentContext(const cliCore* p_parentContext) {
-	Log.notice("cliCore::unRegParentContext: Un-registing parent context\
+	Log.INFO("cliCore::unRegParentContext: Un-registing parent context\
 			    to context: %s-%i" CR,
 				cliContextDescriptor.contextName,
 				cliContextDescriptor.contextIndex);
@@ -113,7 +113,7 @@ void cliCore::unRegParentContext(const cliCore* p_parentContext) {
 
 void cliCore::regChildContext(const cliCore* p_childContext, const char* p_contextName,
 							  uint16_t p_contextIndex) {
-	Log.notice("cliCore::regChildContext: Registing child context: %s-%i\
+	Log.INFO("cliCore::regChildContext: Registing child context: %s-%i\
 				to context: %s-%i" CR,
 				p_contextName,
 				p_contextIndex,
@@ -126,7 +126,7 @@ void cliCore::regChildContext(const cliCore* p_childContext, const char* p_conte
 }
 
 void cliCore::unRegChildContext(const cliCore* p_childContext) {
-	Log.notice("cliCore::unRegChildContext: Un-registing child context: \
+	Log.INFO("cliCore::unRegChildContext: Un-registing child context: \
 				%s-%i from context: %s-%i" CR,
 				((cliCore*)p_childContext)->getCliContextDescriptor()->contextName,
 				((cliCore*)p_childContext)->getCliContextDescriptor()->contextIndex,
@@ -144,7 +144,7 @@ QList<cliCore*>* cliCore::getChildContexts(cliCore* p_cliContext) {
 }
 
 void cliCore::setContextType(const char* p_contextType) {
-	Log.notice("cliCore::setContextType: Setting context type: %s" CR, p_contextType);
+	Log.INFO("cliCore::setContextType: Setting context type: %s" CR, p_contextType);
 	if (cliContextDescriptor.moType)
 		delete cliContextDescriptor.moType;
 	cliContextDescriptor.moType = createNcpystr(p_contextType);
@@ -155,7 +155,7 @@ const char* cliCore::getContextType(void) {
 }
 
 void cliCore::setContextName(const char* p_contextName) {
-	Log.notice("cliCore::setContextName: Setting context name: %s" CR, p_contextName);
+	Log.INFO("cliCore::setContextName: Setting context name: %s" CR, p_contextName);
 	if (cliContextDescriptor.contextName)
 		delete cliContextDescriptor.contextName;
 	cliContextDescriptor.contextName = createNcpystr(p_contextName);
@@ -166,7 +166,7 @@ const char* cliCore::getContextName(void) {
 }
 
 void cliCore::setContextIndex(uint16_t p_contextIndex) {
-	Log.notice("cliCore::setContextIndex: Setting context index: %i" CR,
+	Log.INFO("cliCore::setContextIndex: Setting context index: %i" CR,
 				p_contextIndex);
 	cliContextDescriptor.contextIndex = p_contextIndex;
 }
@@ -176,7 +176,7 @@ uint16_t cliCore::getContextIndex(void) {
 }
 
 void cliCore::setContextSysName(const char* p_contextSysName) {
-	Log.notice("cliCore::setContextSysName: Setting context sysName: %s" CR,
+	Log.INFO("cliCore::setContextSysName: Setting context sysName: %s" CR,
 				p_contextSysName);
 	cliContextDescriptor.contextSysName = createNcpystr(p_contextSysName);
 }
@@ -198,7 +198,7 @@ void cliCore::setRoot(void) {
 }
 
 void cliCore::start(void) {
-	Log.notice("cliCore::start: Starting Telnet and CLI service" CR);
+	Log.INFO("cliCore::start: Starting Telnet and CLI service" CR);
 	//rootCliContext = new cliCore(ROOT_MO_NAME);
 	//rootCliContext->regChildContext(this, ROOT_MO_NAME, 0);
 	//regParentContext(rootCliContext);
@@ -214,7 +214,7 @@ void cliCore::start(void) {
 }
 
 void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_metaData) {
-	Log.notice("cliCore::onCliConnect: A new CLI seesion from: %s started" CR,
+	Log.INFO("cliCore::onCliConnect: A new CLI seesion from: %s started" CR,
 				p_clientIp);
 	if (clientIp)
 		delete clientIp;
@@ -228,7 +228,7 @@ void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_met
 
 void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {
 	//xSemaphoreTake(cliCoreLock, portMAX_DELAY);
-	Log.notice("cliCore::onRootIngressCmd: A new CLI command received: %s" CR,
+	Log.INFO("cliCore::onRootIngressCmd: A new CLI command received: %s" CR,
 				p_contextCmd);
 	rc_t rc;
 	rc = currentContext->onContextIngressCmd(p_contextCmd, false);
@@ -244,7 +244,7 @@ void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {
 rc_t cliCore::onContextIngressCmd(char* p_contextCmd, bool p_setContext) {
 	currentParsingContext = this;
 	char nextHopContextPathRoute[50];
-	Log.notice("cliCore::onContextIngressCmd: Processing cli context command: %s ´\
+	Log.INFO("cliCore::onContextIngressCmd: Processing cli context command: %s ´\
 				at context: %s-%i" CR,
 		p_contextCmd, cliContextDescriptor.contextName,
 		cliContextDescriptor.contextIndex);
@@ -308,7 +308,7 @@ bool cliCore::parseContextPath(char* p_cmd, char* p_nextHopContextPathRoute) {
 
 rc_t cliCore::contextRoute(char* p_nextHop, char* p_contextCmd, bool p_setContext) {
 	char contextInstance[50];
-	Log.notice("cliCore::contextRoute: Routing CLI command %s from CLI context: \
+	Log.INFO("cliCore::contextRoute: Routing CLI command %s from CLI context: \
 				%s-%i to next hop CLI context:%s" CR, 
 		p_contextCmd,
 		cliContextDescriptor.contextName,

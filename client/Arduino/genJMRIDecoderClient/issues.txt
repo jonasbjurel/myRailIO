@@ -17,3 +17,4 @@ CLI history and line editing														SimpleCLI							C
 CLI auto-completion																	SimpleCLI							D
 NTP DHCP not tested																	ntpTime								B
 Daylightsaving does not show correct												ntpTime								A
+Move debug flag check from MOs to globalCli											MOs + globalCli						A

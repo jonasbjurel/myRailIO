@@ -33,13 +33,14 @@
 
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
-#define MAX_SATLINKS								2
-#define MAX_LGLINKS									2
+#define MAX_SATLINKS								0
+#define MAX_LGLINKS									1
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
 #define NTP_DEFAULT_PORT							123
-#define NTP_DEFAULT_TZ								"CET-1"
+#define NTP_DEFAULT_TZ_AREA							"CET"
+#define NTP_DEFAULT_TZ_GMTOFFSET					+1
 #define NTP_MAX_NTPSERVERS							3
 #define NTP_POLL_PERIOD_S							60
 #define NTP_DEFAULT_SYNCMODE						SNTP_SYNC_MODE_SMOOTH //SNTP_SYNC_MODE_SMOOTH | SNTP_SYNC_MODE_IMMED
@@ -93,7 +94,7 @@
 
 // Light group link configuration
 // ==============================
-#define MAX_LGSTRIPLEN								32
+#define MAX_LGSTRIPLEN								1
 #define STRIP_UPDATE_MS								5					//Lightgoups 2811 strip update periond [ms]
 
 // Light group configuration
@@ -115,43 +116,44 @@
 // ==================
 #define MQTT_DEFAULT_URI							"JMRImqtt.org"
 #define MQTT_DEFAULT_PORT							1883
-#define MQTT_DEFAULT_CLIENT_ID						"Generic JMRI decoder"
+#define MQTT_DEFAULT_CLIENT_ID						"genJMRIDecoder"
 #define MQTT_DEFAULT_QOS							MQTT_QOS_0
-#define MQTT_DEFAULT_KEEP_ALIVE_S					10.0
+#define MQTT_DEFAULT_KEEP_ALIVE_S					60
 #define MQTT_DEFAULT_PINGPERIOD_S					10.0
 #define MAX_MQTT_LOST_PINGS							3
-#define MQTT_BUFF_SIZE								16384
+#define MQTT_BUFF_SIZE								50000
 #define MQTT_POLL_PERIOD_MS							100
 #define MQTT_CONNECT_TIMEOUT_S						60
 #define MAX_MQTT_CONNECT_ATTEMPTS					10
 
 // CPU execution parameters
 // ========================
-// MQTT message polling
+// Set-up task
 #define SETUP_CORE									CORE_1
-#define SETUP_PRIO									16
+#define SETUP_PRIO									5
 #define SETUP_STACKSIZE_1K							6
 #define SETUP_TASKNAME								"setup"
 
+// MQTT message polling
 #define CPU_MQTT_POLL_CORE							CORE_1
-#define CPU_MQTT_POLL_PRIO							16
+#define CPU_MQTT_POLL_PRIO							24
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 
 // MQTT message supervision
 #define CPU_MQTT_PING_CORE							CORE_0
-#define CPU_MQTT_PING_PRIO							16
+#define CPU_MQTT_PING_PRIO							15
 #define CPU_MQTT_PING_STACKSIZE_1K					6
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 
 // Satelit link
 const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
-#define CPU_SATLINK_PRIO							16
+#define CPU_SATLINK_PRIO							15
 #define CPU_SATLINK_STACKSIZE_1K					6
 #define CPU_SATLINK_TASKNAME						"satLink %d"
 
 const uint8_t CPU_SATLINK_PM_CORE[] =				{CORE_0, CORE_1};
-#define CPU_SATLINK_PM_PRIO							8
+#define CPU_SATLINK_PM_PRIO							10
 #define CPU_SATLINK_PM_STACKSIZE_1K					6
 #define CPU_SATLINK_PM_TASKNAME						"satLinkPmPoll %d"
 
@@ -163,19 +165,19 @@ const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 
 // LgLink
 const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
-#define CPU_UPDATE_STRIP_PRIO						16
+#define CPU_UPDATE_STRIP_PRIO						15
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				6
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 
 // Telnet
 #define CPU_TELNET_CORE								CORE_1
-#define CPU_TELNET_PRIO								4
+#define CPU_TELNET_PRIO								5
 #define CPU_TELNET_STACKSIZE_1K						50
 #define CPU_TELNET_TASKNAME							"telnetPoll"
 
 // CPU-PM
 #define CPU_PM_CORE									CORE_1
-#define CPU_PM_PRIO									8
+#define CPU_PM_PRIO									10
 #define CPU_PM_STACKSIZE_1K							6
 #define CPU_PM_TASKNAME								"cpuPm"
 

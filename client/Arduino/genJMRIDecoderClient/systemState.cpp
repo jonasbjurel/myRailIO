@@ -82,7 +82,7 @@ void systemState::setOpState(const uint16_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState | p_opStateMap;
     if (opState != prevOpState) {
-        Log.INFO("systemState::opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, prevOpState, opState, parent);
+        Log.INFO("systemState::opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, parent, prevOpState, opState);
         updateObjOpStates();
     }
 }
@@ -91,7 +91,7 @@ void systemState::unSetOpState(const uint16_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState & ~p_opStateMap;
     if (opState != prevOpState) {
-        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, prevOpState, opState, parent);
+        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, parent, prevOpState, opState);
         updateObjOpStates();
     }
 }

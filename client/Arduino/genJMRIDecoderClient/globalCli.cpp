@@ -331,7 +331,7 @@ void globalCli::regCommonCliMOCmds(void) {
 }
 
 void globalCli::regContextCliMOCmds(void) {
-	Log.notice("globalCli::regContextCliMOCmds: No context unique \
+	Log.INFO("globalCli::regContextCliMOCmds: No context unique \
 				MOs supported for CLI context" CR);
 }
 

@@ -46,7 +46,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__))+"\\..\\rpc\\")
 from genJMRIRpcClient import *
 imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
-imp.load_source('a', '..\\xml\\parseXml.py')
+imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
 
@@ -223,7 +223,7 @@ class topDecoder(systemState, schema):
                                                     "DecoderMqttTopicPrefix": OPTSTR,
                                                     "NTPServer": OPTSTR,
                                                     "NTPPort": OPTINT,
-                                                    "TIMEZONE": OPTINT,
+                                                    "TimeZoneGmtOffset": OPTINT,
                                                     "RSyslogServer": OPTSTR,
                                                     "RSyslogPort" : OPTINT,
                                                     "RSyslogProtocol" : OPTSTR,
@@ -233,7 +233,7 @@ class topDecoder(systemState, schema):
                                                     "SNMPProtocol": OPTSTR,
                                                     "TracksFailSafe" : OPTSTR,
                                                     "DecodersFailSafe" : OPTSTR, 
-                                                    "DecoderKeepalivePeriod" : OPTFLOAT,
+                                                    "DecoderPingPeriod" : OPTFLOAT,
                                                     "JMRIRpcKeepAlivePeriod" : OPTFLOAT,
                                                     "AdminState":OPTSTR
                                                 }
@@ -253,7 +253,7 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("DecoderMqttTopicPrefix") != None: self.decoderMqttTopicPrefix.value = topDecoderXmlConfig.get("DecoderMqttTopicPrefix")
             if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = [topDecoderXmlConfig.get("NTPServer")]
             if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
-            if topDecoderXmlConfig.get("TIMEZONE") != None: self.tz.value = int(topDecoderXmlConfig.get("TIMEZONE"))
+            if topDecoderXmlConfig.get("TimeZoneGmtOffset") != None: self.tz.value = int(topDecoderXmlConfig.get("TimeZoneGmtOffset"))
             if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsyslogUri.value = topDecoderXmlConfig.get("RSyslogServer")
             if topDecoderXmlConfig.get("RSyslogPort") != None: self.rsyslogPort.value = topDecoderXmlConfig.get("RSyslogPort")
             if topDecoderXmlConfig.get("RSyslogProtocol") != None: self.rsyslogProtocol.value = topDecoderXmlConfig.get("RSyslogProtocol")
@@ -287,9 +287,9 @@ class topDecoder(systemState, schema):
             else:
                 trace.notify(DEBUG_INFO, "\"DisableAllDecodersAtFault\" not set, setting it to no")
                 self.decoderFailSafe.value = False
-            if topDecoderXmlConfig.get("DecoderKeepAlivePeriod") != None: 
-                self.decoderMqttKeepalivePeriod.value = float(topDecoderXmlConfig.get("DecoderKeepAlivePeriod"))
-            else: trace.notify(DEBUG_INFO, "\"DecoderKeepAlivePeriod\" not set, using default " + str(DEFAULT_DECODER_KEEPALIVE_PERIOD))
+            if topDecoderXmlConfig.get("DecoderPingPeriod") != None: 
+                self.decoderMqttKeepalivePeriod.value = float(topDecoderXmlConfig.get("DecoderPingPeriod"))
+            else: trace.notify(DEBUG_INFO, "\"DecoderPingPeriod\" not set, using default " + str(DEFAULT_DECODER_KEEPALIVE_PERIOD))
             if topDecoderXmlConfig.get("JMRIRpcKeepAlivePeriod") != None: 
                 self.JMRIRpcKeepAlivePeriod.value = float(topDecoderXmlConfig.get("JMRIRpcKeepAlivePeriod"))
             else: trace.notify(DEBUG_INFO, "\"JMRIRpcKeepAlivePeriod\" not set, using default " + str(DEFAULT_JMRI_RPC_KEEPALIVE_PERIOD))
@@ -484,7 +484,7 @@ class topDecoder(systemState, schema):
             childXml.text = str(self.decoderMqttPort.value)
             childXml = ET.SubElement(topXml, "DecoderMqttTopicPrefix")
             childXml.text = self.decoderMqttTopicPrefix.value
-            childXml = ET.SubElement(topXml, "DecoderKeepAlivePeriod")
+            childXml = ET.SubElement(topXml, "DecoderPingPeriod")
             childXml.text = str(self.decoderMqttKeepalivePeriod.value)
             if not decoder:
                 childXml = ET.SubElement(topXml, "JMRIRPCURI")
@@ -497,7 +497,7 @@ class topDecoder(systemState, schema):
             if self.ntpUri.value: childXml.text = self.ntpUri.value[0]
             childXml = ET.SubElement(topXml, "NTPPort")
             if self.ntpPort.value: childXml.text = str(self.ntpPort.value)
-            childXml = ET.SubElement(topXml, "TIMEZONE")
+            childXml = ET.SubElement(topXml, "TimeZoneGmtOffset")
             if self.tz.value: childXml.text = "%+d" % (self.tz.value)
             if not decoder:
                 childXml = ET.SubElement(topXml, "RSyslogServer")

@@ -40,7 +40,7 @@
 esp_vfs_spiffs_conf_t fileSys::spiffsPartitionConfig;
 
 void fileSys::start(void) {
-    Log.notice("fileSys::start: Trying to mount the first and only fs partition" CR);
+    Log.INFO("fileSys::start: Trying to mount the first and only fs partition" CR);
     spiffsPartitionConfig.partition_label = NULL;
     char fsPath[30];
     strcpy(fsPath, FS_PATH);
@@ -58,11 +58,11 @@ void fileSys::start(void) {
             panic("fileSys::start: Failed to format the filesystem partition, "
                   "the flash may be weared or otherwise broken, rebooting..." CR);
     }
-    Log.notice("fileSys::start: fileSys partition %s successfully mounted" CR, NULL);
+    Log.INFO("fileSys::start: fileSys partition %s successfully mounted" CR, NULL);
 }
 
 rc_t fileSys::format(void) {
-    Log.notice("fileSys::format: Formatting SPIFFS filesystem" CR);
+    Log.INFO("fileSys::format: Formatting SPIFFS filesystem" CR);
     if (esp_spiffs_format(NULL)) {
         Log.ERROR("fileSys::format: Failed to format the SPIFS filesystem partition, "
                   "the flash may be weared or otherwise broken" CR);

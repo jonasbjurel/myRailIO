@@ -178,7 +178,7 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI Supervision period (supervision of decoders and satelites)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Dec. keep-alive (s):</string>
+    <string>Dec. Pingperiod (s):</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_13">
@@ -1181,7 +1181,7 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="decoderKeepalivePeriodDoubleSpinBox">
+  <widget class="QDoubleSpinBox" name="DecoderPingPeriodDoubleSpinBox">
    <property name="geometry">
     <rect>
      <x>220</x>

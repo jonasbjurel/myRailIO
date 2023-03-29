@@ -33,13 +33,13 @@
 	<DecoderMqttURI>127.0.0.1</DecoderMqttURI>
 	<DecoderMqttPort>1883</DecoderMqttPort>
 	<DecoderMqttTopicPrefix>/trains/track</DecoderMqttTopicPrefix>
-	<DecoderKeepAlivePeriod>99.0</DecoderKeepAlivePeriod>
+	<DecoderPingPeriod>99.0</DecoderPingPeriod>
 	<JMRIRPCURI>127.0.0.2</JMRIRPCURI>
 	<JMRIRPCPortBase>8000</JMRIRPCPortBase>
 	<JMRIRpcKeepAlivePeriod>10.0</JMRIRpcKeepAlivePeriod>
 	<NTPServer>ntp.jmri.bjurel.com</NTPServer>
 	<NTPPort>123</NTPPort>
-	<TIMEZONE>+1</TIMEZONE>
+	<TimeZoneGmtOffset>+1</TimeZoneGmtOffset>
 	<RSyslogServer>log.jmri.bjurel.com</RSyslogServer>
 	<RSyslogPort>514</RSyslogPort>
 	<RSyslogProtocol>TCP</RSyslogProtocol>

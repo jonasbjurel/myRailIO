@@ -170,17 +170,21 @@ class satLink;
 #define XML_DECODER_MQTT_URI						0
 #define XML_DECODER_MQTT_PORT						1
 #define XML_DECODER_MQTT_PREFIX						2
-#define XML_DECODER_MQTT_KEEPALIVEPERIOD			3
-#define XML_DECODER_NTPURI							4
-#define XML_DECODER_NTPPORT							5
-#define XML_DECODER_TZ								6
-#define XML_DECODER_LOGLEVEL						7
-#define XML_DECODER_FAILSAFE						8
-#define XML_DECODER_SYSNAME							9
-#define XML_DECODER_USRNAME							10
-#define XML_DECODER_DESC							11
-#define XML_DECODER_MAC								12
-#define XML_DECODER_URI								13
+#define XML_DECODER_MQTT_PINGPERIOD					3
+#define XML_DECODER_MQTT_KEEPALIVEPERIOD			4
+#define XML_DECODER_NTPURI							5
+#define XML_DECODER_NTPPORT							6
+#define XML_DECODER_TZ_AREA							7
+#define XML_DECODER_TZ_GMTOFFSET					8
+#define XML_DECODER_LOGLEVEL						9
+#define XML_DECODER_FAILSAFE						10
+#define XML_DECODER_SYSNAME							11
+#define XML_DECODER_USRNAME							12
+#define XML_DECODER_DESC							13
+#define XML_DECODER_MAC								14
+#define XML_DECODER_URI								15
+
+
 
 class decoder : public systemState, public globalCli {
 public:
@@ -201,35 +205,35 @@ public:
 	void onMqttChange(uint8_t p_mqttState);
 	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force = false);
-	const char* getMqttBrokerURI(void);
-	rc_t setMqttPort(const uint16_t p_mqttPort, bool p_force = false);
-	uint16_t getMqttPort(void);
+	const char* getMqttBrokerURI(bool p_force = false);
+	rc_t setMqttPort(int32_t p_mqttPort, bool p_force = false);
+	uint16_t getMqttPort(bool p_force = false);
 	rc_t setMqttPrefix(const char* p_mqttPrefix, bool p_force = false);
-	const char* getMqttPrefix(void);
-	rc_t setKeepAlivePeriod(const float p_keepAlivePeriod, bool p_force = false);
-	float getKeepAlivePeriod(void);
-	rc_t setPingPeriod(const float p_pingPeriod, bool p_force = false);
-	float getPingPeriod(void);
+	const char* getMqttPrefix(bool p_force = false);
+	rc_t setKeepAlivePeriod(uint8_t p_keepAlivePeriod, bool p_force = false);
+	float getKeepAlivePeriod(bool p_force = false);
+	rc_t setPingPeriod(float p_pingPeriod, bool p_force = false);
+	float getPingPeriod(bool p_force = false);
 	rc_t setNtpServer(const char* p_ntpServer, bool p_force = false);
-	const char* getNtpServer(void);
-	rc_t setNtpPort(const uint16_t p_ntpPort, bool p_force = false);
-	uint16_t getNtpPort(void);
-	rc_t setTz(const uint8_t p_tz, bool p_force = false);
-	uint8_t getTz(void);
+	const char* getNtpServer(bool p_force = false);
+	rc_t setNtpPort(int32_t p_ntpPort, bool p_force = false);
+	uint16_t getNtpPort(bool p_force = false);
+	rc_t setTz(const char* p_tz, bool p_force = false);
+	rc_t getTz(char* p_tz, bool p_force = false);
 	rc_t setLogLevel(const char* p_logLevel, bool p_force = false);
 	const char* getLogLevel(void);
 	rc_t setFailSafe(const bool p_failsafe, bool p_force = false);
-	bool getFailSafe(void);
+	bool getFailSafe(bool p_force = false);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
-	const char* getSystemName(void);
+	const char* getSystemName(bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);
-	const char* getUsrName(void);
+	const char* getUsrName(bool p_force = false);
 	rc_t setDesc(const char* p_description, bool p_force = false);
-	const char* getDesc(void);
+	const char* getDesc(bool p_force = false);
 	rc_t setMac(const char* p_mac, bool p_force = false);
-	const char* getMac(void);
+	const char* getMac(bool p_force = false);
 	rc_t setDecoderUri(const char* p_decoderUri, bool p_force = false);
-	const char* getDecoderUri(void);
+	const char* getDecoderUri(bool p_force = false);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	/* CLI decoration methods */
@@ -241,7 +245,7 @@ private:
 	//Private methods
 
 	//Private data structures
-	char* xmlconfig[14];
+	char* xmlconfig[16];
 	satLink* satLinks[MAX_SATLINKS];
 	lgLink* lgLinks[MAX_LGLINKS];
 	SemaphoreHandle_t decoderLock;

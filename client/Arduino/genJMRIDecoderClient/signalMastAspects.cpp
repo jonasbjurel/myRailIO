@@ -40,26 +40,29 @@
 signalMastAspects::signalMastAspects(const lgLink* p_parentHandle) {
     parentHandle = (lgLink*)p_parentHandle;
     parentHandle->getLink(&lgLinkNo);
-    Log.notice("signalMastAspects::signalMastAspects: Signal mast aspect object %d for lgLink: %d created" CR, this, lgLinkNo);
+    Log.INFO("signalMastAspects::signalMastAspects: Signal mast aspect object %d for lgLink: %d created" CR, this, lgLinkNo);
 }
 
 signalMastAspects::~signalMastAspects(void) {
     panic("signalMastAspects::~signalMastAspects: signalMastAspects destructior not supported - rebooting...");
 }
 
-rc_t signalMastAspects::onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement) {
-    Log.notice("signalMastAspects::onConfig: Configuring Mast aspects" CR);
+rc_t signalMastAspects::onConfig(const tinyxml2::XMLElement* p_smAspectsXmlElement) {
+    Log.INFO("signalMastAspects::onConfig: Configuring Mast aspects" CR);
+    Serial.println((int)p_smAspectsXmlElement);
+    Serial.println(p_smAspectsXmlElement->FirstChildElement()->Name());
+    tinyxml2::XMLElement* smAspectsXmlElement = (tinyxml2::XMLElement * )p_smAspectsXmlElement;
     for (uint8_t i = 0; i < SM_MAXHEADS; i++) {
         failsafeMastAppearance[i] = UNUSED_APPEARANCE;
     }
-    tinyxml2::XMLElement* smAspectsXmlElement = p_smAspectsXmlElement;
+    //tinyxml2::XMLElement* smAspectsXmlElement = p_smAspectsXmlElement;
     if ((smAspectsXmlElement = smAspectsXmlElement->FirstChildElement("Aspects")) == NULL || (smAspectsXmlElement = smAspectsXmlElement->FirstChildElement("Aspect")) == NULL || smAspectsXmlElement->FirstChildElement("AspectName") == NULL || smAspectsXmlElement->FirstChildElement("AspectName")->GetText() == NULL) {
         panic("signalMastAspects::onConfig: XML parsing error, missing Aspects, Aspect, or AspectName - rebooting..." CR);
         return RC_PARSE_ERR;
     }
     //Outer loop itterating all signal mast aspects
     for (uint8_t i = 0; true; i++) {
-        Log.notice("signalMastAspects::onConfig: Parsing Signal mast Aspect: %s" CR, smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+        Log.INFO("signalMastAspects::onConfig: Parsing Signal mast Aspect: %s" CR, smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
         aspects_t* newAspect = new aspects_t;
         newAspect->name = new char[strlen(smAspectsXmlElement->FirstChildElement("AspectName")->GetText()) + 1];
         strcpy(newAspect->name, smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
@@ -76,7 +79,7 @@ rc_t signalMastAspects::onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement) {
             if (mastTypeAspectXmlElement == NULL) {
                 break;
             }
-            Log.notice("signalMastAspects::onConfig: Parsing Mast type %s for Aspect %s" CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+            Log.INFO("signalMastAspects::onConfig: Parsing Mast type %s for Aspect %s" CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
 
             //Inner loop creating head aspects for a particular mast type
             uint8_t k = 0;
@@ -92,7 +95,7 @@ rc_t signalMastAspects::onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement) {
                 break;
             }
             else { //Creating a new signal mast type'
-                Log.notice("signalMastAspects::onConfig: Creating Mast type %s" CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
+                Log.INFO("signalMastAspects::onConfig: Creating Mast type %s" CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
                 aspects.back()->mastTypes.push_back(new mastType_t);
                 char* newMastTypeName = new char[strlen(mastTypeAspectXmlElement->FirstChildElement("Type")->GetText()) + 1];
                 strcpy(newMastTypeName, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
@@ -105,29 +108,29 @@ rc_t signalMastAspects::onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement) {
                 panic("signalMastAspects::onConfig: XML parsing error, missing Head - rebooting..." CR);
                 return RC_PARSE_ERR;
             }
-            Log.notice("signalMastAspects::onConfig: Adding Asspect %s to MastType %s" CR, smAspectsXmlElement->FirstChildElement("AspectName")->GetText(), mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
+            Log.TERSE("signalMastAspects::onConfig: Adding Asspect %s to MastType %s" CR, smAspectsXmlElement->FirstChildElement("AspectName")->GetText(), mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
             for (uint8_t p = 0; p < SM_MAXHEADS; p++) {
                 if (headXmlElement == NULL) {
-                    Log.notice("signalMastAspects::onConfig: No more Head appearances, padding up with UNUSED_APPEARANCE from Head %d" CR, p);
+                    Log.INFO("signalMastAspects::onConfig: No more Head appearances, padding up with UNUSED_APPEARANCE from Head %d" CR, p);
                     for (uint8_t r = p; r < SM_MAXHEADS; r++) {
                         aspects.back()->mastTypes.back()->headAspects[r] = UNUSED_APPEARANCE;
                     }
                     break;
                 }
                 if (!strcmp(headXmlElement->GetText(), "LIT")) {
-                    Log.notice("signalMastAspects::onConfig: Adding LIT_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+                    Log.TERSE("signalMastAspects::onConfig: Adding LIT_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
                     aspects.back()->mastTypes.back()->headAspects[p] = LIT_APPEARANCE;
                 }
                 if (!strcmp(headXmlElement->GetText(), "UNLIT")) {
-                    Log.notice("signalMastAspects::onConfig: Adding UNLIT_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+                    Log.TERSE("signalMastAspects::onConfig: Adding UNLIT_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
                     aspects.back()->mastTypes.back()->headAspects[p] = UNLIT_APPEARANCE;
                 }
                 if (!strcmp(headXmlElement->GetText(), "FLASH")) {
-                    Log.notice("signalMastAspects::onConfig: Adding FLASH_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+                    Log.TERSE("signalMastAspects::onConfig: Adding FLASH_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
                     aspects.back()->mastTypes.back()->headAspects[p] = FLASH_APPEARANCE;
                 }
                 if (!strcmp(headXmlElement->GetText(), "UNUSED")) {
-                    Log.notice("signalMastAspects::onConfig: Adding UNUSED_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+                    Log.TERSE("signalMastAspects::onConfig: Adding UNUSED_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
                     aspects.back()->mastTypes.back()->headAspects[p] = UNUSED_APPEARANCE;
                 }
                 headXmlElement = headXmlElement->NextSiblingElement("Head");
@@ -146,32 +149,32 @@ rc_t signalMastAspects::onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement) {
         }
     }
     //End outer loop
-    Log.notice("signalMastAspects::onConfig: Adding UNUSED_APPEARANCE for head %d, MastType %s and Appearance %s" CR, p_smAspectsXmlElement->FirstChildElement("Type")->GetText(), smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
+    Log.INFO("signalMastAspects::onConfig: Signal mast aspects successfully configured" CR);
     return RC_OK;
 }
 
 void signalMastAspects::dumpConfig(void) {
-    Log.notice("signalMastAspects::dumpConfig: <Aspect config dump Begin>" CR);
+    Log.INFO("signalMastAspects::dumpConfig: <Aspect config dump Begin>" CR);
     for (uint8_t i = 0; i < aspects.size(); i++) {
-        Log.notice("signalMastAspects::dumpConfig:     <Aspect: %s>" CR, aspects.at(i)->name);
+        Log.INFO("signalMastAspects::dumpConfig:     <Aspect: %s>" CR, aspects.at(i)->name);
         for (uint8_t j = 0; j < aspects.at(i)->mastTypes.size(); j++) {
-            Log.notice("signalMastAspects::dumpConfig:        <Mast type: %s>" CR, aspects.at(i)->mastTypes.at(j)->name);
+            Log.INFO("signalMastAspects::dumpConfig:        <Mast type: %s>" CR, aspects.at(i)->mastTypes.at(j)->name);
             for (uint8_t k = 0; k < SM_MAXHEADS; k++) {
                 switch (aspects.at(i)->mastTypes.at(j)->headAspects[k]) {
                 case LIT_APPEARANCE:
-                    Log.notice("signalMastAspects::dumpConfig:            <Head %d: LIT>" CR, k);
+                    Log.INFO("signalMastAspects::dumpConfig:            <Head %d: LIT>" CR, k);
                     break;
                 case UNLIT_APPEARANCE:
-                    Log.notice("signalMastAspects::dumpConfig:            <Head %d: UNLIT>" CR, k);
+                    Log.INFO("signalMastAspects::dumpConfig:            <Head %d: UNLIT>" CR, k);
                     break;
                 case FLASH_APPEARANCE:
-                    Log.notice("signalMastAspects::dumpConfig:            <Head %d: FLASHING>" CR, k);
+                    Log.INFO("signalMastAspects::dumpConfig:            <Head %d: FLASHING>" CR, k);
                     break;
                 case UNUSED_APPEARANCE:
-                    Log.notice("signalMastAspects::dumpConfig:            <Head %d: UNUSED>" CR, k);
+                    Log.INFO("signalMastAspects::dumpConfig:            <Head %d: UNUSED>" CR, k);
                     break;
                 default:
-                    Log.notice("signalMastAspects::dumpConfig:            <Head %d: UNKNOWN>" CR, k);
+                    Log.INFO("signalMastAspects::dumpConfig:            <Head %d: UNKNOWN>" CR, k);
                     break;
                 }
             }

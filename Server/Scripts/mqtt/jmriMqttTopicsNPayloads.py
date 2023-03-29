@@ -14,7 +14,6 @@
 # -----------------------
 MQTT_JMRI_PRE_TOPIC =                       "/trains/"
 
-
 MQTT_DECODER_DISCOVERY_REQUEST_TOPIC =      "track/discoveryreq"                                # Discovery request from decoders
 MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC =     "track/discoveryresp"                               # Discovery response from server (aka topDecoder)
 MQTT_LOG_TOPIC =                            "track/log/"                                        # Logs sent from decoders

@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <Adafruit_NeoPixel.h>
+#include <math.h>
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "libraries/ArduinoLog/ArduinoLog.h"
 #include "rc.h"
@@ -82,7 +83,9 @@ struct stripLed_t {
 
 
 
-class lgLink : public systemState, public globalCli {
+//class lgLink : public systemState, public globalCli {
+class lgLink : public systemState {
+
 public:
     //Public methods
     lgLink(uint8_t p_linkNo);
@@ -97,12 +100,12 @@ public:
     static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
     void onAdmStateChange(const char* p_topic, const char* p_payload);
     rc_t getOpStateStr(char* p_opStateStr);
-    rc_t setSystemName(char* p_systemName, bool p_force = false);
-    rc_t getSystemName(const char* p_systemName);
-    rc_t setUsrName(char* p_usrName, bool p_force = false);
-    rc_t getUsrName(const char* p_userName);
-    rc_t setDesc(char* p_description, bool p_force = false);
-    rc_t getDesc(const char* p_desc);
+    rc_t setSystemName(const char* p_systemName, bool p_force = false);
+    rc_t getSystemName(char* p_systemName, bool p_force = false);
+    rc_t setUsrName(const char* p_usrName, bool p_force = false);
+    rc_t getUsrName(char* p_userName, bool p_force = false);
+    rc_t setDesc(const char* p_description, bool p_force = false);
+    rc_t getDesc(char* p_desc, bool p_force = false);
     rc_t setLink(uint8_t p_link);
     rc_t getLink(uint8_t* p_link);
     void setDebug(bool p_debug);
@@ -144,9 +147,6 @@ private:
     char* xmlconfig[4];
     SemaphoreHandle_t lgLinkLock;
     wdt* lgLinkWdt;
-    char* sysName;
-    char* usrName;
-    char* desc;
     uint32_t overRuns;
     int64_t maxLatency;
     uint32_t maxRuntime;

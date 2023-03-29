@@ -1,11 +1,11 @@
-﻿<?xml version="1.0" ?>
+<?xml version="1.0" ?>
 <genJMRI>
 	<Author>Jonas Bjurel</Author>
-	<Description>A Jonas genJMRI set definition for evaluations - new Config</Description>
-	<Version>2.1</Version>
-	<Date>2022-06-16</Date>
-	<Time>16:56:03</Time>
-	<gitBranch>Main</gitBranch>
+	<Description>A Jonas genJMRI set definition for evaluations</Description>
+	<Version>2.0</Version>
+	<Date>2022-04-20</Date>
+	<Time>12:00:00</Time>
+	<gitBranch>MyGitBranch</gitBranch>
 	<gitTag>MyGitTag</gitTag>
 	<gitUrl>my.git.com</gitUrl>
 	<VersionHistory>
@@ -29,27 +29,17 @@
 			<gitTag/>
 			<gitUrl/>
 		</Version>
-		<Version>
-			<VersionName>2.0</VersionName>
-			<Author>Jonas Bjurel</Author>
-			<Date>2022-04-20</Date>
-			<Time>12:00:00</Time>
-			<VersionDescription>A Jonas genJMRI set definition for evaluations</VersionDescription>
-			<gitBranch>MyGitBranch</gitBranch>
-			<gitTag>MyGitTag</gitTag>
-			<gitUrl>my.git.com</gitUrl>
-		</Version>
 	</VersionHistory>
 	<DecoderMqttURI>127.0.0.1</DecoderMqttURI>
 	<DecoderMqttPort>1883</DecoderMqttPort>
 	<DecoderMqttTopicPrefix>/trains/track</DecoderMqttTopicPrefix>
-	<DecoderKeepAlivePeriod>10.0</DecoderKeepAlivePeriod>
+	<DecoderPingPeriod>10.0</DecoderPingPeriod>
 	<JMRIRPCURI>127.0.0.2</JMRIRPCURI>
 	<JMRIRPCPortBase>8000</JMRIRPCPortBase>
 	<JMRIRpcKeepAlivePeriod>10.0</JMRIRpcKeepAlivePeriod>
 	<NTPServer>ntp.jmri.bjurel.com</NTPServer>
 	<NTPPort>123</NTPPort>
-	<TIMEZONE>+1</TIMEZONE>
+	<TimeZoneGmtOffset>+1</TimeZoneGmtOffset>
 	<RSyslogServer>log.jmri.bjurel.com</RSyslogServer>
 	<RSyslogPort>514</RSyslogPort>
 	<RSyslogProtocol>TCP</RSyslogProtocol>
@@ -75,14 +65,14 @@
 			<Link>0</Link>
 			<AdminState>ENABLE</AdminState>
 			<LightGroup>
-				<JMRISystemName>IF$vsm:My LightGroup 0-0-0 SysName($100)</JMRISystemName>
-				<JMRIUserName>IF$vsm:My LightGroup 0-0-0 UsrName</JMRIUserName>
-				<JMRIDescription>IF$vsm:My LightGroup 0-0-0 Desc</JMRIDescription>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($100)</JMRISystemName>
+				<JMRIUserName>IF$vsm:Sweden-3HMS:SL-5HL($100) 0-0-0 UsrName</JMRIUserName>
+				<JMRIDescription>IF$vsm:Sweden-3HMS:SL-5HL($100) 0-0-0 Desc</JMRIDescription>
 				<Type>SIGNAL MAST</Type>
 				<LinkAddress>0</LinkAddress>
-				<Property1>My LightGroup 0-0-0 property 1</Property1>
-				<Property2>My LightGroup 0-0-0 property 2</Property2>
-				<Property3>My LightGroup 0-0-0 property 3</Property3>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>SLOW</Property2>
+				<Property3>FAST</Property3>
 				<AdminState>ENABLE</AdminState>
 			</LightGroup>
 		</LightgroupsLink>
@@ -94,14 +84,14 @@
 			<Link>1</Link>
 			<AdminState>ENABLE</AdminState>
 			<LightGroup>
-				<JMRISystemName>IF$vsm:My LightGroup 0-1-0 SysName($101)</JMRISystemName>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($101)</JMRISystemName>
 				<JMRIUserName>IF$vsm:My LightGroup 0-1-0 UsrName</JMRIUserName>
 				<JMRIDescription>IF$vsm:My LightGroup 0-1-0 Desc</JMRIDescription>
 				<Type>SIGNAL MAST</Type>
 				<LinkAddress>0</LinkAddress>
-				<Property1>My LightGroup 0-1-0 property 1</Property1>
-				<Property2>My LightGroup 0-1-0 property 2</Property2>
-				<Property3>My LightGroup 0-1-0 property 3</Property3>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>NORMAL</Property2>
+				<Property3>NORMAL</Property3>
 				<AdminState>ENABLE</AdminState>
 			</LightGroup>
 		</LightgroupsLink>
@@ -115,7 +105,7 @@
 				<SystemName>GJSAT-My Satelite 0-0-0 SysName</SystemName>
 				<UserName>GJSAT-My Satelite 0-0-0 UsrName</UserName>
 				<Description>GJSAT-My Satelite 0-0-0 Desc</Description>
-				<Address>0</Address>
+				<LinkAddress>0</LinkAddress>
 				<AdminState>ENABLE</AdminState>
 				<Sensor>
 					<JMRISystemName>MS-MySensor 0-0-0-0 SysName</JMRISystemName>
@@ -146,7 +136,7 @@
 				<SystemName>GJSAT-My Satelite 0-1-0 SysName</SystemName>
 				<UserName>GJSAT-My Satelite 0-1-0 UsrName</UserName>
 				<Description>GJSAT-My Satelite 0-1-0 Desc</Description>
-				<Address>0</Address>
+				<LinkAddress>0</LinkAddress>
 				<AdminState>ENABLE</AdminState>
 				<Sensor>
 					<JMRISystemName>MS-MySensor 0-1-0-0 SysName</JMRISystemName>
@@ -183,14 +173,14 @@
 			<Link>0</Link>
 			<AdminState>ENABLE</AdminState>
 			<LightGroup>
-				<JMRISystemName>IF$vsm:My LightGroup 1-0-0 SysName($102)</JMRISystemName>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($102)</JMRISystemName>
 				<JMRIUserName>IF$vsm:My LightGroup 1-0-0 UsrName</JMRIUserName>
 				<JMRIDescription>IF$vsm:My LightGroup 1-0-0 Desc</JMRIDescription>
 				<Type>SIGNAL MAST</Type>
 				<LinkAddress>0</LinkAddress>
-				<Property1>My LightGroup 1-0-0 property 1</Property1>
-				<Property2>My LightGroup 1-0-0 property 2</Property2>
-				<Property3>My LightGroup 1-0-0 property 3</Property3>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>NORMAL</Property2>
+				<Property3>FAST</Property3>
 				<AdminState>ENABLE</AdminState>
 			</LightGroup>
 		</LightgroupsLink>
@@ -202,14 +192,14 @@
 			<Link>1</Link>
 			<AdminState>ENABLE</AdminState>
 			<LightGroup>
-				<JMRISystemName>IF$vsm:My LightGroup 1-1-0 SysName($103)</JMRISystemName>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($103)</JMRISystemName>
 				<JMRIUserName>IF$vsm:My LightGroup 1-1-0 UsrName</JMRIUserName>
 				<JMRIDescription>IF$vsm:My LightGroup 1-1-0 Desc</JMRIDescription>
 				<Type>SIGNAL MAST</Type>
 				<LinkAddress>0</LinkAddress>
-				<Property1>My LightGroup 1-1-0 property 1</Property1>
-				<Property2>My LightGroup 1-1-0 property 2</Property2>
-				<Property3>My LightGroup 1-1-0 property 3</Property3>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>FAST</Property2>
+				<Property3>NORMAL</Property3>
 				<AdminState>ENABLE</AdminState>
 			</LightGroup>
 		</LightgroupsLink>
@@ -223,7 +213,7 @@
 				<SystemName>GJSAT-My Satelite 1-0-0 SysName</SystemName>
 				<UserName>GJSAT-My Satelite 1-0-0 UsrName</UserName>
 				<Description>GJSAT-My Satelite 1-0-0 Desc</Description>
-				<Address>0</Address>
+				<LinkAddress>0</LinkAddress>
 				<AdminState>ENABLE</AdminState>
 				<Sensor>
 					<JMRISystemName>MS-MySensor 1-0-0-0 SysName</JMRISystemName>
@@ -254,7 +244,7 @@
 				<SystemName>GJSAT-My Satelite 1-1-0 SysName</SystemName>
 				<UserName>GJSAT-My Satelite 2-1-0 UsrName</UserName>
 				<Description>GJSAT-My Satelite 1-1-0 Desc</Description>
-				<Address>0</Address>
+				<LinkAddress>0</LinkAddress>
 				<AdminState>ENABLE</AdminState>
 				<Sensor>
 					<JMRISystemName>MS-MySensor 1-1-0-0 SysName</JMRISystemName>

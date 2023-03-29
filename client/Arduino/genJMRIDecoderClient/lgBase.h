@@ -75,8 +75,9 @@ typedef float							lg_property_t[8];
 #define XML_LG_DESC						2
 #define XML_LG_LINKADDR					3
 #define XML_LG_TYPE						4
-#define XML_LG_SUBTYPE					5
-#define XML_LG_PROPERTIES				6
+#define XML_LG_PROPERTY1				5
+#define XML_LG_PROPERTY2				6
+#define XML_LG_PROPERTY3				7
 
 #define LG_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "SIGNAL MAST"))\
@@ -94,7 +95,8 @@ typedef float							lg_property_t[8];
 			panic("lgBase::CALL_EXT: Non supported type - rebooting");\
 		}
 
-class lgBase : public systemState, public globalCli {
+//class lgBase : public systemState, public globalCli {
+class lgBase : public systemState {
 public:
 	//Public methods
 	lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle);
@@ -112,19 +114,19 @@ public:
 	void wdtKicked(void);
 	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
-	rc_t getSystemName(const char* p_systemName);
+	rc_t getSystemName(char* p_systemName, bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);
-	rc_t getUsrName(const char* p_userName);
+	rc_t getUsrName(char* p_userName, bool p_force = false);
 	rc_t setDesc(const char* p_description, bool p_force = false);
-	rc_t getDesc(const char* p_desc);
-	rc_t setAddress(uint8_t p_address);
-	rc_t getAddress(uint8_t* p_address);
-	rc_t setNoOffLeds(uint8_t p_noOfLeds);
-	rc_t getNoOffLeds(uint8_t* p_noOfLeds);
+	rc_t getDesc(char* p_desc, bool p_force = false);
+	rc_t setAddress(uint8_t p_address, bool p_force = false);
+	rc_t getAddress(uint8_t* p_address, bool p_force = false);
+	rc_t setNoOffLeds(uint8_t p_noOfLeds, bool p_force = false);
+	rc_t getNoOffLeds(uint8_t* p_noOfLeds, bool p_force = false);
 	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force = false);
-	rc_t getProperty(uint8_t p_propertyId, const char* p_propertyValue);
-	void getShowing(const char* p_showing);
-	void setShowing(const char* p_showing);
+	rc_t getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force = false);
+	rc_t getShowing(char* p_showing, bool p_force = false);
+	rc_t setShowing(const char* p_showing, bool p_force = false);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	void setStripOffset(const uint16_t p_stripOffset);
@@ -145,7 +147,7 @@ public:
 	lgLink* lgLinkHandle;
 	uint8_t lgAddress;
 	uint8_t lgLinkNo;
-	char* xmlconfig[7];
+	char* xmlconfig[8];
 	bool debug;
 	uint16_t stripOffset;
 
@@ -156,7 +158,6 @@ private:
 	//Private data structures
 	void* extentionLgClassObj;
 	SemaphoreHandle_t lgBaseLock;
-	static uint16_t lgIndex;
 };
 
 #endif /*LGBASE_H*/

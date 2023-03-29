@@ -72,7 +72,7 @@ public:
     //Public methods
     signalMastAspects(const lgLink* p_parentHandle);
     ~signalMastAspects(void);
-    rc_t onConfig(tinyxml2::XMLElement* p_smAspectsXmlElement);
+    rc_t onConfig(const tinyxml2::XMLElement* p_smAspectsXmlElement);
     void dumpConfig(void);
     rc_t getAppearance(char* p_smType, char* p_aspect, uint8_t** p_appearance);
     rc_t getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads);

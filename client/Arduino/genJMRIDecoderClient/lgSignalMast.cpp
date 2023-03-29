@@ -39,33 +39,36 @@
 lgSignalMast::lgSignalMast(const lgBase* p_lgBaseObjHandle) {
     lgBaseObjHandle = (lgBase*)p_lgBaseObjHandle;
     lgLinkHandle = (lgLink*)lgBaseObjHandle->lgLinkHandle;
-    lgBaseObjHandle->getSystemName(lgSysName);
     lgBaseObjHandle->getAddress(&lgAddress);
     lgLinkHandle->getLink(&lgLinkNo);
-    Log.notice("mastDecoder::mastDecoder: Creating Lg signal mast: %s, with Lg link address: %d, on Lg link %d" CR, lgSysName, lgAddress, lgLinkNo);
+    Log.INFO("mastDecoder::mastDecoder: Creating Lg signal mast: %s, with Lg link address: %d, on Lg link %d" CR, lgSysName, lgAddress, lgLinkNo);
     lgSignalMastLock = xSemaphoreCreateMutex();
     lgSignalMastReentranceLock = xSemaphoreCreateMutex();
     if (lgSignalMastLock == NULL || lgSignalMastReentranceLock == NULL)
-        panic("mastDecoder::init: Could not create Lock objects - rebooting...");
+        panic("mastDecoder::init: Could not create Lock objects - rebooting..." CR);
+    xmlConfig[SM_TYPE] = NULL;
+    xmlConfig[SM_DIMTIME] = createNcpystr("NORMAL");
+    xmlConfig[SM_FLASHFREQ] = createNcpystr("NORMAL");
+    xmlConfig[SM_BRIGHTNESS] = createNcpystr("NORMAL"); //NOT SUPORTED BY SERVER
+    xmlConfig[SM_FLASH_DUTY] = createNcpystr("50"); //NOT SUPORTED BY EITHER SERVER NOR CLIENT
 }
 
 lgSignalMast::~lgSignalMast(void) {
-    panic("mastDecoder::~mastDecoder: Destructor not supported - rebooting...");
+    panic("mastDecoder::~mastDecoder: Destructor not supported - rebooting..." CR);
 }
 
 rc_t lgSignalMast::init(void) {
-    Log.notice("mastDecoder::init: Initializing mast decoder" CR);
+    Log.INFO("mastDecoder::init: Initializing mast decoder" CR);
     //failsafe();
     return RC_OK;
 }
-
 rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
     if (!(lgBaseObjHandle->systemState::getOpState() & OP_UNCONFIGURED))
-        panic("mastDecoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
+        panic("mastDecoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
     lgBaseObjHandle->getSystemName(lgSysName);
     if (p_mastDescXmlElement == NULL)
-        panic("mastDecoder::onConfig: No mastDescXml provided - rebooting...");
-    Log.notice("mastDecoder::onConfig:  %d on lgLink %d received an uverified configuration, parsing and validating it..." CR, lgAddress, lgLinkNo);
+        panic("mastDecoder::onConfig: No mastDescXml provided - rebooting..." CR);
+    Log.INFO("mastDecoder::onConfig:  %d on lgLink %d received an uverified configuration, parsing and validating it..." CR, lgAddress, lgLinkNo);
     const char* searchMastTags[4];
     searchMastTags[SM_TYPE] = "Property1";
     searchMastTags[SM_DIMTIME] = "Property2";
@@ -113,7 +116,7 @@ rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
 }
 
 rc_t lgSignalMast::start(void) {
-    Log.notice("mastDecoder::start: Starting mast decoder %s" CR, lgSysName);
+    Log.INFO("mastDecoder::start: Starting mast decoder %s" CR, lgSysName);
     if (strcmp(xmlConfig[SM_FLASHFREQ], "FAST")) {
         lgLinkHandle->getFlashObj(SM_FLASH_FAST)->subscribe(&onFlashHelper, this);
     }
@@ -136,26 +139,26 @@ rc_t lgSignalMast::start(void) {
 void lgSignalMast::onSysStateChange(uint16_t p_sysState) {
     if (p_sysState & OP_INTFAIL) {
         //FAILSAFE
-        panic("lg::onSystateChange: Signal-mast has experienced an internal error - seting fail-safe aspect and rebooting...");
+        panic("lg::onSystateChange: Signal-mast has experienced an internal error - seting fail-safe aspect and rebooting..." CR);
     }
     if (p_sysState) {
         //FAILSAFE
-        Log.notice("lgLink::onSystateChange: Signal-mast %d on lgLink %d has received Opstate %b - seting fail-safe aspect" CR, lgAddress, lgLinkNo, p_sysState);
+        Log.INFO("lgLink::onSystateChange: Signal-mast %d on lgLink %d has received Opstate %b - seting fail-safe aspect" CR, lgAddress, lgLinkNo, p_sysState);
     }
     else {
         //RESUME LAST RECEIVED ASPECT
-        Log.notice("lgLink::onSystateChange:  Signal-mast %d on lgLink %d has received a WORKING Opstate - resuming last known aspect" CR, lgLinkNo);
+        Log.INFO("lgLink::onSystateChange:  Signal-mast %d on lgLink %d has received a WORKING Opstate - resuming last known aspect" CR, lgLinkNo);
     }
 }
 
 rc_t lgSignalMast::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
-    Log.notice("mastDecoder::setProperty: Setting light-group property for %s, property Id %d, property value %s" CR, lgSysName, p_propertyId, p_propertyValue);
+    Log.INFO("mastDecoder::setProperty: Setting light-group property for %s, property Id %d, property value %s" CR, lgSysName, p_propertyId, p_propertyValue);
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }
 
 rc_t lgSignalMast::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
-    Log.notice("mastDecoder::getProperty: Not supported" CR);
+    Log.INFO("mastDecoder::getProperty: Not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }

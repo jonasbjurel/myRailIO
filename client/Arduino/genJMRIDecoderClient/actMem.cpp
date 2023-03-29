@@ -62,7 +62,7 @@ actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actMemSolenoidPushPort = true;
     actMemSolenoidActivationTime = ACTMEM_DEFAULT_SOLENOID_ACTIVATION_TIME_MS;
     sysState = OP_INIT | OP_UNCONFIGURED;
-    Log.notice("actMem::actMem: Creating memory extention object for %s on actuator port %d, on satelite adress %d, satLink %d" CR, p_subType, actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::actMem: Creating memory extention object for %s on actuator port %d, on satelite adress %d, satLink %d" CR, p_subType, actPort, satAddr, satLinkNo);
     if (!(actMemLock = xSemaphoreCreateMutex()))
         panic("actMem::actMem: Could not create Lock objects - rebooting...");
     actMemPos = atoi(ACTMEM_DEFAULT_FAILSAFE);
@@ -75,7 +75,7 @@ actMem::~actMem(void) {
 }
 
 rc_t actMem::init(void) {
-    Log.notice("actMem::init: Initializing actMem actuator extention object for memory %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::init: Initializing actMem actuator extention object for memory %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
@@ -84,50 +84,50 @@ void actMem::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 }
 
 rc_t actMem::start(void) {
-    Log.notice("actMem::start: Starting actMem actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::start: Starting actMem actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
     if (actBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.notice("actMem::start: actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::start: actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
     if (actBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
-        Log.notice("actMem::start: actMem actuator extention class object %s, on actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::start: actMem actuator extention class object %s, on actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sysName, actPort, satAddr, satLinkNo);
         pendingStart = true;
         return RC_NOT_CONFIGURED_ERR;
     }
-    Log.notice("actMem::start: Configuring and startings actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::start: Configuring and startings actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
 
     if (actMemType == ACTMEM_TYPE_SOLENOID) {
         if (actPort % 2) {
             actMemSolenoidPushPort = false;
-            Log.notice("actMem::start: Startings solenoid memory actuator pull port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            Log.INFO("actMem::start: Startings solenoid memory actuator pull port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
         }
         else {
-            Log.notice("actMem::start: Startings solenoid memory actuator push port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            Log.INFO("actMem::start: Startings solenoid memory actuator push port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
             actMemSolenoidPushPort = true;
         }
         satLibHandle->setSatActMode(SATMODE_PULSE, actPort);
     }
 
     else if (actMemType == ACTMEM_TYPE_SERVO) {
-        Log.notice("actMem::start: Startings servo memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::start: Startings servo memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
         satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
     }
 
     else if (actMemType == ACTMEM_TYPE_PWM100) {
-        Log.notice("actMem::start: Startings PWM 100 Hz memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::start: Startings PWM 100 Hz memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
         satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
     }
 
     else if (actMemType == ACTMEM_TYPE_PWM125K) {
-        Log.notice("actMem::start: Startings PWM 125 KHz memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::start: Startings PWM 125 KHz memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
         satLibHandle->setSatActMode(SATMODE_PWM1_25K, actPort);
     }
 
     else if (actMemType == ACTMEM_TYPE_ONOFF) {
-        Log.notice("actMem::start: Startings ON/OFF memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::start: Startings ON/OFF memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
     }
     setFailSafe(true);
-    Log.notice("actMem::start: Subscribing to memory orders for Memory actuator %s", sysName);
+    Log.INFO("actMem::start: Subscribing to memory orders for Memory actuator %s", sysName);
     const char* actMemActOrders[3] = { MQTT_MEM_TOPIC, "/", sysName };
     if (mqtt::subscribeTopic(concatStr(actMemActOrders, 3), &onActMemChangeHelper, this))
         panic("actMem::start: Failed to suscribe to memory actuator order topic - rebooting...");
@@ -136,16 +136,16 @@ rc_t actMem::start(void) {
 
 void actMem::onDiscovered(satelite* p_sateliteLibHandle) {
     satLibHandle = p_sateliteLibHandle;
-    Log.notice("actMem::onDiscovered: actMem extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::onDiscovered: actMem extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
     if (actBaseHandle->pendingStart) {
-        Log.notice("actMem::onDiscovered: Initiating pending start for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::onDiscovered: Initiating pending start for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
         start();
     }
 }
 
 void actMem::onSysStateChange(uint16_t p_sysState) {
     sysState = p_sysState;
-    Log.notice("actMem::onSystateChange: Got a new systemState %d for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysState, actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::onSystateChange: Got a new systemState %d for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysState, actPort, satAddr, satLinkNo);
     if (sysState)
         setFailSafe(true);
     else
@@ -157,7 +157,7 @@ void actMem::onActMemChangeHelper(const char* p_topic, const char* p_payload, co
 }
 
 void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
-    Log.notice("actMem::onMemActChange: Got a change order for memory actuator %s - new value %d" CR, sysName, p_payload);
+    Log.INFO("actMem::onMemActChange: Got a change order for memory actuator %s - new value %d" CR, sysName, p_payload);
     xSemaphoreTake(actMemLock, portMAX_DELAY);
     if (strcmp(p_payload, "ON")) {
         orderedActMemPos = 255;
@@ -184,25 +184,25 @@ void actMem::setActMem(void) {
         if ((actMemPos) ^ actMemSolenoidPushPort) {
             if (satLibHandle->setSatActVal(actMemSolenoidActivationTime, actPort))
                 Log.ERROR("actMem::setActMem: Failed to execute order for memory solenoid actuator %s" CR, sysName);
-            Log.notice("actMem::setActMem: Memory solenoid actuator change order for %s fininished" CR, sysName);
+            Log.INFO("actMem::setActMem: Memory solenoid actuator change order for %s fininished" CR, sysName);
         }
     }
     else if (actMemType == ACTMEM_TYPE_SERVO) {
         uint8_t tmpServoPwmPos = SERVO_LEFT_PWM_VAL + (actMemPos * (SERVO_RIGHT_PWM_VAL - SERVO_LEFT_PWM_VAL) / 256);
         if (satLibHandle->setSatActVal(tmpServoPwmPos, actPort))
             Log.ERROR("actMem::setActMem: Failed to execute order for memory servo actuator %s" CR, sysName);
-        Log.notice("actMem::setActMem: Memory servo actuator change order for %s fininished" CR, sysName);
+        Log.INFO("actMem::setActMem: Memory servo actuator change order for %s fininished" CR, sysName);
     }
     else if (actMemType == ACTMEM_TYPE_PWM100) {
         if (satLibHandle->setSatActVal(actMemPos, actPort))
             Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 100 Hz actuator %s" CR, sysName);
 
-        Log.notice("actMem::setActMem: Memory 100 Hz PWM actuator change order for %s fininished" CR, sysName);
+        Log.INFO("actMem::setActMem: Memory 100 Hz PWM actuator change order for %s fininished" CR, sysName);
     }
     else if (actMemType == ACTMEM_TYPE_PWM125K) {
         if (satLibHandle->setSatActVal(actMemPos, actPort))
             Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 125 KHz actuator %s" CR, sysName);
-        Log.notice("actMem::setActMem: Memory 125 KHz PWM actuator change order for %s fininished" CR, sysName);
+        Log.INFO("actMem::setActMem: Memory 125 KHz PWM actuator change order for %s fininished" CR, sysName);
     }
     else if (actMemType == ACTMEM_TYPE_ONOFF) {
         if (actMemPos) {
@@ -213,7 +213,7 @@ void actMem::setActMem(void) {
             if (satLibHandle->setSatActMode(SATMODE_LOW, actPort))
                 Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
         }
-        Log.notice("actMem::setActMem: Memory ON/OFF actuator change order for %s fininished" CR, sysName);
+        Log.INFO("actMem::setActMem: Memory ON/OFF actuator change order for %s fininished" CR, sysName);
     }
 }
 
@@ -221,11 +221,11 @@ void actMem::setFailSafe(bool p_failSafe) {
     xSemaphoreTake(actMemLock, portMAX_DELAY);
     failSafe = p_failSafe;
     if (failSafe) {
-        Log.notice("actMem::setFailSafe: Fail-safe set for memory actuator %s" CR, sysName);
+        Log.INFO("actMem::setFailSafe: Fail-safe set for memory actuator %s" CR, sysName);
         actMemPos = actMemFailsafePos;
     }
     else {
-        Log.notice("actMem::setFailSafe: Fail-safe un-set for memory actuator %s" CR, sysName);
+        Log.INFO("actMem::setFailSafe: Fail-safe un-set for memory actuator %s" CR, sysName);
         actMemPos = orderedActMemPos;
     }
     setActMem();
@@ -233,12 +233,12 @@ void actMem::setFailSafe(bool p_failSafe) {
 }
 
 rc_t actMem::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
-    Log.notice("actMem::setProperty: Setting of Memory property not implemented" CR);
+    Log.INFO("actMem::setProperty: Setting of Memory property not implemented" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t actMem::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
-    Log.notice("actMem::getProperty: Getting of Memory property not implemented" CR);
+    Log.INFO("actMem::getProperty: Getting of Memory property not implemented" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
