@@ -187,8 +187,6 @@ public:
     static rc_t setStaticIpAddr(IPAddress p_ipAddr, IPAddress p_ipMask,
         IPAddress p_gatewayIpAddr, IPAddress p_dnsIpAddr,                               // Set static IP adresses, if p_persist is true the static 
         bool p_persist = false);                                                        //   configuration will be persisted
-    static rc_t unSetStaticIpAddr(void);                                                // Set host DHCP adress option, if p_persist option is set
-                                                                                        //   it will be persisted to non volatile memory
     static IPAddress getIpAddr(void);                                                   // Get host IP address received by DHCP or provisioned 
                                                                                         //   by WiFi manager
     static IPAddress getIpMask(void);                                                   // Get network IP mask received by DHCP or provisioned

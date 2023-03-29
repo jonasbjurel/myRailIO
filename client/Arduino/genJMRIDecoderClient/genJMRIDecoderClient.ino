@@ -45,7 +45,7 @@ void setup() {
     xTaskCreatePinnedToCore(                    // Spinning up a setupTask task as wee need a bigger stack than set-up provides
         setupTask,                              // Task function
         SETUP_TASKNAME,                         // Task function name reference
-        60 * 1024,                              // Stack size 6K VERIFIED FOR THE NETWORKING SERVICE, NEEDS TO BE EVALUATED FOR ALL OTHER SERVICES AND EVENTUALLY DEFINED BY SETUP_STACKSIZE_1K
+        6 * 1024,                              // Stack size 6K VERIFIED FOR THE NETWORKING SERVICE, NEEDS TO BE EVALUATED FOR ALL OTHER SERVICES AND EVENTUALLY DEFINED BY SETUP_STACKSIZE_1K
         NULL,                                   // Parameter passing
         SETUP_PRIO,                             // Priority 0-24, higher is more
         NULL,                                   // Task handle
@@ -56,9 +56,27 @@ void setup() {
 }
 
 void setupTask(void* p_dummy) {
+    /*
     Serial.printf("setupTask1: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("setupTask1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    networking::provisioningConfigTrigger();
+    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
+    //WiFi.mode(WIFI_STA);
+    Serial.printf("setupTask2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("setupTask2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
+    //WiFi.disconnect();
+    Serial.printf("setupTask3: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("setupTask3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
+    //delay(100);
+    Serial.println(WiFi.scanNetworks());
+    Serial.printf("setupTask4: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("setupTask4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
+    */
+
+    Serial.printf("setupTask1: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("setupTask1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Serial.printf("setupTask2: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("setupTask2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: setupTask started" CR);
@@ -108,6 +126,8 @@ void setupTask(void* p_dummy) {
     decoderHandle->start();
     Log.INFO("genJMRIDecoderClient::setupTask: Decoder service started" CR);
     setupRunning = false;
+    Serial.printf("setupTask2: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("setupTask2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: Setup finished, killing setup task..." CR);
     vTaskDelete(NULL);
 }
