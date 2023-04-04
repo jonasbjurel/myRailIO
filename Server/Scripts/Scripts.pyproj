@@ -46,7 +46,6 @@
     <Compile Include="lib\xml2dict\xml2dict.py" />
     <Compile Include="mqtt\jmriMqttTopicsNPayloads.py" />
     <Compile Include="mqtt\mqtt.py" />
-    <Compile Include="oldReference\genJMRIdecoderServer.py" />
     <Compile Include="rc\genJMRIRc.py" />
     <Compile Include="rpc\dictEscapeing.py" />
     <Compile Include="rpc\genJMRIRpcClient.py" />
