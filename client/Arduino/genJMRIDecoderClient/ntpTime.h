@@ -89,7 +89,7 @@ struct ntpDescriptor_t {                                                        
     char opStateStr[50];                                                                //NTP Client operatonal state string
     char syncMode_Str[50];                                                              //NTP Client synchronization mode string
     char syncStatusStr[50];                                                             //NTP Client synchronization status string
-    QList<ntpServerHost_t*> ntpServerHosts;                                             //NTP Servers list
+    QList<ntpServerHost_t*>* ntpServerHosts;                                            //NTP Servers list
 };
 
 /* Methods                                                                                                                                      */

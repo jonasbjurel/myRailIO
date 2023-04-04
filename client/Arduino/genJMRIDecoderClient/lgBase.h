@@ -52,16 +52,6 @@ class lgSignalMast;
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
 
-typedef float							lg_property_t[8];
-#define property0						0
-#define property1						1
-#define property2						2
-#define property3						3
-#define property4						4
-#define property5						5
-#define property6						6
-#define property7						7
-
 
 
 /*==============================================================================================================================================*/
@@ -83,7 +73,7 @@ typedef float							lg_property_t[8];
 		if(!strcmp(type, "SIGNAL MAST"))\
 			((lgSignalMast*)ext_p)->method;\
 		else\
-			panic("lgBase::CALL_EXT: Non supported type - rebooting")
+			panic("lgBase::CALL_EXT: Non supported type: \"%s\" - rebooting..." CR, type)
 
 #define LG_CALL_EXT_RC(ext_p, type, method)\
 		rc_t EXT_RC;\
@@ -92,7 +82,7 @@ typedef float							lg_property_t[8];
 		}\
 		else{\
 			EXT_RC = RC_GEN_ERR;\
-			panic("lgBase::CALL_EXT: Non supported type - rebooting");\
+			panic("lgBase::CALL_EXT_RC: Non supported type: \"%s\" - rebooting..." CR, type);\
 		}
 
 //class lgBase : public systemState, public globalCli {

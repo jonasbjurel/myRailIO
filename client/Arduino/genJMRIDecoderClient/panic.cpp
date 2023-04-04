@@ -58,6 +58,8 @@ void panic(const char* fmt, ...) {
         Log.fatal("panic: Could not start reboot timer - rebooting immediatly..." CR);
         ESP.restart();
     }
+    while(true)
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
 void reboot(void* p_args) {

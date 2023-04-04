@@ -325,7 +325,8 @@ void sat::onAdmStateChange(const char* p_topic, const char* p_payload) {
 }
 
 rc_t sat::getOpStateStr(char* p_opStateStr) {
-    return systemState::getOpStateStr(p_opStateStr);
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
 }
 
 rc_t sat::setSystemName(const char* p_systemName, bool p_force) {

@@ -234,7 +234,8 @@ void actBase::wdtKicked(void) {
 }
 
 rc_t actBase::getOpStateStr(char* p_opStateStr) {
-    return systemState::getOpStateStr(p_opStateStr);
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
 }
 
 rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {

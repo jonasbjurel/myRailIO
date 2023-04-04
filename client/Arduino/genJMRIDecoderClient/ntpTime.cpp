@@ -50,6 +50,8 @@ void ntpTime::init(void) {
 	ntpDescriptor.syncStatus = SNTP_SYNC_STATUS_RESET;
 	ntpDescriptor.noOfServers = 0;
 	ntpDescriptor.pollPeriodMs = NTP_POLL_PERIOD_S;
+	ntpDescriptor.ntpServerHosts = new QList<ntpServerHost_t*>;
+	Serial.printf("##############NTPQListSize: %i\n", ntpDescriptor.ntpServerHosts->size());
 	updateNtpDescriptorStr(&ntpDescriptor);
 }
 
@@ -119,12 +121,12 @@ rc_t ntpTime::addNtpServer(IPAddress p_ntpServerAddr, uint16_t p_port) {
 	}
 	sntp_setserver(i, &ntpHostAddr);
 	restart();
-	ntpDescriptor.ntpServerHosts.push_back(new ntpServerHost_t);
-	ntpDescriptor.ntpServerHosts.back()->index = i;
-	ntpDescriptor.ntpServerHosts.back()->ntpHostAddress = p_ntpServerAddr;
-	ntpDescriptor.ntpServerHosts.back()->ntpPort = p_port;
-	strcpy(ntpDescriptor.ntpServerHosts.back()->ntpHostName, "");
-	ntpDescriptor.ntpServerHosts.back()->stratum = 0;
+	ntpDescriptor.ntpServerHosts->push_back(new ntpServerHost_t);
+	ntpDescriptor.ntpServerHosts->back()->index = i;
+	ntpDescriptor.ntpServerHosts->back()->ntpHostAddress = p_ntpServerAddr;
+	ntpDescriptor.ntpServerHosts->back()->ntpPort = p_port;
+	strcpy(ntpDescriptor.ntpServerHosts->back()->ntpHostName, "");
+	ntpDescriptor.ntpServerHosts->back()->stratum = 0;
 	ntpDescriptor.noOfServers++;
 	updateNtpDescriptorStr(&ntpDescriptor);
 	return RC_OK;
@@ -149,12 +151,12 @@ rc_t ntpTime::addNtpServer(const char* p_ntpServerName, uint16_t p_port) {
 	}
 	sntp_setservername(i, p_ntpServerName);
 	restart();
-	ntpDescriptor.ntpServerHosts.push_back(new ntpServerHost_t);
-	ntpDescriptor.ntpServerHosts.back()->index = i;
-	strcpy(ntpDescriptor.ntpServerHosts.back()->ntpHostName, p_ntpServerName);
-	ntpDescriptor.ntpServerHosts.back()->ntpPort = p_port;
-	ntpDescriptor.ntpServerHosts.back()->ntpHostAddress.fromString("0.0.0.0");
-	ntpDescriptor.ntpServerHosts.back()->stratum = 0;
+	ntpDescriptor.ntpServerHosts->push_back(new ntpServerHost_t);
+	ntpDescriptor.ntpServerHosts->back()->index = i;
+	strcpy(ntpDescriptor.ntpServerHosts->back()->ntpHostName, p_ntpServerName);
+	ntpDescriptor.ntpServerHosts->back()->ntpPort = p_port;
+	ntpDescriptor.ntpServerHosts->back()->ntpHostAddress.fromString("0.0.0.0");
+	ntpDescriptor.ntpServerHosts->back()->stratum = 0;
 	ntpDescriptor.noOfServers++;
 	updateNtpDescriptorStr(&ntpDescriptor);
 	return RC_OK;
@@ -162,20 +164,20 @@ rc_t ntpTime::addNtpServer(const char* p_ntpServerName, uint16_t p_port) {
 
 rc_t ntpTime::deleteNtpServer(IPAddress p_ntpServerAddr) {
 	uint8_t i;
-	for (i = 0; i < ntpDescriptor.ntpServerHosts.size(); i++) {
-		if (ntpDescriptor.ntpServerHosts.at(i)->ntpHostAddress == p_ntpServerAddr) {
+	for (i = 0; i < ntpDescriptor.ntpServerHosts->size(); i++) {
+		if (ntpDescriptor.ntpServerHosts->at(i)->ntpHostAddress == p_ntpServerAddr) {
 			ntpDescriptor.ntpServerIndexMap = ntpDescriptor.ntpServerIndexMap & ~(0b00000001 << i);
 			break;
 		}
 	}
-	if (i >= ntpDescriptor.ntpServerHosts.size()) {
+	if (i >= ntpDescriptor.ntpServerHosts->size()) {
 		Log.WARN("ntpTime::deleteNtpServer: %s not found" CR, p_ntpServerAddr.toString().c_str());
 		return RC_NOT_FOUND_ERR;
 	}
 	sntp_setservername(i, NULL);
 	restart();
-	delete ntpDescriptor.ntpServerHosts.at(i);
-	ntpDescriptor.ntpServerHosts.clear(i);
+	delete ntpDescriptor.ntpServerHosts->at(i);
+	ntpDescriptor.ntpServerHosts->clear(i);
 	ntpDescriptor.noOfServers--;
 	updateNtpDescriptorStr(&ntpDescriptor);
 	return RC_OK;
@@ -187,31 +189,34 @@ rc_t ntpTime::deleteNtpServer(const char* p_ntpServerName) {
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
-	for (i = 0; i < ntpDescriptor.ntpServerHosts.size(); i++) {
-		if (!strcmp(ntpDescriptor.ntpServerHosts.at(i)->ntpHostName, p_ntpServerName)) {
+	for (i = 0; i < ntpDescriptor.ntpServerHosts->size(); i++) {
+		if (!strcmp(ntpDescriptor.ntpServerHosts->at(i)->ntpHostName, p_ntpServerName)) {
 			ntpDescriptor.ntpServerIndexMap = ntpDescriptor.ntpServerIndexMap & ~(0b00000001 << i);
 			break;
 		}
 	}
-	if (i >= ntpDescriptor.ntpServerHosts.size()) {
+	if (i >= ntpDescriptor.ntpServerHosts->size()) {
 		Log.WARN("ntpTime::deleteNtpServer: %s not found" CR, p_ntpServerName);
 		return RC_NOT_FOUND_ERR;
 	}
 	sntp_setservername(i, NULL);
 	restart();
-	delete ntpDescriptor.ntpServerHosts.at(i);
-	ntpDescriptor.ntpServerHosts.clear(i);
+	delete ntpDescriptor.ntpServerHosts->at(i);
+	ntpDescriptor.ntpServerHosts->clear(i);
 	ntpDescriptor.noOfServers--;
 	updateNtpDescriptorStr(&ntpDescriptor);
 	return RC_OK;
 }
 
 rc_t ntpTime::deleteNtpServer(void) {
-	while (ntpDescriptor.ntpServerHosts.size()) {
-		sntp_setservername(ntpDescriptor.ntpServerHosts.back()->index, NULL);
-		delete ntpDescriptor.ntpServerHosts.back();
-		ntpDescriptor.ntpServerHosts.pop_back();
+	while (ntpDescriptor.ntpServerHosts->size()) {
+		sntp_setservername(ntpDescriptor.ntpServerHosts->back()->index, NULL);
+		delete ntpDescriptor.ntpServerHosts->back();
+		ntpDescriptor.ntpServerHosts->pop_back();
 	}
+	ntpDescriptor.ntpServerIndexMap = 0b00000000;
+	ntpDescriptor.noOfServers = 0;
+	return RC_OK;
 }
 
 rc_t ntpTime::getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_serverStatus) {
@@ -221,15 +226,15 @@ rc_t ntpTime::getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
-	for (i = 0; i < ntpDescriptor.ntpServerHosts.size(); i++) {
-		if (ntpDescriptor.ntpServerHosts.at(i)->ntpHostAddress = *p_ntpServerAddr)
+	for (i = 0; i < ntpDescriptor.ntpServerHosts->size(); i++) {
+		if (ntpDescriptor.ntpServerHosts->at(i)->ntpHostAddress = *p_ntpServerAddr)
 			break;
 	}
-	if (i >= ntpDescriptor.ntpServerHosts.size()) {
+	if (i >= ntpDescriptor.ntpServerHosts->size()) {
 		Log.WARN("ntpTime::getNtpServer: %s not found" CR, p_ntpServerAddr->toString().c_str());
 		return RC_NOT_FOUND_ERR;
 	}
-	p_serverStatus = ntpDescriptor.ntpServerHosts.at(i);
+	p_serverStatus = ntpDescriptor.ntpServerHosts->at(i);
 	return RC_OK;
 }
 
@@ -239,20 +244,20 @@ rc_t ntpTime::getNtpServer(const char* p_ntpServerName, ntpServerHost_t* p_serve
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
-	for (i = 0; i < ntpDescriptor.ntpServerHosts.size(); i++) {
-		if (strcmp(ntpDescriptor.ntpServerHosts.at(i)->ntpHostName, p_ntpServerName))
+	for (i = 0; i < ntpDescriptor.ntpServerHosts->size(); i++) {
+		if (strcmp(ntpDescriptor.ntpServerHosts->at(i)->ntpHostName, p_ntpServerName))
 			break;
 	}
-	if (i >= ntpDescriptor.ntpServerHosts.size()) {
+	if (i >= ntpDescriptor.ntpServerHosts->size()) {
 		Log.WARN("ntpTime::getNtpServer: %s not found" CR, p_ntpServerName);
 		return RC_NOT_FOUND_ERR;
 	}
-	p_serverStatus = ntpDescriptor.ntpServerHosts.at(i);
+	p_serverStatus = ntpDescriptor.ntpServerHosts->at(i);
 	return RC_OK;
 }
 
 rc_t ntpTime::getNtpServers(QList<ntpServerHost_t*>** p_ntpServerHosts) {
-	*p_ntpServerHosts = &(ntpDescriptor.ntpServerHosts);
+	*p_ntpServerHosts = ntpDescriptor.ntpServerHosts;
 	return RC_OK;
 }
 
@@ -619,8 +624,8 @@ void ntpTime::sntpCb(timeval* p_tv) {
 		sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
 		break;
 	};
-	for(uint8_t i=0; i<ntpDescriptor.ntpServerHosts.size(); i++)
-		ntpDescriptor.ntpServerHosts.at(i)->reachability = sntp_getreachability(ntpDescriptor.ntpServerHosts.at(i)->index);
+	for(uint8_t i=0; i<ntpDescriptor.ntpServerHosts->size(); i++)
+		ntpDescriptor.ntpServerHosts->at(i)->reachability = sntp_getreachability(ntpDescriptor.ntpServerHosts->at(i)->index);
 	updateNtpDescriptorStr(&ntpDescriptor);
 	Log.VERBOSE("ntpTime::sntpCb: Got an NTP server response with epoch time %i" CR, p_tv->tv_sec);
 }

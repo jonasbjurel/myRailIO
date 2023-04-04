@@ -73,12 +73,8 @@ void networking::provisioningConfigTrigger(void) {
 }
 
 void networking::start(void) {
-    Serial.printf("networking1: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("networking::start: Starting networking service" CR);
     regWifiOpStateCallback(wifiWd, NULL);
-    Serial.printf("networking2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFiWdTimerArgs.arg = NULL;
     WiFiWdTimerArgs.callback = static_cast<esp_timer_cb_t>
                                                (&networking::wifiWdTimeout);
@@ -86,28 +82,13 @@ void networking::start(void) {
     WiFiWdTimerArgs.name = "WiFi WD timer";
     if (esp_timer_create(&WiFiWdTimerArgs, &WiFiWdTimerHandle))
         panic("networking::start: Could not initialize WiFi watch-dog timer" CR);
-    Serial.printf("networking2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     setOpState(WIFI_OP_INIT | WIFI_OP_DISCONNECTED | WIFI_OP_NOIP | WIFI_OP_UNCONFIG);
-    Serial.printf("networking2.1: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking2.1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     if (!getAps(NULL))
         panic("networking::start: No WiFi networks found - cannot continue, "
               "rebooting..." CR);
-    Serial.printf("networking2.2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking2.2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    Serial.printf("networking3: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFi.useStaticBuffers(true);
-    Serial.printf("networking3.1: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking3.1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFi.onEvent(&WiFiEvent);
-    Serial.printf("networking3.2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking3.2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     WiFi.mode(WIFI_MODE_STA);
-    Serial.printf("networking4: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("networking4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-
     if (!(provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET)) {
         if (recoverPersistantConfig(&networkConfig) || setNetworkConfig(&networkConfig))
             provisionAction = provisionAction | PROVISIONING_DEFAULT_FROM_FACTORY_RESET;
@@ -175,8 +156,6 @@ void networking::start(void) {
         Log.INFO("networking::start: Starting the runtime web-portal" CR);
     }
     else {
-        Serial.printf("networking5: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("networking5: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         setNetworkConfig(&networkConfig);
         getNetworkConfig(&networkConfig);
         unSetOpState(WIFI_OP_UNCONFIG);
@@ -184,8 +163,6 @@ void networking::start(void) {
                    "- starting the networking service, connecting to SSID: %s" CR,
                    getSsid());
         WiFi.begin();
-        Serial.printf("networking6: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("networking6: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     }
 }
 
@@ -244,20 +221,14 @@ void networking::unRegWifiProvisionCallback(const wifiProvisionCallback_t p_call
 }
 
 uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
-    Serial.printf("getAps1: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("getAps1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     uint16_t networks = 0;
     networks = WiFi.scanNetworks();
-    Serial.printf("getAps2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("getAps2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     if (networks)
         Log.INFO("networking::getAps: %i WiFi networks were found" CR, networks);
     else {
         Log.INFO("networking::getAps: No WiFi networks were found:" CR, networks);
         return 0;
     }
-    Serial.printf("getAps3: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("getAps3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     char apPrintOut[300];
     if (p_printOut) {
         Log.INFO("networking::getAps: Following networks were found:" CR);
@@ -266,35 +237,26 @@ uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
                              -10, "RSSI:", -10, "Channel:", -20, "Encryption:");
         Log.info("%s" CR, apPrintOut);
     }
-    Serial.printf("getAps4: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("getAps4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     for (int i = 0; i < networks; i++) {
-        Serial.printf("getAps5: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("getAps5: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         apStruct_t* apInfo = new apStruct_t;
         strcpy(apInfo->ssid, WiFi.SSID(i).c_str());
         apInfo->rssi = WiFi.RSSI(i);
         apInfo->channel = WiFi.channel(i);
         sprintf(apInfo->bssid, "%s", WiFi.BSSIDstr(i).c_str());
         strcpy(apInfo->encryption, getEncryptionStr(WiFi.encryptionType(i)));
-        Serial.printf("getAps6: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("getAps6: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         if (p_printOut){
             sprintf(apPrintOut, "%*s | %*i | %*i | %*i | %*s |",
                                  -30, apInfo->ssid, -20, apInfo->bssid,
                                  -10, apInfo->rssi, -10, apInfo->channel, -20, apInfo->encryption);
             Log.INFO("%s" CR, apPrintOut);
         }
-        Serial.printf("getAps7: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("getAps7: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         if (p_apList)
             p_apList->push_back(apInfo);
         else
             delete apInfo;
         vTaskDelay(100 / portTICK_PERIOD_MS);
-        Serial.printf("getAps8: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("getAps8: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     }
+    WiFi.scanDelete();
     return networks;
 }
 

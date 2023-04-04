@@ -78,7 +78,7 @@ struct wdtCbLists_t {
 class wdt {
 public:
     //methods
-    wdt(uint16_t p_wdtTimeout, const char* p_wdtDescription, uint8_t p_wdtAction);
+    wdt(uint16_t p_wdtTimeoutMs, const char* p_wdtDescription, uint8_t p_wdtAction);
     ~wdt(void);
     static void wdtRegLgFailsafe(wdtCb_t* p_wdtLgFailsaveCb, void* p_wdtCbParms);
     static void wdtUnRegLgFailsafe(wdtCb_t* p_wdtLgFailsaveCb);

@@ -28,4 +28,7 @@ Global
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F9481D45-D5D7-4A08-A544-E0E6531B4AE1}
 	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Libraries\ArduinoJson\6.20.0\ArduinoJson\ArduinoJson-6.20.0.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
+	EndGlobalSection
 EndGlobal

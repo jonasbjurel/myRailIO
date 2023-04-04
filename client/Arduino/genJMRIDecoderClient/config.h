@@ -34,7 +34,7 @@
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								0
-#define MAX_LGLINKS									1
+#define MAX_LGLINKS									2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
@@ -111,6 +111,9 @@
 #define SM_FLASH_FAST								FLASH_TYPE_1_5_HZ
 #define SM_FLASH_NORMAL								FLASH_TYPE_1_0_HZ
 #define SM_FLASH_SLOW								FLASH_TYPE_0_5_HZ
+#define SM_DUTY_HIGH								180									//NOT YET IMPLEMENTED
+#define SM_DUTY_NORMAL								127									//NOT YET IMPLEMENTED
+#define SM_DUTY_LOW									80									//NOT YET IMPLEMENTED
 
 // MQTT Configuration
 // ==================
@@ -131,12 +134,12 @@
 // Set-up task
 #define SETUP_CORE									CORE_1
 #define SETUP_PRIO									5
-#define SETUP_STACKSIZE_1K							6
+#define SETUP_STACKSIZE_1K							10
 #define SETUP_TASKNAME								"setup"
 
 // MQTT message polling
 #define CPU_MQTT_POLL_CORE							CORE_1
-#define CPU_MQTT_POLL_PRIO							24
+#define CPU_MQTT_POLL_PRIO							15
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 
@@ -165,8 +168,8 @@ const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 
 // LgLink
 const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
-#define CPU_UPDATE_STRIP_PRIO						15
-#define CPU_UPDATE_STRIP_STACKSIZE_1K				6
+#define CPU_UPDATE_STRIP_PRIO						20
+#define CPU_UPDATE_STRIP_STACKSIZE_1K				10
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 
 // Telnet

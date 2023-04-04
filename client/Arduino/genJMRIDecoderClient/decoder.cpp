@@ -108,7 +108,6 @@ rc_t decoder::init(void){
         lgLinks[lgLinkNo]->init();
     }
     Log.INFO("decoder::init: lgLinks created" CR);
-
     Log.INFO("decoder::init: Creating satLinks" CR);
     for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
         satLinks[satLinkNo] = new satLink(satLinkNo);
@@ -159,19 +158,36 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_MQTT_PORT] = "DecoderMqttPort";
     decoderSearchTags[XML_DECODER_MQTT_PREFIX] = "DecoderMqttTopicPrefix";
     decoderSearchTags[XML_DECODER_MQTT_PINGPERIOD] = "DecoderPingPeriod";
+    decoderSearchTags[XML_DECODER_MQTT_KEEPALIVEPERIOD] = "DecoderKeepAlivePerid";
     decoderSearchTags[XML_DECODER_NTPURI] = "NTPServer";
     decoderSearchTags[XML_DECODER_NTPPORT] = "NTPPort";
     decoderSearchTags[XML_DECODER_TZ_AREA] = "TimeZoneArea"; //NEW FUNCTIONALITY FOR THE SERVER - we should fail back to CET
     decoderSearchTags[XML_DECODER_TZ_GMTOFFSET] = "TimeZoneGmtOffset";
     decoderSearchTags[XML_DECODER_LOGLEVEL] = "LogLevel";
     decoderSearchTags[XML_DECODER_FAILSAFE] = "DecodersFailSafe";
+    decoderSearchTags[XML_DECODER_SYSNAME] = NULL;
+    decoderSearchTags[XML_DECODER_USRNAME] = NULL;
+    decoderSearchTags[XML_DECODER_DESC] = NULL;
+    decoderSearchTags[XML_DECODER_MAC] = NULL;
+    decoderSearchTags[XML_DECODER_URI] = NULL;
+    Log.INFO("decoder::onConfig: Parsing decoder configuration:" CR);
+    getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
+    decoderSearchTags[XML_DECODER_MQTT_URI] = NULL;
+    decoderSearchTags[XML_DECODER_MQTT_PORT] = NULL;
+    decoderSearchTags[XML_DECODER_MQTT_PREFIX] = NULL;
+    decoderSearchTags[XML_DECODER_MQTT_PINGPERIOD] = NULL;
+    decoderSearchTags[XML_DECODER_MQTT_KEEPALIVEPERIOD] = NULL;
+    decoderSearchTags[XML_DECODER_NTPURI] = NULL;
+    decoderSearchTags[XML_DECODER_NTPPORT] = NULL;
+    decoderSearchTags[XML_DECODER_TZ_AREA] = NULL;
+    decoderSearchTags[XML_DECODER_TZ_GMTOFFSET] = NULL;
+    decoderSearchTags[XML_DECODER_LOGLEVEL] = NULL;
+    decoderSearchTags[XML_DECODER_FAILSAFE] = NULL;
     decoderSearchTags[XML_DECODER_SYSNAME] = "SystemName";
     decoderSearchTags[XML_DECODER_USRNAME] = "UserName";
     decoderSearchTags[XML_DECODER_DESC] = "Description";
     decoderSearchTags[XML_DECODER_MAC] = "MAC";
     decoderSearchTags[XML_DECODER_URI] = "URI";
-    Log.INFO("decoder::onConfig: Parsing decoder configuration:" CR);
-    getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
     getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
@@ -192,12 +208,12 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     if (setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true) ||
         setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true) ||
         setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true) ||
-        setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PREFIX]), true) ||
+        setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true) ||
         setNtpServer(xmlconfig[XML_DECODER_NTPURI], true) ||
         setNtpPort(atoi(xmlconfig[XML_DECODER_NTPPORT]), true) ||
         setLogLevel(xmlconfig[XML_DECODER_LOGLEVEL], true) ||
         setTz(tz, true) ||
-        setFailSafe(failSafe))
+        setFailSafe(failSafe, true))
         panic("decoder::onConfig: Could not validate and set provided configuration - rebooting..." CR);
     if (xmlconfig[XML_DECODER_SYSNAME] == NULL)
         panic("decoder::onConfig: System name was not provided - rebooting..." CR);
@@ -221,7 +237,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
 
     //SHOW FINAL CONFIGURATION
     Log.INFO("decoder::onConfig: Successfully set the decoder top-configuration as follows:" CR);
-    Log.INFO("decoder::onConfig: MQTT Server: \"%s:%s\"" CR, xmlconfig[XML_DECODER_URI], xmlconfig[XML_DECODER_MQTT_PORT]);
+    Log.INFO("decoder::onConfig: MQTT Server: \"%s:%s\"" CR, xmlconfig[XML_DECODER_MQTT_URI], xmlconfig[XML_DECODER_MQTT_PORT]);
     Log.INFO("decoder::onConfig: MQTT Prefix: %s - NOTE: CHANGING MQTT PREFIX CURRENTLY NOT SUPPORTED, will do nothing, default MQTT prefix: %s remains active" CR, xmlconfig[XML_DECODER_MQTT_PREFIX], MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
     Log.INFO("decoder::onConfig: MQTT Ping-period: %s" CR, xmlconfig[XML_DECODER_MQTT_PINGPERIOD]);
     Log.INFO("decoder::onConfig: NTP Server: \"%s:%s\"" CR, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
@@ -244,7 +260,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         lgLinkSearchTags[XML_LGLINK_USRNAME] = NULL;
         lgLinkSearchTags[XML_LGLINK_DESC] = NULL;
         lgLinkSearchTags[XML_LGLINK_LINK] = "Link";
-        char* lgLinkXmlConfig[4];
+        char* lgLinkXmlConfig[4] = { NULL };
         for (int lgLinkItter = 0; true; lgLinkItter++) {
             if (lgLinkXmlElement == NULL)
                 break;
@@ -253,8 +269,6 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
             getTagTxt(lgLinkXmlElement->FirstChildElement(), lgLinkSearchTags, lgLinkXmlConfig, sizeof(lgLinkSearchTags) / 4); // Need to fix the addressing for portability
             if (!lgLinkXmlConfig[XML_LGLINK_LINK])
                 panic("decoder::onConfig:: lgLink missing - rebooting..." CR);
-            if (!lgLinkXmlConfig[XML_LGLINK_SYSNAME])
-                panic("decoder::onConfig:: lgLink System name missing - rebooting..." CR);
             lgLinks[atoi(lgLinkXmlConfig[XML_LGLINK_LINK])]->onConfig(lgLinkXmlElement);
             addSysStateChild(lgLinks[atoi(lgLinkXmlConfig[XML_LGLINK_LINK])]);
             lgLinkXmlElement = xmlConfigDoc->NextSiblingElement("LightgroupsLink");
@@ -262,7 +276,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     }
     else
         Log.WARN("decoder::onConfig: No lgLinks provided, no lgLink will be configured" CR);
-
+    /*
     //CONFIFIGURING SATELITE LINKS
     tinyxml2::XMLElement* satLinkXmlElement;
     satLinkXmlElement = xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SateliteLink")->FirstChildElement();
@@ -284,6 +298,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         addSysStateChild(satLinks[atoi(xmlconfig[XML_SATLINK_LINK])]);
         satLinkXmlElement = xmlConfigDoc->NextSiblingElement("SateliteLink")->FirstChildElement();
     }
+    */
     delete xmlConfigDoc;
     unSetOpState(OP_UNCONFIGURED);
     Log.INFO("decoder::onConfig: Configuration successfully finished" CR);
@@ -300,12 +315,13 @@ while (systemState::getOpState() & OP_UNCONFIGURED) {
     Serial.print('.');
     vTaskDelay(100 / portTICK_PERIOD_MS);
 }
-Log.INFO("decoder::start: Subscribing to adm- and op state topics");
-const char* admSubscribeTopic[4] = { MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), "/", getSystemName() };
-if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 4), onAdmStateChangeHelper, NULL))
+Log.INFO("decoder::start: Subscribing to adm- and op state topics" CR);
+char admopSubscribeTopic[300];
+sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
+if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, NULL))
     panic("decoder::start: Failed to suscribe to admState topic - rebooting..." CR);
-const char* opSubscribeTopic[4] = { MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), "/", getSystemName() };
-if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 4), onOpStateChangeHelper, NULL))
+sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
+if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, NULL))
     panic("decoder::start: Failed to suscribe to opState topic - rebooting..." CR);
 Log.INFO("decoder::start: Starting lightgroup link Decoders" CR);
 for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
@@ -313,14 +329,17 @@ for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
         break;
     lgLinks[lgLinkItter]->start();
 }
+/*
 Log.INFO("decoder::start: Starting satelite link Decoders" CR);
 for (int satLinkItter = 0; satLinkItter < MAX_LGLINKS; satLinkItter++) {
     if (satLinks[satLinkItter] == NULL)
         break;
     satLinks[satLinkItter]->start();
 }
+*/
 unSetOpState(OP_INIT);
 Log.INFO("decoder::start: decoder started" CR);
+return RC_OK;
 }
 
 void decoder::onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState) {
@@ -328,10 +347,15 @@ void decoder::onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState
 }
 
 void decoder::onSysStateChange(uint16_t p_sysState) {
+    char opStateStr[100];
+    if (p_sysState)
+        Log.INFO("decoder::onSystateChange: The decoder has a new OP-state: %s" CR, systemState::getOpStateStr(opStateStr, p_sysState));
+    else
+        Log.INFO("decoder::onSystateChange: The decoder has a \"WORKING\" OP-state" CR);
     if (p_sysState & OP_INTFAIL)
         panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
     if ((p_sysState & OP_DISCONNECTED) && !(p_sysState & OP_INIT))
-        panic("decoder::onSystateChange: decoder has been disconnected after initialization phase- rebooting..." CR);
+        panic("decoder::onSystateChange: decoder has been disconnected after initialization phase, rebooting..." CR);
     if (!(p_sysState & ~OP_DISABLED)) {
         Log.INFO("decoder::onSystateChange: decocoder is marked fault free by server (OP_DISABLED not concidered), opState bitmap: %b - enabling mqtt supervision" CR, p_sysState);
         if (mqtt::up())
@@ -389,7 +413,8 @@ void decoder::onMqttChange(uint8_t p_mqttStatus) {
 }
 
 rc_t decoder::getOpStateStr(char* p_opStateStr) {
-    return systemState::getOpStateStr(p_opStateStr);
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
 }
 
 rc_t decoder::setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force) {
@@ -430,7 +455,7 @@ rc_t decoder::setMqttPort(int32_t p_mqttPort, bool p_force) {
             Log.ERROR("decoder::setMqttPort: Provided MQTT port: %i is out of range (0-65365): " CR, p_mqttPort);
             return RC_PARAMETERVALUE_ERR;
         }
-        Log.INFO("decoder::setMqttPort: setting MQTT Port to %s" CR, p_mqttPort);
+        Log.INFO("decoder::setMqttPort: setting MQTT Port to %i" CR, p_mqttPort);
         if (xmlconfig[XML_DECODER_MQTT_PORT])
             delete xmlconfig[XML_DECODER_MQTT_PORT];
         char mqttPort[6];
@@ -496,11 +521,12 @@ float decoder::getKeepAlivePeriod(bool p_force) {
 }
 
 rc_t decoder::setPingPeriod(float p_pingPeriod, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         Log.ERROR("decoder::setPingPeriod: cannot set ping supervision period as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else {
+        Serial.println(p_pingPeriod);
         Log.INFO("decoder::setPingPeriod: setting ping supervision period to %f" CR, p_pingPeriod);
         if (xmlconfig[XML_DECODER_MQTT_PINGPERIOD])
             delete xmlconfig[XML_DECODER_MQTT_PINGPERIOD];

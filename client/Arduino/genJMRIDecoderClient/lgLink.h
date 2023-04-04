@@ -112,7 +112,7 @@ public:
     bool getDebug(void);
     flash* getFlashObj(uint8_t p_flashType);
     signalMastAspects* getSignalMastAspectObj(void);
-    rc_t updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint16_t* p_transitionTimeBuff);
+    rc_t updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint8_t* p_transitionTimeBuff);
     uint32_t getOverRuns(void);
     void clearOverRuns(void);
     int64_t getMeanLatency(void);

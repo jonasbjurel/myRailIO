@@ -39,9 +39,9 @@
 
 wdtCbLists_t wdt::wdtCbLists;
 
-wdt::wdt(uint16_t p_wdtTimeout, const char* p_wdtDescription, uint8_t p_wdtAction) {
+wdt::wdt(uint16_t p_wdtTimeoutMs, const char* p_wdtDescription, uint8_t p_wdtAction) {
     wdtData = new wdt_t;
-    wdtData->wdtTimeout = p_wdtTimeout * 1000;
+    wdtData->wdtTimeout = p_wdtTimeoutMs * 1000;
     wdtData->wdtDescription = createNcpystr(p_wdtDescription);
     wdtData->wdtAction = p_wdtAction;
     wdtTimer_args.arg = this;
@@ -124,17 +124,22 @@ void wdt::wdtUnRegMqttDown(wdtCb_t* p_wdtMqttDownCb) {
 }
 
 void wdt::feed(void) {
-    esp_timer_stop(wdtData->timerHandle);
-    esp_timer_start_once(wdtData->timerHandle, wdtData->wdtTimeout);
+    /*
+    if (esp_timer_stop(wdtData->timerHandle))
+        panic("wdt::feed: Could not stop the %s timer, rebooting..." CR, wdtData->wdtDescription);
+    if (esp_timer_start_once(wdtData->timerHandle, wdtData->wdtTimeout))
+        panic("wdt::feed: Could not start the %s timer, rebooting..." CR, wdtData->wdtDescription);
     return;
+    */
 }
 
 void wdt::kickHelper(wdt* p_wdtObject) {
-    p_wdtObject->kick();
+    //p_wdtObject->kick();
 }
 
 void wdt::kick(void) {
-    if (wdtData->wdtAction & FAULTACTION_FAILSAFE_ACTUATORS)
+    Log.error("wdt::kick: Watchdog timer: %s expired" CR, wdtData->wdtDescription);
+    if (wdtData->wdtAction & FAULTACTION_FAILSAFE_ACTUATORS);
         callFailsafeCbs(&(wdtCbLists.actuatorsWdtCbs));
     if (wdtData->wdtAction & FAULTACTION_FAILSAFE_LGS)
         callFailsafeCbs(&(wdtCbLists.lgsWdtCbs));

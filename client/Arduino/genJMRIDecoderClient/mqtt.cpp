@@ -104,12 +104,6 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     mqttClient->setServer(brokerUri, brokerPort);
     mqttClient->setKeepAlive(keepAlive);
     mqttStatus = mqttClient->state();
-    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
-    Serial.printf("Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    Serial.printf("MaxMemBlock: %i\n", cpu::getMaxAllocMemBlockSize());
-    uint8_t* ptr = (uint8_t*)malloc((size_t)MQTT_BUFF_SIZE);
-    uint8_t* newPtr = (uint8_t*)realloc(ptr, (size_t)MQTT_BUFF_SIZE);
     if (!mqttClient->setBufferSize(MQTT_BUFF_SIZE)) {
         sysState->setOpState(OP_INTFAIL);
         panic("mqtt::init: Could not allocate MQTT buffers - rebooting...");
@@ -182,6 +176,13 @@ rc_t mqtt::reConnect(void){
     mqttClient->disconnect();
     mqttClient->setServer(brokerUri, brokerPort);
     mqttClient->setKeepAlive(keepAlive);
+    mqttClient->connect(clientId,
+                        brokerUser,
+                        brokerPass,
+                        opStateTopic,
+                        MQTT_DEFAULT_QOS,
+                        true,
+                        downPayload);
     uint8_t tries = 0;
     while (sysState->getOpState() & OP_DISCONNECTED) {
         if (tries++ >= 10) {
@@ -468,7 +469,8 @@ uint16_t mqtt::getOpState(void) {
 }
 
 rc_t mqtt::getOpStateStr(char* p_opState) {
-    return sysState->getOpStateStr(p_opState);
+    sysState->getOpStateStr(p_opState);
+    return RC_OK;
 }
 
 // Private methods
@@ -589,9 +591,10 @@ void mqtt::poll(void* dummy) {
     //esp_task_wdt_init(1, true); //enable panic so ESP32 restarts
     //esp_task_wdt_add(NULL); //add current thread to WDT watch
     while (true) {
-        mqttWdt->feed();
+        //Serial.printf("POLL\n");
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
+        mqttWdt->feed();
         //esp_task_wdt_reset();
         mqttClient->loop();
         stat = mqttClient->state();
@@ -608,7 +611,8 @@ void mqtt::poll(void* dummy) {
         case MQTT_CONNECTION_LOST:
         case MQTT_CONNECT_FAILED:
         case MQTT_DISCONNECTED:
-            Serial.printf("!!!DISCONNECTED!!!" CR);
+            if (mqttStatus != stat)
+                Log.WARN("mqtt::poll: MQTT Client disconnected, trying to re-connect" CR);
             sysState->setOpState(OP_DISCONNECTED);
             if (retryCnt++ >= MAX_MQTT_CONNECT_ATTEMPTS) {
                 sysState->setOpState(OP_INTFAIL);
@@ -661,6 +665,7 @@ void mqtt::poll(void* dummy) {
         int64_t delay = nextLoopTime - esp_timer_get_time();
         int64_t now = esp_timer_get_time();
         if ((int)delay > 0) {
+            //Serial.printf("Delaying %i ms\n", delay / 1000);
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
@@ -678,7 +683,7 @@ void mqtt::onOpStateChange(const void* p_dummy, uint16_t p_systemState) {
 
 void mqtt::mqttPingTimer(void* dummy) {
     while (!(sysState->getOpState() & OP_DISABLED)) {
-        Log.INFO("mqtt::poll: MQTT Ping timer started" CR);
+        Log.INFO("mqtt::mqttPingTimer: MQTT Ping timer started" CR);
         if (sysState->getOpState() == OP_WORKING && pingPeriod != 0) {
             if (++missedPings >= MAX_MQTT_LOST_PINGS) {
                 sysState->setOpState(OP_UNAVAILABLE);

@@ -227,7 +227,8 @@ void senseBase::wdtKicked(void) {
 }
 
 rc_t senseBase::getOpStateStr(char* p_opStateStr) {
-    return systemState::getOpStateStr(p_opStateStr);
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
 }
 
 rc_t senseBase::setSystemName(char* p_sysName, bool p_force) {

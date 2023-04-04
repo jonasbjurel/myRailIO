@@ -56,42 +56,13 @@ void setup() {
 }
 
 void setupTask(void* p_dummy) {
-    /*
-    Serial.printf("setupTask1: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
-    //WiFi.mode(WIFI_STA);
-    Serial.printf("setupTask2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
-    //WiFi.disconnect();
-    Serial.printf("setupTask3: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
-    //delay(100);
-    Serial.println(WiFi.scanNetworks());
-    Serial.printf("setupTask4: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_INTERNAL, true);
-    */
-
-    Serial.printf("setupTask1: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask1: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    Serial.printf("setupTask2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: setupTask started" CR);
     Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-    Serial.printf("setupTask3: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask3: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     //  Log.setPrefix(printPrefix); // set prefix similar to NLog
     Log.INFO("genJMRIDecoderClient::setupTask: Logging service started towards Serial" CR);
     fileSys::start();
-    Serial.printf("setupTask4: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask4: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: File system service started" CR);
     networking::start();
-    Serial.printf("setupTask5: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask5: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: WIFI Networking service started" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Connecting to WIFI..." CR);
     while (networking::getOpState() != OP_WORKING) {
@@ -102,8 +73,6 @@ void setupTask(void* p_dummy) {
     Log.INFO("genJMRIDecoderClient::setupTask: Initializing time- and NTP- service" CR);
     esp_timer_init();
     ntpTime::init();
-    Serial.printf("setupTask6: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask6: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: Time- and NTP- service initialized" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Starting the runtime web-portal service" CR);
     wifiManager = new WiFiManager;
@@ -113,21 +82,13 @@ void setupTask(void* p_dummy) {
     wifiManager->setShowInfoErase(true);
     wifiManager->setShowInfoUpdate(true);
     wifiManager->startWebPortal();
-    Serial.printf("setupTask7: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask7: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: Runtime web-portal service started" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Starting the decoder service" CR);
     decoderHandle = new decoder();
-    Serial.printf("setupTask8: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask8: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     decoderHandle->init();
-    Serial.printf("setupTask9: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask9: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     decoderHandle->start();
     Log.INFO("genJMRIDecoderClient::setupTask: Decoder service started" CR);
     setupRunning = false;
-    Serial.printf("setupTask2: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("setupTask2: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     Log.INFO("genJMRIDecoderClient::setupTask: Setup finished, killing setup task..." CR);
     vTaskDelete(NULL);
 }

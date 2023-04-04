@@ -1050,8 +1050,6 @@ class UI_lightgroupsLinkDialog(QDialog):
     def connectWidgetSignalsSlots(self):
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
-        lgTypeComboBox.currentTextChanged.connect(self.on_lgType_changed)
-
 
     def accepted(self):
         res = self.setValues()

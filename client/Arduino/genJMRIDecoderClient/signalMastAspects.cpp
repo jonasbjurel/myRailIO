@@ -214,8 +214,10 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
     }
 }
 
-rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads) {
-    if (parentHandle->systemState::getOpState() != OP_WORKING) { //NEEDS ATTENTION
+rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads, bool p_force) {
+    Serial.printf("p_force: %i\n", p_force);
+    Serial.printf("Searching for mast: %s\n", p_smType);
+    if ((parentHandle->systemState::getOpState() != OP_WORKING) && !p_force) { //NEEDS ATTENTION
         Log.ERROR("signalMastAspects::getNoOfHeads: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_noOfHeads = 0;
         return RC_GEN_ERR;

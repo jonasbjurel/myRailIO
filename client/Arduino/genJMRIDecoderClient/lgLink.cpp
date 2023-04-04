@@ -122,7 +122,7 @@ rc_t lgLink::init(void) {
 }
 
 void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
-    if (~(systemState::getOpState() & OP_UNCONFIGURED))
+    if (!(systemState::getOpState() & OP_UNCONFIGURED))
         panic("lgLink:onConfig: lgLink received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
     Log.INFO("lgLink::onConfig: lgLink channel %d received an unverified configuration, parsing and validating it..." CR, linkNo);
 
@@ -186,10 +186,12 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         lgSearchTags[XML_LG_PROPERTY1] = NULL;
         lgSearchTags[XML_LG_PROPERTY2] = NULL;
         lgSearchTags[XML_LG_PROPERTY3] = NULL;
-        char* lgXmlconfig[8];
+        char* lgXmlconfig[8] = { NULL };
         for (uint16_t lgItter = 0; true; lgItter++) {
-            if (lgXmlElement == NULL)
+            if (!lgXmlElement){
+                Serial.printf("=========NO MORE LIGHTGROUPS, lgitter: %i\n", lgItter);
                 break;
+            }
             if (lgItter > MAX_LGSTRIPLEN){
                 panic("lgLink::onConfig: More than maximum lightgroups provided - not supported, rebooting..." CR);
                 return;
@@ -205,7 +207,8 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         for (uint16_t lgItter = 0; lgItter < MAX_LGSTRIPLEN; lgItter++) {
             lgs[lgItter]->setStripOffset(stripOffset);
             uint8_t noOfLeds;
-            lgs[lgItter]->getNoOffLeds(&noOfLeds);
+            lgs[lgItter]->getNoOffLeds(&noOfLeds, true);
+            Serial.printf("******* No of Leds: %i\n", noOfLeds);
             stripOffset += noOfLeds;
         }
     }
@@ -225,12 +228,12 @@ rc_t lgLink::start(void) {
         return RC_NOT_CONFIGURED_ERR;
     }
     Log.INFO("lgLink::start: Subscribing to adm- and op state topics" CR);
-    char subscribeTopic[300];
-    sprintf(subscribeTopic, "%s,%s,%s,%s", MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), "/", xmlconfig[XML_LGLINK_SYSNAME]);
-    if (mqtt::subscribeTopic(subscribeTopic, &onAdmStateChangeHelper, this))
+    char admopSubscribeTopic[300];
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LGLINK_SYSNAME]);
+    if (mqtt::subscribeTopic(admopSubscribeTopic, &onAdmStateChangeHelper, this))
         panic("lgLink::start: Failed to suscribe to admState topic - rebooting..." CR);
-    sprintf(subscribeTopic, "%s,%s,%s,%s", MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), "/", xmlconfig[XML_LGLINK_SYSNAME]);
-    if (mqtt::subscribeTopic(subscribeTopic, &onOpStateChangeHelper, this))
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LGLINK_SYSNAME]);
+    if (mqtt::subscribeTopic(admopSubscribeTopic, &onOpStateChangeHelper, this))
         panic("lgLink::start: Failed to suscribe to opState topic - rebooting..." CR);
     for (uint16_t lgItter = 0; lgItter < MAX_LGSTRIPLEN; lgItter++)
         lgs[lgItter]->start();
@@ -258,10 +261,11 @@ void lgLink::onSysStateChange(uint16_t p_sysState) {
         Log.INFO("lgLink::onSystateChange:  lglink %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, linkNo);
     else if (p_sysState & OP_INTFAIL)
         panic("lgLink::onSystateChange: lg link has experienced an internal error - rebooting..." CR);
+    char opStateStr[100];
     if (p_sysState)
-        Log.INFO("lgLink::onSystateChange: Link %d has received Opstate %b - doing nothing" CR, linkNo, p_sysState);
+        Log.INFO("lgLink::onSystateChange: Link %d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr, p_sysState));
     else
-        Log.INFO("lgLink::onSystateChange: Link %d has received a cleared Opstate - doing nothing" CR, linkNo);
+        Log.INFO("lgLink::onSystateChange: Link %d has a \"WORKING\" OP-state" CR, linkNo);
 }
 
 void lgLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject) {
@@ -299,7 +303,8 @@ void lgLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
 }
 
 rc_t lgLink::getOpStateStr(char* p_opStateStr) {
-    return systemState::getOpStateStr(p_opStateStr);
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
 }
 
 rc_t lgLink::setSystemName(const char* p_systemName, bool p_force) {
@@ -386,7 +391,7 @@ bool lgLink::getDebug(void) {
     return debug;
 }
 
-rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint16_t* p_transitionTimeBuff) {
+rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint8_t* p_transitionTimeBuff) {
     xSemaphoreTake(lgLinkLock, portMAX_DELAY);
     for (uint16_t i = 0; i < p_buffLen; i++) {
         stripCtrlBuff[i + p_seqOffset].incrementValue = floor(abs(p_wantedValueBuff[i] - stripCtrlBuff[i + p_seqOffset].currentValue) / (p_transitionTimeBuff[i] / STRIP_UPDATE_MS));
@@ -426,14 +431,17 @@ void lgLink::updateStrip(void) {
     overRuns = 0;
     uint32_t maxAvgIndex = floor(UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS);
     uint32_t loopTime = STRIP_UPDATE_MS * 1000;
-    lgLinkWdt = new wdt(STRIP_UPDATE_MS * 10 * 1000, "LG link watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     Log.VERBOSE("gLink::updateStrip: Starting sriphandler channel %d" CR, linkNo);
+    uint32_t wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
     while (true) {
-        lgLinkWdt->feed();
-        xSemaphoreTake(lgLinkLock, portMAX_DELAY);
         startTime = esp_timer_get_time();
         thisLoopTime = nextLoopTime;
-        nextLoopTime += loopTime;
+        nextLoopTime += STRIP_UPDATE_MS * 1000;
+        if (!wdtFeeed_cnt--) {
+            lgLinkWdt->feed();
+            wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
+            Serial.printf("Kick\n");
+        }
         if (avgIndex >= maxAvgIndex) {
             avgIndex = 0;
         }
@@ -472,24 +480,22 @@ void lgLink::updateStrip(void) {
             }
             strip->show();
         }
+        runtime = esp_timer_get_time() - startTime;
+        runtimeVect[avgIndex] = runtime;
+        if (runtime > maxRuntime) {
+            maxRuntime = runtime;
+        }
+        TickType_t delay;
+        if ((int)(delay = nextLoopTime - esp_timer_get_time()) > 0) {
+            vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
+        }
+        else {
+            Log.VERBOSE("Strip channel %d overrun" CR, linkNo);
+            overRuns++;
+            nextLoopTime = esp_timer_get_time();
+        }
+        avgIndex++;
     }
-    runtime = esp_timer_get_time() - startTime;
-    runtimeVect[avgIndex] = runtime;
-    if (runtime > maxRuntime) {
-        maxRuntime = runtime;
-    }
-    TickType_t delay;
-    if ((int)(delay = nextLoopTime - esp_timer_get_time()) > 0) {
-        xSemaphoreGive(lgLinkLock);
-        vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
-    }
-    else {
-        Log.VERBOSE("Strip channel %d overrun" CR, linkNo);
-        overRuns++;
-        xSemaphoreGive(lgLinkLock);
-        nextLoopTime = esp_timer_get_time();
-    }
-    avgIndex++;
 }
 
 uint32_t lgLink::getOverRuns(void) {

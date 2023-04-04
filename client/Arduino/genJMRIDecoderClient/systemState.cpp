@@ -57,11 +57,11 @@ void systemState::regSysStateCb(void* p_miscCbData, const sysStateCb_t p_cb) {
 
 void systemState::addSysStateChild(void* p_child) {
     if (childList->indexOf(p_child) >= 0) {
-        Log.WARN("systemState::addChild: Child object %d already exists for object %d - doing nothing" CR, p_child, parent);
+        Log.WARN("systemState::addSysStateChild: Child object %d already exists for object %d - doing nothing" CR, p_child, parent);
         return;
     }
     else {
-        Log.INFO("systemState::addChild: adding child object %d to parent object %d" CR, p_child, parent);
+        Log.INFO("systemState::addSysStateChild: adding child object %d to parent object %d" CR, p_child, parent);
         childList->push_back(p_child);
     }
 }
@@ -82,7 +82,11 @@ void systemState::setOpState(const uint16_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState | p_opStateMap;
     if (opState != prevOpState) {
-        Log.INFO("systemState::opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, parent, prevOpState, opState);
+        char currentOpStr[100];
+        getOpStateStr(currentOpStr, opState);
+        char previousOpStr[100];
+        getOpStateStr(previousOpStr, prevOpState);
+        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState: %s, current opState: %s" CR, parent, previousOpStr, currentOpStr);
         updateObjOpStates();
     }
 }
@@ -91,7 +95,11 @@ void systemState::unSetOpState(const uint16_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState & ~p_opStateMap;
     if (opState != prevOpState) {
-        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState bitmap: %b, current opState bitmap: %b" CR, parent, prevOpState, opState);
+        char currentOpStr[100];
+        getOpStateStr(currentOpStr, opState);
+        char previousOpStr[100];
+        getOpStateStr(previousOpStr, prevOpState);
+        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState: %s, current opState: %s" CR, parent, previousOpStr, currentOpStr);
         updateObjOpStates();
     }
 }
@@ -100,23 +108,23 @@ uint16_t systemState::getOpState(void) {
     return opState;
 }
 
-rc_t systemState::getOpStateStr(char* p_opStateStr) {
+char* systemState::getOpStateStr(char* p_opStateStr, uint16_t p_opBitmap) {
     strcpy(p_opStateStr, "");
-    if (opState & OP_INIT)
+    if (p_opBitmap & OP_INIT)
         strcat(p_opStateStr, "INIT|");
-    if (opState & OP_DISCONNECTED)
+    if (p_opBitmap & OP_DISCONNECTED)
         strcat(p_opStateStr, "DISCONNECTED|");
-    if (opState & OP_UNDISCOVERED)
+    if (p_opBitmap & OP_UNDISCOVERED)
         strcat(p_opStateStr, "UNDISCOVERED|");
-    if (opState & OP_UNCONFIGURED)
+    if (p_opBitmap & OP_UNCONFIGURED)
         strcat(p_opStateStr, "UNCONFIGURED|");
-    if (opState & OP_DISABLED)
+    if (p_opBitmap & OP_DISABLED)
         strcat(p_opStateStr, "DISABLED|");
-    if (opState & OP_INTFAIL)
+    if (p_opBitmap & OP_INTFAIL)
         strcat(p_opStateStr, "INTFAIL|");
-    if (opState & OP_CBL)
+    if (p_opBitmap & OP_CBL)
         strcat(p_opStateStr, "CBL|");
-    if (opState & OP_UNUSED)
+    if (p_opBitmap & OP_UNUSED)
         strcat(p_opStateStr, "UNUSED|");
     if (strlen(p_opStateStr))
         p_opStateStr[strlen(p_opStateStr) - 1] = '\0';
@@ -124,7 +132,11 @@ rc_t systemState::getOpStateStr(char* p_opStateStr) {
         strcpy(p_opStateStr, "WORKING");
     if (!strlen(p_opStateStr))
         strcpy(p_opStateStr, "WORKING");
-    return RC_OK;
+    return p_opStateStr;
+}
+
+char* systemState::getOpStateStr(char* p_opStateStr) {
+    return getOpStateStr(p_opStateStr, opState);
 }
 
 void systemState::updateObjOpStates(void) {

@@ -38,19 +38,31 @@
 void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xmlTxtBuff[], int len) {
     int i;
     bool found = false;
-    bool foundTags[256] = { false };
+    bool foundTags[32] = { false };
+    char* tagsStr;
+    tagsStr = new char[1024];
+    tagsStr[0] = '\0';
+    for (uint8_t j = 0; j < len; j++) {
+        if (tags[j]) {
+            strcat(tagsStr, tags[j]);
+            strcat(tagsStr, "|");
+        }
+    }
+    if (strlen(tagsStr) > 1)
+        tagsStr[strlen(tagsStr) - 1] = '\0';
+    else
+        strcpy(tagsStr, "-");
+    Log.INFO("getTagTxt: Parsing XML-tags: %s" CR, tagsStr);
     while (xmlNode != NULL) {
         for (i = 0; i < len; i++) {
             found = false;
             if (!tags[i]) {
-                Serial.printf("### Search-tag %i is NULL\n", i);
                 foundTags[i] = true;
             }
             else {
-                Serial.printf("Search-tag: \"%s\", xml-tag: \"%s\"\n", tags[i], xmlNode->Name());
                 if (!strcmp(tags[i], xmlNode->Name())) {
                     if (xmlNode->GetText() != NULL) {
-                        Log.VERBOSE("getTagTxt: XML search match, tag: \"%s\", value: \"%s\"" CR, xmlNode->Name(), xmlNode->GetText());
+                        Log.VERBOSE("getTagTxt: XML-tag match: \"%s\", value: \"%s\"" CR, xmlNode->Name(), xmlNode->GetText());
                         found = true;
                         foundTags[i] = true;
                         if (xmlTxtBuff[i])
@@ -59,21 +71,32 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
                         strcpy(xmlTxtBuff[i], xmlNode->GetText());
                     }
                     else {
-                        Log.ERROR("getTagTxt: XML search match, tag: \"%s\", but with a NULL value" CR, xmlNode->Name());
+                        Log.WARN("getTagTxt: XML-tag match: \"%s\", but with a NULL value" CR, xmlNode->Name());
                     }
                     break;
                 }
             }
         }
         if (!found) {
-            Log.VERBOSE("getTagTxt: XML tag: \"%s\" present, but was not searched for" CR, xmlNode->Name());
+            Log.VERBOSE("getTagTxt: XML-tag: \"%s\" present, but was not searched for" CR, xmlNode->Name());
         }
         xmlNode = xmlNode->NextSiblingElement();
     }
+    tagsStr[0] = '\0';
     for (uint8_t j=0; j < len; j++) {
         if (!foundTags[j])
-            Log.ERROR("getTagTxt: XML tag: \"%s\" was searched for, but not found" CR, tags[j]);
+            Log.WARN("getTagTxt: XML-tag: \"%s\" was searched for, but not found, or without a corresponding value" CR, tags[j]);
+        else if(tags[j]){
+            strcat(tagsStr, tags[j]);
+            strcat(tagsStr, "|");
+        }
     }
+    if (strlen(tagsStr) > 1)
+        tagsStr[strlen(tagsStr) - 1] = '\0';
+    else
+        strcpy(tagsStr, "-");
+    Log.TERSE("getTagTxt: Found following requested XML-tags with values: %s" CR, tagsStr);
+    delete tagsStr;
 }
 /*==============================================================================================================================================*/
 /* END xmlHelpers                                                                                                                               */
