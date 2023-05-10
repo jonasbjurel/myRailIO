@@ -270,9 +270,8 @@ class decoder(systemState, schema):
         mac.text = self.mac.value
         uri = ET.SubElement(decoderXml, "URI")
         uri.text = self.decoderMqttURI.value
-        if not decoder:
-            adminState = ET.SubElement(decoderXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
+        adminState = ET.SubElement(decoderXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
         if includeChilds:
             childs = True
             try:
@@ -313,7 +312,7 @@ class decoder(systemState, schema):
             if config:
                 self.dialog = UI_lightgroupsLinkDialog(self.lgLinks.candidateValue[-1], edit=True)
                 self.dialog.show()
-                trace.notify(DEBUG_INFO, "Light group link: " + self.lgLinks.value[-1].nameKey.value + "is added to decoder " + self.nameKey.value)
+                trace.notify(DEBUG_INFO, "Light group link: " + self.lgLinks.candidateValue[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
                 self.reEvalOpState()
                 return rc.OK
 

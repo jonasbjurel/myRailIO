@@ -34,51 +34,97 @@
 /*          this class                                                                                                                          */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-systemState::systemState(const void* p_parent) {
-    Log.INFO("systemState::systemState: Creating systemState object to parent object %d" CR, p_parent);
+uint16_t systemState::sysStateIndex = 0;
+systemState::systemState(systemState* p_parent) {
     parent = p_parent;
-    opState = 0;
-    childList = new QList<void*>;
+    if (parent) {
+        Log.TERSE("systemState::systemState: Creating systemState object %s:sysStateObjIndex-%d to parent object %s" CR, parent->getSysStateObjName(), sysStateIndex, parent->getSysStateObjName());
+        objName = new char[strlen(parent->getSysStateObjName()) + 25];
+        sprintf(objName, "%s:sysStateObjIndex-%d", parent->getSysStateObjName(), sysStateIndex);
+    }
+    else{
+        Log.TERSE("systemState::systemState: Creating systemState top object sysStateObjIndex-%d" CR, sysStateIndex);
+        objName = new char[25];
+        sprintf(objName, "sysStateObjIndex-%d", sysStateIndex);
+    }
+    if (parent && parent->getOpState())
+        opState = OP_CBL;
+    else
+        opState = OP_WORKING;
+    cbList = new QList<cb_t*>;
+    childList = new QList<systemState*>;
+    sysStateIndex++;
 }
 
 systemState::~systemState(void) {
-    Log.INFO("systemState::~systemState: Deleting systemState object for object %d" CR, parent);
+    if(parent)
+        Log.INFO("systemState::~systemState: Deleting systemState object %s belonging to parent %s" CR, getSysStateObjName(), parent->getSysStateObjName());
+    else
+        Log.INFO("systemState::~systemState: Deleting top parent systemState object %s" CR, getSysStateObjName());
     if (childList->size() > 0)
-        Log.WARN("systemState::~systemState: SystemState object for object %d still hav registered childs, the reference to those will be deleted" CR, parent);
+        Log.WARN("systemState::~systemState: SystemState object %s still have registered childs, the reference to those will be deleted" CR, getSysStateObjName());
+    if (objName)
+        delete objName;
+
     childList->clear();
     delete childList;
 }
 
-void systemState::regSysStateCb(void* p_miscCbData, const sysStateCb_t p_cb) {
-    Log.INFO("systemState::regSysStateCb: Registering systemState callback %d to parent object %d" CR, p_cb, parent);
-    cb = p_cb;
-    miscCbData = p_miscCbData;
+rc_t systemState::regSysStateCb(void* p_miscCbData, sysStateCb_t p_cb) {
+    Log.TERSE("systemState::regSysStateCb: Registering systemState callback %d for system state object %s" CR, p_cb, getSysStateObjName());
+    for (uint8_t i = 0; i < cbList->size(); i++) {
+        if (cbList->at(i)->cb == p_cb) {
+            Log.warning("systemState::regSysStateCb: Callback function already exists, over-writing it" CR);
+            cbList->at(i)->miscCbData = p_miscCbData;
+            updateObjOpStates();
+            return RC_ALREADYEXISTS_ERR;
+        }
+    }
+    cb_t* cbObj = new cb_t;
+    cbObj->cb = p_cb;
+    cbObj->miscCbData = p_miscCbData;
+    cbList->push_back(cbObj);
+    updateObjOpStates();
+    return RC_OK;
 }
 
-void systemState::addSysStateChild(void* p_child) {
+rc_t systemState::unRegSysStateCb(const sysStateCb_t p_cb) {
+    Log.TERSE("systemState::unRegSysStateCb: Un - registering systemState callback %d for system state object %s" CR, p_cb, getSysStateObjName());
+    for (uint8_t i = 0; i < cbList->size(); i++) {
+        if (cbList->at(i)->cb == p_cb) {
+            delete cbList->at(i);
+            cbList->clear(i);
+            return RC_OK;
+        }
+    }
+    Log.WARN("systemState::unRegSysStateCb: Un - registering systemState callback %d for system state object %s failed, not found" CR, p_cb, getSysStateObjName());
+    return RC_NOT_FOUND_ERR;
+}
+
+void systemState::addSysStateChild(systemState* p_child) {
     if (childList->indexOf(p_child) >= 0) {
-        Log.WARN("systemState::addSysStateChild: Child object %d already exists for object %d - doing nothing" CR, p_child, parent);
+        Log.WARN("systemState::addSysStateChild: Child object %s is already a member of object %s - doing nothing" CR, p_child->getSysStateObjName(), getSysStateObjName());
         return;
     }
     else {
-        Log.INFO("systemState::addSysStateChild: adding child object %d to parent object %d" CR, p_child, parent);
+        Log.TERSE("systemState::addSysStateChild: adding member child object %s to parent object %s" CR, p_child->getSysStateObjName(), getSysStateObjName());
         childList->push_back(p_child);
     }
 }
 
-void systemState::delSysStateChild(void* p_child) {
+void systemState::delSysStateChild(systemState* p_child) {
     int i;
     i = childList->indexOf(p_child);
     if (i < 0) {
-        Log.WARN("systemState::delChild: Child does not exist - doing nothing" CR);
+        Log.WARN("systemState::delChild: Child %s is not a member of parent %s - doing nothing" CR, p_child->getSysStateObjName(), getSysStateObjName());
     }
     else {
-        Log.INFO("systemState::delChild: deleting child object %d to parent object %d" CR, p_child, parent);
+        Log.TERSE("systemState::delChild: deleting child object %s to parent object %s" CR, p_child->getSysStateObjName(), getSysStateObjName());
         childList->clear(i);
     }
 }
 
-void systemState::setOpState(const uint16_t p_opStateMap) {
+void systemState::setOpState(const sysState_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState | p_opStateMap;
     if (opState != prevOpState) {
@@ -86,12 +132,12 @@ void systemState::setOpState(const uint16_t p_opStateMap) {
         getOpStateStr(currentOpStr, opState);
         char previousOpStr[100];
         getOpStateStr(previousOpStr, prevOpState);
-        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState: %s, current opState: %s" CR, parent, previousOpStr, currentOpStr);
+        Log.INFO("systemState::setOpState: opState has changed for object %s, previous opState: %s, current opState: %s" CR, getSysStateObjName(), previousOpStr, currentOpStr);
         updateObjOpStates();
     }
 }
 
-void systemState::unSetOpState(const uint16_t p_opStateMap) {
+void systemState::unSetOpState(const sysState_t p_opStateMap) {
     uint16_t prevOpState = opState;
     opState = opState & ~p_opStateMap;
     if (opState != prevOpState) {
@@ -99,7 +145,7 @@ void systemState::unSetOpState(const uint16_t p_opStateMap) {
         getOpStateStr(currentOpStr, opState);
         char previousOpStr[100];
         getOpStateStr(previousOpStr, prevOpState);
-        Log.INFO("systemState::unSetOpState: opState has changed for object %d, previous opState: %s, current opState: %s" CR, parent, previousOpStr, currentOpStr);
+        Log.INFO("systemState::unSetOpState: opState has changed for object %s, previous opState: %s, current opState: %s" CR, getSysStateObjName(), previousOpStr, currentOpStr);
         updateObjOpStates();
     }
 }
@@ -108,18 +154,22 @@ uint16_t systemState::getOpState(void) {
     return opState;
 }
 
-char* systemState::getOpStateStr(char* p_opStateStr, uint16_t p_opBitmap) {
+char* systemState::getOpStateStr(char* p_opStateStr, sysState_t p_opBitmap) {
     strcpy(p_opStateStr, "");
     if (p_opBitmap & OP_INIT)
         strcat(p_opStateStr, "INIT|");
     if (p_opBitmap & OP_DISCONNECTED)
         strcat(p_opStateStr, "DISCONNECTED|");
+    if (p_opBitmap & OP_NOIP)
+        strcat(p_opStateStr, "NOIP|");
     if (p_opBitmap & OP_UNDISCOVERED)
         strcat(p_opStateStr, "UNDISCOVERED|");
     if (p_opBitmap & OP_UNCONFIGURED)
         strcat(p_opStateStr, "UNCONFIGURED|");
     if (p_opBitmap & OP_DISABLED)
         strcat(p_opStateStr, "DISABLED|");
+    if (p_opBitmap & OP_UNAVAILABLE)
+        strcat(p_opStateStr, "UNAVAILABLE|");
     if (p_opBitmap & OP_INTFAIL)
         strcat(p_opStateStr, "INTFAIL|");
     if (p_opBitmap & OP_CBL)
@@ -139,17 +189,81 @@ char* systemState::getOpStateStr(char* p_opStateStr) {
     return getOpStateStr(p_opStateStr, opState);
 }
 
-void systemState::updateObjOpStates(void) {
-    if (cb == NULL) {
-        Log.INFO("systemState::updateObjOpStates: opState has changed for object %d, but no registered call-back to inform - doing nothing" CR, parent);
+void systemState::setSysStateObjName(const char* p_objName) {
+    if (parent){
+        if (objName) {
+            Log.TERSE("systemState::setObjName: Setting child object name: %s:%s, previous object name: %s" CR, parent->getSysStateObjName(), p_objName, getSysStateObjName());
+            delete objName;
+        }
+        else
+            Log.TERSE("systemState::setObjName: Setting child object name: %s:%s, previous object name: -" CR, parent->getSysStateObjName(), p_objName);
+        objName = new char[strlen(parent->getSysStateObjName()) + strlen(p_objName) + 1];
+        sprintf(objName, "%s:%s", parent->getSysStateObjName(), p_objName);
+    }
+    else {
+        if (objName){
+            Log.TERSE("systemState::setObjName: Setting top object name: %s, previous object name: %s" CR, p_objName, getSysStateObjName());
+            delete objName;
+        }
+        else
+            Log.TERSE("systemState::setObjName: Setting top object name: %s, previous object name: -" CR, p_objName);
+        objName = new char[strlen(p_objName)];
+        sprintf(objName, "%s", p_objName);
+    }
+    for (uint16_t i = 9; i < childList->size(); i++)
+        childList->at(i)->updateObjName();
+}
+
+void systemState::updateObjName(void) {
+    if (objName) {
+        char instanceObjName[30];
+        int16_t lastObjNameSeparator = -1;
+        for (uint8_t i = 0; i < strlen(objName); i++) {
+            if (*(objName + i) == ':')
+                lastObjNameSeparator = i;
+        }
+        if (lastObjNameSeparator >= 0 && strlen(objName) - lastObjNameSeparator < 30)
+            strcpy(instanceObjName, objName + lastObjNameSeparator + 1);
+        else
+            panic("systemState::updateObjName: Local System state object not found or not well-formatted - rebooting..." CR);
+        setSysStateObjName(instanceObjName);
     }
     else
-        cb(miscCbData, opState);
-    for (uint16_t i = 0; i > childList->size(); i++) {
-        if (opState)
-            ((systemState*)(childList->get(i)))->setOpState(OP_CBL);
-        else
-            ((systemState*)(childList->get(i)))->unSetOpState(OP_CBL);
+        panic("systemState::updateObjName: Local System state object not set - rebooting..." CR);
+}
+
+char* systemState::getSysStateObjName(char* p_objName) {
+    if (objName)
+        strcpy(p_objName, objName);
+    else
+        sprintf(p_objName, "Object %d", this);
+    return p_objName;
+}
+
+const char* systemState::getSysStateObjName(void) {
+    return objName;
+}
+
+void systemState::updateObjOpStates(void) {
+    if (!cbList->size()) {
+        Log.VERBOSE("systemState::updateObjOpStates: opState has changed for object %s, but no call-backs registered - doing nothing" CR, getSysStateObjName());
+    }
+    for (uint16_t i = 0; i < cbList->size(); i++){
+        Log.VERBOSE("systemState::updateObjOpStates: Sending call-back to %i" CR, cbList->at(i)->cb);
+        cbList->at(i)->cb(cbList->at(i)->miscCbData, opState);
+    }
+    char objName[100];
+    char childObjName1[100];
+
+    for (uint16_t i = 0; i < childList->size(); i++) {
+        if (opState){
+            Log.VERBOSE("systemState::updateObjOpStates: %s setting child %s to CBL" CR, getSysStateObjName(objName), childList->get(i)->getSysStateObjName(childObjName1));
+            childList->get(i)->setOpState(OP_CBL);
+        }
+        else {
+            Log.VERBOSE("systemState::updateObjOpStates: %s unsetting child %s from CBL" CR, getSysStateObjName(objName), childList->get(i)->getSysStateObjName(childObjName1));
+            childList->get(i)->unSetOpState(OP_CBL);
+        }
     }
 }
 

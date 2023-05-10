@@ -88,6 +88,7 @@ public:
     static void create(void);
     static rc_t init(const char* p_broker, uint16_t p_port, const char* p_user, const char* p_pass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain);
     static void regOpStateCb(sysStateCb_t p_systemStateCb, void* p_systemStateCbArgs);
+    static void unRegOpStateCb(sysStateCb_t p_systemStateCb);
     static rc_t regStatusCallback(const mqttStatusCallback_t p_statusCallback, const void* args);
     static rc_t reConnect(void);
     static void disConnect(void);
@@ -135,14 +136,10 @@ private:
     static rc_t reSubscribe(void);
     static void mqttPingTimer(void* dummy);
     static void onMqttPing(const char* p_topic, const char* p_payload, const void* p_dummy);
-    static void onOpStateChange(const void* p_dummy, uint16_t p_systemState);
-
 
     //Private data structures
     static TaskHandle_t* supervisionTaskHandle;
     static systemState* sysState;
-    static sysStateCb_t systemStateCb;
-    static void* systemStateCbArgs;
     static SemaphoreHandle_t mqttLock;
     static WiFiClient espClient;
     static PubSubClient* mqttClient;
@@ -174,6 +171,7 @@ private:
     static mqttStatusCallback_t statusCallback;
     static void* statusCallbackArgs;
     static wdt* mqttWdt;
+    static bool supervision;
 };
 
 /*==============================================================================================================================================*/

@@ -38,12 +38,16 @@
 
 uint16_t satLink::satLinkIndex = 0;
 
-satLink::satLink(uint8_t p_linkNo) : systemState(this), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, satLinkIndex) {
+satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, satLinkIndex) {
     Log.INFO("satLink::satLink: Creating Satelite link channel %d" CR, p_linkNo);
-    satLinkIndex++;
+    if (satLinkIndex++ > MAX_SATLINKS)
+        panic("satLink::satLink:Number of configured satLinks exceeds maximum configured by [MAX_SATLINKS: %d] - rebooting ..." CR, MAX_SATLINKS);
+    char sysStateObjName[20];
+    sprintf(sysStateObjName, "satLink-%d", p_linkNo);
+    setSysStateObjName(sysStateObjName);
     linkNo = p_linkNo;
-    regSysStateCb(this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNAVAILABLE);
+    regSysStateCb(this, &onSysStateChangeHelper);
     satLinkLock = xSemaphoreCreateMutex();
     if (satLinkLock == NULL)
         panic("satLink::satLink: Could not create Lock objects - rebooting...");

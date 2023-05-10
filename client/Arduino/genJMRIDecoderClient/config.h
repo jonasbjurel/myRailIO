@@ -34,7 +34,7 @@
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								0
-#define MAX_LGLINKS									2
+#define MAX_LGLINKS									1	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
@@ -94,11 +94,12 @@
 
 // Light group link configuration
 // ==============================
-#define MAX_LGSTRIPLEN								1
+#define MAX_LGSTRIPLEN								32					//32x3 Monochrome Pixels
 #define STRIP_UPDATE_MS								5					//Lightgoups 2811 strip update periond [ms]
 
 // Light group configuration
 // =========================
+#define MAX_LGS										1	//16
 
 // Signal mast Light group configuration
 #define SM_DIM_NORMAL_MS							75
@@ -125,7 +126,7 @@
 #define MQTT_DEFAULT_PINGPERIOD_S					10.0
 #define MAX_MQTT_LOST_PINGS							3
 #define MQTT_BUFF_SIZE								50000
-#define MQTT_POLL_PERIOD_MS							100
+#define MQTT_POLL_PERIOD_MS							50
 #define MQTT_CONNECT_TIMEOUT_S						60
 #define MAX_MQTT_CONNECT_ATTEMPTS					10
 
@@ -145,7 +146,7 @@
 
 // MQTT message supervision
 #define CPU_MQTT_PING_CORE							CORE_0
-#define CPU_MQTT_PING_PRIO							15
+#define CPU_MQTT_PING_PRIO							10
 #define CPU_MQTT_PING_STACKSIZE_1K					6
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 
@@ -169,7 +170,7 @@ const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 // LgLink
 const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 #define CPU_UPDATE_STRIP_PRIO						20
-#define CPU_UPDATE_STRIP_STACKSIZE_1K				10
+#define CPU_UPDATE_STRIP_STACKSIZE_1K				3
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 
 // Telnet

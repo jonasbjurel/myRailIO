@@ -112,6 +112,8 @@ class systemState():
         return rc.OK
 
     def disable(self):
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Disabling")
+        traceback.print_stack()
         if not self.areChildsDisabled():
             return rc.CHILD_NOT_DISABLE
         self.admState = ADM_DISABLE

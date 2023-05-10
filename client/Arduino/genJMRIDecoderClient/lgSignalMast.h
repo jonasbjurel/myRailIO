@@ -75,7 +75,9 @@ public:
     rc_t init(void);
     rc_t onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement);
     rc_t start(void);                            //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
-    void onSysStateChange(uint16_t p_sysState);
+    static void testApearanceHelper(void* p_lgSignalMastHande);
+    void testApearance(void);
+    void onSysStateChange(sysState_t p_sysState);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
     rc_t getNoOffLeds(uint8_t* p_noOfLeds, bool p_force = false);
     void getShowing(const char* p_showing);
@@ -97,6 +99,7 @@ private:
 
     //Private data structures
     mastDesc_t mastDesc;
+    sysState_t sysState;
     char* xmlConfig[5];
     bool debug;
     SemaphoreHandle_t lgSignalMastLock;             //Mutex to protect common object datastructures from multi thread parallel access
@@ -105,7 +108,6 @@ private:
     uint8_t* appearance;                            //Holds the Appearance signatures for all heads in the mast (LIT, UNLIT, FLASH, UNUSED..), See definitions in the mastaspect class
     uint8_t* tmpAppearance;                         //Temporarrily stores the appearance as received from the lgs decoder [SM_MAXHEADS]
     uint8_t* appearanceWriteBuff;                   //Holds the wanted raw led wanted values to be passed to the lgLink for rendering
-    uint8_t* appearanceDimBuff;                     //Holds the Dim timing for each head in the mast to be passed to the lgLink for rendering
     bool flashOn;                                   //Holds the flash state for all heads in the mast currently flashing
 };
 

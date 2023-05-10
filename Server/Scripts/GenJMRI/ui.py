@@ -995,6 +995,7 @@ class UI_lightgroupsLinkDialog(QDialog):
         self.usrNameLineEdit.setEnabled(True)
         self.linkNoSpinBox.setEnabled(True)
         self.descriptionLineEdit.setEnabled(True)
+        self.mastDefinitionPathLineEdit.setEnabled(True)
         self.opStateSummaryLineEdit.setEnabled(True)
         self.opStateDetailLineEdit.setEnabled(True)
         self.upTimeLineEdit.setEnabled(True)
@@ -1004,9 +1005,10 @@ class UI_lightgroupsLinkDialog(QDialog):
 
     def unSetEditable(self):
         self.sysNameLineEdit.setEnabled(False)
-        self.usrNameLineEdit.setEnabled(True)
+        self.usrNameLineEdit.setEnabled(False)
         self.linkNoSpinBox.setEnabled(False)
         self.descriptionLineEdit.setEnabled(False)
+        self.mastDefinitionPathLineEdit.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1019,6 +1021,7 @@ class UI_lightgroupsLinkDialog(QDialog):
         self.usrNameLineEdit.setText(self.parentObjHandle.userName.value)
         self.linkNoSpinBox.setValue(self.parentObjHandle.lgLinkNo.value)
         self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
+        self.mastDefinitionPathLineEdit.setText(self.parentObjHandle.mastDefinitionPath.value)
         self.opStateSummaryLineEdit.setText(str(self.parentObjHandle.getOpStateSummary()[STATE_STR]))
         self.opStateDetailLineEdit.setText(str(self.parentObjHandle.getOpStateDetailStr()))
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -1031,6 +1034,7 @@ class UI_lightgroupsLinkDialog(QDialog):
             self.parentObjHandle.userName.value = self.usrNameLineEdit.displayText()
             self.parentObjHandle.lgLinkNo.value = self.linkNoSpinBox.value()
             self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
+            self.parentObjHandle.mastDefinitionPath.value = self.mastDefinitionPathLineEdit.displayText()
         except AssertionError as configError:
             return configError
         if self.adminStateForceCheckBox.isChecked():

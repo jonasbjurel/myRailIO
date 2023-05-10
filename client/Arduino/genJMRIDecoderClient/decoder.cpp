@@ -41,14 +41,17 @@
 /*          as ntp-, rsyslog-, ntp-, watchdog- and cli configuration and is the cooridnator and root of such servicies.                         */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, true) {
+decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, true) {
     Log.INFO("decoder::decoder: Creating decoder" CR);
+    setSysStateObjName("Decoder");
     Serial.printf("decoder: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("Decoder: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     debug = false;
+    
     mqtt::create();
+    prevSysState = OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL;
+    setOpState(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
-    setOpState(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_UNAVAILABLE);
     if (!(decoderLock = xSemaphoreCreateMutex()))
         panic("decoder::decoder: Could not create Lock objects - rebooting..." CR);
     xmlconfig[XML_DECODER_MQTT_URI] = createNcpystr(networking::getMqttUri());
@@ -73,6 +76,8 @@ decoder::decoder(void) : systemState(this), globalCli(DECODER_MO_NAME, DECODER_M
     xmlconfig[XML_DECODER_DESC] = NULL;
     xmlconfig[XML_DECODER_MAC] = createNcpystr(networking::getMac());
     xmlconfig[XML_DECODER_URI] = NULL;
+    xmlconfig[XML_DECODER_ADMSTATE] = NULL;
+
     Log.INFO("decoder::decoder: Starting CLI service" CR);
     globalCli::start();
     Log.INFO("decoder::decoder: Decoder created" CR);
@@ -87,8 +92,7 @@ rc_t decoder::init(void){
     Log.INFO("decoder::init: Initializing MQTT " CR);
     strcpy(xmlconfig[XML_DECODER_MQTT_URI], networking::getMqttUri());
     itoa(networking::getMqttPort(), xmlconfig[XML_DECODER_MQTT_PORT], 10);
-    mqtt::regStatusCallback(&onMqttChangeHelper, (const void*)this);
-
+    mqtt::regOpStateCb(onMqttOpStateChangeHelper, this);
     mqtt::init((char*)xmlconfig[XML_DECODER_MQTT_URI],          // Broker URI
         atoi(xmlconfig[XML_DECODER_MQTT_PORT]),                 // Broker port
         (char*)"",                                              // User name
@@ -102,15 +106,19 @@ rc_t decoder::init(void){
     
     Log.INFO("decoder::init: Creating lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
-        lgLinks[lgLinkNo] = new lgLink(lgLinkNo);
+        lgLinks[lgLinkNo] = new lgLink(lgLinkNo, this);
+        Serial.println(">>>>New LG Link>>>>>");
+        Serial.println(lgLinkNo);
+        Serial.println((uint)lgLinks[lgLinkNo]);
         if (lgLinks[lgLinkNo] == NULL)
             panic("decoder::init: Could not create lgLink objects - rebooting..." CR);
+        addSysStateChild(lgLinks[lgLinkNo]);
         lgLinks[lgLinkNo]->init();
     }
     Log.INFO("decoder::init: lgLinks created" CR);
     Log.INFO("decoder::init: Creating satLinks" CR);
     for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
-        satLinks[satLinkNo] = new satLink(satLinkNo);
+        satLinks[satLinkNo] = new satLink(satLinkNo, this);
         if (satLinks[satLinkNo] == NULL)
             panic("decoder::init: Could not create satLink objects - rebooting..." CR);
         satLinks[satLinkNo]->init();
@@ -153,7 +161,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         panic("decoder::onConfig: Failed to parse the configuration - xml is missformatted - rebooting..." CR);
 
     //PARSING CONFIGURATION
-    const char* decoderSearchTags[16];
+    const char* decoderSearchTags[17];
     decoderSearchTags[XML_DECODER_MQTT_URI] = "DecoderMqttURI";
     decoderSearchTags[XML_DECODER_MQTT_PORT] = "DecoderMqttPort";
     decoderSearchTags[XML_DECODER_MQTT_PREFIX] = "DecoderMqttTopicPrefix";
@@ -170,6 +178,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_DESC] = NULL;
     decoderSearchTags[XML_DECODER_MAC] = NULL;
     decoderSearchTags[XML_DECODER_URI] = NULL;
+    decoderSearchTags[XML_DECODER_ADMSTATE] = NULL;
+
     Log.INFO("decoder::onConfig: Parsing decoder configuration:" CR);
     getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
     decoderSearchTags[XML_DECODER_MQTT_URI] = NULL;
@@ -188,10 +198,10 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_DESC] = "Description";
     decoderSearchTags[XML_DECODER_MAC] = "MAC";
     decoderSearchTags[XML_DECODER_URI] = "URI";
+    decoderSearchTags[XML_DECODER_ADMSTATE] = "AdminState";
     getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
-    Log.INFO("decoder::onConfig: Validating and setting provided configuration" CR);
     Log.INFO("decoder::onConfig: Validating and setting provided decoder configuration" CR);
 
     char tz[20];
@@ -205,6 +215,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         failSafe = true;
         Log.ERROR("decoder::onConfig: Provided Failsafe statement: %s is missformatted - only \"%s\" or \"%s\" allowed - activating Failsafe" CR, xmlconfig[XML_DECODER_FAILSAFE], MQTT_BOOL_TRUE_PAYLOAD, MQTT_BOOL_FALSE_PAYLOAD);
     }
+
+/* NEED TO FIX CHANGES OF MQTT PARAMETERS
     if (setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true) ||
         setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true) ||
         setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true) ||
@@ -215,6 +227,16 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         setTz(tz, true) ||
         setFailSafe(failSafe, true))
         panic("decoder::onConfig: Could not validate and set provided configuration - rebooting..." CR);
+*/
+/*
+    if (setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true) ||
+        setNtpServer(xmlconfig[XML_DECODER_NTPURI], true) ||
+        setNtpPort(atoi(xmlconfig[XML_DECODER_NTPPORT]), true) ||
+        setLogLevel(xmlconfig[XML_DECODER_LOGLEVEL], true) ||
+        setTz(tz, true) ||
+        setFailSafe(failSafe, true))
+            panic("decoder::onConfig: Could not validate and set provided configuration - rebooting..." CR);
+*/
     if (xmlconfig[XML_DECODER_SYSNAME] == NULL)
         panic("decoder::onConfig: System name was not provided - rebooting..." CR);
     if (xmlconfig[XML_DECODER_USRNAME] == NULL){
@@ -233,7 +255,20 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     if (xmlconfig[XML_DECODER_URI] == NULL)
         xmlconfig[XML_DECODER_URI] = createNcpystr(mqtt::getDecoderUri());
     if(strcmp(xmlconfig[XML_DECODER_URI], mqtt::getDecoderUri()))
-        panic("Configuration decoder URI not the same as provided with the discovery response - rebooting ..." CR);
+        panic("decoder::onConfig: Configuration decoder URI is not the same as provided with the discovery response - rebooting ..." CR);
+    //setSysStateObjName(xmlconfig[XML_DECODER_URI]); FIX
+    if (xmlconfig[XML_DECODER_ADMSTATE] == NULL){
+        Log.WARN("decoder::onConfig: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        xmlconfig[XML_DECODER_ADMSTATE] = createNcpystr("DISABLE");
+    }
+    if (!strcmp(xmlconfig[XML_DECODER_ADMSTATE], "ENABLE")) {
+        unSetOpState(OP_DISABLED);
+    }
+    else if (!strcmp(xmlconfig[XML_DECODER_ADMSTATE], "DISABLE")) {
+        setOpState(OP_DISABLED);
+    }
+    else
+        panic("decoder::onConfig: Configuration decoder::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_DECODER_ADMSTATE]);
 
     //SHOW FINAL CONFIGURATION
     Log.INFO("decoder::onConfig: Successfully set the decoder top-configuration as follows:" CR);
@@ -249,6 +284,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     Log.INFO("decoder::onConfig: Decoder System name: %s" CR, xmlconfig[XML_DECODER_SYSNAME]);
     Log.INFO("decoder::onConfig: Decoder User name: %s" CR, xmlconfig[XML_DECODER_USRNAME]);
     Log.INFO("decoder::onConfig: Decoder Description: %s" CR, xmlconfig[XML_DECODER_DESC]);
+    Log.INFO("decoder::onConfig: Decoder Admin state: %s" CR, xmlconfig[XML_DECODER_ADMSTATE]);
     Log.INFO("decoder::onConfig: Successfully parsed and processed the decoder top-configuration:" CR);
 
     //CONFIFIGURING LIGHTGROUP LINKS
@@ -270,7 +306,6 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
             if (!lgLinkXmlConfig[XML_LGLINK_LINK])
                 panic("decoder::onConfig:: lgLink missing - rebooting..." CR);
             lgLinks[atoi(lgLinkXmlConfig[XML_LGLINK_LINK])]->onConfig(lgLinkXmlElement);
-            addSysStateChild(lgLinks[atoi(lgLinkXmlConfig[XML_LGLINK_LINK])]);
             lgLinkXmlElement = xmlConfigDoc->NextSiblingElement("LightgroupsLink");
         }
     }
@@ -305,30 +340,33 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
 }
 
 rc_t decoder::start(void) {
-Log.INFO("decoder::start: Starting decoder" CR);
-uint16_t i = 0;
-while (systemState::getOpState() & OP_UNCONFIGURED) {
-    if (i == 0)
-        Log.INFO("decoder::start: Waiting for decoder to be configured before it can start" CR);
-    if (i++ >= DECODER_CONFIG_TIMEOUT_S * 10)
-        panic("decoder::start: Configuration process failed - rebooting..." CR);
-    Serial.print('.');
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-}
-Log.INFO("decoder::start: Subscribing to adm- and op state topics" CR);
-char admopSubscribeTopic[300];
-sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
-if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, NULL))
-    panic("decoder::start: Failed to suscribe to admState topic - rebooting..." CR);
-sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
-if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, NULL))
-    panic("decoder::start: Failed to suscribe to opState topic - rebooting..." CR);
-Log.INFO("decoder::start: Starting lightgroup link Decoders" CR);
-for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
-    if (lgLinks[lgLinkItter] == NULL)
-        break;
-    lgLinks[lgLinkItter]->start();
-}
+    Log.INFO("decoder::start: Starting decoder" CR);
+    uint16_t i = 0;
+    while (systemState::getOpState() & OP_UNCONFIGURED) {
+        if (i == 0)
+            Log.INFO("decoder::start: Waiting for decoder to be configured before it can start" CR);
+        if (i++ >= DECODER_CONFIG_TIMEOUT_S * 10)
+            panic("decoder::start: Configuration process failed - rebooting..." CR);
+        Serial.print('.');
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    Log.INFO("decoder::start: Subscribing to adm- and op state topics" CR);
+    char admopSubscribeTopic[300];
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
+    if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this))
+        panic("decoder::start: Failed to suscribe to admState topic - rebooting..." CR);
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
+    if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this))
+        panic("decoder::start: Failed to suscribe to opState topic - rebooting..." CR);
+    Log.INFO("decoder::start: Starting lightgroup link Decoders" CR);
+    for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
+        Serial.println(">>>>Start LG Link>>>>>");
+        Serial.println(lgLinkItter);
+        Serial.println((uint)lgLinks[lgLinkItter]);
+        if (lgLinks[lgLinkItter] == NULL)
+            break;
+        lgLinks[lgLinkItter]->start();
+    }
 /*
 Log.INFO("decoder::start: Starting satelite link Decoders" CR);
 for (int satLinkItter = 0; satLinkItter < MAX_LGLINKS; satLinkItter++) {
@@ -337,9 +375,9 @@ for (int satLinkItter = 0; satLinkItter < MAX_LGLINKS; satLinkItter++) {
     satLinks[satLinkItter]->start();
 }
 */
-unSetOpState(OP_INIT);
-Log.INFO("decoder::start: decoder started" CR);
-return RC_OK;
+    unSetOpState(OP_INIT);
+    Log.INFO("decoder::start: decoder started" CR);
+    return RC_OK;
 }
 
 void decoder::onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState) {
@@ -348,22 +386,60 @@ void decoder::onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState
 
 void decoder::onSysStateChange(uint16_t p_sysState) {
     char opStateStr[100];
-    if (p_sysState)
+    sysState_t sysStateChange = p_sysState ^ prevSysState;
+    if (!sysStateChange)
+        return;
+    if (p_sysState){
         Log.INFO("decoder::onSystateChange: The decoder has a new OP-state: %s" CR, systemState::getOpStateStr(opStateStr, p_sysState));
-    else
-        Log.INFO("decoder::onSystateChange: The decoder has a \"WORKING\" OP-state" CR);
-    if (p_sysState & OP_INTFAIL)
-        panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
-    if ((p_sysState & OP_DISCONNECTED) && !(p_sysState & OP_INIT))
-        panic("decoder::onSystateChange: decoder has been disconnected after initialization phase, rebooting..." CR);
-    if (!(p_sysState & ~OP_DISABLED)) {
-        Log.INFO("decoder::onSystateChange: decocoder is marked fault free by server (OP_DISABLED not concidered), opState bitmap: %b - enabling mqtt supervision" CR, p_sysState);
-        if (mqtt::up())
-            panic("decoder::onSystateChange: Could not enable mqtt supervision - rebooting" CR);
+        Log.TERSE("decoder::onSystateChange: Following OP-states have changed: %s" CR, systemState::getOpStateStr(opStateStr, sysStateChange));
     }
-    else {
-        Log.INFO("decoder::onSystateChange: decocoder is marked faulty by server (OP_DISABLED not concidered), opState bitmap: %b - disabling mqtt supervision" CR, p_sysState);
+    else
+        Log.TERSE("decoder::onSystateChange: he decoder has a new OP-state: \"WORKING\"" CR);
+
+    if ((sysStateChange & OP_INTFAIL) && (p_sysState & OP_INTFAIL)){
+        char publishTopic[300];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
+        mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
+        panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
+        prevSysState = p_sysState;
+        return;
+    }
+    if (p_sysState & OP_INIT) {
+        Log.TERSE("decoder::onSystateChange: The decoder is initializing - doing nothing" CR);
+        prevSysState = p_sysState;
+        return;
+    }
+    if ((sysStateChange & OP_DISCONNECTED) && (p_sysState & OP_DISCONNECTED)) {
+        panic("decoder::onSystateChange: decoder has been disconnected after initialization phase, rebooting..." CR);
+        prevSysState = p_sysState;
+        return;
+    }
+    if ((sysStateChange & OP_INIT) && !(p_sysState & OP_DISABLED)){
+        Log.TERSE("decoder::onSystateChange: The decoder have been initialized and is enabled - enabling decoder supervision" CR);
+        mqtt::up();
+        char publishTopic[300];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
+        mqtt::sendMsg(publishTopic, MQTT_OP_AVAIL_PAYLOAD, false);
+        prevSysState = p_sysState;
+        return;
+    }
+    if ((sysStateChange & OP_DISABLED) && (p_sysState & OP_DISABLED)) {
+        Log.INFO("decoder::onSystateChange: decocoder has been disabled by server, disabling decoder supervision" CR);
         mqtt::down();
+        char publishTopic[300];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
+        mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
+        prevSysState = p_sysState;
+        return;
+    }
+    if ((sysStateChange & OP_DISABLED) && !(p_sysState & OP_DISABLED)) {
+        Log.INFO("decoder::onSystateChange: decocoder has been enabled by server, enabling decoder supervision" CR);
+        mqtt::up();
+        char publishTopic[300];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
+        mqtt::sendMsg(publishTopic, MQTT_OP_AVAIL_PAYLOAD, false);
+        prevSysState = p_sysState;
+        return;
     }
 }
 
@@ -401,15 +477,19 @@ void decoder::onAdmStateChange(const char* p_topic, const char* p_payload) {
         Log.ERROR("decoder::onAdmStateChange: got an invalid admstate message from server - doing nothing" CR);
 }
 
-void decoder::onMqttChangeHelper(uint8_t p_mqttState, const void* p_decoderObj) {
-    ((decoder*)p_decoderObj)->onMqttChange(p_mqttState);
+void decoder::onMqttOpStateChangeHelper(const void* p_miscCbData, sysState_t p_sysState) {
+    ((decoder*)p_miscCbData)->onMqttOpStateChange(p_sysState);
 }
 
-void decoder::onMqttChange(uint8_t p_mqttStatus) {
-    if (p_mqttStatus == MQTT_CONNECTED)
-        unSetOpState(OP_DISCONNECTED);
+void decoder::onMqttOpStateChange(sysState_t p_sysState) {
+    if (p_sysState)
+        setOpState(OP_CBL);
     else
+        unSetOpState(OP_CBL);
+    if (p_sysState & OP_DISCONNECTED)
         setOpState(OP_DISCONNECTED);
+    else
+        unSetOpState(OP_DISCONNECTED);
 }
 
 rc_t decoder::getOpStateStr(char* p_opStateStr) {

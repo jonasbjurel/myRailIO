@@ -43,7 +43,7 @@ MQTT_DISCOVERY_RSEP =                       "track/discoveryresp"
 MQTT_SUPERVISION_UPSTREAM =                 "track/decodersupervision/upstream/"
 MQTT_SUPERVISION_DOWNSTREAM =               "track/decodersupervision/downstream/"
 
-# Southbound Decoder MQTT Payload
+# Northbound Decoder MQTT Payload           //Need to fix what is NB and SB
 # -------------------------------
 DISCOVERY =                                 "<DISCOVERY_REQUEST/>"
 MQTT_DECODER_CONFIGREQ_PAYLOAD =            "<CONFIGURATION_REQUEST/>"
@@ -52,7 +52,7 @@ DECODER_DOWN =                              "<OPSTATE>OFFLINE</OPSTATE>" #DUPLIC
 FAULT_ASPECT =                              "<ASPECT>FAULT</ASPECT>"
 NOFAULT_ASPECT =                            "<ASPECT>NOFAULT</ASPECT>"
 PING =                                      "<PING/>"
-
+GET_LG_ASPECT =                             "<REQUEST>GETLGASPECT</REQUEST>"
 ADM_ON_LINE_PAYLOAD =                       "<ADMSTATE>ONLINE</ADMSTATE>"
 ADM_OFF_LINE_PAYLOAD =                      "<ADMSTATE>OFFLINE</ADMSTATE>"
 OP_AVAIL_PAYLOAD =                          "<OPSTATE>AVAILABLE</OPSTATE>"

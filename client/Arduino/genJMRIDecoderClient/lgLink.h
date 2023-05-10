@@ -51,6 +51,7 @@
 #include "pinout.h"
 #include "esp32SysConfig.h"
 
+class decoder;
 class flash;
 class signalMastAspects;
 class lgBase;
@@ -73,12 +74,13 @@ class lgBase;
 #define XML_LGLINK_USRNAME                      1
 #define XML_LGLINK_DESC                         2
 #define XML_LGLINK_LINK                         3
+#define XML_LGLINK_ADMSTATE                     4
 
-struct stripLed_t {
+struct dirtyPixel_t {
     uint8_t currentValue = 0;
     uint8_t wantedValue = SM_BRIGHNESS_FAIL;
     uint8_t incrementValue = 0;
-    bool dirty = false;
+    uint16_t index;
 };
 
 
@@ -88,13 +90,15 @@ class lgLink : public systemState {
 
 public:
     //Public methods
-    lgLink(uint8_t p_linkNo);
+    lgLink(uint8_t p_linkNo, decoder* p_decoderHandle);
     ~lgLink(void);
     rc_t init(void);
     void onConfig(const tinyxml2::XMLElement* p_lightgroupsXmlElement);
     rc_t start(void);
-    static void onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState);
-    void onSysStateChange(uint16_t p_sysState);
+    void up(void);
+    void down(void);
+    static void onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysState);
+    void onSysStateChange(sysState_t p_sysState);
     static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
     void onOpStateChange(const char* p_topic, const char* p_payload);
     static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
@@ -112,7 +116,7 @@ public:
     bool getDebug(void);
     flash* getFlashObj(uint8_t p_flashType);
     signalMastAspects* getSignalMastAspectObj(void);
-    rc_t updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint8_t* p_transitionTimeBuff);
+    rc_t updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint8_t p_transitionTime);
     uint32_t getOverRuns(void);
     void clearOverRuns(void);
     int64_t getMeanLatency(void);
@@ -144,8 +148,13 @@ private:
 
     //Private data structures
     uint8_t linkNo;
-    char* xmlconfig[4];
+    bool linkScan;
+    sysState_t prevSysState;
+    bool lgLinkDownDeclared;
+    bool lgLinkScanDisabled;
+    char* xmlconfig[5];
     SemaphoreHandle_t lgLinkLock;
+    SemaphoreHandle_t dirtyPixelLock;
     wdt* lgLinkWdt;
     uint32_t overRuns;
     int64_t maxLatency;
@@ -154,16 +163,15 @@ private:
     int64_t* latencyVect;
     uint32_t* runtimeVect;
     uint8_t pin;
-    QList<stripLed_t*> dirtyList;
+    QList<dirtyPixel_t*> dirtyPixelList;
     tinyxml2::XMLElement* lightGroupXmlElement;
-    stripLed_t* stripCtrlBuff;
     Adafruit_NeoPixel* strip;
     uint8_t* stripWritebuff;
     flash* FLASHSLOW;
     flash* FLASHNORMAL;
     flash* FLASHFAST;
     signalMastAspects* signalMastAspectsObject;
-    lgBase* lgs[MAX_LGSTRIPLEN];
+    lgBase* lgs[MAX_LGS];
     bool debug;
     static uint16_t lgLinkIndex;
 };

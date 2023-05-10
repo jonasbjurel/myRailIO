@@ -35,7 +35,7 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-const uint8_t LGLINK_PINS[] =			{25, 36};
+const uint8_t LGLINK_PINS[] =			{25, 26};
 const uint8_t SATLINK_TX_PINS[] =		{37, 38};
 const uint8_t  SATLINK_RX_PINS[] =		{39, 40}; //NEEDS TO BE CHECKED
 #define WIFI_CONFIG_PB_PIN              27

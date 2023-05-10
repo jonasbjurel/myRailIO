@@ -38,15 +38,19 @@
 
 uint16_t senseBase::sensIndex = 0;
 
-senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(this), globalCli(SENSOR_MO_NAME, SENSOR_MO_NAME, sensIndex) {
-    sensIndex++;
+senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(SENSOR_MO_NAME, SENSOR_MO_NAME, sensIndex) {
     satHandle = p_satHandle;
     sensPort = p_sensPort;
     satHandle->linkHandle->getLink(&satLinkNo);
     satHandle->getAddr(&satAddr);
-    Log.INFO("senseBase::senseBase: Creating senseBase stem-object for sensor port %d, on satelite adress %d, satLink %d" CR, p_sensPort, satAddr, satLinkNo);
-    regSysStateCb(this, &onSystateChangeHelper);
+    Log.INFO("senseBase::senseBase: Creating senseBase stem-object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    if (++sensIndex > MAX_SENS)
+        panic("senseBase::senseBase:Number of configured sensors exceeds maximum configured by [MAX_SENS: %d] - rebooting ..." CR, MAX_SENS);
+    char sysStateObjName[20];
+    sprintf(sysStateObjName, "sens-%d", p_sensPort);
+    setSysStateObjName(sysStateObjName);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNAVAILABLE);
+    regSysStateCb(this, &onSystateChangeHelper);
     sensLock = xSemaphoreCreateMutex();
     pendingStart = false;
     satLibHandle = NULL;

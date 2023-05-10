@@ -87,7 +87,7 @@ class lgLink(systemState, schema):
         self.userName.value = "GJLL-NewLgLinkUsrName"
         self.description.value = "New Light group link"
         self.lgLinkNo.value = 0
-        self.mastDefinitionPath.value = ""
+        self.mastDefinitionPath.value = "C:\\Program Files (x86)\\JMRI\\xml\\signals\\Sweden-3HMS"
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
         self.mastTypes = []
         trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
@@ -245,10 +245,9 @@ class lgLink(systemState, schema):
             mastDef.text = self.mastDefinitionPath.value
         satLink = ET.SubElement(lgLinkXml, "Link")
         satLink.text = str(self.lgLinkNo.value)
-        if not decoder:
-            adminState = ET.SubElement(lgLinkXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
-        elif decoder:
+        adminState = ET.SubElement(lgLinkXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
+        if decoder:
             lgLinkXml.append(self.__getXmlMastDesc())
         if includeChilds:
             childs = True
@@ -290,7 +289,7 @@ class lgLink(systemState, schema):
             if config:
                 self.dialog = UI_lightGroupDialog(self.lightGroups.candidateValue[-1], edit=True)
                 self.dialog.show()
-                trace.notify(DEBUG_INFO, "Light group: " + self.lightGroups.value[-1].nameKey.value + " successfully added to light group link " + self.nameKey.value)
+                trace.notify(DEBUG_INFO, "Light group: " + self.lightGroups.candidateValue[-1].nameKey.value + " successfully added to light group link " + self.nameKey.value)
                 self.reEvalOpState()
                 return rc.OK
             trace.notify(DEBUG_ERROR, "Light group link could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\: " + ("Provided" if configXml else "Not provided") + " \"demo\": " + str(demo))
@@ -391,8 +390,13 @@ class lgLink(systemState, schema):
     def __sysStateListener(self):
         trace.notify(DEBUG_INFO, "Light group link " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
         if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
+            print("Sending avail")
+            print(self.lgLinkOpTopic + OP_AVAIL_PAYLOAD)
             self.mqttClient.publish(self.lgLinkOpTopic, OP_AVAIL_PAYLOAD)
+
         else:
+            print("Sending unavail")
+            print(self.lgLinkOpTopic + OP_UNAVAIL_PAYLOAD)
             self.mqttClient.publish(self.lgLinkOpTopic, OP_UNAVAIL_PAYLOAD)
         if self.getAdmState() == ADM_ENABLE:
             self.mqttClient.publish(self.lgLinkAdmTopic, ADM_ON_LINE_PAYLOAD)

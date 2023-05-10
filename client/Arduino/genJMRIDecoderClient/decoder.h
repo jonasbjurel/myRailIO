@@ -183,6 +183,7 @@ class satLink;
 #define XML_DECODER_DESC							13
 #define XML_DECODER_MAC								14
 #define XML_DECODER_URI								15
+#define XML_DECODER_ADMSTATE						16
 
 
 
@@ -201,8 +202,8 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
-	static void onMqttChangeHelper(uint8_t p_mqttState, const void* p_decoderObj);
-	void onMqttChange(uint8_t p_mqttState);
+	static void onMqttOpStateChangeHelper(const void* p_miscCbData, sysState_t p_sysState);
+	void onMqttOpStateChange(sysState_t p_sysState);
 	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force = false);
 	const char* getMqttBrokerURI(bool p_force = false);
@@ -245,13 +246,14 @@ private:
 	//Private methods
 
 	//Private data structures
-	char* xmlconfig[16];
+	char* xmlconfig[17];
 	satLink* satLinks[MAX_SATLINKS];
 	lgLink* lgLinks[MAX_LGLINKS];
 	SemaphoreHandle_t decoderLock;
 	tinyxml2::XMLDocument* xmlConfigDoc;
 	tinyxml2::XMLElement* satLinkXmlElement;
 	tinyxml2::XMLElement* lgLinkXmlElement;
+	sysState_t prevSysState;
 	bool debug;
 };
 

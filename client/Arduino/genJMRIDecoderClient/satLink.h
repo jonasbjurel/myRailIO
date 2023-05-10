@@ -46,6 +46,7 @@
 #include "xmlHelpers.h"
 #include "pinout.h"
 #include "esp32SysConfig.h"
+class decoder;
 class sat;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -66,7 +67,7 @@ class sat;
 class satLink : public systemState, public globalCli {
 public:
 	//Public methods
-	satLink(uint8_t p_linkNo);
+	satLink(uint8_t p_linkNo, decoder* p_decoderHandle);
 	~satLink(void);
 	rc_t init(void);
 	void onConfig(tinyxml2::XMLElement* p_satLinkXmlElement);

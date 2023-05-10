@@ -41,9 +41,13 @@
 #include <cctype>
 #include <ArduinoJson.h>
 #include <WiFi.h>
+#include <esp_pm.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
 #include <WiFiManager.h>
 #include <QList.h>
 #include "libraries/ArduinoLog/ArduinoLog.h"
+#include "systemState.h"
 #include "strHelpers.h"
 #include "config.h"
 #include "pinout.h"
@@ -128,30 +132,14 @@ typedef uint8_t wifiProvisioningEvent_t;
 #define WIFI_PROVISIONING_PRESAVE                       2
 #define WIFI_PROVISIONING_SAVE                          3
 
-typedef uint8_t wifiOpState_t;
-#define WIFI_OP_WORKING                                 0b00000000                      // WIFI networking service is operational
-#define WIFI_OP_INIT                                    0b00000001                      // WIFI networking service is initializing
-#define WIFI_OP_DISCONNECTED                            0b00000010                      // WIFI networking service is disconnected
-#define WIFI_OP_NOIP                                    0b00000100                      // WIFI networking service has not received IP adresses, 
-                                                                                        //   neither dynamic (DHCP), nor static from WiFi manager
-#define WIFI_OP_UNCONFIG                                0b00001000                      // WIFI networking service has not yet been configured by
-                                                                                        // WiFi manager
-
 typedef void (*wifiEventCallback_t)(WiFiEvent_t p_event, arduino_event_info_t p_info,   // WiFi event call-back prototype
               const void* p_args);
-
-typedef void (*wifiOpStateCallback_t)(wifiOpState_t p_wifiOpState, const void* p_args); // WiFi Operational state-change call-back prototype
 
 typedef void (*wifiProvisionCallback_t)(wifiProvisioningEvent_t p_wifiProvisioningEvent,// WiFi Provisioning event call-back prototype
               const void* p_args);
 
 typedef struct wifiEventCallbackInstance_t {                                            // WiFi event call-back parameter struct
     wifiEventCallback_t cb;
-    void* args;
-};
-
-typedef struct wifiOpStateCallbackInstance_t {                                          // WiFi OP-state call-back parameter struct
-    wifiOpStateCallback_t cb;
     void* args;
 };
 
@@ -169,9 +157,9 @@ public:
     static void regWifiEventCallback(const wifiEventCallback_t p_callback,
                                      const void* p_args);                               // Register callback for WiFi events
     static void unRegWifiEventCallback(const wifiEventCallback_t p_callback);           // Un-Register callback for WiFi events
-    static void regWifiOpStateCallback(const wifiOpStateCallback_t p_callback,
-                                       const void* p_args);                             // Register callback for WiFi operational status
-    static void unRegWifiOpStateCallback(const wifiOpStateCallback_t p_callback);       // Un-Register callback for WiFi operational status
+    static void regWifiOpStateCallback(sysStateCb_t p_callback,
+                                       void* p_args);                                   // Register callback for WiFi operational status
+    static void unRegWifiOpStateCallback(sysStateCb_t p_callback);                      // Un-Register callback for WiFi operational status
     static void regWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
                                             const void* p_args);                        // Register callback for WiFi provisioning events
     static void unRegWifiProvisionCallback(const wifiProvisionCallback_t p_callback);   // Un-Register callback for WiFi provisioning 
@@ -202,7 +190,7 @@ public:
     static char* getMqttUri(void);                                                      // Get Mqtt URI, IP Address or URL
     static rc_t setMqttPort(uint16_t p_mqttPort, bool p_persist=true);                  // Set MQTT broker port
     static uint16_t getMqttPort(void);                                                  // Get MQTT broker port
-    static uint8_t getOpState(void);                                                    // Get current Networking Operational state
+    static sysState_t getOpState(void);                                                 // Get current Networking Operational state
     static char* getOpStateStr(char* p_opStateStr);                                     // Get current Networking Operational state as string
 
 
@@ -227,11 +215,11 @@ private:
     static void saveConfigCb();                                                         // Call-back just after WiFi parameters are saved
     static void resetCb(void);                                                          // Call-back from when captive portal "Erase WiFi config" is pushed
     static void configurePortalConnectTimeoutCb(void);                                  // Call-back from provisioning portal time-out
-    static void wifiWd(wifiOpState_t p_wifiOpState, const void* p_args);                // Call-back from WiFi operational state change
+    static void wifiWd(const void* p_miscCbData, sysState_t p_sysState);                // Call-back from WiFi operational state change
     static void wifiWdTimeout(void* p_dummy);                                           // WiFi unoperational timeout <WIFI_WD_TIMEOUT_S>
 
     //Private data structures
-    static wifiOpState_t opState;                                                       // Operational state <wifiOpState_t>
+    static systemState* sysState;                                                        // Operational/system state object
     static WiFiManager wifiManager;
     static esp_timer_handle_t WiFiWdTimerHandle;
     static esp_timer_create_args_t WiFiWdTimerArgs;
@@ -240,7 +228,6 @@ private:
     static netwStaConfig_t networkConfig;                                               // Current network station configuration
     static netwStaConfig_t networkConfigBackup;                                         // Backup network station configuration - used while reconfiguration
     static QList<wifiEventCallbackInstance_t*> wifiEventCallbackList;                   // List of registered Wifi event callbacks
-    static QList<wifiOpStateCallbackInstance_t*> wifiOpStateCallbackList;               // List of registered Wifi opState callbacks
     static QList<wifiProvisionCallbackInstance_t*> wifiProvisionCallbackList;           // List of registered Wifi provisioning callbacks
     static DynamicJsonDocument* configDoc;                                              // Configuration Json object
     static WiFiManagerParameter* hostNameConfigParam;                                   // Captive portal hostName configuration object

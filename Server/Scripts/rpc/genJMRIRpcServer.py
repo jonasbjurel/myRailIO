@@ -417,6 +417,7 @@ class jmriRpcShimAPI(jmriAPIShim):
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcListDir)
         jmriRpcShimAPI.mqttPubRecordDict = {}
         jmriRpcShimAPI.mqttSubRecordDict = {}
+
     @staticmethod
     def rpcRegMqttPub(type, sysName, topic, payloadMap):
         jmriRpcShimAPI.mqttPubRecordDict[sysName] = mqttPubEvents(type, sysName, topic, payloadMap)

@@ -45,7 +45,7 @@ void setup() {
     xTaskCreatePinnedToCore(                    // Spinning up a setupTask task as wee need a bigger stack than set-up provides
         setupTask,                              // Task function
         SETUP_TASKNAME,                         // Task function name reference
-        6 * 1024,                              // Stack size 6K VERIFIED FOR THE NETWORKING SERVICE, NEEDS TO BE EVALUATED FOR ALL OTHER SERVICES AND EVENTUALLY DEFINED BY SETUP_STACKSIZE_1K
+        10 * 1024,                              // Stack size 6K VERIFIED FOR THE NETWORKING SERVICE, NEEDS TO BE EVALUATED FOR ALL OTHER SERVICES AND EVENTUALLY DEFINED BY SETUP_STACKSIZE_1K
         NULL,                                   // Parameter passing
         SETUP_PRIO,                             // Priority 0-24, higher is more
         NULL,                                   // Task handle
@@ -65,8 +65,9 @@ void setupTask(void* p_dummy) {
     networking::start();
     Log.INFO("genJMRIDecoderClient::setupTask: WIFI Networking service started" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Connecting to WIFI..." CR);
+    char nwOpStateStr[100];
     while (networking::getOpState() != OP_WORKING) {
-        Log.INFO("Waiting for WIFI to connect, current WiFi OP state: %X" CR, networking::getOpState());
+        Log.INFO("Waiting for WIFI to connect, current Network OP state: %s" CR, networking::getOpStateStr(nwOpStateStr));
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     Log.INFO("setupTask: Connected to WIFI and operational, got IP Address %s" CR, networking::getIpAddr().toString().c_str());
@@ -106,7 +107,7 @@ void setupTask(void* p_dummy) {
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 void loop() {
-    wifiManager->process(); //WHY PROCESS WIFIMANAGER FROM HERE?
+    //wifiManager->process(); //WHY PROCESS WIFIMANAGER FROM HERE?
     vTaskDelay(100 / portTICK_PERIOD_MS);
 }
 /*==============================================================================================================================================*/

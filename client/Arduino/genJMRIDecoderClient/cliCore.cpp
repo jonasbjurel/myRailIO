@@ -214,16 +214,24 @@ void cliCore::start(void) {
 }
 
 void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_metaData) {
-	Log.INFO("cliCore::onCliConnect: A new CLI seesion from: %s started" CR,
-				p_clientIp);
-	if (clientIp)
-		delete clientIp;
-	clientIp = createNcpystr(p_clientIp);
-	currentContext = rootCliContext;
-	printCli("\n\rWelcome to JMRI generic decoder CLI - JMRI version: %s",
-			 GENJMRI_VERSION);
-	printCli("Connected from: %s",  clientIp);
-	printCli("Type help for Help\a");
+	if (p_connected) {
+		Log.INFO("cliCore::onCliConnect: A new CLI seesion from: %s started" CR,
+					p_clientIp);
+		if (clientIp)
+			delete clientIp;
+		clientIp = createNcpystr(p_clientIp);
+		currentContext = rootCliContext;
+		printCli("\n\rWelcome to JMRI generic decoder CLI - JMRI version: %s",
+				GENJMRI_VERSION);
+		printCli("Connected from: %s",  clientIp);
+		printCli("Type help for Help\a");
+	}
+	else {
+		Log.INFO("cliCore::onCliConnect: The CLI seesion from: %s was closed" CR,
+			p_clientIp);
+		if (clientIp)
+			delete clientIp;
+	}
 }
 
 void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {

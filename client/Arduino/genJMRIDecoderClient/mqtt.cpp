@@ -38,8 +38,6 @@
 /*==============================================================================================================================================*/
 TaskHandle_t* mqtt::supervisionTaskHandle = NULL;
 systemState* mqtt::sysState = NULL;
-sysStateCb_t mqtt::systemStateCb = NULL;
-void* mqtt::systemStateCbArgs = NULL;
 SemaphoreHandle_t mqtt::mqttLock = NULL;
 WiFiClient mqtt::espClient;
 PubSubClient* mqtt::mqttClient;
@@ -71,12 +69,13 @@ QList<mqttTopic_t*> mqtt::mqttTopics;
 mqttStatusCallback_t mqtt::statusCallback = NULL;
 void* mqtt::statusCallbackArgs = NULL;
 wdt* mqtt::mqttWdt = NULL;
+bool mqtt::supervision = false;
 
 // Public methods
 void mqtt::create(void) {
     Log.INFO("mqtt::create: Creating MQTT client" CR);
-    sysState = new systemState((const void*)NULL);
-    sysState->regSysStateCb(NULL, &onOpStateChange);
+    sysState = new systemState(NULL);
+    sysState->setSysStateObjName("mqtt");
     sysState->setOpState(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNAVAILABLE);
     mqttLock = xSemaphoreCreateMutex();
 }
@@ -110,15 +109,6 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
         return RC_OUT_OF_MEM_ERR;
     }
     mqttClient->setCallback(&onMqttMsg);
-    /*
-    mqttClient->connect(clientId,
-                       brokerUser,
-                       brokerPass);
-    mqttStatus = mqttClient->state();
-    if (statusCallback != NULL) {
-        statusCallback(mqttStatus, statusCallbackArgs);
-    }
-    */
     Log.INFO("mqtt::init: Spawning MQTT poll task" CR);
     xTaskCreatePinnedToCore(poll,                               // Task function
                             CPU_MQTT_POLL_TASKNAME,             // Task function name reference
@@ -161,8 +151,11 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
 }
 
 void mqtt::regOpStateCb(sysStateCb_t p_systemStateCb, void* p_systemStateCbArgs) {
-    systemStateCb = p_systemStateCb;
-    systemStateCbArgs = p_systemStateCbArgs;
+    sysState->regSysStateCb(p_systemStateCbArgs, p_systemStateCb);
+}
+
+void mqtt::unRegOpStateCb(sysStateCb_t p_systemStateCb) {
+    sysState->unRegSysStateCb(p_systemStateCb);
 }
 
 rc_t mqtt::regStatusCallback(const mqttStatusCallback_t p_statusCallback, const void* p_args) {
@@ -192,6 +185,7 @@ rc_t mqtt::reConnect(void){
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
     Log.INFO("mqtt::reConnect: MQTT Client reconnected" CR);
+    return RC_OK;
 }
 
 void mqtt::disConnect(void) {
@@ -205,6 +199,7 @@ rc_t mqtt::up(void) {
     }
     Log.INFO("mqtt::up: Starting MQTT ping supervision" CR);
     sysState->unSetOpState(OP_DISABLED);
+    sysState->unSetOpState(OP_UNAVAILABLE);
     const char* pingUpstreamTopicStrings[3] = { MQTT_PING_UPSTREAM_TOPIC, "/", decoderUri };
     mqttPingUpstreamTopic = concatStr(pingUpstreamTopicStrings, 3);
     const char* pingDownstreamTopicStrings[3] = { MQTT_PING_DOWNSTREAM_TOPIC, "/", decoderUri };
@@ -213,28 +208,36 @@ rc_t mqtt::up(void) {
         panic("mqtt::up: Failed to to subscribe to MQTT ping topic - rebooting...");
         return RC_GEN_ERR;
     }
-    xTaskCreatePinnedToCore(
-        mqttPingTimer,                      // Task function
-        CPU_MQTT_PING_TASKNAME,             // Task function name reference
-        CPU_MQTT_PING_STACKSIZE_1K * 1024,  // Stack size
-        NULL,                               // Parameter passing
-        CPU_MQTT_PING_PRIO,                 // Priority 0-24, higher is more
-        &mqttPingHandle,                    // Task handle
-        CPU_MQTT_PING_CORE);                // Core [CORE_0 | CORE_1]
+    if(!supervision){
+        supervision = true;
+        xTaskCreatePinnedToCore(
+            mqttPingTimer,                      // Task function
+            CPU_MQTT_PING_TASKNAME,             // Task function name reference
+            CPU_MQTT_PING_STACKSIZE_1K * 1024,  // Stack size
+            NULL,                               // Parameter passing
+            CPU_MQTT_PING_PRIO,                 // Priority 0-24, higher is more
+            &mqttPingHandle,                    // Task handle
+            CPU_MQTT_PING_CORE);                // Core [CORE_0 | CORE_1]
+    }
     return RC_OK;
 }
 
 void mqtt::down(void) {
     Log.INFO("mqtt::down, declaring Mqtt client down" CR);
     sysState->setOpState(OP_DISABLED);
-    if (mqttPingHandle){
-        sendMsg(opStateTopic, downPayload, true);
-    vTaskDelete(mqttPingHandle);
-    mqttPingHandle = NULL;
+    supervision = false;
+/*
+    if (mqttPingHandle) {
+        Serial.println(">>>>>>> Killing ping task");
+        vTaskDelete(mqttPingHandle);
+        Serial.println(">>>>>>> Ping task killed");
     }
+    mqttPingHandle = NULL;
+    */
 }
 
 void mqtt::wdtKicked(void* p_dummy) {
+    panic("mqtt::wdtKicked: Watch dog kicked - rebooting...", CR);
     down();
 }
 
@@ -267,8 +270,16 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
         mqttTopics.back()->topicList->back()->mqttCallbackArgs = (void*)p_args;
         if (!mqttClient->subscribe(topic, defaultQoS)) {
             sysState->setOpState(OP_INTFAIL);
-            panic("mqtt::subscribeTopic: Could not subscribe to topic from broker - rebooting...");
-            return RC_GEN_ERR;
+            int conStat;
+            if (conStat = mqttClient->state()){
+                panic("mqtt::subscribeTopic: Could not subscribe to topic from broker as client is not connected, status: %d - rebooting...", conStat);
+                return RC_GEN_ERR;
+            }
+            else {
+                panic("mqtt::subscribeTopic: Could not subscribe to topic from broker - rebooting...", stat);
+                return RC_GEN_ERR;
+            }
+
         }
         return RC_OK;
     }
@@ -333,14 +344,17 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
 }
 
 rc_t mqtt::sendMsg(const char* p_topic, const char* p_payload, bool p_retain) {
-    if (!mqttClient->publish(p_topic, p_payload, p_retain)) {
-        Log.ERROR("mqtt::sendMsg: could not send message, topic: %s, payload: %s" CR, p_topic, p_payload);
+    Log.verbose("mqtt::sendMsg: Sending MQTT message, Topic: %s, Payload: %s" CR, p_topic, p_payload);
+    char sysStateStr[200];
+    if ((sysState->getOpState() & OP_DISCONNECTED) || !mqttClient->publish(p_topic, p_payload, p_retain)) {
+        Log.ERROR("mqtt::sendMsg: could not send message, topic: %s, payload: %s , either the MQTT OP-state: %s doesnt allow it, or there was an internal MQTT error" CR, p_topic, p_payload, sysState->getOpStateStr(sysStateStr));
         return RC_GEN_ERR;
     }
     else {
-        Log.VERBOSE("mqtt::sendMsg: sent a message, topic: %s, payload: %s" CR, p_topic, p_payload);
+        Log.VERBOSE("mqtt::sendMsg: Sent a message, topic: %s, payload: %s" CR, p_topic, p_payload);
+        return RC_OK;
     }
-    return RC_OK;
+    return RC_GEN_ERR;                                      // We should never come here
 }
 
 rc_t mqtt::setDecoderUri(const char* p_decoderUri) {
@@ -591,7 +605,10 @@ void mqtt::poll(void* dummy) {
     //esp_task_wdt_init(1, true); //enable panic so ESP32 restarts
     //esp_task_wdt_add(NULL); //add current thread to WDT watch
     while (true) {
-        //Serial.printf("POLL\n");
+        char op[200];
+        //Serial.println("POLL");
+        //Serial.println(mqttClient->state());
+        //Serial.println(sysState->getOpStateStr(op));
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
         mqttWdt->feed();
@@ -617,7 +634,6 @@ void mqtt::poll(void* dummy) {
             if (retryCnt++ >= MAX_MQTT_CONNECT_ATTEMPTS) {
                 sysState->setOpState(OP_INTFAIL);
                 panic("mqtt::poll, Max number of MQTT connect/reconnect attempts reached - rebooting...");
-                return;
             }
             Log.INFO("mqtt::poll: Connecting to Mqtt" CR);
             if (opStateTopicSet) {
@@ -676,15 +692,12 @@ void mqtt::poll(void* dummy) {
     }
 }
 
-void mqtt::onOpStateChange(const void* p_dummy, uint16_t p_systemState) {
-    if (systemStateCb != NULL)
-        systemStateCb(systemStateCbArgs, p_systemState);
-}
-
 void mqtt::mqttPingTimer(void* dummy) {
-    while (!(sysState->getOpState() & OP_DISABLED)) {
-        Log.INFO("mqtt::mqttPingTimer: MQTT Ping timer started" CR);
-        if (sysState->getOpState() == OP_WORKING && pingPeriod != 0) {
+    Log.INFO("mqtt::mqttPingTimer: MQTT Ping timer started, ping period: %d" CR, pingPeriod);
+    missedPings = 0;
+    while (supervision) {
+        Serial.println("Ping");
+        if (!(sysState->getOpState() & OP_DISABLED) && (pingPeriod != 0)) {
             if (++missedPings >= MAX_MQTT_LOST_PINGS) {
                 sysState->setOpState(OP_UNAVAILABLE);
                 panic("mqtt::mqttPingTimer, Lost maximum ping responses - bringing down MQTT and rebooting...");
@@ -693,6 +706,7 @@ void mqtt::mqttPingTimer(void* dummy) {
         }
         vTaskDelay(pingPeriod * 1000 / portTICK_PERIOD_MS);
     }
+    vTaskDelete(NULL);
 }
 
 void mqtt::onMqttPing(const char* p_topic, const char* p_payload, const void* p_dummy) { //Relying on the topic, not parsing the payload for performance

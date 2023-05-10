@@ -160,6 +160,9 @@ class lightGroup(systemState, schema):
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
+        #self.mqttTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        #trace.notify(DEBUG_TERSE, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Subscribing to Lg MQTT Topic: " + self.mqttTopic + " to serve Lg MQTT requests")
+        #self.mqttClient.subscribeTopic(self.mqttTopic, self.__LgMqttReqListener)
         return rc.OK
 
     def updateReq(self):
@@ -183,10 +186,6 @@ class lightGroup(systemState, schema):
         if self.schemaDirty:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " was reconfigured, commiting configuration")
             self.commitAll()
-            print("############################################COMMITED ALL##############################################")
-            print(self.lgProperty1.value)
-            print(self.lgProperty1.candidateValue)
-
             self.win.reSetMoMObjStr(self.item, self.nameKey.value)
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " was not reconfigured, skiping config commitment")
@@ -235,9 +234,8 @@ class lightGroup(systemState, schema):
         property2.text = self.lgProperty2.value
         property3 = ET.SubElement(lgXml, "Property3")
         property3.text = self.lgProperty3.value
-        if not decoder:
-            adminState = ET.SubElement(lgXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
+        adminState = ET.SubElement(lgXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
         return minidom.parseString(ET.tostring(lgXml)).toprettyxml(indent="   ") if text else lgXml
 
     def getMethods(self):
@@ -353,5 +351,14 @@ class lightGroup(systemState, schema):
             self.mqttClient.publish(self.lgAdmTopic, ADM_ON_LINE_PAYLOAD)
         else:
             self.mqttClient.publish(self.lgAdmTopic, ADM_OFF_LINE_PAYLOAD)
+
+    #def __LgMqttReqListener(self, topic, value):
+    #    if value == GET_ASPECT:
+    #        trace.notify(DEBUG_VERBOSE, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    #        trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request for current aspect")
+    #        self.mqttClient.publish(self.mqttTopic, value)
+
+
+
 # End Lightgroups
 #------------------------------------------------------------------------------------------------------------------------------------------------

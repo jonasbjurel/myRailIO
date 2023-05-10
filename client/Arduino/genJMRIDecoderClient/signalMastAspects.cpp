@@ -183,10 +183,9 @@ void signalMastAspects::dumpConfig(void) {
 }
 
 rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** p_appearance) {
-    if (parentHandle->systemState::getOpState() != OP_WORKING) {
-        Log.ERROR("signalMastAspects::getAppearance: OP_State is not OP_WORKING, doing nothing..." CR);
-        *p_appearance = NULL;
-        return RC_GEN_ERR;
+    if (parentHandle->systemState::getOpState() & OP_UNCONFIGURED) {
+        Log.ERROR("signalMastAspects::getAppearance: Aspects not configured, doing nothing..." CR);
+        return RC_NOT_CONFIGURED_ERR;
     }
     if (!strcmp(p_aspect, "FAULT") || !strcmp(p_aspect, "UNDEFINED")) {
         *p_appearance = failsafeMastAppearance;

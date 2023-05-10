@@ -38,13 +38,17 @@
 
 uint16_t sat::satIndex = 0;
 
-sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(this), globalCli(SAT_MO_NAME, SAT_MO_NAME, satIndex) {
+sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), globalCli(SAT_MO_NAME, SAT_MO_NAME, satIndex) {
     Log.INFO("sat::sat: Creating Satelite adress %d" CR, p_satAddr);
-    satIndex++;
+    if (++satIndex > MAX_SATELITES)
+        panic("sat::sat:Number of configured satelites exceeds maximum configured by [MAX_SATELITES: %d] - rebooting ..." CR, MAX_SATELITES);
+    char sysStateObjName[20];
+    sprintf(sysStateObjName, "sat-%d", p_satAddr);
+    setSysStateObjName(sysStateObjName);
     linkHandle = p_linkHandle;
     satAddr = p_satAddr;
-    regSysStateCb((void*)this, &onSysStateChangeHelper);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNAVAILABLE);
+    regSysStateCb((void*)this, &onSysStateChangeHelper);
     satLock = xSemaphoreCreateMutex();
     if (satLock == NULL) {
         panic("sat::sat: Could not create Lock objects - rebooting...");

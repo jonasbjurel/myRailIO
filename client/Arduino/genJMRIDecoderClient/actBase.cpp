@@ -37,15 +37,19 @@
 /*==============================================================================================================================================*/
 uint16_t actBase::actIndex = 0;
 
-actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(this), globalCli(ACTUATOR_MO_NAME, ACTUATOR_MO_NAME, actIndex) {
-    actIndex++;
+actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(ACTUATOR_MO_NAME, ACTUATOR_MO_NAME, actIndex) {
     satHandle = p_satHandle;
     actPort = p_actPort;
     satHandle->getAddr(&satAddr);
     satHandle->linkHandle->getLink(&satLinkNo);
     Log.INFO("actBase::actBase: Creating actBase stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, p_actPort, satAddr, satLinkNo);
-    regSysStateCb(this, &onSysStateChangeHelper);
+    if (++actIndex > MAX_ACT)
+        panic("actBase::actBase:Number of configured actuators exceeds maximum configured by [MAX_ACT: %d] - rebooting ..." CR, MAX_ACT);
+    char sysStateObjName[20];
+    sprintf(sysStateObjName, "act-%d", p_actPort);
+    setSysStateObjName(sysStateObjName);
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNAVAILABLE);
+    regSysStateCb(this, &onSysStateChangeHelper);
     if (!(actLock = xSemaphoreCreateMutex()))
         panic("actBase::actBase: Could not create Lock objects - rebooting...");
     pendingStart = false;

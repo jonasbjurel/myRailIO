@@ -68,6 +68,7 @@ class lgSignalMast;
 #define XML_LG_PROPERTY1				5
 #define XML_LG_PROPERTY2				6
 #define XML_LG_PROPERTY3				7
+#define XML_LG_ADMSTATE					8
 
 #define LG_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "SIGNAL MAST"))\
@@ -94,8 +95,8 @@ public:
 	rc_t init(void);
 	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement);
 	rc_t start(void);
-	static void onSysStateChangeHelper(const void* p_lgBaseHandle, uint16_t p_sysState);
-	void onSysStateChange(uint16_t p_sysState);
+	static void onSysStateChangeHelper(const void* p_lgBaseHandle, sysState_t p_sysState);
+	void onSysStateChange(sysState_t p_sysState);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgBaseHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgBaseHandle);
@@ -137,7 +138,7 @@ public:
 	lgLink* lgLinkHandle;
 	uint8_t lgAddress;
 	uint8_t lgLinkNo;
-	char* xmlconfig[8];
+	char* xmlconfig[9];
 	bool debug;
 	uint16_t stripOffset;
 
@@ -148,6 +149,8 @@ private:
 	//Private data structures
 	void* extentionLgClassObj;
 	SemaphoreHandle_t lgBaseLock;
+	sysState_t prevSysState;
+	bool lgDownDeclared;
 };
 
 #endif /*LGBASE_H*/

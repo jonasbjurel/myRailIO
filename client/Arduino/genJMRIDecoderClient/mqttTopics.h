@@ -32,8 +32,8 @@
 #define MQTT_DISCOVERY_REQUEST_PAYLOAD			"<DISCOVERY_REQUEST/>"
 
 //Mqtt supervision
-#define MQTT_PING_UPSTREAM_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" "decoderSupervision/upstream"
-#define MQTT_PING_DOWNSTREAM_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" "decoderSupervision/downstream"
+#define MQTT_PING_UPSTREAM_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" "decodersupervision/upstream"
+#define MQTT_PING_DOWNSTREAM_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" "decodersupervision/downstream"
 
 #define MQTT_PING_PAYLOAD						"<PING/>"
 
@@ -49,7 +49,7 @@
 #define MQTT_TURN_TOPIC_FRAGMENT				"turnout"
 #define MQTT_LIGHT_TOPIC_FRAGMENT				"light"
 #define MQTT_MEMORY_TOPIC_FRAGMENT				"memory"
-#define MQTT_SIGNALMAST_TOPIC_FRAGMENT			"signalmast"
+//#define MQTT_SIGNALMAST_TOPIC_FRAGMENT			"signalmast" USING MQTT_LG_TOPIC_FRAGMENT instead
 
 
 // MQTT System / object states - topics and payload 
@@ -134,7 +134,10 @@
 
 
 // Signal mast Light group
-#define MQTT_ASPECT_TOPIC						MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_SIGNALMAST_TOPIC_FRAGMENT
+#define MQTT_ASPECT_TOPIC						MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_LG_TOPIC_FRAGMENT "/state"
+#define MQTT_ASPECT_REQUEST_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_LG_TOPIC_FRAGMENT
+
+#define MQTT_GETASPECT_PAYLOAD					"<REQUEST>GETLGASPECT</REQUEST>"
 
 //Generic payloads
 #define MQTT_BOOL_TRUE_PAYLOAD					"Yes"
