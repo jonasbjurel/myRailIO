@@ -462,20 +462,15 @@ rc_t networking::persistentSaveConfig(const netwStaConfig_t* p_staConfig) {
     Log.VERBOSE("networking::persistentSaveConfig: Wifi pretty Json content "
                 "to be stored: %s" CR, wifiConfigJsonPrettySerialized);
     uint storeSize;
-    Serial.printf("%%%%%%>0" CR);
     if (fileSys::putFile(WIFI_CONFIG_STORE_FILENAME,
                          wifiConfigJsonPrettySerialized,
                          WIFI_CONFIG_JSON_SERIAL_SIZE, &storeSize)) {
-        Serial.printf("%%%%%%>1" CR);
         Log.ERROR("networking::persistentSaveConfig: Could not save configuration "
                   "to file %s" CR, WIFI_CONFIG_STORE_FILENAME);
-        Serial.printf("%%%%%%>2" CR);
         return RC_GEN_ERR;
     }
-    Serial.printf("%%%%%%>3" CR);
     Log.VERBOSE("networking::persistentSaveConfig: Configuration saved to file %s" CR,
                 WIFI_CONFIG_STORE_FILENAME);
-    Serial.printf("%%%%%%>4" CR);
     return RC_OK;
 }
 

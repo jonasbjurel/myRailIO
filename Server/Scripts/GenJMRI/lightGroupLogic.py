@@ -160,9 +160,10 @@ class lightGroup(systemState, schema):
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
-        #self.mqttTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
-        #trace.notify(DEBUG_TERSE, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Subscribing to Lg MQTT Topic: " + self.mqttTopic + " to serve Lg MQTT requests")
-        #self.mqttClient.subscribeTopic(self.mqttTopic, self.__LgMqttReqListener)
+        self.mqttLgReqTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHTGROUPREQ_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        self.mqttLgTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHTGROUP_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        trace.notify(DEBUG_TERSE, "Subscribing to Lg MQTT Topic: " + self.mqttLgReqTopic + " to serve Lg MQTT requests")
+        self.mqttClient.subscribeTopic(self.mqttLgReqTopic, self.__LgMqttReqListener)
         return rc.OK
 
     def updateReq(self):
@@ -352,11 +353,16 @@ class lightGroup(systemState, schema):
         else:
             self.mqttClient.publish(self.lgAdmTopic, ADM_OFF_LINE_PAYLOAD)
 
-    #def __LgMqttReqListener(self, topic, value):
-    #    if value == GET_ASPECT:
-    #        trace.notify(DEBUG_VERBOSE, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    #        trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request for current aspect")
-    #        self.mqttClient.publish(self.mqttTopic, value)
+    def __LgMqttReqListener(self, topic, payload):
+        trace.notify(DEBUG_VERBOSE, ">>>>>>>>>")
+        trace.notify(DEBUG_VERBOSE, payload)
+        if payload == GET_LG_ASPECT:
+            trace.notify(DEBUG_VERBOSE, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+            trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request for current aspect")
+            self.mqttClient.publish(self.mqttLgTopic, self.lgShowing)
+        else:
+            trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request with an unknown payload/value: " + payload + "expected: " + GET_LG_ASPECT)
+
 
 
 

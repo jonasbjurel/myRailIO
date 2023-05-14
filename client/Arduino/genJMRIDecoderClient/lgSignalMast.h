@@ -75,8 +75,6 @@ public:
     rc_t init(void);
     rc_t onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement);
     rc_t start(void);                            //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
-    static void testApearanceHelper(void* p_lgSignalMastHande);
-    void testApearance(void);
     void onSysStateChange(sysState_t p_sysState);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
     rc_t getNoOffLeds(uint8_t* p_noOfLeds, bool p_force = false);
@@ -88,6 +86,7 @@ public:
     void onAspectChange(const char* p_topic, const char* p_payload); //Mqtt callback at aspect change
     static void onFlashHelper(bool p_flashState, void* p_flashObj);
     void onFlash(bool p_flashState);          //Flash object call back
+    void failSafe(bool p_set);
 
 
     //Public data structures
@@ -100,6 +99,7 @@ private:
     //Private data structures
     mastDesc_t mastDesc;
     sysState_t sysState;
+    bool failsafeSet;
     char* xmlConfig[5];
     bool debug;
     SemaphoreHandle_t lgSignalMastLock;             //Mutex to protect common object datastructures from multi thread parallel access

@@ -108,7 +108,7 @@
 #define SM_BRIGHNESS_HIGH							80
 #define SM_BRIGHNESS_NORMAL							40
 #define SM_BRIGHNESS_LOW							20
-#define SM_BRIGHNESS_FAIL							120
+#define SM_BRIGHNESS_FAIL							5
 #define SM_FLASH_FAST								FLASH_TYPE_1_5_HZ
 #define SM_FLASH_NORMAL								FLASH_TYPE_1_0_HZ
 #define SM_FLASH_SLOW								FLASH_TYPE_0_5_HZ

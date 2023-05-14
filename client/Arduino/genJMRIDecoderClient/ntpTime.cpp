@@ -51,7 +51,6 @@ void ntpTime::init(void) {
 	ntpDescriptor.noOfServers = 0;
 	ntpDescriptor.pollPeriodMs = NTP_POLL_PERIOD_S;
 	ntpDescriptor.ntpServerHosts = new QList<ntpServerHost_t*>;
-	Serial.printf("##############NTPQListSize: %i\n", ntpDescriptor.ntpServerHosts->size());
 	updateNtpDescriptorStr(&ntpDescriptor);
 }
 

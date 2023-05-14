@@ -125,6 +125,8 @@ public:
     uint32_t getMeanRuntime(void);
     uint32_t getMaxRuntime(void);
     void clearMaxRuntime(void);
+    void failsafe(bool p_set);
+
     /* CLI decoration methods */
     static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
     static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -152,6 +154,7 @@ private:
     sysState_t prevSysState;
     bool lgLinkDownDeclared;
     bool lgLinkScanDisabled;
+    bool failsafeSet;
     char* xmlconfig[5];
     SemaphoreHandle_t lgLinkLock;
     SemaphoreHandle_t dirtyPixelLock;

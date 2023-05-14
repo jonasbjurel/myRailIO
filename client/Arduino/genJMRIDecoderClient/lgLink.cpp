@@ -48,15 +48,21 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     linkScan = false;
     lgLinkDownDeclared = false;
     lgLinkScanDisabled = true;
-    prevSysState = OP_WORKING;
-    setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
-    regSysStateCb((void*)this, &onSysStateChangeHelper);
-    lgLinkLock = xSemaphoreCreateMutex();                       //Why do we have this
+    failsafeSet = false;
     if (lgLinkLock == NULL)
         panic("lgLink::satLink: Could not create Lock objects - rebooting..." CR);
     dirtyPixelLock = xSemaphoreCreateMutex();
     if (dirtyPixelLock == NULL)
         panic("lgLink::satLink: Could not create \"dirtyPixelLock\" object - rebooting..." CR);
+    Log.INFO("lgLink::lgLink: Creating stripled objects for lgLink Channel" CR, linkNo);
+    strip = new Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
+    strip->begin();
+    stripWritebuff = strip->getPixels();
+    Log.INFO("lgLink::lgLink: stripled for lgLink Channel started" CR, linkNo);
+    prevSysState = OP_WORKING;
+    setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
+    regSysStateCb((void*)this, &onSysStateChangeHelper);
+    lgLinkLock = xSemaphoreCreateMutex();                       //Why do we have this
     xmlconfig[XML_LGLINK_SYSNAME] = NULL;
     xmlconfig[XML_LGLINK_USRNAME] = NULL;
     xmlconfig[XML_LGLINK_DESC] = NULL;
@@ -122,13 +128,10 @@ rc_t lgLink::init(void) {
         panic("lgLink::init: Could not create flash objects - rebooting..." CR);
     }
     Log.VERBOSE("lgLink::init: flash objects for lgLink Channel created" CR, linkNo);
-    Log.INFO("lgLink::init: Creating stripled objects for lgLink Channel" CR, linkNo);
-    strip = new Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
+    //Log.INFO("lgLink::init: Creating stripled objects for lgLink Channel" CR, linkNo);
+    //strip = new Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
     Log.VERBOSE("lgLink::init: stripled objects for lgLink Channel created" CR, linkNo);
     Log.INFO("lgLink::init: Starting stripled objects for lgLink Channel" CR, linkNo);
-    strip->begin();
-    stripWritebuff = strip->getPixels();
-    Log.INFO("lgLink::init: stripled for lgLink Channel started" CR, linkNo);
     return RC_OK;
 }
 
@@ -215,7 +218,6 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         char* lgXmlconfig[8] = { NULL };
         for (uint16_t lgItter = 0; true; lgItter++) {
             if (!lgXmlElement){
-                Serial.printf("=========NO MORE LIGHTGROUPS, lgitter: %i\n", lgItter);
                 break;
             }
             if (lgItter > MAX_LGS){
@@ -235,7 +237,6 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
             lgs[lgItter]->setStripOffset(stripOffset);
             uint8_t noOfLeds;
             lgs[lgItter]->getNoOffLeds(&noOfLeds, true);
-            Serial.printf("******* No of Leds: %i\n", noOfLeds);
             stripOffset += noOfLeds;
             if (stripOffset > MAX_LGSTRIPLEN * 3)
                 panic("lgLink::onConfig: Number of used strip pixels exceeds MAX_LGSTRIPLEN*3 - rebooting...");
@@ -249,7 +250,6 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
 }
 
 rc_t lgLink::start(void) {
-    Serial.println(linkNo);
     Log.INFO("lgLink::start: Starting lightgroup link: %d" CR, linkNo);
     if (systemState::getOpState() & OP_UNCONFIGURED) {
         Log.INFO("lgLink::start: LG Link %d not configured - will not start it" CR, linkNo);
@@ -301,7 +301,6 @@ void lgLink::onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState)
 }
 
 void lgLink::onSysStateChange(uint16_t p_sysState) {
-    Serial.println("och Ha");
     bool lgLinkDeclareDown = false;
     bool lgLinkDisableScan = false;
     char opStateStr[100];
@@ -312,11 +311,15 @@ void lgLink::onSysStateChange(uint16_t p_sysState) {
         return;
     }
     if (p_sysState) {
-        Log.INFO("lgLink::onSysStateChange: lgLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr, p_sysState));
+        failsafe(true);
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d has a new OP-state: %s, Setting failsafe" CR, linkNo, systemState::getOpStateStr(opStateStr, p_sysState));
         Log.TERSE("lgLink::onSysStateChange: Following lgLink-%d OP-states have changed: %s" CR, linkNo, systemState::getOpStateStr(opStateStr, sysStateChange));
     }
-    else
-        Log.TERSE("lgLink::onSysStateChange: lgLink-%d has a new OP-state: \"WORKING\"" CR, linkNo);
+    else{
+        Log.TERSE("lgLink::onSysStateChange: lgLink-%d has a new OP-state: \"WORKING\", Unsetting failsafe" CR, linkNo);
+        failsafe(false);
+
+    }
     if ((p_sysState & OP_INTFAIL)) {
         lgLinkDisableScan = true;
         down();
@@ -358,7 +361,6 @@ void lgLink::onSysStateChange(uint16_t p_sysState) {
         Log.INFO("lgLink::onSysStateChange: lgLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStr(opStateStr, p_sysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_UNAVAILABLE | OP_CBL)));
         lgLinkDeclareDown = true;
     }
-
     if (lgLinkDisableScan && !lgLinkScanDisabled) {
         Log.INFO("lgLink::onSysStateChange: lgLink-%d disabling lgLink scaning" CR, linkNo);
         down();
@@ -523,22 +525,22 @@ bool lgLink::getDebug(void) {
 
 rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint8_t p_transitionTime) {
     uint8_t transitionTime = floor((float)(SM_BRIGHNESS_NORMAL / (p_transitionTime / STRIP_UPDATE_MS)));
+    if (systemState::getOpState()) {
+        Log.error("lgLink::updateLg: Could not update LG as LgLink is not in OP_WORKING State");
+        return RC_OPSTATE_ERR;
+    }
     xSemaphoreTake(dirtyPixelLock, portMAX_DELAY);
-    Serial.printf("lgLink::updateLg: Got new aspect values for offset %d: <wanted:current:increment:dirty> : <Previous/Next> ", p_seqOffset);
     bool alreadyDirty = false;
     for (uint16_t i = 0; i < p_buffLen; i++) {
         for (uint16_t j = 0; j < dirtyPixelList.size(); j++) {
             if (dirtyPixelList.at(j)->index == p_seqOffset + i) {
-                Serial.printf("<%d:%d:%d:%d/", dirtyPixelList.at(j)->wantedValue, dirtyPixelList.at(j)->currentValue, dirtyPixelList.at(j)->incrementValue, 1);
                 alreadyDirty == true;
                 dirtyPixelList.at(j)->wantedValue = p_wantedValueBuff[i];
-                Serial.printf("%d:%d:%d:%d>", dirtyPixelList.at(j)->wantedValue, dirtyPixelList.at(j)->currentValue, dirtyPixelList.at(j)->incrementValue, 1);
                 break;
             }
         }
         if (!alreadyDirty) {
             if (p_wantedValueBuff[i] != stripWritebuff[p_seqOffset + i]) {
-                Serial.printf("<%d:%d:%d:%d/", stripWritebuff[p_seqOffset + i], stripWritebuff[p_seqOffset + i], 0, 0);
                 dirtyPixel_t* dirtyPixel = new dirtyPixel_t;
                 if (!dirtyPixel)
                     panic("lgLink::updateLg: Could not allocate an dirtyPixel object - rebooting..." CR);
@@ -547,26 +549,18 @@ rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wanted
                 dirtyPixel->wantedValue = p_wantedValueBuff[i];
                 dirtyPixel->incrementValue = transitionTime;
                 dirtyPixelList.push_back(dirtyPixel);
-                Serial.printf("%d:%d:%d:%d>", dirtyPixel->wantedValue, dirtyPixel->currentValue, dirtyPixel->incrementValue, 1);
-            }
-            else {
-                Serial.printf("<%d:%d:%d:%d/", stripWritebuff[p_seqOffset + i], stripWritebuff[p_seqOffset + i], 0, 0);
-                Serial.printf("%d:%d:%d:%d>", stripWritebuff[p_seqOffset + i], stripWritebuff[p_seqOffset + i], 0, 0);
             }
         }
     }
-    Serial.printf("\n");
     xSemaphoreGive(dirtyPixelLock);
     return RC_OK;
 }
 
 void lgLink::updateStripHelper(void* p_lgLinkObject) {
-    Serial.println("StartHelper");;
     ((lgLink*)p_lgLinkObject)->updateStrip();
 }
 
 void lgLink::updateStrip(void) {
-    Serial.println("Start");;
     int currentValue;
     int wantedValue;
     int incrementValue;
@@ -591,7 +585,6 @@ void lgLink::updateStrip(void) {
             lgLinkWdt->feed();
             wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
             Serial.printf("Kick\n");
-            Serial.printf(">>>First Lg: <%d><%d><%d><%d><%d><%d>" CR, stripWritebuff[0], stripWritebuff[1], stripWritebuff[2], stripWritebuff[3], stripWritebuff[4], stripWritebuff[5]);
         }
         if (avgIndex >= maxAvgIndex) {
             avgIndex = 0;
@@ -626,11 +619,6 @@ void lgLink::updateStrip(void) {
                 stripWritebuff[dirtyPixelList.at(i)->index] = currentValue;
                 dirtyPixelList.at(i)->currentValue = (uint8_t)currentValue;
                 if (wantedValue == currentValue) {
-                    if (!(currentValue == 0 || currentValue == 40 || currentValue == 120))
-                        Serial.printf(">>>>>>>>> Error, currentValue: %d" CR, currentValue);
-                    if ((dirtyPixelList.at(i)->index > 5) || (dirtyPixelList.at(i)->index < 0))
-                        Serial.printf(">>>>>>>>> Error, Index: %d" CR, dirtyPixelList.at(i)->index);
-                    Serial.printf("##### Index: %d, Value %d" CR, dirtyPixelList.at(i)->index, stripWritebuff[dirtyPixelList.at(i)->index]);
                     delete dirtyPixelList.at(i);
                     dirtyPixelList.clear(i);
                 }
@@ -727,6 +715,31 @@ flash* lgLink::getFlashObj(uint8_t p_flashType) {
 }
 signalMastAspects* lgLink::getSignalMastAspectObj(void){
 return signalMastAspectsObject;
+}
+
+void lgLink::failsafe(bool p_set) {
+    if (!failsafeSet && p_set) {
+        xSemaphoreTake(dirtyPixelLock, portMAX_DELAY);
+        uint8_t i = 0;
+        while (!strip->canShow()) {
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            if (i == 10) {
+                Log.WARN("lgLink::failsafe: Could not set failsafe" CR);
+                return;
+            }
+        }
+        for (uint16_t i = 0; i < dirtyPixelList.size(); i++) {
+            delete dirtyPixelList.at(i);
+            dirtyPixelList.clear(i);
+        }
+        failsafeSet = true;
+        for (uint16_t i = 0; i < MAX_LGSTRIPLEN * 3; i++)
+            stripWritebuff[i] = SM_BRIGHNESS_FAIL;
+        strip->show();
+        xSemaphoreGive(dirtyPixelLock);
+    }
+    else if (failsafeSet && !p_set)
+        failsafeSet = false;
 }
 
 /* CLI decoration methods */

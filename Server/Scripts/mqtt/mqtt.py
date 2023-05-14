@@ -143,7 +143,7 @@ class mqtt(pahomqtt.Client):
             return
         for cb in self.subscriptions[message.topic]:
             trace.notify(DEBUG_VERBOSE, "MQTT client: " + self.clientId + " is calling " + str(cb) + "with MQTT message: " + message.topic + ":" + str(message.payload))
-            cb(message.topic, message.payload)
+            cb(message.topic, message.payload.decode("utf-8"))
 
     def __delete__(self):
         self.active = False

@@ -182,7 +182,6 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         }
     else
         panic("lgBase::onConfig: lg type not supported" CR);
-    LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(systemState::getOpState()));
     LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], init());
     if (EXT_RC)
         panic("lgBase::onConfig: Failed to initialize Lg extention object - Rebooting..." CR);
@@ -202,7 +201,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onConfig(propertiesRoot));
     }
     else
-        Log.INFO("lgBase::onConfig: No properties provided for base stem-object" CR);
+        panic("lgBase::onConfig: No properties provided for base stem-object - rebooting..." CR);
     systemState::unSetOpState(OP_UNCONFIGURED);
     Log.INFO("lgBase::onConfig: Configuration successfully finished" CR);
 }
@@ -318,7 +317,7 @@ void lgBase::onSysStateChange(sysState_t p_sysState) {
     else if (!lgDeclareDown && !lgDownDeclared) {
         Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d already declared up to server - doing nothing..." CR, lgLinkNo, lgAddress);
     }
-    if (extentionLgClassObj)
+    if (extentionLgClassObj && !(systemState::getOpState() & OP_UNCONFIGURED))
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(p_sysState));
     prevSysState = p_sysState;
 }

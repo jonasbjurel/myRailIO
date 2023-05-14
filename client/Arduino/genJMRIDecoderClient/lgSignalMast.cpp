@@ -37,6 +37,7 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 lgSignalMast::lgSignalMast(const lgBase* p_lgBaseObjHandle) {
+    failsafeSet = false;
     mastDesc.lgBaseObjHandle = (lgBase*)p_lgBaseObjHandle;
     mastDesc.lgLinkHandle = (lgLink*)mastDesc.lgBaseObjHandle->lgLinkHandle;
     mastDesc.lgLinkHandle->getLink(&mastDesc.lgLinkNo);
@@ -61,7 +62,6 @@ lgSignalMast::~lgSignalMast(void) {
 
 rc_t lgSignalMast::init(void) {
     Log.INFO("lgSignalMast::init: Initializing mast decoder" CR);
-    //failsafe();
     return RC_OK;
 }
 
@@ -101,18 +101,19 @@ rc_t lgSignalMast::start(void) {
     return RC_OK;
 }
 
-void lgSignalMast::onSysStateChange(uint16_t p_sysState) {
+void lgSignalMast::onSysStateChange(sysState_t p_sysState) {
     sysState = p_sysState;
     if (p_sysState & OP_INTFAIL) {
-        //FAILSAFE
+        failSafe(true);
         panic("lgSignalMast::onSystateChange: Signal-mast has experienced an internal error - seting fail-safe aspect and rebooting..." CR);
     }
     if (p_sysState) {
-        //FAILSAFE
+        failSafe(true);
         Log.INFO("lgSignalMast::onSystateChange: Signal-mast %d on lgLink %d has received Opstate %b - seting fail-safe aspect" CR, mastDesc.lgAddress, mastDesc.lgLinkNo, p_sysState);
     }
     else {
-        Log.INFO("lgSignalMast::onSystateChange:  Signal-mast %d on lgLink %d has received a WORKING Opstate - getting current aspect from server" CR, mastDesc.lgLinkNo);
+        failSafe(false);
+        Log.INFO("lgSignalMast::onSystateChange:  Signal-mast %d on lgLink %d has received a WORKING Opstate - Unseting fail-safe aspect and getting current aspect from server" CR, mastDesc.lgLinkNo);
         char publishTopic[300];
         sprintf(publishTopic, "%s%s%s%s%s", MQTT_ASPECT_REQUEST_TOPIC, "/", mqtt::getDecoderUri(), "/", mastDesc.lgSysName);
         mqtt::sendMsg(publishTopic, MQTT_GETASPECT_PAYLOAD, false);
@@ -137,7 +138,7 @@ void lgSignalMast::getShowing(const char* p_showing){
 }
 
 void lgSignalMast::setShowing(const char* p_showing) {
-    onAspectChange(NULL, p_showing); //NEED TO FIND OUT AT SERVER SIDE IF WE CAN HAVE XML PAYLOAD ("<Aspect>%s</Aspect>") NOW IT IS NOT
+    onAspectChange(NULL, p_showing);
 }
 
 rc_t lgSignalMast::parseProperties(void) {
@@ -231,7 +232,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
     if (mastDesc.lgBaseObjHandle->systemState::getOpState()) {
         xSemaphoreGive(lgSignalMastLock);
         xSemaphoreGive(lgSignalMastReentranceLock);
-        Log.ERROR("lgSignalMast::onAspectChange: A new aspect received, but mast decoder opState is not OP_WORKING - continuing..." CR);
+        Log.WARN("lgSignalMast::onAspectChange: A new aspect received, but mast decoder opState is not OP_WORKING - doing nothing..." CR);
         return;
     }
     xSemaphoreGive(lgSignalMastLock);
@@ -246,26 +247,29 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
         Log.ERROR("lgSignalMast::onAspectChange: Failed to get mast aspect" CR);
         return;
     }
-    Serial.printf("lgSignalMast::onAspectChange: LG %s appearance change:" CR, mastDesc.lgSysName);
-    for (uint8_t i = 0; i < mastDesc.lgNoOfLed; i++) {
-        switch (appearance[i]) {
-        case LIT_APPEARANCE:
-            Serial.printf("<LIT>");
+    if (Log.getLevel() == GJMRI_DEBUG_VERBOSE) {
+        char apearanceStr[100];
+        strcpy(apearanceStr, "");
+        for (uint8_t i = 0; i < mastDesc.lgNoOfLed; i++) {
+            switch (appearance[i]) {
+            case LIT_APPEARANCE:
+                strcat(apearanceStr, "<LIT>");
+                break;
+            case UNLIT_APPEARANCE:
+                strcat(apearanceStr, "<UNLIT>");
+                break;
+            case UNUSED_APPEARANCE:
+                strcat(apearanceStr, "<UNUSED>");
             break;
-        case UNLIT_APPEARANCE:
-            Serial.printf("<UNLIT>");
-            break;
-        case UNUSED_APPEARANCE:
-            Serial.printf("<UNUSED>");
-            break;
-        case FLASH_APPEARANCE:
-            Serial.printf("<FLASH>");
-            break;
-        default:
-            Serial.printf("<ERROR>");
+            case FLASH_APPEARANCE:
+                strcat(apearanceStr, "<FLASH>");
+                break;
+            default:
+                strcat(apearanceStr, "<ERROR>");
+            }
         }
+    Log.VERBOSE("lgSignalMast::onAspectChange: LG %s appearance change: %s" CR, mastDesc.lgSysName, apearanceStr);
     }
-    Serial.printf("\n");
     for (uint8_t i = 0; i < mastDesc.lgNoOfLed; i++) {
         switch (appearance[i]) {
         case LIT_APPEARANCE:
@@ -289,18 +293,26 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
             Log.ERROR("lgSignalMast::onAspectChange: The appearance is none of LIT, UNLIT, FLASH or UNUSED - setting mast to SM_BRIGHNESS_FAIL and continuing..." CR);
             appearanceWriteBuff[i] = SM_BRIGHNESS_FAIL; //HERE WE SHOULD SET THE HOLE MAST TO FAIL ASPECT
         }
-        Serial.printf("<%d>", appearanceWriteBuff[i]);
     }
-    Serial.printf("\n");
     mastDesc.lgLinkHandle->updateLg(mastDesc.lgBaseObjHandle->getStripOffset(), mastDesc.lgNoOfLed, appearanceWriteBuff, mastDesc.smDimTime);
     xSemaphoreGive(lgSignalMastReentranceLock);
     return;
 }
 
+void lgSignalMast::failSafe(bool p_set) {
+    if (!failsafeSet && p_set) {
+        failsafeSet = true;
+        for (uint8_t i = 0; i < mastDesc.lgNoOfLed; i++) {
+            appearanceWriteBuff[i] = SM_BRIGHNESS_FAIL;
+        }
+        mastDesc.lgLinkHandle->updateLg(mastDesc.lgBaseObjHandle->getStripOffset(), mastDesc.lgNoOfLed, appearanceWriteBuff, mastDesc.smDimTime);
+    }
+    else if (failsafeSet && !p_set)
+        failsafeSet = false;
+}
+
 rc_t lgSignalMast::parseXmlAppearance(const char* p_aspectXml, char* p_aspect) {
     /*
-    Serial.println(">>>>>>>>");
-    Serial.println(p_aspectXml);
     tinyxml2::XMLDocument aspectXmlDocument;
     if (aspectXmlDocument.Parse(p_aspectXml)) {
         Log.ERROR("lgSignalMast::parseXmlAppearance: Failed to parse the new aspect - continuing..." CR);

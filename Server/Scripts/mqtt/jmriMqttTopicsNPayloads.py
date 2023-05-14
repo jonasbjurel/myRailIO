@@ -34,6 +34,7 @@ MQTT_ASPECT_TOPIC =                         "track/lightgroups/lightgroup/"
 MQTT_TURNOUT_TOPIC =                        "track/turnout/"
 MQTT_LIGHT_TOPIC =                          "track/light/"
 MQTT_LIGHTGROUP_TOPIC =                     "track/lightgroup/"
+MQTT_LIGHTGROUPREQ_TOPIC =                  "track/lightgroup/req/"
 MQTT_SENS_TOPIC =                           "track/sensor/"
 MQTT_MEMORY_TOPIC =                         "track/memory/"
 MQTT_STATE_TOPIC =                          "state/" #DUPLICATE?

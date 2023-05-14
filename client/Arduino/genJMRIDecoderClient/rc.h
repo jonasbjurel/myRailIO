@@ -50,5 +50,6 @@ typedef int8_t rc_t;
 #define RC_NOTRUNNING_ERR			-10														// Object not running
 #define RC_PARAMETERVALUE_ERR		-11														// Parameter value error
 #define RC_MAX_REACHED_ERR			-12														// Maximum number of objects reached
+#define RC_OPSTATE_ERR				-13														// Object does not have expected operational state
 #define RC_NOTIMPLEMENTED_ERR		-126													// Called method not implemented
 #endif /*RC_H*/

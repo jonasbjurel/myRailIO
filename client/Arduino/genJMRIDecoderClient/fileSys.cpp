@@ -89,20 +89,13 @@ rc_t fileSys::getFile(const char* p_fileName, char* p_buff, uint p_buffSize,
 rc_t fileSys::putFile(const char* p_fileName, const char* p_buff, uint p_buffSize,
                       uint* p_writeSize) {
     FILE* fp;
-    Serial.printf("//// 0" CR);
     fp = fopen(p_fileName, "w");
-    Serial.printf("//// 1" CR);
     if (fp == NULL) {
-        Serial.printf("//// 2" CR);
         Log.ERROR("fileSys:putFile: Could not open or create file %s, %s" CR, p_fileName, strerror(errno));
-        Serial.printf("//// 3" CR);
         return RC_GEN_ERR;
     }
-    Serial.printf("//// 4" CR);
     *p_writeSize = fwrite(p_buff, p_buffSize, 1, fp) * p_buffSize;
-    Serial.printf("//// 5" CR);
     fclose(fp);
-    Serial.printf("//// 6" CR);
     return RC_OK;
 }
 
@@ -111,8 +104,10 @@ bool fileSys::fileExists(const char* p_fileName) {
     fp = fopen(p_fileName, "r");
     if (fp == NULL)
         return false;
-    else
+    else {
+        fclose(fp);
         return true;
+    }
 }
 
 rc_t fileSys::deleteFile(const char* p_fileName) {

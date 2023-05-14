@@ -47,6 +47,21 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     Serial.printf("decoder: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("Decoder: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     debug = false;
+    Log.INFO("decoder::init: Creating lgLinks" CR);
+    for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
+        lgLinks[lgLinkNo] = new lgLink(lgLinkNo, this);
+        if (lgLinks[lgLinkNo] == NULL)
+            panic("decoder::init: Could not create lgLink objects - rebooting..." CR);
+        addSysStateChild(lgLinks[lgLinkNo]);
+    }
+    Log.INFO("decoder::init: lgLinks created" CR);
+    Log.INFO("decoder::init: Creating satLinks" CR);
+    for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
+        satLinks[satLinkNo] = new satLink(satLinkNo, this);
+        if (satLinks[satLinkNo] == NULL)
+            panic("decoder::init: Could not create satLink objects - rebooting..." CR);
+    }
+    Log.INFO("decoder::init: satLinks created" CR);
     
     mqtt::create();
     prevSysState = OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL;
@@ -104,26 +119,16 @@ rc_t decoder::init(void){
         MQTT_RETAIN);                                           // Default retain
     unSetOpState(OP_UNDISCOVERED);
     
-    Log.INFO("decoder::init: Creating lgLinks" CR);
+    Log.INFO("decoder::init: Initializing lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
-        lgLinks[lgLinkNo] = new lgLink(lgLinkNo, this);
-        Serial.println(">>>>New LG Link>>>>>");
-        Serial.println(lgLinkNo);
-        Serial.println((uint)lgLinks[lgLinkNo]);
-        if (lgLinks[lgLinkNo] == NULL)
-            panic("decoder::init: Could not create lgLink objects - rebooting..." CR);
-        addSysStateChild(lgLinks[lgLinkNo]);
         lgLinks[lgLinkNo]->init();
     }
-    Log.INFO("decoder::init: lgLinks created" CR);
-    Log.INFO("decoder::init: Creating satLinks" CR);
+    Log.INFO("decoder::init: lgLinks initialized" CR);
+    Log.INFO("decoder::init: Initializing satLinks" CR);
     for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
-        satLinks[satLinkNo] = new satLink(satLinkNo, this);
-        if (satLinks[satLinkNo] == NULL)
-            panic("decoder::init: Could not create satLink objects - rebooting..." CR);
         satLinks[satLinkNo]->init();
     }
-    Log.INFO("decoder::init: satLinks created" CR);
+    Log.INFO("decoder::init: satLinks initialized" CR);
     Log.INFO("decoder::init: Subscribing to decoder configuration topic and sending configuration request" CR);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s", MQTT_CONFIG_RESP_TOPIC, "/", mqtt::getDecoderUri());
@@ -360,11 +365,9 @@ rc_t decoder::start(void) {
         panic("decoder::start: Failed to suscribe to opState topic - rebooting..." CR);
     Log.INFO("decoder::start: Starting lightgroup link Decoders" CR);
     for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
-        Serial.println(">>>>Start LG Link>>>>>");
-        Serial.println(lgLinkItter);
-        Serial.println((uint)lgLinks[lgLinkItter]);
+        Log.TERSE("decoder::start: Starting LgLink-%d" CR, lgLinkItter);
         if (lgLinks[lgLinkItter] == NULL)
-            break;
+            panic("decoder::start: lgLink - % d does not exist - rebooting..." CR, lgLinkItter);
         lgLinks[lgLinkItter]->start();
     }
 /*
@@ -606,7 +609,6 @@ rc_t decoder::setPingPeriod(float p_pingPeriod, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else {
-        Serial.println(p_pingPeriod);
         Log.INFO("decoder::setPingPeriod: setting ping supervision period to %f" CR, p_pingPeriod);
         if (xmlconfig[XML_DECODER_MQTT_PINGPERIOD])
             delete xmlconfig[XML_DECODER_MQTT_PINGPERIOD];
