@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="libraries\ArduinoLog\ArduinoLog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="networking.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -179,9 +176,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libraries\ArduinoLog\ArduinoLog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="networking.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

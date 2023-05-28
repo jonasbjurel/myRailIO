@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include "networking.h"
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "logHelpers.h"
 #include "rc.h"
 #include "systemState.h"

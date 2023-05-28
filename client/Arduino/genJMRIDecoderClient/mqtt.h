@@ -34,7 +34,7 @@
 #include <WiFi.h>
 #include <QList.h>
 #include <PubSubClient.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "systemState.h"
 #include "wdt.h"

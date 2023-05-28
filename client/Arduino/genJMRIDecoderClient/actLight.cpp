@@ -38,20 +38,20 @@ actLight::actLight(actBase* p_actBaseHandle, const char* p_type, char* p_subType
     actBaseHandle->getPort(&actPort);
     actBaseHandle->satHandle->getAddr(&satAddr);
     actBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
-    sysName = actBaseHandle->satHandle->getSystemName();
+    sysName = actBaseHandle->xmlconfig[XML_ACT_SYSNAME];
     satLibHandle = NULL;
-    pendingStart = false;
     sysState = OP_INIT | OP_UNCONFIGURED;
     Log.INFO("actLight::actLight: Creating light extention object on actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
-    if (!(actLightLock = xSemaphoreCreateMutex()));
-        panic("actLight::actLight: Could not create Lock objects - rebooting...");
+    //if (!(actLightLock = xSemaphoreCreateMutex()));
+    if (!(actLightLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+        panic("actLight::actLight: Could not create Lock objects - rebooting..." CR);
     actLightPos = ACTLIGHT_DEFAULT_FAILSAFE;
     orderedActLightPos = ACTLIGHT_DEFAULT_FAILSAFE;
     actLightFailsafePos = ACTLIGHT_DEFAULT_FAILSAFE;
 }
 
 actLight::~actLight(void) {
-    panic("actLight::~actLight: actLight destructor not supported - rebooting...");
+    panic("actLight::~actLight: actLight destructor not supported - rebooting..." CR);
 }
 
 rc_t actLight::init(void) {
@@ -60,45 +60,25 @@ rc_t actLight::init(void) {
 }
 
 void actLight::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
-    panic("actLight::onConfig: Did not expect any configuration for light actuator extention object - rebooting...");
+    panic("actLight::onConfig: Did not expect any configuration for light actuator extention object - rebooting..." CR);
 }
 
 rc_t actLight::start(void) {
     Log.INFO("actLight::start: Starting actLight actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.INFO("actLight::start: actLight actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
-        return RC_NOT_CONFIGURED_ERR;
-    }
-    if (actBaseHandle->systemState::getOpState() & OP_UNDISCOVERED) {
-        Log.INFO("actLight::start: actLight actuator extention class object %s, on actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, sysName, actPort, satAddr, satLinkNo);
-        pendingStart = true;
-        return RC_NOT_CONFIGURED_ERR;
-    }
-    Log.INFO("actLight::start: Configuring and startings actLight extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    setFailSafe(true);
-    Log.INFO("actLight::start: Subscribing to light orders for light actuator %s", sysName);
-    const char* actLightOrders[3] = { MQTT_LIGHT_TOPIC, "/", sysName };
-    if (mqtt::subscribeTopic(concatStr(actLightOrders, 3), &onActLightChangeHelper, this))
-        panic("actLight::start: Failed to suscribe to light actuator order topic - rebooting...");
     return RC_OK;
 }
 
 void actLight::onDiscovered(satelite* p_sateliteLibHandle) {
-    satLibHandle = p_sateliteLibHandle;
     Log.INFO("actLight::onDiscovered: actLight extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->pendingStart) {
-        Log.INFO("actLight::onDiscovered: Initiating pending start for actLight extention class object %s, on actuator port %d, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
-        start();
-    }
+    Log.INFO("actLight::onDiscovered: Subscribing to light orders for light actuator %s", sysName);
+    const char* actLightOrders[3] = { MQTT_LIGHT_TOPIC, "/", sysName };
+    if (mqtt::subscribeTopic(concatStr(actLightOrders, 3), &onActLightChangeHelper, this))
+        panic("actLight::onDiscovered: Failed to suscribe to light actuator order topic - rebooting...");
 }
 
 void actLight::onSysStateChange(uint16_t p_sysState) {
     sysState = p_sysState;
-    Log.INFO("actLight::onSystateChange: Got a new systemState %d for lightMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysState, actPort, satAddr, satLinkNo);
-    if (sysState)
-        setFailSafe(true);
-    else
-        setFailSafe(false);
+    Log.INFO("actLight::onSystateChange: Got a new systemState %d for actLight extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysState, actPort, satAddr, satLinkNo);
 }
 
 void actLight::onActLightChangeHelper(const char* p_topic, const char* p_payload, const void* p_actLightHandle) {
@@ -123,29 +103,34 @@ void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
 }
 
 void actLight::setActLight(void) {
-    if (actLightPos) {
-        if (satLibHandle->setSatActMode(SATMODE_HIGH, actPort))
-            Log.ERROR("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
+    if ((satLibHandle != NULL) && !failSafe){
+        if (actLightPos) {
+            if (satLibHandle->setSatActMode(SATMODE_HIGH, actPort))
+                Log.ERROR("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
+        }
+        else {
+            if (satLibHandle->setSatActMode(SATMODE_LOW, actPort))
+                Log.ERROR("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
+        }
+        Log.INFO("actLight::setActLight: Light actuator change order for %s fininished" CR, sysName);
     }
-    else {
-        if (satLibHandle->setSatActMode(SATMODE_LOW, actPort))
-            Log.ERROR("actLight::setActLight: Failed to execute order for light actuator %s" CR, sysName);
-    }
-    Log.INFO("actLight::setActLight: Light actuator change order for %s fininished" CR, sysName);
 }
 
-void actLight::setFailSafe(bool p_failSafe) {
+void actLight::failsafe(bool p_failSafe) {
     xSemaphoreTake(actLightLock, portMAX_DELAY);
-    failSafe = p_failSafe;
-    if (failSafe) {
+    if (p_failSafe) {
         Log.INFO("actLight::setFailSafe: Fail-safe set for light actuator %s" CR, sysName);
         actLightPos = actLightFailsafePos;
+        setActLight();
+        failSafe = p_failSafe;
+
     }
     else {
         Log.INFO("actLight::setFailSafe: Fail-safe un-set for light actuator %s" CR, sysName);
         actLightPos = orderedActLightPos;
+        failSafe = p_failSafe;
+        setActLight();
     }
-    setActLight();
     xSemaphoreGive(actLightLock);
 }
 

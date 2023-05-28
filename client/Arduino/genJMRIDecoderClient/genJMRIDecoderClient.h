@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <dummy.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "globalCli.h"
 #include "networking.h"
 #include "systemState.h"

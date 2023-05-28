@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <ESPTelnet.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "wdt.h"
 #include "panic.h"
 #include "rc.h"

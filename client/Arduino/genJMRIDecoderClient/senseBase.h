@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "wdt.h"
@@ -64,13 +64,13 @@ class senseDigital;
 #define XML_SENS_DESC					2
 #define XML_SENS_PORT					3
 #define XML_SENS_TYPE					4
-#define XML_SENS_PROPERTIES				5
+#define XML_SENS_ADMSTATE				5
 
 #define SENSE_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "DIGITAL"))\
 			((senseDigital*)ext_p)->method;\
 		else\
-			panic("senseBase::CALL_EXT: Non supported type - rebooting")
+			panic("senseBase::CALL_EXT: Non supported type %s: - rebooting" CR, type)
 
 #define SENSE_CALL_EXT_RC(ext_p, type, method)\
 		rc_t EXT_RC;\
@@ -78,7 +78,7 @@ class senseDigital;
 			EXT_RC = ((senseDigital*)ext_p)->method;\
 		else{\
 			EXT_RC = RC_GEN_ERR;\
-			panic("senseBase::CALL_EXT: Non supported type - rebooting");\
+			panic("senseBase::CALL_EXT: Non supported type: %s - rebooting" CR, type);\
 		}
 
 
@@ -91,8 +91,10 @@ public:
 	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement);
 	rc_t start(void);
 	void onDiscovered(const satelite* p_sateliteLibHandle);
-	static void onSystateChangeHelper(const void* p_senseBaseHandle, uint16_t p_sysState);
-	void onSystateChange(uint16_t p_sysState);
+	static void onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState);
+	void onSysStateChange(sysState_t p_sysState);
+	void processSysState(void);
+	void failsafe(bool p_failsafe);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
@@ -125,7 +127,7 @@ public:
 	uint8_t sensPort;
 	uint8_t satAddr;
 	uint8_t satLinkNo;
-	bool pendingStart;
+	sysState_t prevSysState;
 	char* xmlconfig[6];
 	bool debug;
 
@@ -136,7 +138,10 @@ private:
 	//Private data structures
 	const satelite* satLibHandle;
 	void* extentionSensClassObj;
+	bool processingSysState;
+	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t sensLock;
+	SemaphoreHandle_t sensBaseSysStateLock;
 	static uint16_t sensIndex;
 };
 

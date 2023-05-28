@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "senseBase.h"
@@ -65,6 +65,7 @@ public:
     void onDiscovered(satelite* p_sateliteLibHandle);
     void onSysStateChange(uint16_t p_sysState);
     void onSensChange(bool p_senseVal);
+    void failsafe(bool p_failSafe);
     void getSensing(char* p_sensing);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
     rc_t getProperty(uint8_t p_propertyId, const char* p_propertyValue);
@@ -86,9 +87,9 @@ private:
     uint8_t satAddr;
     uint8_t satLinkNo;
     satelite* satLibHandle;
+    bool failSafe;
     char* sensSysName;
     SemaphoreHandle_t senseDigitalLock;
-    bool pendingStart;
     uint16_t sysState;
     bool filteredSenseVal;
     bool debug;

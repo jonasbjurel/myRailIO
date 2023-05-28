@@ -36,6 +36,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
+//NEED TO FIX CHECK FOR MAX_LG
 //lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle), globalCli(LG_MO_NAME, LG_MO_NAME, lgIndex) {
 lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle) {
     lgLinkHandle = (lgLink*)p_lgLinkHandle;
@@ -50,9 +51,9 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLi
     prevSysState = OP_WORKING;
     systemState::setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
-    lgBaseLock = xSemaphoreCreateMutex();
-    if (lgBaseLock == NULL)
-        panic("lgBase::lgBase: Could not create Lock objects - rebooting..." CR);
+    //if (!(lgBaseLock = xSemaphoreCreateMutex()))
+    if (!(lgBaseLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+            panic("lgBase::lgBase: Could not create Lock objects - rebooting..." CR);
     xmlconfig[XML_LG_SYSNAME] = NULL;
     xmlconfig[XML_LG_USRNAME] = NULL;
     xmlconfig[XML_LG_DESC] = NULL;
@@ -140,7 +141,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         Log.WARN("lgBase::onConfig: Description was not provided - using \"-\"" CR);
         xmlconfig[XML_LG_DESC] = new char[2];
         strcpy(xmlconfig[XML_LG_DESC], "-");
-        }
+    }
     if (!xmlconfig[XML_LG_LINKADDR])
         panic("lgBase::onConfig: Link address missing for lg-Systemname: %, lg-address %d, on lgLink %d - rebooting..." CR, xmlconfig[XML_LG_SYSNAME], lgAddress, lgLinkNo);
     if (atoi((const char*)xmlconfig[XML_LG_LINKADDR]) != lgAddress)

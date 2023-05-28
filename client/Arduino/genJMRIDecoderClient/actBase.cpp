@@ -48,16 +48,30 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     char sysStateObjName[20];
     sprintf(sysStateObjName, "act-%d", p_actPort);
     setSysStateObjName(sysStateObjName);
-    setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNAVAILABLE);
+    processingSysState = false;
+    sysStateQ = new QList<sysState_t*>;
+    //if (!(actBaseSysStateLock = xSemaphoreCreateMutex()))
+    if (!(actBaseSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+        panic("actBase::actBase: Could not create Lock objects - rebooting..." CR);
+    prevSysState = OP_WORKING;
+    setOpState(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_ERRSEC );
     regSysStateCb(this, &onSysStateChangeHelper);
     if (!(actLock = xSemaphoreCreateMutex()))
         panic("actBase::actBase: Could not create Lock objects - rebooting...");
-    pendingStart = false;
+    xmlconfig[XML_ACT_SYSNAME] = NULL;
+    xmlconfig[XML_ACT_USRNAME] = NULL;
+    xmlconfig[XML_ACT_DESC] = NULL;
+    xmlconfig[XML_ACT_PORT] = NULL;
+    xmlconfig[XML_ACT_TYPE] = NULL;
+    xmlconfig[XML_ACT_SUBTYPE] = NULL;
+    xmlconfig[XML_ACT_ADMSTATE] = NULL;
+    //xmlconfig[XML_ACT_PROPERTIES] = NULL;
     satLibHandle = NULL;
     debug = false;
 
 /* CLI decoration methods */
     // get/set port
+    /*
     regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliGetPortHelper);
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_GET_ACTPORT_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliSetPortHelper);
@@ -72,6 +86,7 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_GET_ACTPROPERTY_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
     regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_SET_ACTPROPERTY_HELP_TXT);
+    */
 }
 
 actBase::~actBase(void) {
@@ -87,21 +102,19 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     if (!(systemState::getOpState() & OP_UNCONFIGURED))
         panic("actBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
     Log.INFO("actBase::onConfig: actuator port %d, on satelite adress %d, satLink %d received an uverified configuration, parsing and validating it..." CR, actPort, satAddr, satLinkNo);
-    xmlconfig[XML_ACT_SYSNAME] = NULL;
-    xmlconfig[XML_ACT_USRNAME] = NULL;
-    xmlconfig[XML_ACT_DESC] = NULL;
-    xmlconfig[XML_ACT_PORT] = NULL;
-    xmlconfig[XML_ACT_TYPE] = NULL;
-    xmlconfig[XML_ACT_PROPERTIES] = NULL;
+
+    //PARSING CONFIGURATION
     const char* actSearchTags[7];
-    actSearchTags[XML_ACT_SYSNAME] = "SystemName";
-    actSearchTags[XML_ACT_USRNAME] = "UserName";
-    actSearchTags[XML_ACT_DESC] = "Description";
+    actSearchTags[XML_ACT_SYSNAME] = "JMRISystemName";
+    actSearchTags[XML_ACT_USRNAME] = "JMRIUserName";
+    actSearchTags[XML_ACT_DESC] = "JMRIDescription";
     actSearchTags[XML_ACT_PORT] = "Port";
     actSearchTags[XML_ACT_TYPE] = "Type";
     actSearchTags[XML_ACT_SUBTYPE] = "SubType";
-    actSearchTags[XML_ACT_PROPERTIES] = "Properties";
-    getTagTxt(p_actXmlElement, actSearchTags, xmlconfig, sizeof(actSearchTags) / 4); // Need to fix the addressing for portability
+    actSearchTags[XML_ACT_ADMSTATE] = "AdminState";
+    getTagTxt(p_actXmlElement->FirstChildElement(), actSearchTags, xmlconfig, sizeof(actSearchTags) / 4); // Need to fix the addressing for portability
+
+    //VALIDATING AND SETTING OF CONFIGURATION
     if (!xmlconfig[XML_ACT_SYSNAME])
         panic("actBase::onConfig: SystemNane missing - rebooting...");
     if (!xmlconfig[XML_ACT_USRNAME])
@@ -114,34 +127,51 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
         panic("actBase::onConfig: Type missing - rebooting...");
     if (atoi((const char*)xmlconfig[XML_ACT_PORT]) != actPort)
         panic("actBase::onConfig: Port No inconsistant - rebooting...");
+    if (xmlconfig[XML_ACT_ADMSTATE] == NULL) {
+        Log.WARN("actBase::onConfig: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        xmlconfig[XML_ACT_ADMSTATE] = createNcpystr("DISABLE");
+    }
+    if (!strcmp(xmlconfig[XML_ACT_ADMSTATE], "ENABLE")) {
+        unSetOpState(OP_DISABLED);
+    }
+    else if (!strcmp(xmlconfig[XML_ACT_ADMSTATE], "DISABLE")) {
+        setOpState(OP_DISABLED);
+    }
+    else
+        panic("actBase::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_ACT_ADMSTATE]);
+
+    //SHOW FINAL CONFIGURATION
     Log.INFO("actBase::onConfig: System name: %s" CR, xmlconfig[XML_ACT_SYSNAME]);
-    Log.INFO("actBase::onConfig: User name:" CR, xmlconfig[XML_ACT_USRNAME]);
+    Log.INFO("actBase::onConfig: User name: %s" CR, xmlconfig[XML_ACT_USRNAME]);
     Log.INFO("actBase::onConfig: Description: %s" CR, xmlconfig[XML_ACT_DESC]);
     Log.INFO("actBase::onConfig: Port: %s" CR, xmlconfig[XML_ACT_PORT]);
     Log.INFO("actBase::onConfig: Type: %s" CR, xmlconfig[XML_ACT_TYPE]);
-    if (xmlconfig[XML_ACT_PROPERTIES])
-        Log.INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
+    Log.INFO("actBase::onConfig: act admin state: %s" CR, xmlconfig[XML_ACT_ADMSTATE]);
+
+    //CONFIFIGURING ACTUATORS
+    //if (xmlconfig[XML_ACT_PROPERTIES])
+    //    Log.INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
     if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
             Log.INFO("actBase::onConfig: actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR);
             extentionActClassObj = (void*) new actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
         }
-    else if (!strcmp((const char*)xmlconfig[XML_ACT_SUBTYPE], "LIGHT")) {
+    else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "LIGHT")) {
         Log.INFO("actBase::onConfig: actuator type is light - programing act-stem object by creating an lightAct extention class object" CR);
         extentionActClassObj = (void*) new actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
-    else if (!strcmp((const char*)xmlconfig[XML_ACT_SUBTYPE], "MEMORY")) {
+    else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "MEMORY")) {
         Log.INFO("actBase::onConfig: actuator type is memory - programing act-stem object by creating an memAct extention class object" CR);
         extentionActClassObj = (void*) new actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else
         panic("actBase::onConfig: actuator type not supported");
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], init());
-    if (xmlconfig[XML_ACT_PROPERTIES]) {
-        Log.INFO("actBase::onConfig: Configuring the actuator base stem-object with properties" CR);
-        ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onConfig(p_actXmlElement->FirstChildElement("Properties")));
-    }
-    else
-        Log.INFO("actBase::onConfig: No properties provided for base stem-object" CR);
+    //if (xmlconfig[XML_ACT_PROPERTIES]) {
+    //    Log.INFO("actBase::onConfig: Configuring the actuator base stem-object with properties" CR);
+    //    ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onConfig(p_actXmlElement->FirstChildElement("Properties")));
+    //}
+    //else
+    //    Log.INFO("actBase::onConfig: No properties provided for base stem-object" CR);
     unSetOpState(OP_UNCONFIGURED);
     Log.INFO("actBase::onConfig: Configuration successfully finished" CR);
 }
@@ -155,19 +185,39 @@ rc_t actBase::start(void) {
         return RC_NOT_CONFIGURED_ERR;
     }
     if (systemState::getOpState() & OP_UNDISCOVERED) {
-        Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d not yet discovered - waiting for discovery before starting it" CR, actPort, satAddr, satLinkNo);
-        pendingStart = true;
-        return RC_NOT_CONFIGURED_ERR;
+        Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d not yet discovered - starting it anyway" CR, actPort, satAddr, satLinkNo);
     }
     Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d - starting extention class" CR, actPort, satAddr, satLinkNo);
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], start());
-    Log.INFO("actBase::start: Subscribing to adm- and op state topics");
-    const char* admSubscribeTopic[5] = { MQTT_ACT_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName()};
-    if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), onAdmStateChangeHelper, this))
-        panic("actBase::start: Failed to suscribe to admState topic - rebooting...");
-    const char* opSubscribeTopic[5] = { MQTT_ACT_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName()};
-    if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
-        panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
+    Log.INFO("actBase::start: Subscribing to adm- and op state topics" CR);
+    if (!strcmp(xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
+        const char* admSubscribeTopic[5] = { MQTT_TURN_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        const char* opSubscribeTopic[5] = { MQTT_TURN_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), onAdmStateChangeHelper, this))
+            panic("actBase::start: Failed to suscribe to admState topic - rebooting...");
+        if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
+            panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
+    }
+    else if (!strcmp(xmlconfig[XML_ACT_TYPE], "LIGHT")) {
+        const char* admSubscribeTopic[5] = { MQTT_LIGHT_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        const char* opSubscribeTopic[5] = { MQTT_LIGHT_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), onAdmStateChangeHelper, this))
+            panic("actBase::start: Failed to suscribe to admState topic - rebooting...");
+        if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
+            panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
+    }
+    else if (!strcmp(xmlconfig[XML_ACT_TYPE], "MEMORY")) {
+        const char* admSubscribeTopic[5] = { MQTT_MEMORY_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        const char* opSubscribeTopic[5] = { MQTT_MEMORY_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), onAdmStateChangeHelper, this))
+            panic("actBase::start: Failed to suscribe to admState topic - rebooting...");
+        if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), onOpStateChangeHelper, this))
+            panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
+    }
+    else{
+        panic("actBase::start: Actuator type: %s not supported - rebooting..." CR, xmlconfig[XML_ACT_TYPE]);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
     wdt::wdtRegActuatorFailsafe(wdtKickedHelper, this);
     return RC_OK;
 }
@@ -175,24 +225,67 @@ rc_t actBase::start(void) {
 void actBase::onDiscovered(satelite* p_sateliteLibHandle) {
     Log.INFO("actBase::onDiscovered: actuator port %d, on satelite adress %d, satLink %d discovered" CR, actPort, satAddr, satLinkNo);
     satLibHandle = p_sateliteLibHandle;
+    systemState::unSetOpState(OP_UNDISCOVERED);
 }
 
 void actBase::onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sysState) {
     ((actBase*)p_actBaseHandle)->onSysStateChange(p_sysState);
 }
 
-void actBase::onSysStateChange(uint16_t p_sysState) {
-    if (!(p_sysState & OP_UNCONFIGURED)){
-        ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onSysStateChange(p_sysState));
-        if (p_sysState & OP_INTFAIL && p_sysState & OP_INIT)
-            Log.INFO("actBase::onSysStateChange: actuator port %d, on satelite adress %d, satLink %d has experienced an internal error while in OP_INIT phase, waiting for initialization to finish before taking actions" CR, actPort, satAddr, satLinkNo);
-        else if (p_sysState & OP_INTFAIL)
-            panic("actBase::onSysStateChange: actuator port has experienced an internal error - rebooting...");
-        if (p_sysState)
-            Log.INFO("actBase::onSysStateChange: actuator port %d, on satelite adress %d, satLink %d has received Opstate %b - doing nothing" CR, actPort, satAddr, satLinkNo, p_sysState);
-        else
-            Log.INFO("actBase::onSysStateChange: actuator port %d, on satelite adress %d, satLink %d has received a cleared Opstate - doing nothing" CR, actPort, satAddr, satLinkNo);
+void actBase::onSysStateChange(sysState_t p_sysState) {
+    char opStateStr[100];
+    Log.INFO("sat::onSysStateChange: sat-%d:act-%d has a new OP-state: %s" CR, satAddr, actPort, systemState::getOpStateStr(opStateStr, p_sysState));
+    xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
+    sysState_t* sysStateToQ = new sysState_t;
+    *sysStateToQ = p_sysState;
+    sysStateQ->push_back(sysStateToQ);
+    xSemaphoreGive(actBaseSysStateLock);
+    if (!processingSysState) {
+        processingSysState = true;
+        Log.VERBOSE("actBase::onSysStateChange: sat-%d:act-%d, processSysState is idle, processing the new sysState" CR, satAddr, actPort);
+        processSysState();
     }
+    else
+        Log.VERBOSE("actBase::onSysStateChange: sat-%d:act-%d, processSysState is busy, Queing it in the backlog" CR, satAddr, actPort);
+}
+
+void actBase::processSysState(void) {
+    sysState_t newSysState;
+    bool entering = true;
+    xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
+    while (sysStateQ->size()) {
+        if (!entering) {
+            xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
+            entering = false;
+        }
+        newSysState = *(sysStateQ->front());
+        delete sysStateQ->front();
+        sysStateQ->pop_front();
+        xSemaphoreGive(actBaseSysStateLock);
+        char opStateStr[100];
+        char opStateStr1[100];
+        sysState_t sysStateChange = newSysState ^ prevSysState;
+        if (!sysStateChange) {
+            Log.VERBOSE("actBase::processSysState: No system state change - previous system state: %s, current system state %s" CR, systemState::getOpStateStr(opStateStr1, prevSysState), systemState::getOpStateStr(opStateStr, prevSysState));
+            return;
+        }
+        if (newSysState) {
+            failsafe(true);
+            Log.INFO("actBase::processSysState: ActPort-%d has a new OP-state: %s, Setting failsafe" CR, actPort, systemState::getOpStateStr(opStateStr, newSysState));
+            Log.TERSE("actBase::processSysState: Following actPort-%d OP-states have changed: %s" CR, actPort, systemState::getOpStateStr(opStateStr, sysStateChange));
+        }
+        else {
+            failsafe(true);
+            Log.TERSE("actBase::processSysState: ActPort-%d has a new OP-state: \"WORKING\", Unsetting failsafe" CR, actPort);
+        }
+    }
+    processingSysState = false;
+}
+
+void actBase::failsafe(bool p_failsafe) {
+    char OPSTATE[100];
+    if (!(systemState::getOpState() & OP_UNCONFIGURED))
+        ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], failsafe(p_failsafe));
 }
 
 void actBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_actHandle) {
@@ -311,11 +404,7 @@ rc_t actBase::setPort(uint8_t p_port) {
 }
 
 rc_t actBase::getPort(uint8_t* p_port) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::getPort: cannot get port as actuator is not configured" CR);
-        return RC_NOT_CONFIGURED_ERR;
-    }
-    *p_port = atoi(xmlconfig[XML_ACT_PORT]);
+    *p_port = actPort;
     return RC_OK;
 }
 

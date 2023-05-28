@@ -208,9 +208,8 @@ class sensor(systemState, schema):
         type.text = self.sensType.value
         port = ET.SubElement(sensorXml, "Port")
         port.text = str(self.sensPort.value)
-        if not decoder:
-            adminState = ET.SubElement(sensorXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
+        adminState = ET.SubElement(sensorXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
         return minidom.parseString(ET.tostring(sensorXml)).toprettyxml(indent="   ") if text else sensorXml
 
     def getMethods(self):

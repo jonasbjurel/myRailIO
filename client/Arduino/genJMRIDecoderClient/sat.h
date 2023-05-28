@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "globalCli.h"
@@ -62,6 +62,7 @@ class actBase;
 #define XML_SAT_USRNAME							1
 #define XML_SAT_DESC							2
 #define XML_SAT_ADDR							3
+#define XML_SAT_ADMSTATE						4
 
 class sat : public systemState, public globalCli {
 public:
@@ -71,12 +72,16 @@ public:
 	rc_t init(void);
 	void onConfig(tinyxml2::XMLElement* p_satXmlElement);
 	rc_t start(void);
+	void up(void);
+	void down(void);
+	void failsafe(bool p_failsafe);
 	void onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists);
 	void onPmPoll(void);
 	static void onSatLibStateChangeHelper(satelite* p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle);
 	void onSatLibStateChange(satOpState_t p_satOpState);
-	static void onSysStateChangeHelper(const void* p_satHandle, uint16_t p_sysState);
-	void onSysStateChange(const uint16_t p_sysState);
+	static void onSysStateChangeHelper(const void* p_satHandle, sysState_t p_sysState);
+	void onSysStateChange(sysState_t p_sysState);
+	void processSysState(void);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkHandle);
@@ -118,9 +123,15 @@ private:
 	//Private data structures
 	uint8_t satAddr;
 	bool pendingStart;
-	char* xmlconfig[4];
+	char* xmlconfig[5];
 	bool debug;
+	sysState_t prevSysState;
+	bool satDownDeclared;
+	bool satScanDisabled;
+	bool processingSysState;
+	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t satLock;
+	SemaphoreHandle_t satSysStateLock;
 	satelite* satLibHandle;
 	actBase* acts[MAX_ACT];
 	senseBase* senses[MAX_SENS];

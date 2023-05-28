@@ -26,7 +26,7 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "actBase.h"
@@ -76,6 +76,7 @@ public:
     rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
     rc_t setShowing(const char* p_showing);
     rc_t getShowing(char* p_showing, char* p_orderedShowing);
+    void failsafe(bool p_failSafe);
 
     //Public data structures
     //--
@@ -85,7 +86,6 @@ private:
     void onActTurnChange(const char* p_topic, const char* p_payload);
     void setTurn(void);
     void turnServoMove(void);
-    void setFailSafe(bool p_failSafe);
 
     //Private data structures
     actBase* actBaseHandle;
@@ -98,7 +98,6 @@ private:
     uint8_t satLinkNo;
     satelite* satLibHandle;
     SemaphoreHandle_t actTurnLock;
-    bool pendingStart;
     turnType_t turnType;
     uint8_t turnOutPos;
     uint8_t orderedTurnOutPos;

@@ -354,11 +354,8 @@ class lightGroup(systemState, schema):
             self.mqttClient.publish(self.lgAdmTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __LgMqttReqListener(self, topic, payload):
-        trace.notify(DEBUG_VERBOSE, ">>>>>>>>>")
-        trace.notify(DEBUG_VERBOSE, payload)
         if payload == GET_LG_ASPECT:
-            trace.notify(DEBUG_VERBOSE, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-            trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request for current aspect")
+            trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request for current aspect, reporting " + self.lgShowing)
             self.mqttClient.publish(self.mqttLgTopic, self.lgShowing)
         else:
             trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request with an unknown payload/value: " + payload + "expected: " + GET_LG_ASPECT)

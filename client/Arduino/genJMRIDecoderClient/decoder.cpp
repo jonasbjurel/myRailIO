@@ -60,6 +60,8 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
         satLinks[satLinkNo] = new satLink(satLinkNo, this);
         if (satLinks[satLinkNo] == NULL)
             panic("decoder::init: Could not create satLink objects - rebooting..." CR);
+        Log.VERBOSE("Added Satlink index %d with object %d" CR, satLinkNo, satLinks[satLinkNo]);
+        addSysStateChild(satLinks[satLinkNo]);
     }
     Log.INFO("decoder::init: satLinks created" CR);
     
@@ -94,7 +96,7 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     xmlconfig[XML_DECODER_ADMSTATE] = NULL;
 
     Log.INFO("decoder::decoder: Starting CLI service" CR);
-    globalCli::start();
+    //globalCli::start();
     Log.INFO("decoder::decoder: Decoder created" CR);
 }
 
@@ -295,14 +297,14 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     //CONFIFIGURING LIGHTGROUP LINKS
     Log.INFO("decoder::onConfig: Validating and configuring lightgroups links" CR);
     tinyxml2::XMLElement* lgLinkXmlElement;
-    if (lgLinkXmlElement = xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("LightgroupsLink")){
+    if (lgLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("LightgroupsLink")){
         const char* lgLinkSearchTags[4];
         lgLinkSearchTags[XML_LGLINK_SYSNAME] = NULL;
         lgLinkSearchTags[XML_LGLINK_USRNAME] = NULL;
         lgLinkSearchTags[XML_LGLINK_DESC] = NULL;
         lgLinkSearchTags[XML_LGLINK_LINK] = "Link";
-        char* lgLinkXmlConfig[4] = { NULL };
         for (int lgLinkItter = 0; true; lgLinkItter++) {
+            char* lgLinkXmlConfig[4] = { NULL };
             if (lgLinkXmlElement == NULL)
                 break;
             if (lgLinkItter >= MAX_LGLINKS)
@@ -310,35 +312,41 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
             getTagTxt(lgLinkXmlElement->FirstChildElement(), lgLinkSearchTags, lgLinkXmlConfig, sizeof(lgLinkSearchTags) / 4); // Need to fix the addressing for portability
             if (!lgLinkXmlConfig[XML_LGLINK_LINK])
                 panic("decoder::onConfig:: lgLink missing - rebooting..." CR);
+            if ((atoi(lgLinkSearchTags[XML_LGLINK_LINK])) < 0 || atoi(lgLinkSearchTags[XML_LGLINK_LINK]) >= MAX_LGLINKS)
+                panic("sat::onConfig:: Satelite link number out of bounds - rebooting...");
             lgLinks[atoi(lgLinkXmlConfig[XML_LGLINK_LINK])]->onConfig(lgLinkXmlElement);
-            lgLinkXmlElement = xmlConfigDoc->NextSiblingElement("LightgroupsLink");
+            lgLinkXmlElement = ((tinyxml2::XMLElement*)lgLinkXmlElement)->NextSiblingElement("LightgroupsLink");
         }
     }
     else
-        Log.WARN("decoder::onConfig: No lgLinks provided, no lgLink will be configured" CR);
-    /*
+        Log.INFO("decoder::onConfig: No lgLinks provided, no lgLink will be configured" CR);
+    
     //CONFIFIGURING SATELITE LINKS
+    Log.INFO("decoder::onConfig: Validating and configuring satelite links" CR);
     tinyxml2::XMLElement* satLinkXmlElement;
-    satLinkXmlElement = xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SateliteLink")->FirstChildElement();
-    const char* satLinkSearchTags[4];
-    satLinkSearchTags[XML_SATLINK_SYSNAME] = NULL;
-    satLinkSearchTags[XML_SATLINK_USRNAME] = NULL;
-    satLinkSearchTags[XML_SATLINK_DESC] = NULL;
-    satLinkSearchTags[XML_SATLINK_LINK] = "Link";
-    char* satLinkXmlconfig[4];
-    for (int satLinkItter = 0; satLinkItter <= MAX_SATLINKS; satLinkItter++) {
-        if (satLinkXmlElement == NULL)
-            break;
-        if (satLinkItter >= MAX_SATLINKS)
-            panic("decoder::onConfig: > than maximum satLinks provided - not supported - rebooting..." CR);
-        getTagTxt(satLinkXmlElement, satLinkSearchTags, xmlconfig, sizeof(satLinkSearchTags) / 4); // Need to fix the addressing for portability
-        if (!satLinkXmlconfig[XML_SATLINK_LINK])
-            panic("decoder::onConfig:: satLink missing - rebooting..." CR);
-        satLinks[atoi(xmlconfig[XML_SATLINK_LINK])]->onConfig(satLinkXmlElement);
-        addSysStateChild(satLinks[atoi(xmlconfig[XML_SATLINK_LINK])]);
-        satLinkXmlElement = xmlConfigDoc->NextSiblingElement("SateliteLink")->FirstChildElement();
+    if (satLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SateliteLink")) {
+        const char* satLinkSearchTags[4];
+        satLinkSearchTags[XML_SATLINK_SYSNAME] = NULL;
+        satLinkSearchTags[XML_SATLINK_USRNAME] = NULL;
+        satLinkSearchTags[XML_SATLINK_DESC] = NULL;
+        satLinkSearchTags[XML_SATLINK_LINK] = "Link";
+        for (int satLinkItter = 0; true; satLinkItter++) {
+            char* satLinkXmlconfig[4] = { NULL };
+            if (satLinkXmlElement == NULL)
+                break;
+            if (satLinkItter >= MAX_SATLINKS)
+                panic("decoder::onConfig: > than maximum satLinks provided - not supported - rebooting..." CR);
+            getTagTxt(satLinkXmlElement->FirstChildElement(), satLinkSearchTags, satLinkXmlconfig, sizeof(satLinkSearchTags) / 4); // Need to fix the addressing for portability
+            if (!satLinkXmlconfig[XML_SATLINK_LINK])
+                panic("decoder::onConfig:: satLink missing - rebooting..." CR);
+            if ((atoi(satLinkXmlconfig[XML_SATLINK_LINK])) < 0 || atoi(satLinkXmlconfig[XML_SATLINK_LINK]) >= MAX_SATLINKS)
+                panic("sat::onConfig:: Satelite link number out of bounds - rebooting...");
+            satLinks[atoi(satLinkXmlconfig[XML_SATLINK_LINK])]->onConfig(satLinkXmlElement);
+            satLinkXmlElement = ((tinyxml2::XMLElement*)satLinkXmlElement)->NextSiblingElement("SateliteLink");
+        }
     }
-    */
+    else
+        Log.INFO("decoder::onConfig: No satLinks provided, no satelites will be configured" CR);
     delete xmlConfigDoc;
     unSetOpState(OP_UNCONFIGURED);
     Log.INFO("decoder::onConfig: Configuration successfully finished" CR);
@@ -370,14 +378,15 @@ rc_t decoder::start(void) {
             panic("decoder::start: lgLink - % d does not exist - rebooting..." CR, lgLinkItter);
         lgLinks[lgLinkItter]->start();
     }
-/*
+
 Log.INFO("decoder::start: Starting satelite link Decoders" CR);
-for (int satLinkItter = 0; satLinkItter < MAX_LGLINKS; satLinkItter++) {
+for (int satLinkItter = 0; satLinkItter < MAX_SATLINKS; satLinkItter++) {
+    Log.TERSE("decoder::start: Starting SatLink-%d" CR, satLinkItter);
     if (satLinks[satLinkItter] == NULL)
-        break;
+        panic("decoder::start: satLink - % d does not exist - rebooting..." CR, satLinkItter);
     satLinks[satLinkItter]->start();
 }
-*/
+
     unSetOpState(OP_INIT);
     Log.INFO("decoder::start: decoder started" CR);
     return RC_OK;

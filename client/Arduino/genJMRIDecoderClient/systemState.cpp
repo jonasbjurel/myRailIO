@@ -170,6 +170,10 @@ char* systemState::getOpStateStr(char* p_opStateStr, sysState_t p_opBitmap) {
         strcat(p_opStateStr, "DISABLED|");
     if (p_opBitmap & OP_UNAVAILABLE)
         strcat(p_opStateStr, "UNAVAILABLE|");
+    if (p_opBitmap & OP_ERRSEC)
+        strcat(p_opStateStr, "ERRSEC|");
+    if (p_opBitmap & OP_GENERR)
+        strcat(p_opStateStr, "GENERR|");
     if (p_opBitmap & OP_INTFAIL)
         strcat(p_opStateStr, "INTFAIL|");
     if (p_opBitmap & OP_CBL)

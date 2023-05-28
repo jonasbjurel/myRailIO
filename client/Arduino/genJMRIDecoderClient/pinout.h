@@ -36,8 +36,8 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 const uint8_t LGLINK_PINS[] =			{25, 26};
-const uint8_t SATLINK_TX_PINS[] =		{37, 38};
-const uint8_t  SATLINK_RX_PINS[] =		{39, 40}; //NEEDS TO BE CHECKED
+const uint8_t SATLINK_TX_PINS[] =		{18, 21};
+const uint8_t  SATLINK_RX_PINS[] =		{19, 22}; //NEEDS TO BE CHECKED
 #define WIFI_CONFIG_PB_PIN              27
 /*==============================================================================================================================================*/
 /* END ESP32 pinout                                                                                                                             */

@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <QList.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "lgLink.h"
 #include "rc.h"
 #include "config.h"

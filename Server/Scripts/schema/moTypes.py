@@ -292,7 +292,6 @@ class actPort_t(base_t):
     def validate(self, value):
         assert type(value) == int, "actPort_t didnt pass type check" 
         assert (value < SATELITE_MAX_ACT_PORTS and value >= 0), "actPort_t didnt pass range check"
-
         if super().__getattribute__("parent").actSubType.candidateValue == "SOLENOID":
             assert ((value % 2) == 0), "actPort_t didnt pass range check, SOLENOID sub-type requires even port-base number"
 

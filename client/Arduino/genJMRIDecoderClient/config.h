@@ -33,8 +33,8 @@
 
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
-#define MAX_SATLINKS								0
-#define MAX_LGLINKS									1	//2
+#define MAX_SATLINKS								1	//2
+#define MAX_LGLINKS									0	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
@@ -58,10 +58,15 @@
 
 // Satelite link configuration
 // ===========================
-#define MAX_SATELITES								8
+#define MAX_SATELITES								1 //8 Max satelites for each Satelite link
+#define SATLINK_LINKERR_HIGHTRES					10 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
+#define SATLINK_LINKERR_LOWTRES						0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
+
 
 // Satelite configuration
 // ======================
+#define SAT_LINKERR_HIGHTRES						2 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
+#define SAT_LINKERR_LOWTRES							0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 
 // Sensor configuration
 // ====================

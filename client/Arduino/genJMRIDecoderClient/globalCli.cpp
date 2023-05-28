@@ -43,7 +43,7 @@ globalCli::globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIn
 		rootHandle = this;
 		setRoot();
 	}
-	regCliMOCmds();
+	//regCliMOCmds();
 }
 
 globalCli::~globalCli(void) {

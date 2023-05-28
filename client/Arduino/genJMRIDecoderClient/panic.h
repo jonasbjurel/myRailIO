@@ -28,7 +28,7 @@
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "logHelpers.h"
 /*==============================================================================================================================================*/

@@ -44,7 +44,7 @@
 #include <time.h>
 #include <QList.h>
 #include "config.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "strHelpers.h"
 /*==============================================================================================================================================*/

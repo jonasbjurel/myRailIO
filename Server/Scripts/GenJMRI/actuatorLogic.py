@@ -217,9 +217,8 @@ class actuator(systemState, schema):
         subType.text = self.actSubType.value
         port = ET.SubElement(actuatorXml, "Port")
         port.text = str(self.actPort.value)
-        if not decoder:
-            adminState = ET.SubElement(actuatorXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
+        adminState = ET.SubElement(actuatorXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
         return minidom.parseString(ET.tostring(actuatorXml)).toprettyxml(indent="   ") if text else actuatorXml
 
     def getMethods(self):

@@ -24,7 +24,7 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include <QList.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "logHelpers.h"
 #include "panic.h"
@@ -43,17 +43,19 @@
 
 //Operational state bitmap
 typedef uint16_t sysState_t;
-#define OP_WORKING                      0b0000000000   //Object working
-#define OP_INIT                         0b0000000001   //Object initializing, not started
-#define OP_DISCONNECTED                 0b0000000010   //Object disconnected to its peer
-#define OP_NOIP                         0b0000000100   //Object has no IP address
-#define OP_UNDISCOVERED                 0b0000001000   //Object not discovered
-#define OP_UNCONFIGURED                 0b0000010000   //Object not configured
-#define OP_DISABLED                     0b0000100000   //Object disbled from server
-#define OP_UNAVAILABLE                  0b0001000000   //Object unavailable from server
-#define OP_INTFAIL                      0b0010000000   //Object internal failure
-#define OP_CBL                          0b0100000000   //Object control-block from any parent block reasons
-#define OP_UNUSED                       0b1000000000   //Object not in use
+#define OP_WORKING                      0b000000000000   //Object working
+#define OP_INIT                         0b000000000001   //Object initializing, not started
+#define OP_DISCONNECTED                 0b000000000010   //Object disconnected to its peer
+#define OP_NOIP                         0b000000000100   //Object has no IP address
+#define OP_UNDISCOVERED                 0b000000001000   //Object not discovered
+#define OP_UNCONFIGURED                 0b000000010000   //Object not configured
+#define OP_DISABLED                     0b000000100000   //Object disbled from server
+#define OP_UNAVAILABLE                  0b000001000000   //Object unavailable from server
+#define OP_ERRSEC                       0b000010000000   //Oject has experienced excessive PM degradation
+#define OP_GENERR                       0b000100000000   //Object has experienced a recoverable error
+#define OP_INTFAIL                      0b001000000000   //Object internal unrecoverable failure
+#define OP_CBL                          0b010000000000   //Object control-block from any parent block reasons
+#define OP_UNUSED                       0b100000000000   //Object not in use
 
 
 //Call-back prototypes

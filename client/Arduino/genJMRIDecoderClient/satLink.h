@@ -28,8 +28,9 @@
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
+#include <QList.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "wdt.h"
@@ -63,6 +64,7 @@ class sat;
 #define XML_SATLINK_USRNAME							1
 #define XML_SATLINK_DESC							2
 #define XML_SATLINK_LINK							3
+#define XML_SATLINK_ADMSTATE						4
 
 class satLink : public systemState, public globalCli {
 public:
@@ -72,13 +74,16 @@ public:
 	rc_t init(void);
 	void onConfig(tinyxml2::XMLElement* p_satLinkXmlElement);
 	rc_t start(void);
-	static void onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool exists_p, void* p_satLinkHandle);
+	void up(void);
+	void down(void);
+	static void onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle);
 	static void pmPollHelper(void* p_metaData);
 	void onPmPoll(void);
 	static void onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandler, uint8_t p_linkAddr, satOpState_t p_satOpState, void* p_satLinkHandler);
 	void onSatLinkLibStateChange(satOpState_t p_satOpState);
-	static void onSysStateChangeHelper(const void* satLinkHandle, uint16_t p_sysState);
-	void onSysStateChange(const uint16_t p_sysState);
+	static void onSysStateChangeHelper(const void* p_satLinkHandle, sysState_t p_sysState);
+	void onSysStateChange(const sysState_t p_sysState);
+	void processSysState(void);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject);
@@ -143,9 +148,16 @@ private:
 
 	//Private data structures
 	uint8_t linkNo;
-	char* xmlconfig[4];
+	char* xmlconfig[5];
 	bool debug;
-	SemaphoreHandle_t satLinkLock;
+	bool pmPoll;
+	sysState_t prevSysState;
+	bool satLinkDownDeclared;
+	bool satLinkScanDisabled;
+	bool processingSysState;
+	QList<sysState_t*>* sysStateQ;
+	SemaphoreHandle_t satLinkSysStateLock;
+	SemaphoreHandle_t satLinkPmPollLock;
 	wdt* satLinkWdt;
 	sateliteLink* satLinkLibHandle;
 	sat* sats[MAX_SATELITES];

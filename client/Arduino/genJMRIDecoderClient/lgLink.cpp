@@ -49,8 +49,9 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     lgLinkDownDeclared = false;
     lgLinkScanDisabled = true;
     failsafeSet = false;
-    if (lgLinkLock == NULL)
-        panic("lgLink::satLink: Could not create Lock objects - rebooting..." CR);
+    //if (!(lgLinkLock = xSemaphoreCreateMutex()))                       //Why do we have this
+    if (!(lgLinkLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+        panic("lgLink::lgLink: Could not create Lock objects - rebooting..." CR);
     dirtyPixelLock = xSemaphoreCreateMutex();
     if (dirtyPixelLock == NULL)
         panic("lgLink::satLink: Could not create \"dirtyPixelLock\" object - rebooting..." CR);
@@ -62,7 +63,6 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     prevSysState = OP_WORKING;
     setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
-    lgLinkLock = xSemaphoreCreateMutex();                       //Why do we have this
     xmlconfig[XML_LGLINK_SYSNAME] = NULL;
     xmlconfig[XML_LGLINK_USRNAME] = NULL;
     xmlconfig[XML_LGLINK_DESC] = NULL;
@@ -215,8 +215,8 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         lgSearchTags[XML_LG_PROPERTY1] = NULL;
         lgSearchTags[XML_LG_PROPERTY2] = NULL;
         lgSearchTags[XML_LG_PROPERTY3] = NULL;
-        char* lgXmlconfig[8] = { NULL };
         for (uint16_t lgItter = 0; true; lgItter++) {
+            char* lgXmlconfig[8] = { NULL };
             if (!lgXmlElement){
                 break;
             }
@@ -228,7 +228,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
             if (!lgXmlconfig[XML_LG_LINKADDR])
                 panic("lgLink::onConfig:: lightgroups Linkaddress not provided/missing - rebooting..." CR);
             lgs[atoi(lgXmlconfig[XML_LG_LINKADDR])]->onConfig(lgXmlElement);
-            lgXmlElement = ((tinyxml2::XMLElement*) p_lightgroupLinkXmlElement)->NextSiblingElement("LightGroup");
+            lgXmlElement = ((tinyxml2::XMLElement*)lgXmlElement)->NextSiblingElement("LightGroup");
         }
         uint16_t stripOffset = 0;
         for (uint16_t lgItter = 0; lgItter < MAX_LGS; lgItter++) {
@@ -244,7 +244,6 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
     }
     else
         Log.WARN("lgLink::onConfig: No lightgroups provided, no lightgroup will be configured" CR);
-
     unSetOpState(OP_UNCONFIGURED);
     Log.INFO("lgLink::onConfig: Configuration successfully finished" CR);
 }
@@ -318,7 +317,6 @@ void lgLink::onSysStateChange(uint16_t p_sysState) {
     else{
         Log.TERSE("lgLink::onSysStateChange: lgLink-%d has a new OP-state: \"WORKING\", Unsetting failsafe" CR, linkNo);
         failsafe(false);
-
     }
     if ((p_sysState & OP_INTFAIL)) {
         lgLinkDisableScan = true;
@@ -584,7 +582,7 @@ void lgLink::updateStrip(void) {
         if (!wdtFeeed_cnt--) {
             lgLinkWdt->feed();
             wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
-            Serial.printf("Kick\n");
+            //Serial.printf("Kick\n");
         }
         if (avgIndex >= maxAvgIndex) {
             avgIndex = 0;

@@ -226,14 +226,6 @@ void mqtt::down(void) {
     Log.INFO("mqtt::down, declaring Mqtt client down" CR);
     sysState->setOpState(OP_DISABLED);
     supervision = false;
-/*
-    if (mqttPingHandle) {
-        Serial.println(">>>>>>> Killing ping task");
-        vTaskDelete(mqttPingHandle);
-        Serial.println(">>>>>>> Ping task killed");
-    }
-    mqttPingHandle = NULL;
-    */
 }
 
 void mqtt::wdtKicked(void* p_dummy) {
@@ -607,8 +599,6 @@ void mqtt::poll(void* dummy) {
     while (true) {
         char op[200];
         //Serial.println("POLL");
-        //Serial.println(mqttClient->state());
-        //Serial.println(sysState->getOpStateStr(op));
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
         mqttWdt->feed();
@@ -681,7 +671,6 @@ void mqtt::poll(void* dummy) {
         int64_t delay = nextLoopTime - esp_timer_get_time();
         int64_t now = esp_timer_get_time();
         if ((int)delay > 0) {
-            //Serial.printf("Delaying %i ms\n", delay / 1000);
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
@@ -696,7 +685,7 @@ void mqtt::mqttPingTimer(void* dummy) {
     Log.INFO("mqtt::mqttPingTimer: MQTT Ping timer started, ping period: %d" CR, pingPeriod);
     missedPings = 0;
     while (supervision) {
-        Serial.println("Ping");
+        //Serial.println("Ping");
         if (!(sysState->getOpState() & OP_DISABLED) && (pingPeriod != 0)) {
             if (++missedPings >= MAX_MQTT_LOST_PINGS) {
                 sysState->setOpState(OP_UNAVAILABLE);

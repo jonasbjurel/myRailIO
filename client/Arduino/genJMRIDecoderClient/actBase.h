@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "wdt.h"
@@ -68,7 +68,8 @@ class actMem;
 #define XML_ACT_PORT					3
 #define XML_ACT_TYPE					4
 #define XML_ACT_SUBTYPE					5
-#define XML_ACT_PROPERTIES				6
+#define XML_ACT_ADMSTATE				6
+//#define XML_ACT_PROPERTIES				7
 
 #define ACT_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "TURNOUT"))\
@@ -103,7 +104,9 @@ public:
 	rc_t start(void);
 	void onDiscovered(satelite* p_sateliteLibHandle);
 	static void onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sysState);
-	void onSysStateChange(uint16_t p_sysState);
+	void onSysStateChange(sysState_t p_sysState);
+	void processSysState(void);
+	void failsafe(bool p_failsafe);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
@@ -138,7 +141,7 @@ public:
 	uint8_t actPort;
 	uint8_t satAddr;
 	uint8_t satLinkNo;
-	bool pendingStart;
+	sysState_t prevSysState;
 	char* xmlconfig[7];
 	bool debug;
 
@@ -149,7 +152,10 @@ private:
 	//Private data structures
 	satelite* satLibHandle;
 	void* extentionActClassObj;
+	bool processingSysState;
+	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t actLock;
+	SemaphoreHandle_t actBaseSysStateLock;
 	static uint16_t actIndex;
 };
 

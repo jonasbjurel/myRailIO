@@ -1642,9 +1642,10 @@ class UI_actuatorDialog(QDialog):
             self.parentObjHandle.jmriActSystemName.value = self.JMRISystemNameLineEdit.displayText()
             self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
             self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
-            self.parentObjHandle.actPort.value = self.actPortSpinBox.value()
             self.parentObjHandle.actType.value = self.actTypeComboBox.currentText()
             self.parentObjHandle.actSubType.value = self.actSubTypeComboBox.currentText()
+            self.parentObjHandle.actPort.value = self.actPortSpinBox.value()
+
         except AssertionError as configError:
             return configError
         if self.adminStateForceCheckBox.isChecked():

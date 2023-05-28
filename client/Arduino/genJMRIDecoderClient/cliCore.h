@@ -43,8 +43,8 @@
 #include <stdarg.h>
 #include <ESPTelnet.h>
 #include <QList.h>
-#include "libraries/SimpleCLI/src/SimpleCLI.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <SimpleCLI.h>
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "telnetCore.h"
 #include "panic.h"

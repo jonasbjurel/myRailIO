@@ -25,6 +25,7 @@ import time
 import threading
 import traceback
 import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
 from ui import *
@@ -253,9 +254,8 @@ class satLink(systemState, schema):
         descName.text = self.description.value
         satLink = ET.SubElement(satLinkXml, "Link")
         satLink.text = str(self.satLinkNo.value)
-        if not decoder:
-            adminState = ET.SubElement(satLinkXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
+        adminState = ET.SubElement(satLinkXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
         if includeChilds:
             childs = True
             try:
@@ -414,7 +414,9 @@ class satLink(systemState, schema):
         prevRxSymErr = self.rxSymErr
         prevRxSizeErr = self.rxSizeErr
         prevWdErr = self.wdErr
-        statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
+        # statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
+        statsXmlTree = ET.ElementTree(ET.fromstring(payload))
+
         if str(statsXmlTree.getroot().tag) != "statReport":
             trace.notify(DEBUG_ERROR, "SatLink statistics report missformated")
             return

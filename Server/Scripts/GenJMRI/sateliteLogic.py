@@ -263,9 +263,8 @@ class satelite(systemState, schema):
         descName.text = self.description.value
         LinkAddress = ET.SubElement(sateliteXml, "LinkAddress")
         LinkAddress.text = str(self.satLinkAddr.value)
-        if not decoder:
-            adminState = ET.SubElement(sateliteXml, "AdminState")
-            adminState.text = self.getAdmState()[STATE_STR]
+        adminState = ET.SubElement(sateliteXml, "AdminState")
+        adminState.text = self.getAdmState()[STATE_STR]
         if includeChilds:
             for sensor in self.sensors.value:
                 sateliteXml.append(sensor.getXmlConfigTree(decoder=decoder))
@@ -434,7 +433,9 @@ class satelite(systemState, schema):
         prevRxCrcErr = self.rxCrcErr
         prevTxCrcErr = self.txCrcErr
         prevWdErr = self.wdErr
-        statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
+        # statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
+        statsXmlTree = ET.ElementTree(ET.fromstring(payload))
+
         if str(statsXmlTree.getroot().tag) != "statReport":
             trace.notify(DEBUG_ERROR, "Satelite statistics report missformated")
             return

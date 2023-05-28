@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <IPAddress.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "cliCore.h"
 #include "cliGlobalDefinitions.h"
 #include "panic.h"

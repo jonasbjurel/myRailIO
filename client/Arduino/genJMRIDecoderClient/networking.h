@@ -46,7 +46,7 @@
 #include <esp_wifi_types.h>
 #include <WiFiManager.h>
 #include <QList.h>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "systemState.h"
 #include "strHelpers.h"
 #include "config.h"

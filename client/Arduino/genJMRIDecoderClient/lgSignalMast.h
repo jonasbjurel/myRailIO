@@ -27,7 +27,7 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "lgBase.h"
 #include "lgLink.h"

@@ -32,7 +32,7 @@
 #include<ctype.h>
 #include <string.h>
 #include <cstddef>
-#include "libraries/ArduinoLog/ArduinoLog.h"
+#include <ArduinoLog.h>
 #include "rc.h"
 #include "logHelpers.h"
 
