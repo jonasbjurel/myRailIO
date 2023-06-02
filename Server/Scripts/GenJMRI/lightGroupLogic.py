@@ -90,7 +90,7 @@ class lightGroup(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.setOpStateDetail(OP_INIT)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.jmriLgSystemName.value = name
         else:
@@ -202,19 +202,15 @@ class lightGroup(systemState, schema):
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Light group " + self.jmriLgSystemName.value + " , traceback: " + str(traceback.print_exc()))
             if res != rc.OK:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Light group " + self.jmriLgSystemName.value)
-                return rc.GEN_ERR
+                return res
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.unSetOpStateDetail(OP_INIT)
-        self.unSetOpStateDetail(OP_CONFIG)
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        self.unSetOpStateDetail(OP_CONFIG)
-        if self.getOpStateDetail() & OP_INIT[STATE]:
-            self.delete()
+        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -279,7 +275,6 @@ class lightGroup(systemState, schema):
         return rc.OK
 
     def accepted(self):
-        self.setOpStateDetail(OP_CONFIG)
         self.nameKey.value = "LightGroup-" + self.jmriLgSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
         res = self.parent.updateReq()
@@ -328,30 +323,40 @@ class lightGroup(systemState, schema):
             self.rpcClient.regEventCb(jmriObj.MASTS, self.jmriLgSystemName.value, self.__lgChangeListener)
             self.rpcClient.unRegMqttPub(jmriObj.MASTS, self.jmriLgSystemName.value)
             self.rpcClient.regMqttPub(jmriObj.MASTS, self.jmriLgSystemName.value, MQTT_LIGHTGROUP_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value, {"*":"*"})
-            self.actOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_TURNOUT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
         else:
             trace.notify(DEBUG_INFO, "Could not create Light group type " + self.lgType.value + " for " + self.nameKey.value +" , type not supported")
             return rc.PARAM_ERR
-        self.lgOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
-        self.lgAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
-        self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener)
+        self.lgOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        self.lgOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        self.lgAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LG_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        self.unRegOpStateCb(self.__sysStateRespondListener)
+        self.unRegOpStateCb(self.__sysStateAllListener)
+        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.mqttClient.subscribeTopic(self.lgOpUpStreamTopic, self.__onDecoderOpStateChange)
         return rc.OK
 
     def __lgChangeListener(self, event):
         trace.notify(DEBUG_VERBOSE, "Light group  " + self.nameKey.value + " changed value from " + str(event.oldState) + " to " + str(event.newState))
         self.lgShowing = str(event.newState)
 
-    def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Light group  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
-        if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.lgOpTopic, OP_AVAIL_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.lgOpTopic, OP_UNAVAIL_PAYLOAD)
-        if self.getAdmState() == ADM_ENABLE:
-            self.mqttClient.publish(self.lgAdmTopic, ADM_ON_LINE_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.lgAdmTopic, ADM_OFF_LINE_PAYLOAD)
+    def __sysStateRespondListener(self, changedOpStateDetail):
+        trace.notify(DEBUG_INFO, "Light group " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        if changedOpStateDetail & OP_DISABLED[STATE]:
+            if self.getAdmState() == ADM_ENABLE:
+                self.mqttClient.publish(self.lgAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+            else:
+                self.mqttClient.publish(self.lgAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
+
+    def __sysStateAllListener(self, changedOpStateDetail):
+        # UPDATE GUI LIVE IF POSSIBLE
+        # ADD TO ALARM LIST - LATER
+        return
+
+    def __onDecoderOpStateChange(self, topic, value):
+        trace.notify(DEBUG_INFO, "Lg Link " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        self.setOpStateDetail(self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        self.unSetOpStateDetail(~self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
 
     def __LgMqttReqListener(self, topic, payload):
         if payload == GET_LG_ASPECT:

@@ -87,7 +87,7 @@ class actuator(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.setOpStateDetail(OP_INIT)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.jmriActSystemName.value = name
         else:
@@ -185,21 +185,18 @@ class actuator(systemState, schema):
                 res = self.__setConfig()
             except:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Actuator " + self.jmriActSystemName.value)
+                return rc.GEN_ERR
             if res != rc.OK:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Actuator " + self.jmriActSystemName.value)
-                return rc.GEN_ERR
+                return res
         else:
             trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.unSetOpStateDetail(OP_INIT)
-        self.unSetOpStateDetail(OP_CONFIG)
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        self.unSetOpStateDetail(OP_CONFIG)
-        if self.getOpStateDetail() & OP_INIT[STATE]:
-            self.delete()
+        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -261,7 +258,6 @@ class actuator(systemState, schema):
         return rc.OK
 
     def accepted(self):
-        self.setOpStateDetail(OP_CONFIG)
         if self.actType.candidateValue == "TURNOUT":
             self.nameKey.value = "Turn-" + self.jmriActSystemName.candidateValue
         elif self.actType.candidateValue == "LIGHT":
@@ -289,6 +285,7 @@ class actuator(systemState, schema):
         return rc.OK
 
     def __setConfig(self):
+
         try:
             if self.actType.value == "TURNOUT":
                 actuators = self.rpcClient.getConfigsByType(jmriObj.TURNOUTS)
@@ -336,44 +333,49 @@ class actuator(systemState, schema):
             self.actState = self.rpcClient.getStateBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.TURNOUTS, self.jmriActSystemName.value, MQTT_TURNOUT_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
-            self.actOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_TURNOUT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
-            self.actAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_TURNOUT_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
-
         elif self.actType.value == "LIGHT":
             self.rpcClient.setUserNameBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.userName.value)
             self.rpcClient.setCommentBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.LIGHTS, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value, MQTT_LIGHT_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
-            self.actOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
-            self.actAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHT_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
-
         elif self.actType.value == "MEMORY":
             self.rpcClient.setUserNameBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.userName.value)
             self.rpcClient.setCommentBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.MEMORIES, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.MEMORIES, self.jmriActSystemName.value, MQTT_MEMORY_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
-            self.actOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_MEMORY_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
-            self.actAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_MEMORY_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
-
-        self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener)
+        self.actOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
+        self.actOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
+        self.actAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
+        self.unRegOpStateCb(self.__sysStateRespondListener)
+        self.unRegOpStateCb(self.__sysStateAllListener)
+        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.mqttClient.subscribeTopic(self.actOpUpStreamTopic, self.__onDecoderOpStateChange)
         return rc.OK
 
     def __actChangeListener(self, event):
         trace.notify(DEBUG_VERBOSE, "Actuator  " + self.nameKey.value + " changed value from " + str(event.oldState) + " to " + str(event.newState))
         self.actState = event.newState
 
-    def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Actuator  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
-        if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.actOpTopic, OP_AVAIL_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.actOpTopic, OP_UNAVAIL_PAYLOAD)
-        if self.getAdmState() == ADM_ENABLE:
-            self.mqttClient.publish(self.actAdmTopic, ADM_ON_LINE_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.actAdmTopic, ADM_OFF_LINE_PAYLOAD)
+    def __sysStateRespondListener(self, changedOpStateDetail):
+        trace.notify(DEBUG_INFO, "Sensor " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        if changedOpStateDetail & OP_DISABLED[STATE]:
+            if self.getAdmState() == ADM_ENABLE:
+                self.mqttClient.publish(self.actAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+            else:
+                self.mqttClient.publish(self.actAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
+
+    def __sysStateAllListener(self, changedOpStateDetail):
+        # UPDATE GUI LIVE IF POSSIBLE
+        # ADD TO ALARM LIST - LATER
+        return
+
+    def __onDecoderOpStateChange(self, topic, value):
+        trace.notify(DEBUG_INFO, "Actuator " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        self.setOpStateDetail(self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        self.unSetOpStateDetail(~self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+
 # End Actuators
 #------------------------------------------------------------------------------------------------------------------------------------------------

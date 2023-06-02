@@ -86,7 +86,7 @@ class satelite(systemState, schema):
         self.actuators.value = []
         self.childs.value = self.sensors.candidateValue + self.actuators.candidateValue
         self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.setOpStateDetail(OP_INIT)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.satSystemName.value = name
         else:
@@ -110,7 +110,6 @@ class satelite(systemState, schema):
             self.logStatsProducer.start()
 
     def onXmlConfig(self, xmlConfig):
-        self.setOpStateDetail(OP_CONFIG)
         try:
             satXmlConfig = parse_xml(xmlConfig,
                                         {"SystemName": MANSTR,
@@ -214,16 +213,17 @@ class satelite(systemState, schema):
     def commit1(self):
         trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " received configuration commit1()")
         if self.schemaDirty:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " was reconfigured - applying the configuration")
-
-            res = self.__setConfig()
-            if res != rc.OK:
+            try:
+                trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " was reconfigured - applying the configuration")
+                res = self.__setConfig()
+            except:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Satelite " + self.satSystemName.value)
                 return rc.GEN_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for Satelite " + self.satSystemName.value)
+                return res
         else:
             trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.unSetOpStateDetail(OP_INIT)
-        self.unSetOpStateDetail(OP_CONFIG)
         childs = True
         try:
             self.childs.value
@@ -247,9 +247,7 @@ class satelite(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        self.unSetOpStateDetail(OP_CONFIG)
-        if self.getOpStateDetail() & OP_INIT[STATE]:
-            self.delete()
+        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -375,7 +373,6 @@ class satelite(systemState, schema):
         return rc.OK
 
     def accepted(self):
-        self.setOpStateDetail(OP_CONFIG)
         self.nameKey.value = "Sat-" + self.satSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
         res = self.parent.updateReq()
@@ -406,59 +403,57 @@ class satelite(systemState, schema):
         return rc.OK # Place holder for object config validation
 
     def __setConfig(self):
-        self.satOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value
-        self.satAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value
+        self.satOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.satSystemName.value
+        self.satOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.satSystemName.value
+        self.satAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.satSystemName.value
+        self.unRegOpStateCb(self.__sysStateRespondListener)
+        self.unRegOpStateCb(self.__sysStateAllListener)
+        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE])
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value, self.__onStats)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SAT_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satSystemName.value, self.__onStats)
-        #trace.notify(DEBUG_PANIC, "SUBSCRIBED")
-        self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener)
+        self.mqttClient.subscribeTopic(self.satOpUpStreamTopic, self.__onDecoderOpStateChange)
         return rc.OK
 
-    def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Satelite  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
-        if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.satOpTopic, OP_AVAIL_PAYLOAD)
-            self.clearStats()
-        else:
-            self.mqttClient.publish(self.satOpTopic, OP_UNAVAIL_PAYLOAD)
-        if self.getAdmState() == ADM_ENABLE:
-            self.mqttClient.publish(self.satAdmTopic, ADM_ON_LINE_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.satAdmTopic, ADM_OFF_LINE_PAYLOAD)
+    def __sysStateRespondListener(self, changedOpStateDetail):
+        trace.notify(DEBUG_INFO, "Satelite " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        if changedOpStateDetail & OP_DISABLED[STATE]:
+            if self.getAdmState() == ADM_ENABLE:
+                self.mqttClient.publish(self.satAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+            else:
+                self.mqttClient.publish(self.satAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
+
+    def __sysStateAllListener(self, changedOpStateDetail):
+        # UPDATE GUI LIVE IF POSSIBLE
+        # ADD TO ALARM LIST - LATER
+        return
+
+    def __onDecoderOpStateChange(self, topic, value):
+        trace.notify(DEBUG_INFO, "Satelite " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        self.setOpStateDetail(self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        self.unSetOpStateDetail(~self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
 
     def __onStats(self, topic, payload):
         # We expect a report every second
-        trace.notify(DEBUG_VERBOSE, self.nameKey.value + " received a statistics report")
-        prevRxCrcErr = self.rxCrcErr
-        prevTxCrcErr = self.txCrcErr
-        prevWdErr = self.wdErr
+        trace.notify(DEBUG_VERBOSE, "Satelite " + self.nameKey.value + " received a statistics report")
         # statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
         statsXmlTree = ET.ElementTree(ET.fromstring(payload))
-
         if str(statsXmlTree.getroot().tag) != "statReport":
             trace.notify(DEBUG_ERROR, "Satelite statistics report missformated")
             return
-        statsXmlVal = parse_xml(statsXmlTree.getroot(),
-                                {"rxCrcErr": MANINT,
-                                 "txCrcErr": MANINT,
-                                 "wdErr": MANINT
-                                }
-                               )
-        rxCrcErr = int(statsXmlVal.get("rxCrcErr"))
-        txCrcErr = int(statsXmlVal.get("txCrcErr"))
-        wdErr = int(statsXmlVal.get("wdErr"))
-        if not self.getOpStateDetail():
+        if not (self.getOpStateDetail() & OP_DISABLED):
+            statsXmlVal = parse_xml(statsXmlTree.getroot(),
+                                    {"rxCrcErr": MANINT,
+                                    "txCrcErr": MANINT,
+                                    "wdErr": MANINT
+                                    }
+                                    )
+            rxCrcErr = int(statsXmlVal.get("rxCrcErr"))
+            txCrcErr = int(statsXmlVal.get("txCrcErr"))
+            wdErr = int(statsXmlVal.get("wdErr"))
             self.rxCrcErr += rxCrcErr
             self.txCrcErr += txCrcErr
             self.wdErr += wdErr
-            if rxCrcErr > SAT_CRC_ES_HIGH_TRESH or txCrcErr > SAT_CRC_ES_HIGH_TRESH or wdErr > SAT_WD_ES_HIGH_TRESH:
-                trace.notify(DEBUG_INFO, self.nameKey.value + " entered into an \"Errored second\" opState")
-                self.setOpStateDetail(OP_ERRSEC)
-        elif self.getOpStateDetail() & OP_ERRSEC[STATE]:
-            if rxCrcErr <= SAT_CRC_ES_LOW_TRESH and txCrcErr <= SAT_CRC_ES_LOW_TRESH and wdErr <= SAT_WD_ES_LOW_TRESH:
-                trace.notify(DEBUG_INFO, self.nameKey.value + " exited the \"Errored second\" opState")
-                self.unSetOpStateDetail(OP_ERRSEC)
 
     def __demoStatsProducer(self):
         while True:

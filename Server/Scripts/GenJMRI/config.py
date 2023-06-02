@@ -36,18 +36,6 @@ DEFAULT_GIT_BRANCH =                    "Main"
 DEFAULT_GIT_TAG =                       "-"
 
 # Tunable default parameters - can be changed - but not exposed as managed objects
-SATLINK_CRC_ES_HIGH_TRESH =             10
-SATLINK_SYMERR_ES_HIGH_TRESH =          10
-SATLINK_SIZEERR_ES_HIGH_TRESH =         10
-SATLINK_WD_ES_HIGH_TRESH =              1
-SATLINK_CRC_ES_LOW_TRESH =              5
-SATLINK_SYMERR_ES_LOW_TRESH =           5
-SATLINK_SIZEERR_ES_LOW_TRESH =          5
-SATLINK_WD_ES_LOW_TRESH =               0
-SAT_CRC_ES_HIGH_TRESH =                 10
-SAT_WD_ES_HIGH_TRESH =                  1
-SAT_CRC_ES_LOW_TRESH =                  5
-SAT_WD_ES_LOW_TRESH =                   0
 DECODER_MAX_MISSED_PINGS =              3
 
 # System hardcoded parameters - not alterable without implementation design, or verification

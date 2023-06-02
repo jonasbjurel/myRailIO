@@ -20,6 +20,7 @@
 #################################################################################################################################################
 # Dependencies
 #################################################################################################################################################
+from ast import Try
 import os
 import sys
 import time
@@ -91,7 +92,7 @@ class decoder(systemState, schema):
         self.satLinks.value = []
         self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
         self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.setOpStateDetail(OP_INIT)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_DISCONNECTED[STATE] | OP_NOIP[STATE] | OP_UNDISCOVERED[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.decoderSystemName.value = name
         else:
@@ -115,7 +116,6 @@ class decoder(systemState, schema):
                 self.addChild(SATELITE_LINK, name=i, config=False, demo=True)
 
     def onXmlConfig(self, xmlConfig):
-        self.setOpStateDetail(OP_CONFIG)
         try:
             decoderXmlConfig = parse_xml(xmlConfig,
                                             {"SystemName": MANSTR,
@@ -220,15 +220,17 @@ class decoder(systemState, schema):
     def commit1(self):
         trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.value + " received configuration commit1()")
         if self.schemaDirty:
-            trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.value + " was reconfigured - applying the configuration")
-            res = self.__setConfig()
-            if res != rc.OK:
+            try:
+                trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.value + " was reconfigured - applying the configuration")
+                res = self.__setConfig()
+            except:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for decoder " + self.decoderSystemName.value)
                 return rc.GEN_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for decoder " + self.decoderSystemName.value)
+                return res
         else:
             trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.unSetOpStateDetail(OP_INIT)
-        self.unSetOpStateDetail(OP_CONFIG)
         childs = True
         try:
             self.childs.value
@@ -252,9 +254,7 @@ class decoder(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        self.unSetOpStateDetail(OP_CONFIG)
-        if self.getOpStateDetail() & OP_INIT[STATE]:
-            self.delete()
+        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -383,7 +383,6 @@ class decoder(systemState, schema):
         return rc.OK
 
     def accepted(self):
-        self.setOpStateDetail(OP_CONFIG)
         self.nameKey.value = "Decoder-" + self.decoderSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
         res = self.updateReq()
@@ -435,28 +434,46 @@ class decoder(systemState, schema):
         return rc.OK
 
     def __setConfig(self): 
-        self.decoderOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_TOPIC + MQTT_OPSTATE_TOPIC + self.getDecoderUri() + "/" + self.decoderSystemName.value
-        self.decoderAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_TOPIC + MQTT_ADMSTATE_TOPIC + self.getDecoderUri() + "/" + self.decoderSystemName.value
-        self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener)
-        #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIGREQ_TOPIC + self.decoderMqttURI.value, self.__onDecoderConfigReq)
+        self.decoderOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.getDecoderUri() + "/" + self.decoderSystemName.value
+        self.decoderOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.getDecoderUri() + "/" + self.decoderSystemName.value
+        self.decoderAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.getDecoderUri() + "/" + self.decoderSystemName.value
+        self.unRegOpStateCb(self.__sysStateRespondListener)
+        self.unRegOpStateCb(self.__sysStateAllListener)
+        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIGREQ_TOPIC + self.decoderMqttURI.value, self.__onDecoderConfigReq)
+        self.mqttClient.subscribeTopic(self.decoderOpUpStreamTopic, self.__onDecoderOpStateChange)
         if self.getAdmState() == ADM_ENABLE:
             self.__startSupervision()
         return rc.OK
 
-    def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
-        if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.decoderOpTopic, OP_AVAIL_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.decoderOpTopic, OP_UNAVAIL_PAYLOAD)
-        if self.getAdmState() == ADM_ENABLE:
-            self.mqttClient.publish(self.decoderAdmTopic, ADM_ON_LINE_PAYLOAD)
-            self.__startSupervision()
-        else:
-            self.mqttClient.publish(self.decoderAdmTopic, ADM_OFF_LINE_PAYLOAD)
-            self.__stopSupervision()
+    def __sysStateRespondListener(self, changedOpStateDetail):
+        trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        if changedOpStateDetail & OP_SERVUNAVAILABLE[STATE]:
+            trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " Informing client decoder about the new ServerUnavailability state ")
+            self.mqttClient.publish(self.decoderOpDownStreamTopic, self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & OP_SERVUNAVAILABLE[STATE]))
+        if changedOpStateDetail & OP_DISABLED[STATE]:
+            if self.getAdmState() == ADM_ENABLE:
+                self.mqttClient.publish(self.decoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+                self.__startSupervision()
+            else:
+                self.mqttClient.publish(self.decoderAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
+                self.__stopSupervision()
+
+    def __sysStateAllListener(self, changedOpStateDetail):
+        # UPDATE GUI LIVE IF POSSIBLE
+        # ADD TO ALARM LIST - LATER
+        return
+
+    def __onDecoderOpStateChange(self, topic, value):
+        trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        try:
+            opBitMap = self.getOpStateDetailBitMapFromStr(value)
+        except:
+            trace.notify(DEBUG_ERROR, "Decoder " + self.nameKey.value + " received OP State not recognized, there is likely a missmatch beween server and client assumed OP States")
+            return
+        self.setOpStateDetail(opBitMap & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        self.unSetOpStateDetail(~opBitMap & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
 
     def __decoderRestart(self):
         trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " requested will be restarted")
@@ -498,18 +515,19 @@ class decoder(systemState, schema):
         self.missedPingReq += 1
         if self.missedPingReq >= DECODER_MAX_MISSED_PINGS:
             self.missedPingReq = DECODER_MAX_MISSED_PINGS
-            if not (self.getOpStateDetail() & OP_FAIL[STATE]):
-                self.setOpStateDetail(OP_FAIL)
+            #if not (self.getOpStateDetail() & OP_FAIL[STATE]):
+            self.setOpStateDetail(OP_SERVUNAVAILABLE)
 
     def __onPingReq(self, topic, payload):
         trace.notify(DEBUG_VERBOSE, "Decoder " + self.nameKey.value + " received an upstream PING request")
         if self.getAdmState() == ADM_DISABLE:
+            self.missedPingReq = 0
             return
         if not self.supervisionActive:
             return
         self.missedPingReq = 0
-        if (self.getOpStateDetail() & OP_FAIL[STATE]):
-            self.unSetOpStateDetail(OP_FAIL)
+        #if (self.getOpStateDetail() & OP_FAIL[STATE]):
+        self.unSetOpStateDetail(OP_SERVUNAVAILABLE)
         if not self.restart:
             self.mqttClient.publish(MQTT_JMRI_PRE_TOPIC + MQTT_SUPERVISION_DOWNSTREAM + self.decoderMqttURI.value, PING)
 

@@ -87,7 +87,7 @@ class sensor(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.setOpStateDetail(OP_INIT)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.jmriSensSystemName.value = name
         else:
@@ -104,7 +104,6 @@ class sensor(systemState, schema):
         self.sensTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
 
     def onXmlConfig(self, xmlConfig):
-        self.setOpStateDetail(OP_CONFIG)
         try:
             sensorXmlConfig = parse_xml(xmlConfig,
                                         {"JMRISystemName": MANSTR,
@@ -176,23 +175,23 @@ class sensor(systemState, schema):
     def commit1(self):
         trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.value + " received configuration commit1()")
         if self.schemaDirty:
-            trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.value + " was reconfigured - applying the configuration")
-            res = self.__setConfig()
-            if res != rc.OK:
+            try:
+                trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.value + " was reconfigured - applying the configuration")
+                res = self.__setConfig()
+            except:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Sensor " + self.jmriSensSystemName.value)
                 return rc.GEN_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for Sensor " + self.jmriSensSystemName.value)
+                return res
         else:
             trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.unSetOpStateDetail(OP_INIT)
-        self.unSetOpStateDetail(OP_CONFIG)
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        self.unSetOpStateDetail(OP_CONFIG)
-        if self.getOpStateDetail() & OP_INIT[STATE]:
-            self.delete()
+        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -252,7 +251,6 @@ class sensor(systemState, schema):
         return rc.OK
 
     def accepted(self):
-        self.setOpStateDetail(OP_CONFIG)
         self.nameKey.value = "Sens-" + self.jmriSensSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save namkey as it may be gone after an abort from updateReq()
         res = self.parent.updateReq()
@@ -279,12 +277,12 @@ class sensor(systemState, schema):
             sensors = self.rpcClient.getConfigsByType(jmriObj.SENSORS)
             sensor = sensors[jmriObj.getObjTypeStr(jmriObj.SENSORS)][self.jmriSensSystemName.value]
             trace.notify(DEBUG_INFO, "System name " + self.jmriSensSystemName.value + " already configured in JMRI, re-using it")
-
         except:
             trace.notify(DEBUG_INFO, "System name " + self.jmriSensSystemName.value + " doesnt exist in JMRI, creating it")
             self.rpcClient.createObject(jmriObj.SENSORS, self.jmriSensSystemName.value)
-        self.sensOpTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
-        self.sensAdmTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_ADMSTATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        self.sensOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        self.sensOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        self.sensAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
         self.rpcClient.setUserNameBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value, self.userName.value)
         self.rpcClient.setCommentBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value, self.description.value)
         self.sensState = self.rpcClient.getStateBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value)
@@ -292,23 +290,34 @@ class sensor(systemState, schema):
         self.rpcClient.unRegMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value)
         self.rpcClient.regEventCb(jmriObj.SENSORS, self.jmriSensSystemName.value, self.__senseChangeListener)
         self.rpcClient.regMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value, MQTT_SENS_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value, {"*":"*"})
-        self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener)
+        self.unRegOpStateCb(self.__sysStateRespondListener)
+        self.unRegOpStateCb(self.__sysStateAllListener)
+        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.mqttClient.subscribeTopic(self.sensOpUpStreamTopic, self.__onDecoderOpStateChange)
         return rc.OK
 
     def __senseChangeListener(self, event):
         trace.notify(DEBUG_VERBOSE, "Sensor  " + self.nameKey.value + " changed value from " + str(event.oldState) + " to " + str(event.newState))
         self.sensState = event.newState
 
-    def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Sensor  " + self.nameKey.value + " got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()))
-        if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.sensOpTopic, OP_AVAIL_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.sensOpTopic, OP_UNAVAIL_PAYLOAD)
-        if self.getAdmState() == ADM_ENABLE:
-            self.mqttClient.publish(self.sensAdmTopic, ADM_ON_LINE_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.sensAdmTopic, ADM_OFF_LINE_PAYLOAD)
+    def __sysStateRespondListener(self, changedOpStateDetail):
+        trace.notify(DEBUG_INFO, "Sensor " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        if changedOpStateDetail & OP_DISABLED[STATE]:
+            if self.getAdmState() == ADM_ENABLE:
+                self.mqttClient.publish(self.sensAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+            else:
+                self.mqttClient.publish(self.sensAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
+
+    def __sysStateAllListener(self, changedOpStateDetail):
+        # UPDATE GUI LIVE IF POSSIBLE
+        # ADD TO ALARM LIST - LATER
+        return
+
+    def __onDecoderOpStateChange(self, topic, value):
+        trace.notify(DEBUG_INFO, "Satelite " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        self.setOpStateDetail(self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        self.unSetOpStateDetail(~self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+
 # End Sensors
 #------------------------------------------------------------------------------------------------------------------------------------------------

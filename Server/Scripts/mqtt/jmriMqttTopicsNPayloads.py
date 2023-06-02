@@ -17,24 +17,26 @@ MQTT_JMRI_PRE_TOPIC =                       "/trains/"
 MQTT_DECODER_DISCOVERY_REQUEST_TOPIC =      "track/discoveryreq"                                # Discovery request from decoders
 MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC =     "track/discoveryresp"                               # Discovery response from server (aka topDecoder)
 MQTT_LOG_TOPIC =                            "track/log/"                                        # Logs sent from decoders
-MQTT_DECODER_CONFIGREQ_TOPIC =              "track/decoder/configReq/"
-MQTT_DECODER_CONFIG_TOPIC =                 "track/decoder/configResp/"
+MQTT_DECODER_CONFIGREQ_TOPIC =              "track/decoder/configReq/"                          # Decoder ask for configuration
+MQTT_DECODER_CONFIG_TOPIC =                 "track/decoder/configResp/"                         # Configuration response from server
 
-MQTT_OPSTATE_TOPIC =                        "opState/"                                          # Decoder Operational state sent to decoders
-MQTT_ADMSTATE_TOPIC =                       "admState/"                                         # Decoder Operational state sent to decoders
+MQTT_OPSTATE_TOPIC_DOWNSTREAM =             "opState/downstream/"                               # Decoder Operational state sent to decoders
+MQTT_OPSTATE_TOPIC_UPSTREAM =               "opState/upstream/"                                 # Decoder Operational state received from decoders
+MQTT_ADMSTATE_TOPIC_DOWNSTREAM =            "admState/downstream/"                              # Decoder Operational state sent to decoders
 
-MQTT_TOPDECODER_TOPIC =                     "track/topdecoder/"
-MQTT_DECODER_TOPIC =                        "track/decoder/"
-MQTT_LGLINK_TOPIC =                         "track/lglink/"
-MQTT_LG_TOPIC =                             "track/lightgroup/"
-
+MQTT_TOPDECODER_TOPIC =                     "track/topdecoder/"                                 # Server top decode object topic
+MQTT_DECODER_TOPIC =                        "track/decoder/"                                    # Server/Client decoder object topic
+MQTT_LGLINK_TOPIC =                         "track/lglink/"                                     # Server/Client lgLink object topic
+MQTT_LG_TOPIC =                             "track/lightgroup/"                                 # Server/Client lg object topic
 MQTT_SATLINK_TOPIC =                        "track/satLink/"
 MQTT_SAT_TOPIC =                            "track/satelite/"
+MQTT_ACT_TOPIC =                            "track/actuator/"
+MQTT_SENS_TOPIC =                           "track/sensor/"
 MQTT_ASPECT_TOPIC =                         "track/lightgroups/lightgroup/"
 MQTT_TURNOUT_TOPIC =                        "track/turnout/"
 MQTT_LIGHT_TOPIC =                          "track/light/"
-MQTT_LIGHTGROUP_TOPIC =                     "track/lightgroup/"
-MQTT_LIGHTGROUPREQ_TOPIC =                  "track/lightgroup/req/"
+MQTT_LIGHTGROUP_TOPIC =                     "track/lightgroup/" #DUPLICATE?
+MQTT_LIGHTGROUPREQ_TOPIC =                  "track/lightgroup/req/" #?
 MQTT_SENS_TOPIC =                           "track/sensor/"
 MQTT_MEMORY_TOPIC =                         "track/memory/"
 MQTT_STATE_TOPIC =                          "state/" #DUPLICATE?

@@ -43,19 +43,22 @@
 
 //Operational state bitmap
 typedef uint16_t sysState_t;
-#define OP_WORKING                      0b000000000000   //Object working
-#define OP_INIT                         0b000000000001   //Object initializing, not started
-#define OP_DISCONNECTED                 0b000000000010   //Object disconnected to its peer
-#define OP_NOIP                         0b000000000100   //Object has no IP address
-#define OP_UNDISCOVERED                 0b000000001000   //Object not discovered
-#define OP_UNCONFIGURED                 0b000000010000   //Object not configured
-#define OP_DISABLED                     0b000000100000   //Object disbled from server
-#define OP_UNAVAILABLE                  0b000001000000   //Object unavailable from server
-#define OP_ERRSEC                       0b000010000000   //Oject has experienced excessive PM degradation
-#define OP_GENERR                       0b000100000000   //Object has experienced a recoverable error
-#define OP_INTFAIL                      0b001000000000   //Object internal unrecoverable failure
-#define OP_CBL                          0b010000000000   //Object control-block from any parent block reasons
-#define OP_UNUSED                       0b100000000000   //Object not in use
+# Operational states detail
+# -------------------------
+#define OP_WORKING                      0b0000000000000   //Object working
+#define OP_INIT                         0b0000000000001   //Object initializing, not started - originated from client side
+#define OP_DISCONNECTED                 0b0000000000010   //Object disconnected to its server - originated from client side
+#define OP_NOIP                         0b0000000000100   //Object has no IP address - originated from client side(but could never be sent to server)
+#define OP_UNDISCOVERED                 0b0000000001000   //Object not discovered - originated from client side (but could never be sent to server)
+#define OP_UNCONFIGURED                 0b0000000010000   //Object not configured - originated from client side
+#define OP_DISABLED                     0b0000000100000   //Object disbled from server - generated internally from admstate - at each of the server and client side
+#define OP_SERVUNAVAILABLE              0b0000001000000   //Object unavailable from server - server decoder did not detect MQTT Ping messages from client side
+#define OP_CLIEUNAVAILABLE              0b0000010000000   //Object unavailable from client - client decoder did not detect MQTT Ping responses messages from server side
+#define OP_ERRSEC                       0b0000100000000   //Oject has experienced excessive PM degradation over the past second - originated from client side
+#define OP_GENERR                       0b0001000000000   //Object has experienced a recoverable generic error - originated from client side
+#define OP_INTFAIL                      0b0010000000000   //Object has experienced a non-recoverable generic error - originated from server and client side
+#define OP_CBL                          0b0100000000000   //Object control-blocked from any parent opState block reasons - generated internally at each of the server and client side
+#define OP_UNUSED                       0b1000000000000   //Object not in use - originated from client side
 
 
 //Call-back prototypes

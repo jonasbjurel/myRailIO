@@ -109,7 +109,6 @@ class topDecoder(systemState, schema):
         self.decoders.value = []
         self.childs.value = self.decoders.candidateValue
         self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.setOpStateDetail(OP_INIT)
         self.topItem = self.win.registerMoMObj(self, 0, "topDecoder", TOP_DECODER, displayIcon=SERVER_ICON)
         self.nameKey.value = "topDecoder"
         self.gitBranch.value = DEFAULT_GIT_BRANCH
@@ -154,14 +153,12 @@ class topDecoder(systemState, schema):
             self.commitAll()
 
     def onXmlConfig(self, xmlConfig):
-        self.setOpStateDetail(OP_CONFIG)
         self.xmlConfig = xmlConfig
         trace.notify(DEBUG_INFO, "Starting to configure top decoder class and all subordinate class objects")
         try:
             controllersXmlTree = ET.ElementTree(ET.fromstring(self.xmlConfig))
         except:
             trace.notify(DEBUG_PANIC, "Error parsing XML configuration\n" + str(traceback.print_exc()))
-            state.setOpStateDetail(OP_FAIL)
             return rc.PARSE_ERR
         if str(controllersXmlTree.getroot().tag) != "genJMRI":
             trace.notify(DEBUG_ERROR, "XML configuration missformated")
@@ -402,13 +399,14 @@ class topDecoder(systemState, schema):
     def commit1(self):
         trace.notify(DEBUG_TERSE, "topDecoder received configuration commit1()")
         if self.schemaDirty:
-            trace.notify(DEBUG_TERSE, "topDecoder was reconfigured - applying the configuration")
-            res = self.__setConfig()
+            try:
+                trace.notify(DEBUG_TERSE, "topDecoder was reconfigured - applying the configuration")
+                res = self.__setConfig()
+            except:
+                trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
             if res != rc.OK:
                 trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
                 return res
-        self.unSetOpStateDetail(OP_INIT)
-        self.unSetOpStateDetail(OP_CONFIG)
         childs = True
         try:
             self.childs.value
@@ -432,9 +430,6 @@ class topDecoder(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        self.unSetOpStateDetail(OP_CONFIG)
-        if self.getOpStateDetail() & OP_INIT[STATE]:    # This code is not rellevant for the Top decoder - but left for template reasons
-            self.delete()
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True, onlyIncludeThisChild=False):
@@ -570,7 +565,7 @@ class topDecoder(systemState, schema):
 
     def delChild(self, child):
         self.decoders.value.remove(child)
-        self.childs.value = self.decoders
+        self.childs.value = self.decoders.candidateValue
 
     def view(self):
         self.dialog = UI_topDialog(self, edit=False)
@@ -608,7 +603,6 @@ class topDecoder(systemState, schema):
         print("Checking in tag: " + self.gitTag)
 
     def accepted(self):
-        self.setOpStateDetail(OP_CONFIG)
         if self.version.value != self.version.candidateValue:
             self.__setVersion(self.version.value)
             self.schemaObjects["versionHistory"].commit()
@@ -642,10 +636,11 @@ class topDecoder(systemState, schema):
 
         # Set NTP server
         # Set RSYSLOG server
-        self.topDecoderOpTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC)[:-1]
-        self.topDecoderAdmTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC)[:-1]
+        self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]
+        self.topDecoderOpUpStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM)[:-1]
+        self.topDecoderAdmDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM)[:-1]
         self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener)
+        self.regOpStateCb(self.__sysStateListener, OP_ALL[STATE])
         #self.mqttClient.unSubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
         return rc.OK
@@ -684,16 +679,16 @@ class topDecoder(systemState, schema):
     def __onRpcErr(self):
         pass
 
-    def __sysStateListener(self):
-        trace.notify(DEBUG_INFO, "Top decoder got a new OP State: " + self.getOpStateSummaryStr(self.getOpStateSummary()) + " anouncing current OPState and AdmState")
-        if self.getOpStateSummaryStr(self.getOpStateSummary()) == self.getOpStateSummaryStr(OP_SUMMARY_AVAIL):
-            self.mqttClient.publish(self.topDecoderOpTopic, OP_AVAIL_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.topDecoderOpTopic, OP_UNAVAIL_PAYLOAD)
-        if self.getAdmState() == ADM_ENABLE:
-            self.mqttClient.publish(self.topDecoderAdmTopic, ADM_ON_LINE_PAYLOAD)
-        else:
-            self.mqttClient.publish(self.topDecoderAdmTopic, ADM_OFF_LINE_PAYLOAD)
+    def __sysStateListener(self, changedOpStateDetail):
+        trace.notify(DEBUG_INFO, "Top decoder " + self.nameKey.value + " got a new OP State generated by the server - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+
+        if changedOpStateDetail & ~OP_DISABLED[STATE]:
+            self.mqttClient.publish(self.topDecoderOpDownStreamTopic, self.getOpStateDetailStr())
+        if changedOpStateDetail & OP_DISABLED[STATE]:
+            if self.getAdmState() == ADM_ENABLE:
+                self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+            else:
+                self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __onDiscoveryReq(self, topic, payload):
         try:
