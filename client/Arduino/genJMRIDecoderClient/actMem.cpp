@@ -100,21 +100,21 @@ void actMem::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
         Log.INFO("actMem::onDiscovered: Subscribing to memory orders for Memory actuator %s" CR, sysName);
         if (mqtt::subscribeTopic(subscribeTopic, onActMemChangeHelper, this))
             panic("actMem::onDiscovered: Failed to suscribe to actMem order topic - rebooting..." CR);
-        Log.INFO("actMem::onDiscovered: actMem extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actMem::onDiscovered: actMem extention class object %s, on actuator port %i, on satelite adress %i, satLink %i discovered" CR, sysName, actPort, satAddr, satLinkNo);
         if (actMemType == ACTMEM_TYPE_SOLENOID) {
             if (actPort % 2) {
                 actMemSolenoidPushPort = false;
-                Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator pull port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+                Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator pull port %s, on port %i, on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
             }
             else {
-                Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator push port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+                Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator push port %s, on port %i, on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
                 actMemSolenoidPushPort = true;
             }
             satLibHandle->setSatActMode(SATMODE_PULSE, actPort);
         }
 
         else if (actMemType == ACTMEM_TYPE_SERVO) {
-            Log.INFO("actMem::onDiscovered: Startings servo memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            Log.INFO("actMem::onDiscovered: Startings servo memory  actuator %s, on port %i, on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
             satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
         }
 

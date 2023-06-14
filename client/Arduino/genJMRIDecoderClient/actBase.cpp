@@ -242,10 +242,9 @@ void actBase::processSysState(void) {
     bool entering = true;
     xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
     while (sysStateQ->size()) {
-        if (!entering) {
+        if (!entering)
             xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
-            entering = false;
-        }
+        entering = false;
         newSysState = *(sysStateQ->front());
         delete sysStateQ->front();
         sysStateQ->pop_front();
@@ -260,6 +259,7 @@ void actBase::processSysState(void) {
             char publishTopic[200];
             char publishPayload[100];
             sprintf(publishTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+            systemState::getOpStateStr(publishPayload);
             mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
         }
         if ((newSysState & OP_INTFAIL)) {

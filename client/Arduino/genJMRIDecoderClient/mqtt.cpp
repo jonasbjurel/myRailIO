@@ -200,11 +200,11 @@ rc_t mqtt::up(void) {
     Log.INFO("mqtt::up: Starting MQTT ping supervision" CR);
     sysState->unSetOpStateByBitmap(OP_DISABLED);
     sysState->unSetOpStateByBitmap(OP_CLIEUNAVAILABLE);
-    mqttPingUpstreamTopic = new char[sizeof(MQTT_PING_UPSTREAM_TOPIC) + sizeof("/") + sizeof(decoderUri) + 1];
+    mqttPingUpstreamTopic = new char[strlen(MQTT_PING_UPSTREAM_TOPIC) + strlen("/") + strlen(decoderUri) + 1];
     sprintf(mqttPingUpstreamTopic, "%s%s%s", MQTT_PING_UPSTREAM_TOPIC, "/", decoderUri);
     char mqttPingDownstreamTopic[300];
     sprintf(mqttPingDownstreamTopic, "%s%s%s", MQTT_PING_DOWNSTREAM_TOPIC, "/", decoderUri);
-    if (subscribeTopic(mqttPingUpstreamTopic, onMqttPing, NULL)) {
+    if (subscribeTopic(mqttPingDownstreamTopic, onMqttPing, NULL)) {
         sysState->setOpStateByBitmap(OP_INTFAIL);
         panic("mqtt::up: Failed to to subscribe to MQTT ping topic - rebooting..." CR);
         return RC_GEN_ERR;
@@ -534,11 +534,11 @@ rc_t mqtt::reSubscribe(void) {
 }
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
+    Log.VERBOSE("mqtt::onMqttMsg, Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, p_payload, p_length);
     bool subFound = false;
     char* payload = new char[p_length + 1];
     memcpy(payload, p_payload, p_length);
     payload[p_length] = '\0';
-    Log.VERBOSE("mqtt::onMqttMsg, Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, payload, p_length);
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, p_topic)) {
             for (int j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {

@@ -118,6 +118,7 @@ rc_t lgLink::init(void) {
             panic("lgLink::init: Could not create light-group object - rebooting...");
         addSysStateChild(lgs[lgAddress]);
         lgs[lgAddress]->init();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     Log.VERBOSE("lgLink::init: lighGrups for link channel %d created" CR, linkNo);
 
@@ -202,6 +203,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         panic("lgLink::onConfig: Could not configure Signal mast aspect description - rebooting..." CR);
     if (((tinyxml2::XMLElement*) p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc")->NextSiblingElement("SignalMastDesc"))
         panic("lgLink::onConfig: Multiple signal mast aspect descriptions provided - rebooting..." CR);
+    vTaskDelay(5 / portTICK_PERIOD_MS);
 
     //CONFIFIGURING LIGHTGROUPS
     Log.INFO("lgLink::onConfig: Configuring Light groups" CR);
@@ -321,10 +323,9 @@ void lgLink::processSysState(void) {
     bool entering = true;
     xSemaphoreTake(lgLinkSysStateLock, portMAX_DELAY);
     while (sysStateQ->size()) {
-        if (!entering) {
+        if (!entering)
             xSemaphoreTake(lgLinkSysStateLock, portMAX_DELAY);
-            entering = false;
-        }
+        entering = false;
         newSysState = *(sysStateQ->front());
         delete sysStateQ->front();
         sysStateQ->pop_front();
@@ -341,6 +342,7 @@ void lgLink::processSysState(void) {
             char publishTopic[200];
             char publishPayload[100];
             sprintf(publishTopic, "%s%s%s%s%s", MQTT_LGLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LGLINK_SYSNAME]);
+            systemState::getOpStateStr(publishPayload);
             mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
         }
         if ((newSysState & OP_INTFAIL)) {

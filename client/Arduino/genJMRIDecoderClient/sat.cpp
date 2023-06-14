@@ -269,7 +269,7 @@ rc_t sat::start(void) {
 }
 
 void sat::up(void) {
-    if (systemState::getOpStateBitmap() && OP_UNDISCOVERED){
+    if (systemState::getOpStateBitmap() & OP_UNDISCOVERED){
         Log.INFO("sat::up: Could not enable sat-%d as it has not been discovered" CR, satAddr);
         return;
     }
@@ -280,7 +280,7 @@ void sat::up(void) {
 }
 
 void sat::down(void) {
-    if (systemState::getOpStateBitmap() && OP_UNDISCOVERED) {
+    if (systemState::getOpStateBitmap() & OP_UNDISCOVERED) {
         Log.INFO("sat::down: Could not disable sat-%d as it has not been discovered" CR, satAddr);
         return;
     }
@@ -307,27 +307,27 @@ void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_
     Log.INFO("sat::onDiscovered: Satelite address %d on satlink %d discovered" CR, satAddr, link);
     if (p_satAddr != satAddr)
         panic("sat::onDiscovered: Inconsistant satelite address provided - rebooting..." CR);
-    satLibHandle = p_sateliteLibHandle;
-    satLibHandle->satRegStateCb(&onSatLibStateChangeHelper, this);
-    satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
+    if (p_exists) {
+        satLibHandle = p_sateliteLibHandle;
+        Serial.printf("Regestering stateCb from obj: %i" CR, satLibHandle);
+        satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
+        satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
+        unSetOpStateByBitmap(OP_UNDISCOVERED);
+    }
+    else{
+        satLibHandle = NULL;
+        setOpStateByBitmap(OP_UNDISCOVERED);
+    }
     for (uint16_t actItter = 0; actItter < MAX_ACT; actItter++)
         acts[actItter]->onDiscovered(satLibHandle, p_exists);
     for (uint16_t sensItter = 0; sensItter < MAX_SENS; sensItter++)
         senses[sensItter]->onDiscovered(satLibHandle, p_exists);
-    unSetOpStateByBitmap(OP_UNDISCOVERED);
-    /*if (pendingStart) {
-        Log.INFO("sat::onDiscovered: Satelite address %d on satlink %d was waiting for discovery before it could be started - now starting it" CR, satAddr, link);
-        rc_t rc = start();
-        if (rc)
-            Log.INFO("sat::onDiscovered: Could not start Satelite, return code %i" CR, rc);
-    }
-    */
 }
 
 void sat::onPmPoll(void) {
-    Serial.printf("Polling Sat-%i - onPmPoll" CR, satAddr);
-    if (systemState::getOpStateBitmap() && (OP_INIT | OP_INTFAIL | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_UNUSED ))
+    if (getOpStateBitmap())
         return;
+    Serial.printf("Polling Sat-%i - onPmPoll" CR, satAddr);
     satPerformanceCounters_t pmData;
     satLibHandle->getSatStats(&pmData, true);
     rxCrcErr += pmData.rxCrcErr;
@@ -350,6 +350,7 @@ void sat::onPmPoll(void) {
 }
 
 void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
+    Serial.printf("Sathandle is %i" CR, p_satHandle);
     ((sat*)p_satHandle)->onSatLibStateChange(p_satOpState);
 }
 
@@ -387,10 +388,9 @@ void sat::processSysState(void) {
     bool entering = true;
     xSemaphoreTake(satSysStateLock, portMAX_DELAY);
     while (sysStateQ->size()) {
-        if (!entering) {
+        if (!entering)
             xSemaphoreTake(satSysStateLock, portMAX_DELAY);
-            entering = false;
-        }
+        entering = false;
         newSysState = *(sysStateQ->front());
         delete sysStateQ->front();
         sysStateQ->pop_front();
@@ -407,6 +407,7 @@ void sat::processSysState(void) {
             char publishTopic[200];
             char publishPayload[100];
             sprintf(publishTopic, "%s%s%s%s%s", MQTT_SAT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+            systemState::getOpStateStr(publishPayload);
             mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
         }
         if ((newSysState & OP_INTFAIL)) {

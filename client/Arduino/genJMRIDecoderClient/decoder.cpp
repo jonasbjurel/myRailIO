@@ -57,6 +57,7 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
         if (lgLinks[lgLinkNo] == NULL)
             panic("decoder::init: Could not create lgLink objects - rebooting..." CR);
         addSysStateChild(lgLinks[lgLinkNo]);
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     Log.INFO("decoder::init: lgLinks created" CR);
     Log.INFO("decoder::init: Creating satLinks" CR);
@@ -66,9 +67,9 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
             panic("decoder::init: Could not create satLink objects - rebooting..." CR);
         Log.VERBOSE("Added Satlink index %d with object %d" CR, satLinkNo, satLinks[satLinkNo]);
         addSysStateChild(satLinks[satLinkNo]);
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     Log.INFO("decoder::init: satLinks created" CR);
-    
     mqtt::create();
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL);
@@ -124,7 +125,6 @@ rc_t decoder::init(void){
         MQTT_DEFAULT_PINGPERIOD_S,                              // Ping period
         MQTT_RETAIN);                                           // Default retain
     unSetOpStateByBitmap(OP_UNDISCOVERED);
-    
     Log.INFO("decoder::init: Initializing lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
         lgLinks[lgLinkNo]->init();
@@ -133,6 +133,7 @@ rc_t decoder::init(void){
     Log.INFO("decoder::init: Initializing satLinks" CR);
     for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
         satLinks[satLinkNo]->init();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     Log.INFO("decoder::init: satLinks initialized" CR);
     Log.INFO("decoder::init: Subscribing to decoder configuration topic and sending configuration request" CR);
@@ -297,6 +298,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     Log.INFO("decoder::onConfig: Decoder Description: %s" CR, xmlconfig[XML_DECODER_DESC]);
     Log.INFO("decoder::onConfig: Decoder Admin state: %s" CR, xmlconfig[XML_DECODER_ADMSTATE]);
     Log.INFO("decoder::onConfig: Successfully parsed and processed the decoder top-configuration:" CR);
+    vTaskDelay(5 / portTICK_PERIOD_MS);
 
     //CONFIFIGURING LIGHTGROUP LINKS
     Log.INFO("decoder::onConfig: Validating and configuring lightgroups links" CR);
@@ -324,7 +326,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     }
     else
         Log.INFO("decoder::onConfig: No lgLinks provided, no lgLink will be configured" CR);
-    
+    vTaskDelay(5 / portTICK_PERIOD_MS);
+
     //CONFIFIGURING SATELITE LINKS
     Log.INFO("decoder::onConfig: Validating and configuring satelite links" CR);
     tinyxml2::XMLElement* satLinkXmlElement;
@@ -381,6 +384,7 @@ rc_t decoder::start(void) {
         if (lgLinks[lgLinkItter] == NULL)
             panic("decoder::start: lgLink - %d does not exist - rebooting..." CR, lgLinkItter);
         lgLinks[lgLinkItter]->start();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
 
 Log.INFO("decoder::start: Starting satelite link Decoders" CR);
@@ -389,6 +393,7 @@ for (int satLinkItter = 0; satLinkItter < MAX_SATLINKS; satLinkItter++) {
     if (satLinks[satLinkItter] == NULL)
         panic("decoder::start: satLink - %d does not exist - rebooting..." CR, satLinkItter);
     satLinks[satLinkItter]->start();
+    vTaskDelay(5 / portTICK_PERIOD_MS);
 }
     unSetOpStateByBitmap(OP_INIT);
     Log.INFO("decoder::start: decoder started" CR);
@@ -418,10 +423,9 @@ void decoder::processSysState(void) {
     bool entering = true;
     xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
     while (sysStateQ->size()) {
-        if (!entering) {
+        if (!entering)
             xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
-            entering = false;
-        }
+        entering = false;
         newSysState = *(sysStateQ->front());
         delete sysStateQ->front();
         sysStateQ->pop_front();
@@ -435,6 +439,7 @@ void decoder::processSysState(void) {
             char publishTopic[200];
             char publishPayload[100];
             sprintf(publishTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_DECODER_SYSNAME]);
+            systemState::getOpStateStr(publishPayload);
             mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL & ~OP_SERVUNAVAILABLE, publishPayload), false);
         }
         if ((sysStateChange & OP_INTFAIL) && (newSysState & OP_INTFAIL)) {
@@ -454,11 +459,13 @@ void decoder::processSysState(void) {
         }
         if ((sysStateChange & OP_INIT) && !(newSysState & OP_DISABLED)) {
             Log.TERSE("decoder::onSystateChange: The decoder have been initialized and is enabled - enabling decoder supervision" CR);
+            Serial.printf("Bringing up MQTT 0" CR);
             mqtt::up();
+            Serial.printf("Brought up MQTT 0" CR);
         }
         else if ((sysStateChange & OP_INIT) && (newSysState & OP_DISABLED)) {
-            Log.TERSE("decoder::onSystateChange: The decoder have been initialized but is enabled - will not enable decoder supervision" CR);
-            mqtt::up();
+            Log.TERSE("decoder::onSystateChange: The decoder have been initialized but is disabled - will not enable decoder supervision" CR);
+            mqtt::down();
         }
         if ((sysStateChange & OP_DISABLED) && (newSysState & OP_DISABLED)) {
             Log.INFO("decoder::onSystateChange: decocoder has been disabled by server, disabling decoder supervision" CR);
@@ -483,6 +490,7 @@ void decoder::processSysState(void) {
         prevSysState = newSysState;
     }
     processingSysState = false;
+    Serial.printf("Stoped processing" CR);
 }
 
 void decoder::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {

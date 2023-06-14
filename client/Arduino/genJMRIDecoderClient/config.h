@@ -76,7 +76,7 @@
 
 // Actuator configuration
 // ======================
-#define MAX_ACT										1	//4 Maximum actuators per satelite
+#define MAX_ACT										2	//4 Maximum actuators per satelite
 
 // General servo configuration
 #define SERVO_LEFT_PWM_VAL							26

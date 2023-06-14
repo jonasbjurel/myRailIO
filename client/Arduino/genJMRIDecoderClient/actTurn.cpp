@@ -88,20 +88,20 @@ void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
         Log.INFO("actTurn::onDiscovered: Subscribing to turn-out orders for turn-out %s,  on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
         if (mqtt::subscribeTopic(subscribeTopic, onActTurnChangeHelper, this))
             panic("actTurn::onDiscovered: Failed to suscribe to turn-out order topic - rebooting..." CR);
-        Log.INFO("actTurn::onDiscovered: actTurn extention class object %s, on actuator port %d, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
+        Log.INFO("actTurn::onDiscovered: actTurn extention class object %s, on actuator port %i, on satelite adress %i, satLink %i discovered" CR, sysName, actPort, satAddr, satLinkNo);
         if (turnType == TURN_TYPE_SOLENOID) {
             if (actPort % 2) {
                 turnSolenoidPushPort = false;
-                Log.INFO("actTurn::start: Startings solenoid turn-out pull port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+                Log.INFO("actTurn::start: Startings solenoid turn-out pull port %i, on port %i, on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
             }
             else {
-                Log.INFO("actTurn::onDiscovered: Startings solenoid turn-out push port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+                Log.INFO("actTurn::onDiscovered: Startings solenoid turn-out push port %s, on port %i, on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
                 turnSolenoidPushPort = true;
             }
             satLibHandle->setSatActMode(SATMODE_PULSE, actPort);
         }
         else if (turnType == TURN_TYPE_SERVO) {
-            Log.INFO("actTurn::onDiscovered: Startings servo turn-out %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            Log.INFO("actTurn::onDiscovered: Startings servo turn-out %s, on port %i, on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
             satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
             pwmIncrements = abs((TURN_CLOSED_PWM_VAL + closedTrim) - (TURN_THROWN_PWM_VAL + thrownTrim)) * throwtime / TURN_PWM_UPDATE_TIME_MS;
             turnServoPwmTimerArgs.arg = this;
@@ -112,7 +112,7 @@ void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
         }
         else {
             satLibHandle = NULL;
-            Log.INFO("actTurn::onDiscovered: UnSubscribing to turn-out orders for turn-out %s,  on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            Log.INFO("actTurn::onDiscovered: UnSubscribing to turn-out orders for turn-out %s,  on satelite adress %i, satLink %i" CR, sysName, actPort, satAddr, satLinkNo);
             mqtt::unSubscribeTopic(subscribeTopic, onActTurnChangeHelper);
         }
     }

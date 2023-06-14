@@ -146,6 +146,7 @@ rc_t satLink::init(void) {
             panic("satLink::init: Could not create satelite object for link channel - rebooting...");
         addSysStateChild(sats[satAddress]);
         sats[satAddress]->init();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     satLinkLibHandle->satLinkRegSatDiscoverCb(&onDiscoveredSateliteHelper, this);
     satLinkLibHandle->satLinkRegStateCb(&onSatLinkLibStateChangeHelper, this);
@@ -206,6 +207,7 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
     Log.INFO("satLink::onConfig: Link: %s" CR, xmlconfig[XML_SATLINK_LINK]);
     Log.INFO("satLink::onConfig: satLink admin state: %s" CR, xmlconfig[XML_SATLINK_ADMSTATE]);
 
+    vTaskDelay(5 / portTICK_PERIOD_MS);
     //CONFIFIGURING SATELITES
     Log.INFO("satLink::onConfig: Configuring Satelites" CR);
     tinyxml2::XMLElement* satXmlElement;
@@ -229,6 +231,7 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
             Log.INFO("satLink::onConfig: Configuring satLink-%i:sat-%i" CR, linkNo, atoi(satXmlConfig[XML_SAT_ADDR]));
             sats[atoi(satXmlConfig[XML_SAT_ADDR])]->onConfig(satXmlElement);
             satXmlElement = ((tinyxml2::XMLElement*)satXmlElement)->NextSiblingElement("Satelite");
+            vTaskDelay(5 / portTICK_PERIOD_MS);
         }
     }
     else
@@ -256,6 +259,7 @@ rc_t satLink::start(void) {
         panic("satLink::start: Failed to suscribe to opState topic - rebooting..." CR);
     for (uint16_t satItter = 0; satItter < MAX_SATELITES; satItter++) {
         sats[satItter]->start();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     unSetOpStateByBitmap(OP_INIT);
     Log.INFO("lgLink::start: lightgroups link %d and all its lightgroupDecoders have started" CR, linkNo);
@@ -270,6 +274,7 @@ void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t 
         panic("satLink::onDiscoveredSateliteHelper: More than maximum (%i) allowed satelites discovered (%i) on the link - Rebooting..." CR, MAX_SATELITES, p_satAddr + 1);
         return;
     }
+    Serial.printf("Sending discovered message to sat No: %i, obj %i" CR, p_satAddr, p_satLinkHandle);
     if(p_satAddr < MAX_SATELITES)
         ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
 }
@@ -311,7 +316,7 @@ void satLink::down(void) {
     pmPoll = false;
     satErr_t rc = satLinkLibHandle->disableSatLink();
     if (rc)
-        panic("satLink::down: could not disable link scanning, return code: %llx  - rebooting..." CR, rc);
+        Log.ERROR("satLink::down: could not disable link scanning, return code: %llx" CR, rc);
 }
 
 void satLink::pmPollHelper(void* p_metaData) {
@@ -408,10 +413,9 @@ void satLink::processSysState(void) {
     bool entering = true;
     xSemaphoreTake(satLinkSysStateLock, portMAX_DELAY);
     while (sysStateQ->size()){
-        if (!entering) {
+        if (!entering)
             xSemaphoreTake(satLinkSysStateLock, portMAX_DELAY);
-            entering = false;
-        }
+        entering = false;
         newSysState = *(sysStateQ->front());
         delete sysStateQ->front();
         sysStateQ->pop_front();
@@ -426,6 +430,7 @@ void satLink::processSysState(void) {
             char publishTopic[200];
             char publishPayload[100];
             sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+            systemState::getOpStateStr(publishPayload);
             mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
         }
         if ((newSysState & OP_INTFAIL)) {
