@@ -417,7 +417,7 @@ class satLink(systemState, schema):
         if str(statsXmlTree.getroot().tag) != "statReport":
             trace.notify(DEBUG_ERROR, "SatLink statistics report missformated")
             return
-        if not (self.getOpStateDetail() & OP_DISABLED):
+        if not (self.getOpStateDetail() & OP_DISABLED[STATE]):
             statsXmlVal = parse_xml(statsXmlTree.getroot(),
                                     {"rxCrcErr": MANINT,
                                     "remCrcErr": MANINT,

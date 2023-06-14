@@ -35,6 +35,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 uint16_t systemState::sysStateIndex = 0;
+const char* systemState::OP_STR[14] = OP_ARR;
 systemState::systemState(systemState* p_parent) {
     parent = p_parent;
     if (parent) {
@@ -42,12 +43,12 @@ systemState::systemState(systemState* p_parent) {
         objName = new char[strlen(parent->getSysStateObjName()) + 25];
         sprintf(objName, "%s:sysStateObjIndex-%d", parent->getSysStateObjName(), sysStateIndex);
     }
-    else{
+    else {
         Log.TERSE("systemState::systemState: Creating systemState top object sysStateObjIndex-%d" CR, sysStateIndex);
         objName = new char[25];
         sprintf(objName, "sysStateObjIndex-%d", sysStateIndex);
     }
-    if (parent && parent->getOpState())
+    if (parent && parent->getOpStateBitmap())
         opState = OP_CBL;
     else
         opState = OP_WORKING;
@@ -57,7 +58,7 @@ systemState::systemState(systemState* p_parent) {
 }
 
 systemState::~systemState(void) {
-    if(parent)
+    if (parent)
         Log.INFO("systemState::~systemState: Deleting systemState object %s belonging to parent %s" CR, getSysStateObjName(), parent->getSysStateObjName());
     else
         Log.INFO("systemState::~systemState: Deleting top parent systemState object %s" CR, getSysStateObjName());
@@ -116,101 +117,206 @@ void systemState::delSysStateChild(systemState* p_child) {
     int i;
     i = childList->indexOf(p_child);
     if (i < 0) {
-        Log.WARN("systemState::delChild: Child %s is not a member of parent %s - doing nothing" CR, p_child->getSysStateObjName(), getSysStateObjName());
+        Log.WARN("systemState::delSysStateChild: Child %s is not a member of parent %s - doing nothing" CR, p_child->getSysStateObjName(), getSysStateObjName());
     }
     else {
-        Log.TERSE("systemState::delChild: deleting child object %s to parent object %s" CR, p_child->getSysStateObjName(), getSysStateObjName());
+        Log.TERSE("systemState::delSysStateChild: deleting child object %s to parent object %s" CR, p_child->getSysStateObjName(), getSysStateObjName());
         childList->clear(i);
     }
 }
 
-void systemState::setOpState(const sysState_t p_opStateMap) {
-    uint16_t prevOpState = opState;
-    opState = opState | p_opStateMap;
-    if (opState != prevOpState) {
-        char currentOpStr[100];
-        getOpStateStr(currentOpStr, opState);
-        char previousOpStr[100];
-        getOpStateStr(previousOpStr, prevOpState);
-        Log.INFO("systemState::setOpState: opState has changed for object %s, previous opState: %s, current opState: %s" CR, getSysStateObjName(), previousOpStr, currentOpStr);
-        updateObjOpStates();
+char* systemState::getOpStateStrByBitmap(sysState_t p_opStateBitmap, char* p_opStateStrBuff) {
+    if (p_opStateBitmap == OP_WORKING) {
+        strcpy(p_opStateStrBuff, OP_STR[0]);
+        return p_opStateStrBuff;
     }
+    else {
+        strcpy(p_opStateStrBuff, "");
+        sysState_t sysStateItter = p_opStateBitmap & OP_ALL;
+        bool found = false;
+        for (uint8_t i = 0; i < NO_OPSTATES - 1; i++) {
+            if (sysStateItter & 0b0000000000001) {
+                found = true;
+                strcat(p_opStateStrBuff, OP_STR[i + 1]);
+                sysStateItter >> 1;
+                if (sysStateItter)
+                    strcat(p_opStateStrBuff, "|");
+                else
+                    return p_opStateStrBuff;
+            }
+            sysStateItter = sysStateItter >> 1;
+        }
+        if (!found) {
+            Log.ERROR("systemState::getOpStateStrByBitmap: opStateBitmap 0x%X is invalid\n", p_opStateBitmap);
+            return NULL;
+        }
+
+    }
+    p_opStateStrBuff[strlen(p_opStateStrBuff) - 1] = '\0';
+    return p_opStateStrBuff;
 }
 
-void systemState::unSetOpState(const sysState_t p_opStateMap) {
-    uint16_t prevOpState = opState;
-    opState = opState & ~p_opStateMap;
-    if (opState != prevOpState) {
-        char currentOpStr[100];
-        getOpStateStr(currentOpStr, opState);
-        char previousOpStr[100];
-        getOpStateStr(previousOpStr, prevOpState);
-        Log.INFO("systemState::unSetOpState: opState has changed for object %s, previous opState: %s, current opState: %s" CR, getSysStateObjName(), previousOpStr, currentOpStr);
-        updateObjOpStates();
+sysState_t systemState::getOpStateBitmapByStr(const char* p_opStateStrBuff) {
+    char opStr[20];
+    char* opStateStrBuff;
+    opStateStrBuff = new char[strlen(p_opStateStrBuff) + 1];
+    Serial.printf("NEW: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
+    Serial.printf("A\n");
+    heap_caps_check_integrity_all(true);
+    strcpy(opStateStrBuff, p_opStateStrBuff);
+    Serial.printf("CPY: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
+    Serial.printf("Strlen Source %i, Copy %i\n", strlen(p_opStateStrBuff), strlen(opStateStrBuff));
+    Serial.printf("B\n");
+    heap_caps_check_integrity_all(true);
+    sysState_t opStateBitmap = 0;
+    Serial.printf("C\n");
+    heap_caps_check_integrity_all(true);
+    trimSpace(opStateStrBuff);
+    Serial.printf("Strlen trimed %i\n", strlen(opStateStrBuff));
+    Serial.printf("D\n");
+    heap_caps_check_integrity_all(true);
+    uint16_t j = 0;
+    Serial.printf("E\n");
+    heap_caps_check_integrity_all(true);
+    Serial.printf("BEFORE: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
+    Serial.printf("%s, %s\n", opStateStrBuff, OP_STR[0]);
+
+    if (!strcmp(opStateStrBuff, OP_STR[0])){
+        Serial.printf("AFTER: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
+        Serial.printf("%s, %s\n", opStateStrBuff, OP_STR[0]);
+        Serial.printf("F\n");
+        heap_caps_check_integrity_all(true);
+        delete opStateStrBuff;
+        Serial.printf("G\n");
+        heap_caps_check_integrity_all(true);
+        return OP_WORKING;
     }
+    else {
+        Serial.printf("H\n");
+        heap_caps_check_integrity_all(true);
+        for (uint16_t i = 0; i < strlen(opStateStrBuff) + 1; i++) {
+            if ((opStateStrBuff[i] == '|') || (opStateStrBuff[i] == '\0')) {
+                memcpy(opStr, opStateStrBuff + j, i - j);
+                opStr[i - j] = '\0';
+                Serial.printf("I\n");
+                heap_caps_check_integrity_all(true);
+                trimSpace(opStr);
+                Serial.printf("J\n");
+                heap_caps_check_integrity_all(true);
+                if (opStateStrBuff[i] == '|')
+                    j = i + 1;
+                else
+                    j = i;
+                Serial.printf("K\n");
+                heap_caps_check_integrity_all(true);
+                sysState_t opStateBitmapItter = 0b1;
+                bool found = false;
+                for (uint8_t k = 0; k < NO_OPSTATES - 1; k++) {
+                    if (!strcmp(opStr, OP_STR[k + 1])) {
+                        opStateBitmap = opStateBitmap | opStateBitmapItter;
+                        found = true;
+                        break;
+                    }
+                    opStateBitmapItter = opStateBitmapItter << 1;
+                }
+                if (!found) {
+                    Log.ERROR("systemState::getOpStateBitmapByStr: opStateStr missformated, %s opState is not a valid one\n", opStr);
+                    delete opStateStrBuff;
+                    return -1;
+                }
+            }
+        }
+    }
+    delete opStateStrBuff;
+    return opStateBitmap;
 }
 
-uint16_t systemState::getOpState(void) {
+rc_t systemState::setOpStateByBitmap(sysState_t p_opStateBitmap) {
+    uint16_t prevOpState = opState;
+    if (p_opStateBitmap > OP_ALL) {
+        Log.ERROR("systemState::setOpStateByBitmap: OpStateBitmap: 0x%X out of boundaries\n", p_opStateBitmap);
+        return RC_OPSTATE_ERR;
+    }
+    opState = opState | p_opStateBitmap;
+    if (opState != prevOpState) {
+        char currentOpStr[100];
+        getOpStateStrByBitmap(opState, currentOpStr);
+        char previousOpStr[100];
+        getOpStateStrByBitmap(prevOpState, previousOpStr);
+        Log.INFO("systemState::setOpStateByBitmap: opState has changed for object %s, previous opState: %s, current opState: %s" CR, getSysStateObjName(), previousOpStr, currentOpStr);
+        updateObjOpStates();
+    }
+    return RC_OK;
+}
+
+rc_t systemState::setOpStateByStr(const char* p_opStateStrBuff) {
+    return setOpStateByBitmap(getOpStateBitmapByStr(p_opStateStrBuff));
+}
+
+rc_t systemState::unSetOpStateByBitmap(sysState_t p_opStateBitmap) {
+    uint16_t prevOpState = opState;
+    if (p_opStateBitmap > OP_ALL) {
+        Log.ERROR("systemState::unSetOpStateByBitmap: OpStateBitmap: 0x%X out of boundaries\n", p_opStateBitmap);
+        return RC_OPSTATE_ERR;
+    }
+     opState = opState & ~p_opStateBitmap;
+    if (opState != prevOpState) {
+        char currentOpStr[100];
+        getOpStateStrByBitmap(opState, currentOpStr);
+        char previousOpStr[100];
+        getOpStateStrByBitmap(prevOpState, previousOpStr);
+        Log.INFO("systemState::unSetOpStateByBitmap: opState has changed for object %s, previous opState: %s, current opState: %s" CR, getSysStateObjName(), previousOpStr, currentOpStr);
+        updateObjOpStates();
+    }
+    return RC_OK;
+}
+
+rc_t systemState::unSetOpStateByStr(const char* p_opStateStrBuff) {
+    return unSetOpStateByBitmap(getOpStateBitmapByStr(p_opStateStrBuff));
+}
+
+rc_t systemState::setAbsoluteOpStateByBitmap(sysState_t p_opStateBitmap) {
+    if (p_opStateBitmap > OP_ALL) {
+        Log.ERROR("systemState::setAbsoluteOpStateByBitmap: OpStateBitmap: 0x%X out of boundaries\n", p_opStateBitmap);
+        return RC_OPSTATE_ERR;
+    }
+    rc_t rc;
+    if ((rc = setOpStateByBitmap(p_opStateBitmap)) || (rc = unSetOpStateByBitmap(~p_opStateBitmap)))
+        return rc;
+    return RC_OK;
+}
+
+rc_t systemState::setAbsoluteOpStateByStr(const char* p_opStateStrBuff) {
+    return setAbsoluteOpStateByBitmap(getOpStateBitmapByStr(p_opStateStrBuff));
+}
+
+sysState_t systemState::getOpStateBitmap(void) {
     return opState;
 }
 
-char* systemState::getOpStateStr(char* p_opStateStr, sysState_t p_opBitmap) {
-    strcpy(p_opStateStr, "");
-    if (p_opBitmap & OP_INIT)
-        strcat(p_opStateStr, "INIT|");
-    if (p_opBitmap & OP_DISCONNECTED)
-        strcat(p_opStateStr, "DISCONNECTED|");
-    if (p_opBitmap & OP_NOIP)
-        strcat(p_opStateStr, "NOIP|");
-    if (p_opBitmap & OP_UNDISCOVERED)
-        strcat(p_opStateStr, "UNDISCOVERED|");
-    if (p_opBitmap & OP_UNCONFIGURED)
-        strcat(p_opStateStr, "UNCONFIGURED|");
-    if (p_opBitmap & OP_DISABLED)
-        strcat(p_opStateStr, "DISABLED|");
-    if (p_opBitmap & OP_UNAVAILABLE)
-        strcat(p_opStateStr, "UNAVAILABLE|");
-    if (p_opBitmap & OP_ERRSEC)
-        strcat(p_opStateStr, "ERRSEC|");
-    if (p_opBitmap & OP_GENERR)
-        strcat(p_opStateStr, "GENERR|");
-    if (p_opBitmap & OP_INTFAIL)
-        strcat(p_opStateStr, "INTFAIL|");
-    if (p_opBitmap & OP_CBL)
-        strcat(p_opStateStr, "CBL|");
-    if (p_opBitmap & OP_UNUSED)
-        strcat(p_opStateStr, "UNUSED|");
-    if (strlen(p_opStateStr))
-        p_opStateStr[strlen(p_opStateStr) - 1] = '\0';
-    else
-        strcpy(p_opStateStr, "WORKING");
-    if (!strlen(p_opStateStr))
-        strcpy(p_opStateStr, "WORKING");
-    return p_opStateStr;
+char* systemState::getOpStateStr(char* p_opStateStrBuff) {
+    return getOpStateStrByBitmap(opState, p_opStateStrBuff);
 }
 
-char* systemState::getOpStateStr(char* p_opStateStr) {
-    return getOpStateStr(p_opStateStr, opState);
-}
 
 void systemState::setSysStateObjName(const char* p_objName) {
     if (parent){
         if (objName) {
-            Log.TERSE("systemState::setObjName: Setting child object name: %s:%s, previous object name: %s" CR, parent->getSysStateObjName(), p_objName, getSysStateObjName());
+            Log.TERSE("systemState::setSysStateObjName: Setting child object name: %s:%s, previous object name: %s" CR, parent->getSysStateObjName(), p_objName, getSysStateObjName());
             delete objName;
         }
         else
-            Log.TERSE("systemState::setObjName: Setting child object name: %s:%s, previous object name: -" CR, parent->getSysStateObjName(), p_objName);
+            Log.TERSE("systemState::setSysStateObjName: Setting child object name: %s:%s, previous object name: -" CR, parent->getSysStateObjName(), p_objName);
         objName = new char[strlen(parent->getSysStateObjName()) + strlen(p_objName) + 1];
         sprintf(objName, "%s:%s", parent->getSysStateObjName(), p_objName);
     }
     else {
         if (objName){
-            Log.TERSE("systemState::setObjName: Setting top object name: %s, previous object name: %s" CR, p_objName, getSysStateObjName());
+            Log.TERSE("systemState::setSysStateObjName: Setting top object name: %s, previous object name: %s" CR, p_objName, getSysStateObjName());
             delete objName;
         }
         else
-            Log.TERSE("systemState::setObjName: Setting top object name: %s, previous object name: -" CR, p_objName);
+            Log.TERSE("systemState::setSysStateObjName: Setting top object name: %s, previous object name: -" CR, p_objName);
         objName = new char[strlen(p_objName)];
         sprintf(objName, "%s", p_objName);
     }
@@ -262,11 +368,11 @@ void systemState::updateObjOpStates(void) {
     for (uint16_t i = 0; i < childList->size(); i++) {
         if (opState){
             Log.VERBOSE("systemState::updateObjOpStates: %s setting child %s to CBL" CR, getSysStateObjName(objName), childList->get(i)->getSysStateObjName(childObjName1));
-            childList->get(i)->setOpState(OP_CBL);
+            childList->get(i)->setOpStateByBitmap(OP_CBL);
         }
         else {
             Log.VERBOSE("systemState::updateObjOpStates: %s unsetting child %s from CBL" CR, getSysStateObjName(objName), childList->get(i)->getSysStateObjName(childObjName1));
-            childList->get(i)->unSetOpState(OP_CBL);
+            childList->get(i)->unSetOpStateByBitmap(OP_CBL);
         }
     }
 }

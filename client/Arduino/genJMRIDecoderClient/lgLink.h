@@ -99,6 +99,7 @@ public:
     void down(void);
     static void onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysState);
     void onSysStateChange(sysState_t p_sysState);
+    void processSysState(void);
     static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
     void onOpStateChange(const char* p_topic, const char* p_payload);
     static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
@@ -152,8 +153,10 @@ private:
     uint8_t linkNo;
     bool linkScan;
     sysState_t prevSysState;
-    bool lgLinkDownDeclared;
     bool lgLinkScanDisabled;
+    bool processingSysState;
+    QList<sysState_t*>* sysStateQ;
+    SemaphoreHandle_t lgLinkSysStateLock;
     bool failsafeSet;
     char* xmlconfig[5];
     SemaphoreHandle_t lgLinkLock;
@@ -176,14 +179,9 @@ private:
     signalMastAspects* signalMastAspectsObject;
     lgBase* lgs[MAX_LGS];
     bool debug;
-    static uint16_t lgLinkIndex;
 };
 
 /*==============================================================================================================================================*/
 /* END Class lgLink                                                                                                                             */
-/*==============================================================================================================================================*/
-
-/*==============================================================================================================================================*/
-/* END Class lgLink                                                                                                                           */
 /*==============================================================================================================================================*/
 #endif /*LGLINK_H*/

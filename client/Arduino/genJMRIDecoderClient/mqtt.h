@@ -116,7 +116,7 @@ public:
     static float getKeepAlive(void);
     static rc_t setPingPeriod(float p_pingPeriod);
     static float getPingPeriod(void);
-    static uint16_t getOpState(void);
+    static uint16_t getOpStateBitmap(void);
     static rc_t getOpStateStr(char* p_opState);
     static uint32_t getOverRuns(void);
     static void clearOverRuns(void);

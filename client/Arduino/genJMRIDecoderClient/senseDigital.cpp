@@ -35,10 +35,10 @@
 /*==============================================================================================================================================*/
 senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     senseBaseHandle = p_senseBaseHandle;
-    sensPort = senseBaseHandle->sensPort;
-    senseBaseHandle->satHandle->getAddr(&satAddr);
-    senseBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
-    senseBaseHandle->getSystemName(sensSysName);
+    sensPort = senseBaseHandle->getPort();
+    satAddr = senseBaseHandle->satHandle->getAddr();
+    satLinkNo = senseBaseHandle->satHandle->linkHandle->getLink();
+    sensSysName = senseBaseHandle->getSystemName(true);
     satLibHandle = NULL;
     sysState = OP_WORKING;
     failSafe = false;
@@ -66,15 +66,20 @@ void senseDigital::onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElemen
 }
 
 rc_t senseDigital::start(void) {
-    Log.INFO("senseDigital::start: Starting senseDigital sensor extention object for sensor port% d, on satelite adress% d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseDigital::start: Starting senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
-void senseDigital::onDiscovered(satelite* p_sateliteLibHandle) {
-    satLibHandle = p_sateliteLibHandle;
-    Log.INFO("senseDigital::onDiscovered: sensor extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
-    Log.INFO("senseDigital::onDiscovered: Configuring and startings senseDigital extention class object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
-    satLibHandle->setSenseFilter(DEFAULT_SENS_FILTER_TIME, sensPort);
+void senseDigital::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+    if (p_exists) {
+        Log.INFO("senseDigital::onDiscovered: sensor discovered, extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+        satLibHandle = p_sateliteLibHandle;
+        satLibHandle->setSenseFilter(DEFAULT_SENS_FILTER_TIME, sensPort);
+    }
+    else {
+        Log.INFO("senseDigital::onDiscovered: sensor removed, extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+        satLibHandle = NULL;
+    }
 }
 
 void senseDigital::onSysStateChange(uint16_t p_sysState) {
@@ -88,8 +93,9 @@ void senseDigital::onSysStateChange(uint16_t p_sysState) {
 void senseDigital::onSensChange(bool p_filteredSensorVal) {
     filteredSenseVal = p_filteredSensorVal;
     if (!failSafe) {
-        const char* publishTopic[2] = { MQTT_SENS_TOPIC, sensSysName };
-        if (mqtt::sendMsg(concatStr(publishTopic, 2), ("%s", filteredSenseVal ? MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD), false))
+        char publishTopic[300];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_TOPIC, "/", mqtt::getDecoderUri(), "/", sensSysName);
+        if (mqtt::sendMsg(publishTopic, ("%s", filteredSenseVal ? MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD), false))
             Log.ERROR("senseDigital::onSensChange: Failed to send sensor value" CR);
     }
 }
@@ -97,8 +103,9 @@ void senseDigital::onSensChange(bool p_filteredSensorVal) {
 void senseDigital::failsafe(bool p_failSafe) {
     if (p_failSafe) {
         failSafe = p_failSafe;
-        const char* publishTopic[2] = { MQTT_SENS_TOPIC, sensSysName };
-        if (mqtt::sendMsg(concatStr(publishTopic, 2), MQTT_SENS_DIGITAL_FAILSAFE_PAYLOAD, false))
+        char publishTopic[300];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_TOPIC, "/", mqtt::getDecoderUri(), "/", sensSysName);
+        if (mqtt::sendMsg(publishTopic, MQTT_SENS_DIGITAL_FAILSAFE_PAYLOAD, false))
             Log.ERROR("senseDigital::onSensChange: Failed to send sensor value" CR);
     }
     else {

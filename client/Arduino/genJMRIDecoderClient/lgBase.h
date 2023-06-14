@@ -101,9 +101,9 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgBaseHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
+	void processSysState(void);
 	static void wdtKickedHelper(void* lgBaseHandle);
 	void wdtKicked(void);
-	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
 	rc_t getSystemName(char* p_systemName, bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);
@@ -123,6 +123,7 @@ public:
 	void setStripOffset(const uint16_t p_stripOffset);
 	uint16_t getStripOffset(void);
 	/* CLI decoration methods */
+	/*
 	static void onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -133,24 +134,27 @@ public:
 	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	*/
 
 	//Public data structures
 	lgLink* lgLinkHandle;
-	uint8_t lgAddress;
-	uint8_t lgLinkNo;
-	char* xmlconfig[9];
-	bool debug;
-	uint16_t stripOffset;
 
 private:
 	//Private methods
 	//--
 
 	//Private data structures
+	uint8_t lgAddress;
+	uint8_t lgLinkNo;
+	char* xmlconfig[9];
+	bool debug;
+	uint16_t stripOffset;
 	void* extentionLgClassObj;
+	bool processingSysState;
+	QList<sysState_t*>* sysStateQ;
+	SemaphoreHandle_t lgSysStateLock;
 	SemaphoreHandle_t lgBaseLock;
 	sysState_t prevSysState;
-	bool lgDownDeclared;
 };
 
 #endif /*LGBASE_H*/

@@ -58,7 +58,7 @@
 
 // Satelite link configuration
 // ===========================
-#define MAX_SATELITES								1 //8 Max satelites for each Satelite link
+#define MAX_SATELITES								2 //8 Max satelites for each Satelite link
 #define SATLINK_LINKERR_HIGHTRES					10 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 #define SATLINK_LINKERR_LOWTRES						0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 
@@ -71,12 +71,12 @@
 // Sensor configuration
 // ====================
 #define DEFAULT_SENS_FILTER_TIME					5	// Digital sensor filter (ms)
-#define MAX_SENS									8	// Maximum sensors // Maximum satelites per satelite link
+#define MAX_SENS									0	//8 Maximum sensors // Maximum satelites per satelite link
 #define SATLINK_UPDATE_MS							5	// Satelite scan period (ms)
 
 // Actuator configuration
 // ======================
-#define MAX_ACT										4	// Maximum actuators per satelite
+#define MAX_ACT										1	//4 Maximum actuators per satelite
 
 // General servo configuration
 #define SERVO_LEFT_PWM_VAL							26

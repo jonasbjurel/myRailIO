@@ -315,7 +315,6 @@ class decoder(systemState, schema):
                 trace.notify(DEBUG_INFO, "Light group link: " + self.lgLinks.candidateValue[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
                 self.reEvalOpState()
                 return rc.OK
-
         elif resourceType == SATELITE_LINK:
             self.satLinks.append(satLink(self.win, self.item, self.rpcClient, self.mqttClient, name=name, demo=demo))
             self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
@@ -530,4 +529,3 @@ class decoder(systemState, schema):
         self.unSetOpStateDetail(OP_SERVUNAVAILABLE)
         if not self.restart:
             self.mqttClient.publish(MQTT_JMRI_PRE_TOPIC + MQTT_SUPERVISION_DOWNSTREAM + self.decoderMqttURI.value, PING)
-

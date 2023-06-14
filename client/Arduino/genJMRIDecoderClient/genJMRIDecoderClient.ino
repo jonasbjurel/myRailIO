@@ -66,7 +66,7 @@ void setupTask(void* p_dummy) {
     Log.INFO("genJMRIDecoderClient::setupTask: WIFI Networking service started" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Connecting to WIFI..." CR);
     char nwOpStateStr[100];
-    while (networking::getOpState() != OP_WORKING) {
+    while (networking::getOpStateBitmap() != OP_WORKING) {
         Log.INFO("Waiting for WIFI to connect, current Network OP state: %s" CR, networking::getOpStateStr(nwOpStateStr));
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

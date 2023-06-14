@@ -47,6 +47,7 @@ char* createNcpystr(const char* src) {
     return dst;
 }
 
+/* Flawed
 char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings) {
     int resLen = 0;
     char* dst;
@@ -62,6 +63,7 @@ char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings) {
     dst[resLen] = '\0';
     return dst;
 }
+*/
 
 bool isUri(const char* p_uri) {
     bool prevDot = false;
@@ -101,6 +103,25 @@ bool isFloatNumberStr(const char* p_numberStr) {
     if (!isIntNumberStr(floatTok))
         return false;
     return true;
+}
+
+char* trimSpace(char* p_s) {
+    Serial.printf("Before: 0x%X, 0x%X, 0x%X, 0x%X \n", *p_s, *(p_s + 1), *(p_s + 2), *(p_s + 3));
+    char* s = p_s;
+    char* d = p_s;
+    uint8_t itter = 0;
+    do {
+        Serial.printf("Itteration %i\n", itter++);
+        Serial.printf("Itter result: 0x%X, 0x%X, 0x%X, 0x%X \n", *p_s, *(p_s + 1), *(p_s + 2), *(p_s + 3));
+        while (*d == ' ') {
+            Serial.printf("Forwarding");
+            ++d;
+        } 
+        Serial.printf("Setting result to 0x%X\n", *d);
+    } while (*s++ = *d++);
+    Serial.printf("After: 0x%X, 0x%X, 0x%X, 0x%X \n", *p_s, *(p_s + 1), *(p_s + 2), *(p_s + 3));
+    Serial.printf("AfterStr: %s\n", p_s);
+    return p_s;
 }
 
 /*==============================================================================================================================================*/

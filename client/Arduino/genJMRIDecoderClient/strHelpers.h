@@ -48,10 +48,11 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 char* createNcpystr(const char* src);
-char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings);
+//char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings);
 bool isUri(const char* p_uri);
 bool isIntNumberStr(const char* p_numberStr);
 bool isFloatNumberStr(const char* p_numberStr);
+char* trimSpace(char* p_s);
 
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */

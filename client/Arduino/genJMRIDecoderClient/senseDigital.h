@@ -62,7 +62,7 @@ public:
     rc_t init(void);
     void onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElement);
     rc_t start(void); //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
-    void onDiscovered(satelite* p_sateliteLibHandle);
+    void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
     void onSysStateChange(uint16_t p_sysState);
     void onSensChange(bool p_senseVal);
     void failsafe(bool p_failSafe);
@@ -88,7 +88,7 @@ private:
     uint8_t satLinkNo;
     satelite* satLibHandle;
     bool failSafe;
-    char* sensSysName;
+    const char* sensSysName;
     SemaphoreHandle_t senseDigitalLock;
     uint16_t sysState;
     bool filteredSenseVal;

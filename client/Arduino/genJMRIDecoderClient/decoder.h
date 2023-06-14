@@ -196,8 +196,9 @@ public:
 	static void onConfigHelper(const char* p_topic, const char* p_payload, const void* p_decoderObj);
 	void onConfig(const char* p_topic, const char* p_payload);
 	rc_t start(void);
-	static void onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState);
-	void onSysStateChange(uint16_t p_sysState);
+	static void onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysState);
+	void onSysStateChange(sysState_t p_sysState);
+	void processSysState(void);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
@@ -250,6 +251,9 @@ private:
 	satLink* satLinks[MAX_SATLINKS];
 	lgLink* lgLinks[MAX_LGLINKS];
 	SemaphoreHandle_t decoderLock;
+	bool processingSysState;
+	QList<sysState_t*>* sysStateQ;
+	SemaphoreHandle_t decoderSysStateLock;
 	tinyxml2::XMLDocument* xmlConfigDoc;
 	tinyxml2::XMLElement* satLinkXmlElement;
 	tinyxml2::XMLElement* lgLinkXmlElement;

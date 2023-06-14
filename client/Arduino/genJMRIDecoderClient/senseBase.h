@@ -82,7 +82,8 @@ class senseDigital;
 		}
 
 
-class senseBase : public systemState, globalCli {
+//class senseBase : public systemState, globalCli {
+class senseBase : public systemState {
 public:
 	//Public methods
 	senseBase(uint8_t p_sensPort, sat* p_satHandle);
@@ -90,7 +91,7 @@ public:
 	rc_t init(void);
 	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement);
 	rc_t start(void);
-	void onDiscovered(const satelite* p_sateliteLibHandle);
+	void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
 	static void onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
 	void processSysState(void);
@@ -103,46 +104,48 @@ public:
 	void wdtKicked(void);
 	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(char* p_sysName, bool p_force = false);
-	rc_t getSystemName(const char* p_sysName);
+	const char* getSystemName(bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);
-	rc_t getUsrName(const char* p_usrName);
+	const char* getUsrName(bool p_force = false);
 	rc_t setDesc(const char* p_description, bool p_force = false);
-	rc_t getDesc(char* p_description);
+	const char* getDesc(bool p_force = false);
 	rc_t setPort(uint8_t p_port);
-	rc_t getPort(uint8_t* p_port);
+	uint8_t getPort(void);
 	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
 	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
 	rc_t getSensing(const char* p_sensing);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	/* CLI decoration methods */
+	/*
 	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
+	*/
 
 	//Public data structures
 	sat* satHandle;
-	uint8_t sensPort;
-	uint8_t satAddr;
-	uint8_t satLinkNo;
-	sysState_t prevSysState;
-	char* xmlconfig[6];
-	bool debug;
+
 
 private:
 	//Private methods
 	//--
 
 	//Private data structures
-	const satelite* satLibHandle;
+	uint8_t sensPort;
+	uint8_t satAddr;
+	uint8_t satLinkNo;
+	sysState_t prevSysState;
+	char* xmlconfig[6];
+	bool debug;
+	satelite* satLibHandle;
 	void* extentionSensClassObj;
 	bool processingSysState;
 	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t sensLock;
 	SemaphoreHandle_t sensBaseSysStateLock;
-	static uint16_t sensIndex;
 };
 
 #endif /*SENSBASE_H*/

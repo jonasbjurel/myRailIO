@@ -163,28 +163,12 @@ class topDecoder(systemState, schema):
         if str(controllersXmlTree.getroot().tag) != "genJMRI":
             trace.notify(DEBUG_ERROR, "XML configuration missformated")
             return rc.PARSE_ERR
-        discoveryConfig = ET.Element("DiscoveryResponse")
-        for decoder in controllersXmlTree.getroot():
-            if decoder.tag == "Decoder":
-                try:
-                    discoveryDecoder =  ET.SubElement(discoveryConfig, "Decoder")
-                    decoderConfig = parse_xml(decoder, {"MAC":MANSTR,  "URI":MANSTR})
-                    discoverymac = ET.SubElement(discoveryDecoder, "MAC")
-                    discoverymac.text = decoderConfig.get("MAC")
-                    discoveryuri = ET.SubElement(discoveryDecoder, "URI")
-                    discoveryuri.text = decoderConfig.get("URI")
-                except:
-                    trace.notify(DEBUG_ERROR, "XML configuration missformated, decoder section(s) is missing mandatory tags/values: " + str(traceback.print_exc()))
-                    return rc.PARSE_ERR
-        self.discoveryConfigXML = ET.tostring(discoveryConfig, method="xml").decode()
-        trace.notify(DEBUG_TERSE, "Discovery response xml configuration created: \n" +
-                        minidom.parseString(self.discoveryConfigXML).toprettyxml())
         for versionHistory in controllersXmlTree.getroot():
             if versionHistory.tag == "VersionHistory":
                 for version in versionHistory:
                     if version.tag == "Version":
                         versionHistoryXmlItem = parse_xml(version,
-                                            {"VersionName": MANSTR,
+                                               {"VersionName": MANSTR,
                                                 "Author": MANSTR,
                                                 "Date": MANSTR,
                                                 "Time": MANSTR,
@@ -192,7 +176,7 @@ class topDecoder(systemState, schema):
                                                 "gitBranch": OPTSTR,
                                                 "gitTag" : OPTSTR,
                                                 "gitUrl" : OPTSTR
-                                            }
+                                               }
                                         )
                         self.versionHistory.append({"VersionName":versionHistoryXmlItem.get("VersionName"),
                                                     "Author":versionHistoryXmlItem.get("Author"),
@@ -205,7 +189,7 @@ class topDecoder(systemState, schema):
                 break
         try:
             topDecoderXmlConfig = parse_xml(controllersXmlTree.getroot(),
-                                                {"Author": OPTSTR,
+                                                   {"Author": OPTSTR,
                                                     "Description": OPTSTR,
                                                     "Version": OPTSTR,
                                                     "Date": OPTSTR,
@@ -233,7 +217,7 @@ class topDecoder(systemState, schema):
                                                     "DecoderPingPeriod" : OPTFLOAT,
                                                     "JMRIRpcKeepAlivePeriod" : OPTFLOAT,
                                                     "AdminState":OPTSTR
-                                                }
+                                                   }
                                             )
             if topDecoderXmlConfig.get("Author") != None: self.author.value = topDecoderXmlConfig.get("Author")
             if topDecoderXmlConfig.get("Description") != None : self.description.value = topDecoderXmlConfig.get("Description")
@@ -307,13 +291,42 @@ class topDecoder(systemState, schema):
             trace.notify(DEBUG_INFO, self.nameKey.value + "Configured")
         for child in controllersXmlTree.getroot():
             if str(child.tag) == "Decoder":
-
                 res = self.addChild(DECODER, config=False, configXml=child, demo=False)
                 if res != rc.OK:
                         trace.notify(DEBUG_ERROR, "Failed to add decoder to topDecoder - return code: " + rc.getErrStr(res))
                         return res
             for child in self.childs.value:
                 child.decoderRestart()
+        return rc.OK
+
+    #NEW METHOD BROKEN OUT WORK NEEDED
+    def generateDiscoveryResponse(self, xmlConfig):
+        self.xmlConfig = xmlConfig
+        trace.notify(DEBUG_INFO, "Generating discovery response")
+        try:
+            controllersXmlTree = ET.ElementTree(ET.fromstring(self.xmlConfig))
+        except:
+            trace.notify(DEBUG_PANIC, "Error parsing XML configuration\n" + str(traceback.print_exc()))
+            return rc.PARSE_ERR
+        if str(controllersXmlTree.getroot().tag) != "genJMRI":
+            trace.notify(DEBUG_ERROR, "XML configuration missformated")
+            return rc.PARSE_ERR
+        discoveryConfig = ET.Element("DiscoveryResponse")
+        for decoder in controllersXmlTree.getroot():
+            if decoder.tag == "Decoder":
+                try:
+                    discoveryDecoder =  ET.SubElement(discoveryConfig, "Decoder")
+                    decoderConfig = parse_xml(decoder, {"MAC":MANSTR,  "URI":MANSTR})
+                    discoverymac = ET.SubElement(discoveryDecoder, "MAC")
+                    discoverymac.text = decoderConfig.get("MAC")
+                    discoveryuri = ET.SubElement(discoveryDecoder, "URI")
+                    discoveryuri.text = decoderConfig.get("URI")
+                except:
+                    trace.notify(DEBUG_ERROR, "XML configuration missformated, decoder section(s) is missing mandatory tags/values: " + str(traceback.print_exc()))
+                    return rc.PARSE_ERR
+        self.discoveryConfigXML = ET.tostring(discoveryConfig, method="xml").decode()
+        trace.notify(DEBUG_TERSE, "Discovery response xml configuration created: \n" +
+                        minidom.parseString(self.discoveryConfigXML).toprettyxml())
         return rc.OK
 
     def updateReq(self):
@@ -364,6 +377,11 @@ class topDecoder(systemState, schema):
         res = self.commit0()
         if res != rc.OK:
             trace.notify(DEBUG_PANIC, "Configuration commit unsuccessful - return code: " + rc.getErrStr(res) + " we have a broken system!")
+
+
+        self.generateDiscoveryResponse(self.getXmlConfigTree(text = True))
+
+
         return rc.OK
 
     def checkSysName(self, sysName):

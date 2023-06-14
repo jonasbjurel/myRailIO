@@ -55,9 +55,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="Shared">
-    <Import Project="Libraries\ArduinoJson\6.20.0\ArduinoJson\ArduinoJson-6.20.0.vcxitems" Label="Shared" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -165,10 +162,10 @@
     <ClInclude Include="fileSys.h" />
     <ClInclude Include="genJMRIDecoderClient.h" />
     <ClInclude Include="globalCli.h" />
+    <ClInclude Include="job.h" />
     <ClInclude Include="lgBase.h" />
     <ClInclude Include="lgLink.h" />
     <ClInclude Include="lgSignalMast.h" />
-    <ClInclude Include="libraries\SimpleCLI\src\StringCLI.h" />
     <ClInclude Include="libraries\tinyxml2\tinyxml2.h" />
     <ClInclude Include="logHelpers.h" />
     <ClInclude Include="mqtt.h" />
@@ -203,6 +200,7 @@
     <ClCompile Include="flash.cpp" />
     <ClCompile Include="fileSys.cpp" />
     <ClCompile Include="globalCli.cpp" />
+    <ClCompile Include="job.cpp" />
     <ClCompile Include="lgBase.cpp" />
     <ClCompile Include="lgLink.cpp" />
     <ClCompile Include="lgSignalMast.cpp" />

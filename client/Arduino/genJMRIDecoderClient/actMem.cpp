@@ -36,12 +36,12 @@
 actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actBaseHandle = p_actBaseHandle;
     actBaseHandle->getPort(&actPort);
-    actBaseHandle->satHandle->getAddr(&satAddr);
-    actBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
+    satAddr = actBaseHandle->satHandle->getAddr();
+    satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
+    sysName = actBaseHandle->getSystemName(true);
     //if (!(actMemLock = xSemaphoreCreateMutex()))
     if (!(actMemLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
         panic("actMem::actMem: Could not create Lock objects - rebooting...");
-    sysName = actBaseHandle->xmlconfig[XML_ACT_SYSNAME];
     satLibHandle = NULL;
     actMemSolenoidPushPort = true;
     actMemSolenoidActivationTime = ACTMEM_DEFAULT_SOLENOID_ACTIVATION_TIME_MS;
@@ -64,7 +64,6 @@ actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     else if (!strcmp(p_subType, MQTT_MEM_PULSE_PAYLOAD)) {
         actMemType = ACTMEM_TYPE_PULSE;
     }
-    sysState = OP_INIT | OP_UNCONFIGURED;
     Log.INFO("actMem::actMem: Creating memory extention object for %s on actuator port %d, on satelite adress %d, satLink %d" CR, p_subType, actPort, satAddr, satLinkNo);
     actMemPos = atoi(ACTMEM_DEFAULT_FAILSAFE);
     orderedActMemPos = atoi(ACTMEM_DEFAULT_FAILSAFE);
@@ -85,56 +84,64 @@ void actMem::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 }
 
 rc_t actMem::start(void) {
-    Log.INFO("actMem::start: Starting actMem actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->systemState::getOpState() & OP_UNCONFIGURED) {
+    Log.INFO("actMem::start: Starting actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+    if (actBaseHandle->systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.INFO("actMem::start: actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
         return RC_NOT_CONFIGURED_ERR;
     }
     return RC_OK;
 }
 
-void actMem::onDiscovered(satelite* p_sateliteLibHandle) {
-    satLibHandle = p_sateliteLibHandle;
-    Log.INFO("actMem::onDiscovered: actMem extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actMemType == ACTMEM_TYPE_SOLENOID) {
-        if (actPort % 2) {
-            actMemSolenoidPushPort = false;
-            Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator pull port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+void actMem::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+    char subscribeTopic[300];
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_MEM_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
+    if (p_exists) {
+        satLibHandle = p_sateliteLibHandle;
+        Log.INFO("actMem::onDiscovered: Subscribing to memory orders for Memory actuator %s" CR, sysName);
+        if (mqtt::subscribeTopic(subscribeTopic, onActMemChangeHelper, this))
+            panic("actMem::onDiscovered: Failed to suscribe to actMem order topic - rebooting..." CR);
+        Log.INFO("actMem::onDiscovered: actMem extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
+        if (actMemType == ACTMEM_TYPE_SOLENOID) {
+            if (actPort % 2) {
+                actMemSolenoidPushPort = false;
+                Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator pull port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            }
+            else {
+                Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator push port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+                actMemSolenoidPushPort = true;
+            }
+            satLibHandle->setSatActMode(SATMODE_PULSE, actPort);
         }
-        else {
-            Log.INFO("actMem::onDiscovered: Startings solenoid memory actuator push port %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-            actMemSolenoidPushPort = true;
+
+        else if (actMemType == ACTMEM_TYPE_SERVO) {
+            Log.INFO("actMem::onDiscovered: Startings servo memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
         }
-        satLibHandle->setSatActMode(SATMODE_PULSE, actPort);
-    }
 
-    else if (actMemType == ACTMEM_TYPE_SERVO) {
-        Log.INFO("actMem::onDiscovered: Startings servo memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-        satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
-    }
+        else if (actMemType == ACTMEM_TYPE_PWM100) {
+            Log.INFO("actMem::onDiscovered: Startings PWM 100 Hz memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
+        }
 
-    else if (actMemType == ACTMEM_TYPE_PWM100) {
-        Log.INFO("actMem::onDiscovered: Startings PWM 100 Hz memory  actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-        satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
-    }
+        else if (actMemType == ACTMEM_TYPE_PWM125K) {
+            Log.INFO("actMem::start: Startings PWM 125 KHz memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            satLibHandle->setSatActMode(SATMODE_PWM1_25K, actPort);
+        }
 
-    else if (actMemType == ACTMEM_TYPE_PWM125K) {
-        Log.INFO("actMem::start: Startings PWM 125 KHz memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-        satLibHandle->setSatActMode(SATMODE_PWM1_25K, actPort);
+        else if (actMemType == ACTMEM_TYPE_ONOFF) {
+            Log.INFO("actMem::onDiscovered: Startings ON/OFF memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+        }
     }
-
-    else if (actMemType == ACTMEM_TYPE_ONOFF) {
-        Log.INFO("actMem::onDiscovered: Startings ON/OFF memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+    else {
+        satLibHandle = NULL;
+        Log.INFO("actMem::onDiscovered: UnSubscribing to memory orders for Memory actuator %s" CR, sysName);
+        mqtt::unSubscribeTopic(subscribeTopic, onActMemChangeHelper);
     }
-    Log.INFO("actMem::onDiscovered: Subscribing to memory orders for Memory actuator %s", sysName);
-    const char* actMemActOrders[3] = { MQTT_MEM_TOPIC, "/", sysName };
-    if (mqtt::subscribeTopic(concatStr(actMemActOrders, 3), &onActMemChangeHelper, this))
-        panic("actMem::onDiscovered: Failed to suscribe to memory actuator order topic - rebooting...");
 }
 
 void actMem::onSysStateChange(uint16_t p_sysState) {
-    sysState = p_sysState;
-    Log.INFO("actMem::onSystateChange: Got a new systemState %d for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysState, actPort, satAddr, satLinkNo);
+    char opState[100];
+    Log.INFO("actMem::onSystateChange: Got a new systemState %d for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, actBaseHandle->getOpStateStr(opState), actPort, satAddr, satLinkNo);
 }
 
 void actMem::onActMemChangeHelper(const char* p_topic, const char* p_payload, const void* p_actMemHandle) {

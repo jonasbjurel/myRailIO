@@ -75,7 +75,7 @@ void networking::start(void) {
     Log.INFO("networking::start: Starting networking service" CR);
     sysState = new systemState(NULL);
     sysState->setSysStateObjName("networking");
-    sysState->setOpState(OP_INIT | OP_DISCONNECTED | OP_NOIP | OP_UNCONFIGURED);
+    sysState->setOpStateByBitmap(OP_INIT | OP_DISCONNECTED | OP_NOIP | OP_UNCONFIGURED);
     WiFiWdTimerArgs.arg = NULL;
     WiFiWdTimerArgs.callback = WiFiWdTimerArgs.callback = static_cast<esp_timer_cb_t>
         (&networking::wifiWdTimeout);
@@ -164,7 +164,7 @@ void networking::start(void) {
             networkConfig.wifiConfig.ssid);
         setNetworkConfig(&networkConfig);
         getNetworkConfig(&networkConfig);
-        sysState->unSetOpState(OP_UNCONFIGURED);
+        sysState->unSetOpStateByBitmap(OP_UNCONFIGURED);
         WiFi.begin();
     }
 }
@@ -405,8 +405,8 @@ uint16_t networking::getMqttPort(void) {
         return networkConfig.mqttPort;
 }
 
-sysState_t networking::getOpState(void) {
-    return sysState->getOpState();
+sysState_t networking::getOpStateBitmap(void) {
+    return sysState->getOpStateBitmap();
 }
 
 char* networking::getOpStateStr(char* p_opStateStr) {
@@ -551,7 +551,7 @@ char* networking::getEncryptionStr(wifi_auth_mode_t p_wifi_auth_mode) {
     }
 }
 
-void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
+void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) { //This should be serialized into a job-queue
     switch (p_event) {
     case ARDUINO_EVENT_WIFI_READY:
         Log.INFO("networking::WiFiEvent: WiFi service ready" CR);
@@ -561,19 +561,19 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
         break;
     case SYSTEM_EVENT_STA_START:
         Log.INFO("networking::WiFiEvent: Station Mode Started" CR);
-        sysState->unSetOpState(OP_INIT);
+        sysState->unSetOpStateByBitmap(OP_INIT);
         break;
     case SYSTEM_EVENT_STA_STOP:
         Log.INFO("networking::WiFiEvent: Station Mode Stoped" CR);
-        sysState->setOpState(OP_INIT | OP_DISCONNECTED | OP_NOIP);
+        sysState->setOpStateByBitmap(OP_INIT | OP_DISCONNECTED | OP_NOIP);
         break;
     case SYSTEM_EVENT_STA_CONNECTED:
-        sysState->unSetOpState(OP_INIT | OP_DISCONNECTED);                                  //Sometimes the start event is missing for unknown reasons
+        sysState->unSetOpStateByBitmap(OP_INIT | OP_DISCONNECTED);                                  //Sometimes the start event is missing for unknown reasons
         Log.INFO("networking::WiFiEvent: Station connected to AP-SSID: %s, "
                    "channel: %d, RSSI: %d" CR, getSsid(), getChannel(), getRssi());
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
-        sysState->setOpState(OP_DISCONNECTED | OP_NOIP);
+        sysState->setOpStateByBitmap(OP_DISCONNECTED | OP_NOIP);
         Log.INFO("networking::WiFiEvent: Station disconnected from AP-SSID: %s, "
                    "attempting reconnection" CR, getSsid());
         WiFi.reconnect();
@@ -583,7 +583,7 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
                    CR, getAuth());
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
-        sysState->unSetOpState(OP_NOIP);
+        sysState->unSetOpStateByBitmap(OP_NOIP);
         Log.INFO("networking::WiFiEvent: Station got IP-address:%s, Mask: %s, \n"
                     "Gateway: %s, DNS: %s, Hostname: %s" CR,
                     getIpAddr().toString().c_str(), getIpMask().toString().c_str(),
@@ -592,7 +592,7 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) {
                     getHostname());
         break;
     case SYSTEM_EVENT_STA_LOST_IP:
-        sysState->setOpState(OP_NOIP);
+        sysState->setOpStateByBitmap(OP_NOIP);
         Log.ERROR("networking::WiFiEvent: Station lost IP - reconnecting" CR);
         WiFi.reconnect();
         break;
@@ -704,7 +704,7 @@ void networking::saveConfigCb() {
         wifiProvisionCallbackList.at(i)->cb(WIFI_PROVISIONING_SAVE,
                                             wifiProvisionCallbackList.at(i)->args);
     }
-    sysState->unSetOpState(OP_UNCONFIGURED);
+    sysState->unSetOpStateByBitmap(OP_UNCONFIGURED);
 }
 
 void networking::resetCb(void) {
@@ -728,7 +728,7 @@ void networking::configurePortalConnectTimeoutCb(void) {
 
 void networking::wifiWd(const void* p_args, sysState_t p_wifiOpState) {
     esp_err_t errCode;
-    if (sysState->getOpState()) {
+    if (sysState->getOpStateBitmap()) {
         if (!filtering) {
             filtering = true;
             if (errCode = esp_timer_start_once(WiFiWdTimerHandle, WIFI_WD_TIMEOUT_S * 1000000))

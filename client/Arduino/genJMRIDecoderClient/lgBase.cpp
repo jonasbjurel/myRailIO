@@ -36,20 +36,27 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-//NEED TO FIX CHECK FOR MAX_LG
+
 //lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle), globalCli(LG_MO_NAME, LG_MO_NAME, lgIndex) {
 lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle) {
     lgLinkHandle = (lgLink*)p_lgLinkHandle;
     lgAddress = p_lgAddress;
     lgLinkHandle->getLink(&lgLinkNo);
     extentionLgClassObj = NULL;
+    processingSysState = false;
+    Log.INFO("lgBase::lgBase: Creating lgBase stem-object for lgAddress %d, on lgLink %d" CR, lgAddress, lgLinkHandle);
+    sysStateQ = new QList<sysState_t*>;
+    heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
+    //if (!(satLinkSysStateLock = xSemaphoreCreateMutex()))
+    if (!(lgSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+        panic("lgLink::lgLink: Could not create Lock objects - rebooting..." CR);
+
     Log.INFO("lgBase::lgBase: Creating lgBase stem-object for lg address %d, on lgLink %d" CR, p_lgAddress, lgLinkNo);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "lg-%d", lgAddress);
     setSysStateObjName(sysStateObjName);
-    lgDownDeclared = false;
     prevSysState = OP_WORKING;
-    systemState::setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
+    systemState::setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     //if (!(lgBaseLock = xSemaphoreCreateMutex()))
     if (!(lgBaseLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
@@ -110,7 +117,7 @@ rc_t lgBase::init(void) {
 }
 
 void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
-    if (!(systemState::getOpState() & OP_UNCONFIGURED))
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         panic("lgBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported rebooting..." CR);
     Log.INFO("lgBase::onConfig: lg-address %d, on lgLink %d received an unverified configuration, parsing and validating it..." CR, lgAddress, lgLinkNo);
 
@@ -134,8 +141,8 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     if (!xmlconfig[XML_LG_USRNAME]){
         Log.WARN("lgBase::onConfig: User name was not provided - using \"%s-UserName\"" CR);
         xmlconfig[XML_LG_USRNAME] = new char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
-        const char* usrName[2] = { xmlconfig[XML_LG_SYSNAME], "- UserName" };
-        strcpy(xmlconfig[XML_LG_USRNAME], concatStr(usrName, 2));
+        const char* usrName[2] = { xmlconfig[XML_LG_SYSNAME], "-" };
+        strcpy(xmlconfig[XML_LG_USRNAME], "-");
     }
     if (!xmlconfig[XML_LG_DESC]) {
         Log.WARN("lgBase::onConfig: Description was not provided - using \"-\"" CR);
@@ -154,10 +161,10 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         xmlconfig[XML_LG_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_LG_ADMSTATE], "ENABLE")) {
-        systemState::unSetOpState(OP_DISABLED);
+        systemState::unSetOpStateByBitmap(OP_DISABLED);
     }
     else if (!strcmp(xmlconfig[XML_LG_ADMSTATE], "DISABLE")) {
-        systemState::setOpState(OP_DISABLED);
+        systemState::setOpStateByBitmap(OP_DISABLED);
     }
     else
         panic("lgBase::onConfig: Configuration decoder::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_DECODER_ADMSTATE]);
@@ -203,19 +210,19 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     }
     else
         panic("lgBase::onConfig: No properties provided for base stem-object - rebooting..." CR);
-    systemState::unSetOpState(OP_UNCONFIGURED);
+    systemState::unSetOpStateByBitmap(OP_UNCONFIGURED);
     Log.INFO("lgBase::onConfig: Configuration successfully finished" CR);
 }
 
 rc_t lgBase::start(void) {
     Log.INFO("lgBase::start: Starting lg address %d on lgLink %d" CR, lgAddress, lgLinkNo);
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.INFO("lgBase::start: lg address %d on lgLink %d not configured - will not start it" CR, lgAddress, lgLinkNo);
-        systemState::setOpState(OP_UNUSED);
-        systemState::unSetOpState(OP_INIT);
+        systemState::setOpStateByBitmap(OP_UNUSED);
+        systemState::unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
-    systemState::unSetOpState(OP_UNUSED);
+    systemState::unSetOpStateByBitmap(OP_UNUSED);
     Log.INFO("lgBase::start: lg address %d on lgLink %d  - starting extention class" CR, lgAddress, lgLinkNo);
     if (extentionLgClassObj) {
         LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], start());
@@ -226,14 +233,14 @@ rc_t lgBase::start(void) {
     }
     Log.INFO("lgBase::start: Subscribing to adm- and op state topics" CR);
     char admopSubscribeTopic[300];
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_ADMSTATE_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
     if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this))
         panic("lgBase::start: Failed to suscribe to admState topic - rebooting..." CR);
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_OPSTATE_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
     if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this))
         panic("lgBase::start: Failed to suscribe to opState topic - rebooting..." CR);
     wdt::wdtRegLgFailsafe(wdtKickedHelper, this);
-    systemState::unSetOpState(OP_INIT);
+    systemState::unSetOpStateByBitmap(OP_INIT);
     return RC_OK;
 }
 
@@ -242,85 +249,74 @@ void lgBase::onSysStateChangeHelper(const void* p_lgBaseHandle, sysState_t p_sys
 }
 
 void lgBase::onSysStateChange(sysState_t p_sysState) {
-    bool lgDeclareDown = false;
     char opStateStr[100];
-    char opStateStr1[100];
+    Log.INFO("lgBase::onSysStateChange: lg has a new OP-state: %s, Queueing it for processing" CR, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    xSemaphoreTake(lgSysStateLock, portMAX_DELAY);
+    sysState_t* sysStateToQ = new sysState_t;
+    *sysStateToQ = p_sysState;
+    sysStateQ->push_back(sysStateToQ);
+    xSemaphoreGive(lgSysStateLock);
+    if (!processingSysState) {
+        processingSysState = true;
+        processSysState();
+    }
+}
 
-    sysState_t sysStateChange = p_sysState ^ prevSysState;
-    if (!sysStateChange){
-        Log.VERBOSE("lgBase::onSysStateChange: No system state change - previous system state: %s, current system state %s" CR, systemState::getOpStateStr(opStateStr1, prevSysState), systemState::getOpStateStr(opStateStr, prevSysState));
-        return;
-    }
-    if (p_sysState) {
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has a new OP-state: %s" CR, lgLinkNo, lgAddress, systemState::getOpStateStr(opStateStr, p_sysState));
-        Log.TERSE("lgBase::onSysStateChange: Following lgLink-%d:lg-%d OP-states have changed: %s" CR, lgLinkNo, lgAddress, systemState::getOpStateStr(opStateStr, sysStateChange));
-    }
-    else
-        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d has a new OP-state: \"WORKING\"" CR, lgLinkNo, lgAddress);
+void lgBase::processSysState(void) {
+    sysState_t newSysState;
+    bool entering = true;
+    xSemaphoreTake(lgSysStateLock, portMAX_DELAY);
+    while (sysStateQ->size()) {
+        if (!entering) {
+            xSemaphoreTake(lgSysStateLock, portMAX_DELAY);
+            entering = false;
+        }
+        newSysState = *(sysStateQ->front());
+        delete sysStateQ->front();
+        sysStateQ->pop_front();
+        xSemaphoreGive(lgSysStateLock);
+        char opStateStr[100];
+        sysState_t sysStateChange = newSysState ^ prevSysState;
+        if (!sysStateChange)
+            continue;
+        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has a new OP-state: %s" CR, lgLinkNo, lgAddress, systemState::systemState::getOpStateStr(opStateStr));
+        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+            char publishTopic[200];
+            char publishPayload[100];
+            sprintf(publishTopic, "%s%s%s%s%s", MQTT_LG_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]);
+            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
+        }
+        if (newSysState & OP_INTFAIL) {
+            if (extentionLgClassObj)
+                LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
+            panic("lgBase::onSysStateChange: lgLink-%d:lg-%d has experienced an internal error - rebooting..." CR, lgLinkNo, lgAddress);
+            prevSysState = newSysState;
+            continue;
+        }
 
-    if (p_sysState & OP_INTFAIL) {
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_LG_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]);
-        lgDeclareDown = true;
-        mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
-        lgDownDeclared = true;
-        //Failsafe
-        if (extentionLgClassObj)
-            LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(p_sysState));
-        panic("lgBase::onSysStateChange: lgLink-%d:lg-%d has experienced an internal error - rebooting..." CR, lgLinkNo, lgAddress);
-        prevSysState = p_sysState;
-        return;
-    }
+        if (newSysState & OP_INIT) {
+            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is initializing - informing server if not already done" CR, lgLinkNo, lgAddress);
+        }
 
-    if (p_sysState & OP_INIT) {
-        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is initializing - informing server if not already done" CR, lgLinkNo, lgAddress);
-        lgDeclareDown = true;
-    }
+        if (newSysState & OP_UNUSED) {
+            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is unused - informing server if not already done" CR, lgLinkNo, lgAddress);
+        }
 
-    if (p_sysState & OP_UNUSED) {
-        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is unused - informing server if not already done" CR, lgLinkNo, lgAddress);
-        lgDeclareDown = true;
-    }
+        if (newSysState & OP_DISABLED) {
+            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is disabled by server - doing nothing" CR, lgLinkNo, lgAddress);
+        }
+        if (newSysState & OP_CBL) {
+            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is control blocked by decoder - doing nothing" CR, lgLinkNo, lgAddress);
+        }
 
-    if (p_sysState & OP_DISABLED){
-        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is disabled by server - doing nothing" CR, lgLinkNo, lgAddress);
+        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
+            Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, lgLinkNo, lgAddress, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+        }
+        if (extentionLgClassObj && !(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
+            LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
+        prevSysState = newSysState;
     }
-
-    if (p_sysState & OP_UNAVAILABLE) {
-        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is control blocked by server - doing nothing" CR, lgLinkNo, lgAddress);
-    }
-
-    if (p_sysState & OP_CBL) {
-        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is control blocked by decoder - doing nothing" CR, lgLinkNo, lgAddress);
-    }
-
-    if (p_sysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_UNAVAILABLE | OP_CBL)) {
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, lgLinkNo, lgAddress, systemState::getOpStateStr(opStateStr, p_sysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_UNAVAILABLE | OP_CBL)));
-        lgDeclareDown = true;
-    }
-    if (lgDeclareDown && !lgDownDeclared && !(p_sysState & OP_INIT) && !(p_sysState & OP_UNUSED)) {
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d Declaring lg down to server" CR, lgLinkNo, lgAddress);
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_LG_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]);
-        mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
-        lgDownDeclared = true;
-    }
-    else if (lgDeclareDown && lgDownDeclared) {
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d already declared down to server - doing nothing..." CR, lgLinkNo, lgAddress);
-    }
-    else if (!lgDeclareDown && lgDownDeclared && !(p_sysState & OP_INIT) && !(p_sysState & OP_UNUSED)) {
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d Declaring lg up to server" CR, lgLinkNo, lgAddress);
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_LG_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]);
-        mqtt::sendMsg(publishTopic, MQTT_OP_AVAIL_PAYLOAD, false);
-        lgDownDeclared = false;
-    }
-    else if (!lgDeclareDown && !lgDownDeclared) {
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d already declared up to server - doing nothing..." CR, lgLinkNo, lgAddress);
-    }
-    if (extentionLgClassObj && !(systemState::getOpState() & OP_UNCONFIGURED))
-        LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(p_sysState));
-    prevSysState = p_sysState;
+    processingSysState = false;
 }
 
 void lgBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgHandle) {
@@ -328,16 +324,11 @@ void lgBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, c
 }
 
 void lgBase::onOpStateChange(const char* p_topic, const char* p_payload) {
-    if (!strcmp(p_payload, MQTT_OP_AVAIL_PAYLOAD)) {
-        systemState::unSetOpState(OP_UNAVAILABLE);
-        Log.INFO("lgBase::onOpStateChange: lg address %d on lgLink %d got available message from server: %s" CR, lgAddress, lgLinkNo, p_payload);
-    }
-    else if (!strcmp(p_payload, MQTT_OP_UNAVAIL_PAYLOAD)) {
-        systemState::setOpState(OP_UNAVAILABLE);
-        Log.INFO("lgBase::onOpStateChange: lg address %d on lgLink %d got unavailable message from server %s" CR, lgAddress, lgLinkNo, p_payload);
-    }
-    else
-        Log.ERROR("lgBase::onOpStateChange: lg address %d on lgLink %d got an invalid availability message from server %s - doing nothing" CR, lgAddress, lgLinkNo, p_payload);
+    sysState_t newServerOpState;
+    Log.INFO("lgBase::onOpStateChange: got a new opState from server: %s" CR, p_payload);
+    newServerOpState = getOpStateBitmapByStr(p_payload);
+    setOpStateByBitmap(newServerOpState & OP_CBL);
+    unSetOpStateByBitmap(~newServerOpState & OP_CBL);
 }
 
 void lgBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgHandle) {
@@ -346,11 +337,11 @@ void lgBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, 
 
 void lgBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
-        systemState::unSetOpState(OP_DISABLED);
+        systemState::unSetOpStateByBitmap(OP_DISABLED);
         Log.INFO("lgBase::onAdmStateChange: lg address %d on lgLink %d got online message from server %s" CR, lgAddress, lgLinkNo, p_payload);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
-        systemState::setOpState(OP_DISABLED);
+        systemState::setOpStateByBitmap(OP_DISABLED);
         Log.INFO("lgBase::onAdmStateChange: lg address %d on lgLink %d got off-line message from server %s" CR, lgAddress, lgLinkNo, p_payload);
     }
     else
@@ -362,12 +353,7 @@ void lgBase::wdtKickedHelper(void* lgBaseHandle) {
 }
 
 void lgBase::wdtKicked(void) {
-    systemState::setOpState(OP_INTFAIL);
-}
-
-rc_t lgBase::getOpStateStr(char* p_opStateStr) {
-    systemState::getOpStateStr(p_opStateStr);
-    return RC_OK;
+    systemState::setOpStateByBitmap(OP_INTFAIL);
 }
 
 rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {
@@ -380,7 +366,7 @@ rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {
 }
 
 rc_t lgBase::getSystemName(char* p_systemName, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getSystemName: cannot get System name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -400,7 +386,7 @@ rc_t lgBase::setUsrName(const char* p_usrName, bool p_force) {
 }
 
 rc_t lgBase::getUsrName(char* p_userName, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getUsrName: cannot get User name as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -420,7 +406,7 @@ rc_t lgBase::setDesc(const char* p_description, bool p_force) {
 }
 
 rc_t lgBase::getDesc(char* p_desc, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getDesc: cannot get Description as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -438,7 +424,7 @@ rc_t lgBase::setAddress(uint8_t p_address, bool p_force) {
 }
 
 rc_t lgBase::getAddress(uint8_t* p_address, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getAddress: cannot get Description as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -456,7 +442,7 @@ rc_t lgBase::setNoOffLeds(uint8_t p_noOfLeds, bool p_force){
 }
 
 rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getNoOffLeds: cannot get lg number of Leds as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -473,7 +459,7 @@ rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool
         Log.ERROR("lgBase::setProperty: cannot set lg property as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.ERROR("lgBase::setProperty: cannot set lg property as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -491,7 +477,7 @@ rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool
 }
 
 rc_t lgBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getProperty: cannot get port as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -514,7 +500,7 @@ rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
 }
 
 rc_t lgBase::getShowing(char* p_showing, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getShowing: cannot get showing as lg is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }

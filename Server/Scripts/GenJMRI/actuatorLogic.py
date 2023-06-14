@@ -285,7 +285,6 @@ class actuator(systemState, schema):
         return rc.OK
 
     def __setConfig(self):
-
         try:
             if self.actType.value == "TURNOUT":
                 actuators = self.rpcClient.getConfigsByType(jmriObj.TURNOUTS)

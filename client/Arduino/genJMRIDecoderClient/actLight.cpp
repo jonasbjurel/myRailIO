@@ -35,12 +35,11 @@
 /*==============================================================================================================================================*/
 actLight::actLight(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actBaseHandle = p_actBaseHandle;
-    actBaseHandle->getPort(&actPort);
-    actBaseHandle->satHandle->getAddr(&satAddr);
-    actBaseHandle->satHandle->linkHandle->getLink(&satLinkNo);
-    sysName = actBaseHandle->xmlconfig[XML_ACT_SYSNAME];
+    actPort = actBaseHandle->getPort(true);
+    satAddr = actBaseHandle->satHandle->getAddr();
+    satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
+    sysName = actBaseHandle->getSystemName(true);
     satLibHandle = NULL;
-    sysState = OP_INIT | OP_UNCONFIGURED;
     Log.INFO("actLight::actLight: Creating light extention object on actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
     //if (!(actLightLock = xSemaphoreCreateMutex()));
     if (!(actLightLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
@@ -64,21 +63,30 @@ void actLight::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 }
 
 rc_t actLight::start(void) {
-    Log.INFO("actLight::start: Starting actLight actuator extention object %s, on actuator port% d, on satelite adress% d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+    Log.INFO("actLight::start: Starting actLight actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
-void actLight::onDiscovered(satelite* p_sateliteLibHandle) {
+void actLight::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
     Log.INFO("actLight::onDiscovered: actLight extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
-    Log.INFO("actLight::onDiscovered: Subscribing to light orders for light actuator %s", sysName);
-    const char* actLightOrders[3] = { MQTT_LIGHT_TOPIC, "/", sysName };
-    if (mqtt::subscribeTopic(concatStr(actLightOrders, 3), &onActLightChangeHelper, this))
-        panic("actLight::onDiscovered: Failed to suscribe to light actuator order topic - rebooting...");
+    char subscribeTopic[300];
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_LIGHT_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
+    if (p_exists) {
+        satLibHandle = p_sateliteLibHandle;
+        Log.INFO("actLight::onDiscovered: Subscribing to light orders for light actuator %s, topic: %s" CR, sysName, subscribeTopic);
+        if (mqtt::subscribeTopic(subscribeTopic, onActLightChangeHelper, this))
+            panic("actLight::onDiscovered: Failed to suscribe to light actuator order topic - rebooting..." CR);
+    }
+    else{
+        satLibHandle = NULL;
+        Log.INFO("actLight::onDiscovered: UnSubscribing to light orders for light actuator %s, topic: %s" CR, sysName, subscribeTopic);
+        mqtt::unSubscribeTopic(subscribeTopic, onActLightChangeHelper);
+    }
 }
 
 void actLight::onSysStateChange(uint16_t p_sysState) {
-    sysState = p_sysState;
-    Log.INFO("actLight::onSystateChange: Got a new systemState %d for actLight extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysState, actPort, satAddr, satLinkNo);
+    char opState[100];
+    Log.INFO("actLight::onSystateChange: Got a new systemState %s for actLight extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, actBaseHandle->getOpStateStr(opState), actPort, satAddr, satLinkNo);
 }
 
 void actLight::onActLightChangeHelper(const char* p_topic, const char* p_payload, const void* p_actLightHandle) {

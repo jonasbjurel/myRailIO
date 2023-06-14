@@ -66,7 +66,7 @@ rc_t lgSignalMast::init(void) {
 }
 
 rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
-    if (!(mastDesc.lgBaseObjHandle->systemState::getOpState() & OP_UNCONFIGURED))
+    if (!(mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         panic("mastDecoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
     if (p_mastDescXmlElement == NULL)
         panic("lgSignalMast::onConfig: No mastDescXml provided - rebooting..." CR);
@@ -102,7 +102,6 @@ rc_t lgSignalMast::start(void) {
 }
 
 void lgSignalMast::onSysStateChange(sysState_t p_sysState) {
-    sysState = p_sysState;
     if (p_sysState & OP_INTFAIL) {
         failSafe(true);
         panic("lgSignalMast::onSystateChange: Signal-mast has experienced an internal error - seting fail-safe aspect and rebooting..." CR);
@@ -229,7 +228,7 @@ void lgSignalMast::onAspectChangeHelper(const char* p_topic, const char* p_paylo
 void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
     xSemaphoreTake(lgSignalMastLock, portMAX_DELAY);
     xSemaphoreTake(lgSignalMastReentranceLock, portMAX_DELAY);
-    if (mastDesc.lgBaseObjHandle->systemState::getOpState()) {
+    if (mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap()) {
         xSemaphoreGive(lgSignalMastLock);
         xSemaphoreGive(lgSignalMastReentranceLock);
         Log.WARN("lgSignalMast::onAspectChange: A new aspect received, but mast decoder opState is not OP_WORKING - doing nothing..." CR);
@@ -329,8 +328,8 @@ void lgSignalMast::onFlashHelper(bool p_flashState, void* p_flashObj) {
 }
 
 void lgSignalMast::onFlash(bool p_flashState) {
-    if (sysState != OP_WORKING) {
-        Log.TERSE("lgSignalMast::onFlash: Got a flash call while not in a working OP state - doing nothing" CR);
+    if (mastDesc.lgBaseObjHandle->getOpStateBitmap() != OP_WORKING) {
+        Log.VERBOSE("lgSignalMast::onFlash: Got a flash call while not in a working OP state - doing nothing" CR);
         return;
     }
     xSemaphoreTake(lgSignalMastReentranceLock, portMAX_DELAY);

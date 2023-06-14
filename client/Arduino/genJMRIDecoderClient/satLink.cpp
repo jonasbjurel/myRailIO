@@ -36,12 +36,12 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-uint16_t satLink::satLinkIndex = 0;
-
-satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, satLinkIndex) {
+satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, p_linkNo) {
     Log.INFO("satLink::satLink: Creating Satelite link channel %d" CR, p_linkNo);
-    if (satLinkIndex++ > MAX_SATLINKS)
-        panic("satLink::satLink:Number of configured satLinks exceeds maximum configured by [MAX_SATLINKS: %d] - rebooting ..." CR, MAX_SATLINKS);
+    linkNo = p_linkNo;
+    pmPoll = false;
+    satLinkScanDisabled = true;
+    processingSysState = false;
     //We need to have this early since RMT requires internal RAM
     satLinkLibHandle = new sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
         (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
@@ -57,11 +57,6 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     char sysStateObjName[20];
     sprintf(sysStateObjName, "satLink-%d", p_linkNo);
     setSysStateObjName(sysStateObjName);
-    linkNo = p_linkNo;
-    pmPoll = false;
-    satLinkDownDeclared = false;
-    satLinkScanDisabled = true;
-    processingSysState = false;
     sysStateQ = new QList<sysState_t*>;
     heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
     //if (!(satLinkSysStateLock = xSemaphoreCreateMutex()))
@@ -71,7 +66,7 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     if (!(satLinkPmPollLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
         panic("satLink::satLink: Could not create Lock objects - rebooting..." CR);
     prevSysState = OP_WORKING;
-    setOpState(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_ERRSEC | OP_GENERR);
+    setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSysStateChangeHelper);
     xmlconfig[XML_SATLINK_SYSNAME] = NULL;
     xmlconfig[XML_SATLINK_USRNAME] = NULL;
@@ -167,7 +162,7 @@ rc_t satLink::init(void) {
 }
 
 void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
-    if (!(systemState::getOpState() & OP_UNCONFIGURED))
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         panic("satLink:onConfig: satLink channel received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
     Log.INFO("satLink::onConfig: satLink channel %d received an uverified configuration, parsing and validating it..." CR, linkNo);
 
@@ -196,10 +191,10 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
         xmlconfig[XML_SATLINK_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_SATLINK_ADMSTATE], "ENABLE")) {
-        unSetOpState(OP_DISABLED);
+        unSetOpStateByBitmap(OP_DISABLED);
     }
     else if (!strcmp(xmlconfig[XML_SATLINK_ADMSTATE], "DISABLE")) {
-        setOpState(OP_DISABLED);
+        setOpStateByBitmap(OP_DISABLED);
     }
     else
         panic("satLink::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_SATLINK_ADMSTATE]);
@@ -225,57 +220,58 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
             if (satXmlElement == NULL)
                 break;
             if (satItter >= MAX_SATELITES)
-                panic("satLink::onConfig: More than maximum sats provided - not supported, rebooting...");
+                panic("satLink::onConfig: More than maximum sats provided - not supported, rebooting..." CR);
             getTagTxt(satXmlElement->FirstChildElement(), satSearchTags, satXmlConfig, sizeof(satSearchTags) / 4); // Need to fix the addressing for portability
             if (!satXmlConfig[XML_SAT_ADDR])
                 panic("satLink::onConfig:: Satelite Linkaddr missing - rebooting..." CR);
             if ((atoi(satXmlConfig[XML_SAT_ADDR])) < 0 || atoi(satXmlConfig[XML_SAT_ADDR]) >= MAX_SATELITES)
-                panic("sat::onConfig:: Satelite link address out of bounds - rebooting...");
-            Log.INFO("satLink::onConfig: Configuring satLink-%i:sat-%i" CR, link, atoi(satXmlConfig[XML_SAT_ADDR]));
+                panic("sat::onConfig:: Satelite link address out of bounds - rebooting..." CR);
+            Log.INFO("satLink::onConfig: Configuring satLink-%i:sat-%i" CR, linkNo, atoi(satXmlConfig[XML_SAT_ADDR]));
             sats[atoi(satXmlConfig[XML_SAT_ADDR])]->onConfig(satXmlElement);
             satXmlElement = ((tinyxml2::XMLElement*)satXmlElement)->NextSiblingElement("Satelite");
         }
     }
     else
         Log.WARN("satLink::onConfig: No Satelites provided, no Satelite will be configured" CR);
-    unSetOpState(OP_UNCONFIGURED);
+    unSetOpStateByBitmap(OP_UNCONFIGURED);
     Log.INFO("satLink::onConfig: Configuration successfully finished" CR);
 }
 
 rc_t satLink::start(void) {
     Log.INFO("satLink::start: Starting Satelite link: %d" CR, linkNo);
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.INFO("satLink::start: Satelite Link %d not configured - will not start it" CR, linkNo);
-        setOpState(OP_UNUSED);
-        unSetOpState(OP_INIT);
+        setOpStateByBitmap(OP_UNUSED);
+        unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
-    unSetOpState(OP_UNUSED);
-    Log.INFO("satLink::start: Subscribing to adm- and op state topics");
-    const char* admSubscribeTopic[5] = { MQTT_SATLINK_ADMSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName()};
-    if (mqtt::subscribeTopic(concatStr(admSubscribeTopic, 5), &onAdmStateChangeHelper, this))
-        panic("satLink::start: Failed to suscribe to admState topic - rebooting...");
-    const char* opSubscribeTopic[5] = { MQTT_SATLINK_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName()};
-    if (mqtt::subscribeTopic(concatStr(opSubscribeTopic, 5), &onOpStateChangeHelper, this))
-        panic("satLink::start: Failed to suscribe to opState topic - rebooting...");
+    unSetOpStateByBitmap(OP_UNUSED);
+    Log.INFO("satLink::start: Subscribing to adm- and op state topics" CR);
+    char suscribeTopic[300];
+    sprintf(suscribeTopic, "%s%s%s%s%s", MQTT_SATLINK_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    if (mqtt::subscribeTopic(suscribeTopic, onAdmStateChangeHelper, this))
+        panic("satLink::start: Failed to suscribe to admState topic - rebooting..." CR);
+    sprintf(suscribeTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    if (mqtt::subscribeTopic(suscribeTopic, onOpStateChangeHelper, this))
+        panic("satLink::start: Failed to suscribe to opState topic - rebooting..." CR);
     for (uint16_t satItter = 0; satItter < MAX_SATELITES; satItter++) {
-        if (sats[satItter]->start())
-            panic("satLink::start: Could not start satelite satlink-%i:sat-%i - rebooting..." CR, link, satItter);
+        sats[satItter]->start();
     }
-    unSetOpState(OP_INIT);
+    unSetOpStateByBitmap(OP_INIT);
     Log.INFO("lgLink::start: lightgroups link %d and all its lightgroupDecoders have started" CR, linkNo);
     return RC_OK;
 }
 
 void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
     if (p_satLink != ((satLink*)p_satLinkHandle)->linkNo){
-        panic("satLink::onDiscoveredSateliteHelper: Inconsistant link number - Rebooting...");
+        panic("satLink::onDiscoveredSateliteHelper: Inconsistant link number, expected %i, got %i - Rebooting..." CR, ((satLink*)p_satLinkHandle)->linkNo, p_satLink);
     }
-    if (p_satAddr >= MAX_SATELITES) {
-        panic("satLink::onDiscoveredSateliteHelper: More than maximum allowed(% i) satelites discovered on the link - Rebooting..., p_satAddr");
+    if ((p_satAddr >= MAX_SATELITES) && p_exists) {
+        panic("satLink::onDiscoveredSateliteHelper: More than maximum (%i) allowed satelites discovered (%i) on the link - Rebooting..." CR, MAX_SATELITES, p_satAddr + 1);
         return;
     }
-    ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
+    if(p_satAddr < MAX_SATELITES)
+        ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
 }
 
 void satLink::up(void) {
@@ -344,7 +340,8 @@ void satLink::onPmPoll(void) {
         rxSymbolErr += pmData.rxSymbolErr;
         rxDataSizeErr += pmData.rxDataSizeErr;
         wdErr += pmData.wdErr;
-        const char* publishPmTopic[5] = { MQTT_SATLINK_STATS_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName() };
+        char publishPmTopic[300];
+        sprintf(publishPmTopic, "%s%s%s%s%s", MQTT_SATLINK_STATS_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
         char publishPmPayload[150];
         sprintf(publishPmPayload, "<statReport>\n"
             "<rxCrcErr>%d</rxCrcErr>\n"
@@ -358,7 +355,7 @@ void satLink::onPmPoll(void) {
             pmData.rxSymbolErr,
             pmData.rxDataSizeErr,
             pmData.wdErr);
-        if (mqtt::sendMsg(concatStr(publishPmTopic, 5), publishPmPayload, false)) {
+        if (mqtt::sendMsg(publishPmTopic, publishPmPayload, false)) {
             Log.ERROR("satLink::onPmPoll: Failed to send PM report" CR);
         }
         for (uint8_t i = 0; i < MAX_SATELITES; i++) {
@@ -379,13 +376,13 @@ void satLink::onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandl
 
 void satLink::onSatLinkLibStateChange(const satOpState_t p_satOpState) {
     if(p_satOpState & (SAT_OP_INIT | SAT_OP_FAIL | SAT_OP_CONTROLBOCK))
-        systemState::setOpState(OP_GENERR);
+        systemState::setOpStateByBitmap(OP_GENERR);
     else
-        systemState::unSetOpState(OP_GENERR);
+        systemState::unSetOpStateByBitmap(OP_GENERR);
     if (p_satOpState & SAT_OP_ERR_SEC)
-        systemState::setOpState(OP_ERRSEC);
+        systemState::setOpStateByBitmap(OP_ERRSEC);
     else
-        systemState::unSetOpState(OP_ERRSEC);
+        systemState::unSetOpStateByBitmap(OP_ERRSEC);
 }
 
 void satLink::onSysStateChangeHelper(const void* p_satLinkHandle, sysState_t p_sysState) {
@@ -394,7 +391,7 @@ void satLink::onSysStateChangeHelper(const void* p_satLinkHandle, sysState_t p_s
 
 void satLink::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    Log.INFO("satLink::onSysStateChange: satLink-%d has a new OP-state: %s, Queueing it for processing" CR, linkNo, systemState::getOpStateStr(opStateStr, p_sysState));
+    Log.INFO("satLink::onSysStateChange: satLink-%d has a new OP-state: %s, Queueing it for processing" CR, linkNo, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     xSemaphoreTake(satLinkSysStateLock, portMAX_DELAY);
     sysState_t* sysStateToQ = new sysState_t;
     *sysStateToQ = p_sysState;
@@ -419,73 +416,49 @@ void satLink::processSysState(void) {
         delete sysStateQ->front();
         sysStateQ->pop_front();
         xSemaphoreGive(satLinkSysStateLock);
-        bool satLinkDeclareDown = false;
         bool satLinkDisableScan = false;
         char opStateStr[100];
-        char opStateStr1[100];
         sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange) {
-            Log.VERBOSE("satLink::processSysState: No system state change - previous system state: %s, current system state %s" CR, systemState::getOpStateStr(opStateStr1, prevSysState), systemState::getOpStateStr(opStateStr, prevSysState));
+        if (!sysStateChange)
             continue;
-        }
-        if (newSysState) {
-            // failsafe(true); NOT NEEDED, on link-level, disabling LG-scan will cause the satelite HW to set failsafe by HW WDs
-            Log.INFO("satLink::processSysState: satLink-%d has a new OP-state: %s, Setting failsafe" CR, linkNo, systemState::getOpStateStr(opStateStr, newSysState));
-            Log.TERSE("satLink::processSysState: Following satLink-%d OP-states have changed: %s" CR, linkNo, systemState::getOpStateStr(opStateStr, sysStateChange));
-        }
-        else {
-            Log.TERSE("satLink::processSysState: satLink-%d has a new OP-state: \"WORKING\", Unsetting failsafe" CR, linkNo);
-            // failsafe(false); NOT NEEDED, on link-level enabling LG-scan will cause the satelite HW to unset failsafe
+        Log.INFO("satLink::processSysState: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
+        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+            char publishTopic[200];
+            char publishPayload[100];
+            sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
         }
         if ((newSysState & OP_INTFAIL)) {
             satLinkDisableScan = true;
             down();
-            if (!(newSysState & OP_UNCONFIGURED)) {
-                char publishTopic[300];
-                sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
-                satLinkDeclareDown = true;
-                mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
-                satLinkDownDeclared = true;
-            }
             prevSysState = newSysState;
-            //failsafe
             panic("satLink::processSysState: satLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
             continue;
         }
         if (newSysState & OP_INIT) {
             Log.INFO("satLink::processSysState: satLink-%d is initializing - informing server if not already done" CR, linkNo);
             satLinkDisableScan = true;
-            satLinkDeclareDown = true;
         }
         if (newSysState & OP_UNUSED) {
             Log.INFO("satLink::processSysState: satLink-%d is unused - informing server if not already done" CR, linkNo);
             satLinkDisableScan = true;
-            satLinkDeclareDown = true;
         }
         if (newSysState & OP_ERRSEC) {
             Log.INFO("satLink::processSysState: satLink-%d has experienced excessive PM errors - informing server if not already done" CR, linkNo);
-            satLinkDeclareDown = true;
         }
         if (newSysState & OP_GENERR) {
             Log.INFO("satLink::processSysState: satLink-%d has experienced an error - informing server if not already done" CR, linkNo);
-            satLinkDeclareDown = true;
         }
         if (newSysState & OP_DISABLED) {
             Log.INFO("satLink::processSysState: satLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
             satLinkDisableScan = true;
         }
-        if (newSysState & OP_UNAVAILABLE) {
-            Log.INFO("satLink::processSysState: satLink-%d is control-blocked by server - disabling linkscanning if not already done" CR, linkNo);
-            satLinkDisableScan = true;
-        }
         if (newSysState & OP_CBL) {
             Log.INFO("satLink::processSysState: satLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
-            satLinkDeclareDown = true;
             satLinkDisableScan = true;
         }
-        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_UNAVAILABLE | OP_CBL)) {
-            Log.INFO("satLink::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStr(opStateStr, newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_UNAVAILABLE | OP_CBL)));
-            satLinkDeclareDown = true;
+        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
+            Log.INFO("satLink::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
         }
         if (satLinkDisableScan && !satLinkScanDisabled) {
             Log.INFO("satLink::processSysState: satLink-%d disabling satLink scaning" CR, linkNo);
@@ -499,25 +472,6 @@ void satLink::processSysState(void) {
         }
         else if (!satLinkDisableScan && !satLinkScanDisabled)
             Log.INFO("satLink::processSysState: satLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
-        if (satLinkDeclareDown && !satLinkDownDeclared && !(newSysState & OP_INIT) && !(newSysState & OP_UNUSED) && !(newSysState & OP_UNCONFIGURED)) {
-            Log.INFO("satLink::processSysState: satLink-%d Declaring link down to server" CR, linkNo);
-            char publishTopic[300];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
-            mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
-            satLinkDownDeclared = true;
-        }
-        else if (satLinkDeclareDown && satLinkDownDeclared)
-            Log.INFO("satLink::processSysState: satLink-%d already declared down to server - doing nothing..." CR, linkNo);
-        else if (!satLinkDeclareDown && satLinkDownDeclared && !(newSysState & OP_INIT) && !(newSysState & OP_UNUSED) && !(newSysState & OP_UNCONFIGURED)) {
-            Log.INFO("satLink::processSysState: satLink-%d Declaring link up to server" CR, linkNo);
-            char publishTopic[300];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
-            mqtt::sendMsg(publishTopic, MQTT_OP_AVAIL_PAYLOAD, false);
-            satLinkDownDeclared = false;
-        }
-        else if (!satLinkDeclareDown && !satLinkDownDeclared) {
-            Log.INFO("satLink::processSysState: satLink-%d already declared up to server - doing nothing..." CR, linkNo);
-        }
         prevSysState = newSysState;
     }
     processingSysState = false;
@@ -528,16 +482,11 @@ void satLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, 
 }
 
 void satLink::onOpStateChange(const char* p_topic, const char* p_payload) {
-    if (!strcmp(p_payload, MQTT_OP_AVAIL_PAYLOAD)) {
-        unSetOpState(OP_UNAVAILABLE);
-        Log.INFO("satLink::onOpStateChange: got available message from server" CR);
-    }
-    else if (!strcmp(p_payload, MQTT_OP_UNAVAIL_PAYLOAD)) {
-        setOpState(OP_UNAVAILABLE);
-        Log.INFO("satLink::onOpStateChange: got unavailable message from server" CR);
-    }
-    else
-        Log.ERROR("satLink::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
+    sysState_t newServerOpState;
+    Log.INFO("satLink::onOpStateChange: got a new opState from server: %s" CR, p_payload);
+    newServerOpState = getOpStateBitmapByStr(p_payload);
+    setOpStateByBitmap(newServerOpState & OP_CBL);
+    unSetOpStateByBitmap(~newServerOpState & OP_CBL);
 }
 
 void satLink::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject) {
@@ -546,11 +495,11 @@ void satLink::onAdmStateChangeHelper(const char* p_topic, const char* p_payload,
 
 void satLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
-        unSetOpState(OP_DISABLED);
+        unSetOpStateByBitmap(OP_DISABLED);
         Log.INFO("satLink::onAdmStateChange: got online message from server" CR);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
-        setOpState(OP_DISABLED);
+        setOpStateByBitmap(OP_DISABLED);
         Log.INFO("satLink::onAdmStateChange: got off-line message from server" CR);
     }
     else
@@ -567,8 +516,8 @@ rc_t satLink::setSystemName(const char* p_systemName, const bool p_force) {
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-const char* satLink::getSystemName(void) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+const char* satLink::getSystemName(bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("satLink::getSystemName: cannot get System name as satLink is not configured" CR);
         return NULL;
     }
@@ -580,7 +529,7 @@ rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
         Log.ERROR("satLink::setUsrName: cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (systemState::getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.ERROR("satLink::setUsrName: cannot set System name as satLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -592,8 +541,8 @@ rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
     }
 }
 
-const char* satLink::getUsrName(void) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+const char* satLink::getUsrName(bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("satLink::getUsrName: cannot get User name as satLink is not configured" CR);
         return NULL;
     }
@@ -605,7 +554,7 @@ rc_t satLink::setDesc(const char* p_description, const bool p_force) {
         Log.ERROR("satLink::setDesc: cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    else if (systemState::getOpState() & OP_UNCONFIGURED) {
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.ERROR("satLink::setDesc: cannot set Description as satLink is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -617,8 +566,8 @@ rc_t satLink::setDesc(const char* p_description, const bool p_force) {
     }
 }
 
-const char* satLink::getDesc(void) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+const char* satLink::getDesc(bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("satLink::getDesc: cannot get Description as satLink is not configured" CR);
         return NULL;
     }
@@ -630,9 +579,8 @@ rc_t satLink::setLink(uint8_t p_link) {
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-rc_t satLink::getLink(uint8_t* p_link) {
-    *p_link = linkNo;
-    return RC_OK;
+uint8_t satLink::getLink(void) {
+    return linkNo;
 }
 
 void satLink::setDebug(const bool p_debug) {
@@ -722,13 +670,7 @@ void satLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink, return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link: %i", link);
+    printCli("Satelite-link: %i", static_cast<satLink*>(p_cliContext)->getLink());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -752,13 +694,7 @@ void satLink::onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCm
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or txunderruns , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i TX-underruns: %i", link, static_cast<satLink*>(p_cliContext)->getTxUnderruns());
+    printCli("Satelite-link %i TX-underruns: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getTxUnderruns());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -778,13 +714,7 @@ void satLink::onCliGetRxOverrrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCm
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxoverruns , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i RX-overruns: %i", link, static_cast<satLink*>(p_cliContext)->getTxUnderruns());
+    printCli("Satelite-link %i RX-overruns: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getTxUnderruns());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -804,13 +734,7 @@ void satLink::onCliGetScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliConte
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or timingviolations , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i RX-Timing-violations: %i", link, static_cast<satLink*>(p_cliContext)->getScanTimingViolations());
+    printCli("Satelite-link %i RX-Timing-violations: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getScanTimingViolations());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -830,13 +754,7 @@ void satLink::onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdT
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxcrcerr , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i RX-CRC-Errors: %i", link, static_cast<satLink*>(p_cliContext)->getRxCrcErrs());
+    printCli("Satelite-link %i RX-CRC-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -856,13 +774,7 @@ void satLink::onCliGetRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cli
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or remotecrcerr , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i Remote-CRC-Errors: %i", link, static_cast<satLink*>(p_cliContext)->getRemoteCrcErrs());
+    printCli("Satelite-link %i Remote-CRC-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRemoteCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -882,13 +794,7 @@ void satLink::onCliGetRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliC
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxsymerr , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i RX-Symbol-Errors: %i", link, static_cast<satLink*>(p_cliContext)->getRxSymbolErrs());
+    printCli("Satelite-link %i RX-Symbol-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxSymbolErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -908,13 +814,7 @@ void satLink::onCliGetRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or rxsizeerr , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i RX-Size-Errors: %i", link, static_cast<satLink*>(p_cliContext)->getRxDataSizeErrs());
+    printCli("Satelite-link %i RX-Size-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxDataSizeErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -934,13 +834,7 @@ void satLink::onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    rc_t rc;
-    uint8_t link;
-    if (rc = static_cast<satLink*>(p_cliContext)->getLink(&link)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satLink or wderr , return code: %i", rc);
-        return;
-    }
-    printCli("Satelite-link %i Watchdog-Errors: %i", link, static_cast<satLink*>(p_cliContext)->getWdErrs());
+    printCli("Satelite-link %i Watchdog-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getWdErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 

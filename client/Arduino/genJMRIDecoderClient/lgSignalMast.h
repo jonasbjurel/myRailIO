@@ -98,7 +98,6 @@ private:
 
     //Private data structures
     mastDesc_t mastDesc;
-    sysState_t sysState;
     bool failsafeSet;
     char* xmlConfig[5];
     bool debug;

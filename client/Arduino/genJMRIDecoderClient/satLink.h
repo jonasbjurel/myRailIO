@@ -90,13 +90,13 @@ public:
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
 	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, const bool p_force = false);
-	const char* getSystemName(void);
+	const char* getSystemName(bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, const bool p_force = false);
-	const char* getUsrName(void);
+	const char* getUsrName(bool p_force = false);
 	rc_t setDesc(const char* p_description, const bool p_force = false);
-	const char* getDesc(void);
+	const char* getDesc(bool p_force = false);
 	rc_t setLink(uint8_t p_link);
-	rc_t getLink(uint8_t* p_link);
+	uint8_t getLink(void);
 	void setDebug(const bool p_debug);
 	bool getDebug(void);
 	uint32_t getTxUnderruns(void);
@@ -152,7 +152,6 @@ private:
 	bool debug;
 	bool pmPoll;
 	sysState_t prevSysState;
-	bool satLinkDownDeclared;
 	bool satLinkScanDisabled;
 	bool processingSysState;
 	QList<sysState_t*>* sysStateQ;
@@ -169,7 +168,6 @@ private:
 	uint32_t rxSymbolErr;
 	uint32_t rxDataSizeErr;
 	uint32_t wdErr;
-	static uint16_t satLinkIndex;
 };
 /*==============================================================================================================================================*/
 /* END Class satLink                                                                                                                            */

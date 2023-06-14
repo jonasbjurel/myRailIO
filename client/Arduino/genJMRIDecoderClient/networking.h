@@ -190,7 +190,7 @@ public:
     static char* getMqttUri(void);                                                      // Get Mqtt URI, IP Address or URL
     static rc_t setMqttPort(uint16_t p_mqttPort, bool p_persist=true);                  // Set MQTT broker port
     static uint16_t getMqttPort(void);                                                  // Get MQTT broker port
-    static sysState_t getOpState(void);                                                 // Get current Networking Operational state
+    static sysState_t getOpStateBitmap(void);                                                 // Get current Networking Operational state
     static char* getOpStateStr(char* p_opStateStr);                                     // Get current Networking Operational state as string
 
 

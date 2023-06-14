@@ -41,7 +41,7 @@ void panic(const char* fmt, ...) {
     vsnprintf(msg, len + 1, fmt, args);
     va_end(args);
     Log.fatal("%s\n", msg);
-//    decoderHandle->setOpState(OP_INTFAIL);
+//    decoderHandle->setOpStateByBitmap(OP_INTFAIL);
     Log.fatal("panic: Waiting 5 seconds before restaritng - enabling spool-out of syslog, fail-safe settings, etc\n");
     TimerHandle_t rebootTimer;
     rebootTimer = xTimerCreate("rebootTimer",                       // Just a text name, not used by the kernel.

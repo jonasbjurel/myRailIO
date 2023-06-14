@@ -183,7 +183,7 @@ void signalMastAspects::dumpConfig(void) {
 }
 
 rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** p_appearance) {
-    if (parentHandle->systemState::getOpState() & OP_UNCONFIGURED) {
+    if (parentHandle->systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.ERROR("signalMastAspects::getAppearance: Aspects not configured, doing nothing..." CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -216,7 +216,7 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
 rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads, bool p_force) {
     Serial.printf("p_force: %i\n", p_force);
     Serial.printf("Searching for mast: %s\n", p_smType);
-    if ((parentHandle->systemState::getOpState() != OP_WORKING) && !p_force) { //NEEDS ATTENTION
+    if ((parentHandle->systemState::getOpStateBitmap() != OP_WORKING) && !p_force) { //NEEDS ATTENTION
         Log.ERROR("signalMastAspects::getNoOfHeads: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_noOfHeads = 0;
         return RC_GEN_ERR;

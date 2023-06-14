@@ -46,6 +46,10 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     setSysStateObjName("Decoder");
     Serial.printf("decoder: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("Decoder: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    processingSysState = false;
+    sysStateQ = new QList<sysState_t*>;
+    if (!(decoderSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+        panic("decoder::decoder: Could not create Lock objects - rebooting..." CR);
     debug = false;
     Log.INFO("decoder::init: Creating lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
@@ -66,8 +70,8 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     Log.INFO("decoder::init: satLinks created" CR);
     
     mqtt::create();
-    prevSysState = OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL;
-    setOpState(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL);
+    prevSysState = OP_WORKING;
+    setOpStateByBitmap(OP_INIT | OP_DISCONNECTED | OP_UNDISCOVERED | OP_UNCONFIGURED | OP_DISABLED | OP_CBL);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     if (!(decoderLock = xSemaphoreCreateMutex()))
         panic("decoder::decoder: Could not create Lock objects - rebooting..." CR);
@@ -119,7 +123,7 @@ rc_t decoder::init(void){
         MQTT_DEFAULT_KEEP_ALIVE_S,                              // Keep alive time
         MQTT_DEFAULT_PINGPERIOD_S,                              // Ping period
         MQTT_RETAIN);                                           // Default retain
-    unSetOpState(OP_UNDISCOVERED);
+    unSetOpStateByBitmap(OP_UNDISCOVERED);
     
     Log.INFO("decoder::init: Initializing lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
@@ -142,7 +146,7 @@ rc_t decoder::init(void){
         panic("decoder::init: Failed to send configuration request - rebooting..." CR);
     Log.INFO("decoder::init: Waiting for configuration ..." CR);
     uint16_t i = 0;
-    while (systemState::getOpState() & OP_UNCONFIGURED) {
+    while (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         if (i++ >= DECODER_CONFIG_TIMEOUT_S)
             panic("decoder::init: Did not receive configuration - rebooting..." CR);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -158,7 +162,7 @@ void decoder::onConfigHelper(const char* p_topic, const char* p_payload, const v
 
 void decoder::onConfig(const char* p_topic, const char* p_payload) {
     //CONFIG PARSING
-    if (!(systemState::getOpState() & OP_UNCONFIGURED))
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         panic("decoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
     Log.INFO("decoder::onConfig: Received an uverified configuration, parsing and validating it..." CR);
     xmlConfigDoc = new tinyxml2::XMLDocument;
@@ -249,8 +253,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     if (xmlconfig[XML_DECODER_USRNAME] == NULL){
         Log.WARN("decoder::onConfig: User name was not provided - using %s-UserName" CR, xmlconfig[XML_DECODER_SYSNAME]);
         xmlconfig[XML_DECODER_USRNAME] = new char[strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10];
-        const char* usrName[2] = { xmlconfig[XML_DECODER_SYSNAME], "- UserName" };
-        strcpy(xmlconfig[XML_DECODER_USRNAME], concatStr(usrName, 2));
+        const char* usrName[2] = { xmlconfig[XML_DECODER_SYSNAME], "-" };
+        strcpy(xmlconfig[XML_DECODER_USRNAME], "-");
     }
     if (xmlconfig[XML_DECODER_DESC] == NULL){
         Log.WARN("decoder::onConfig: Description was not provided - using \"-\"" CR);
@@ -269,10 +273,10 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         xmlconfig[XML_DECODER_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_DECODER_ADMSTATE], "ENABLE")) {
-        unSetOpState(OP_DISABLED);
+        unSetOpStateByBitmap(OP_DISABLED);
     }
     else if (!strcmp(xmlconfig[XML_DECODER_ADMSTATE], "DISABLE")) {
-        setOpState(OP_DISABLED);
+        setOpStateByBitmap(OP_DISABLED);
     }
     else
         panic("decoder::onConfig: Configuration decoder::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_DECODER_ADMSTATE]);
@@ -308,12 +312,12 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
             if (lgLinkXmlElement == NULL)
                 break;
             if (lgLinkItter >= MAX_LGLINKS)
-                panic("decoder::onConfig: > than maximum lgLinks provided - not supported, rebooting..." CR);
+                panic("decoder::onConfig: > than maximum lgLinks provided (%i/%i) - not supported, rebooting..." CR, lgLinkItter, MAX_LGLINKS);
             getTagTxt(lgLinkXmlElement->FirstChildElement(), lgLinkSearchTags, lgLinkXmlConfig, sizeof(lgLinkSearchTags) / 4); // Need to fix the addressing for portability
             if (!lgLinkXmlConfig[XML_LGLINK_LINK])
                 panic("decoder::onConfig:: lgLink missing - rebooting..." CR);
             if ((atoi(lgLinkSearchTags[XML_LGLINK_LINK])) < 0 || atoi(lgLinkSearchTags[XML_LGLINK_LINK]) >= MAX_LGLINKS)
-                panic("sat::onConfig:: Satelite link number out of bounds - rebooting...");
+                panic("decoder::onConfig:: lgLink number (%i) out of bounds - rebooting..." CR, atoi(lgLinkSearchTags[XML_LGLINK_LINK]));
             lgLinks[atoi(lgLinkXmlConfig[XML_LGLINK_LINK])]->onConfig(lgLinkXmlElement);
             lgLinkXmlElement = ((tinyxml2::XMLElement*)lgLinkXmlElement)->NextSiblingElement("LightgroupsLink");
         }
@@ -335,12 +339,12 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
             if (satLinkXmlElement == NULL)
                 break;
             if (satLinkItter >= MAX_SATLINKS)
-                panic("decoder::onConfig: > than maximum satLinks provided - not supported - rebooting..." CR);
+                panic("decoder::onConfig: > than maximum satLinks provided (%i/%i) - not supported - rebooting..." CR, satLinkItter, MAX_SATLINKS);
             getTagTxt(satLinkXmlElement->FirstChildElement(), satLinkSearchTags, satLinkXmlconfig, sizeof(satLinkSearchTags) / 4); // Need to fix the addressing for portability
             if (!satLinkXmlconfig[XML_SATLINK_LINK])
                 panic("decoder::onConfig:: satLink missing - rebooting..." CR);
             if ((atoi(satLinkXmlconfig[XML_SATLINK_LINK])) < 0 || atoi(satLinkXmlconfig[XML_SATLINK_LINK]) >= MAX_SATLINKS)
-                panic("sat::onConfig:: Satelite link number out of bounds - rebooting...");
+                panic("decoder::onConfig:: Satelite link number (%i) out of bounds - rebooting..." CR, atoi(satLinkXmlconfig[XML_SATLINK_LINK]));
             satLinks[atoi(satLinkXmlconfig[XML_SATLINK_LINK])]->onConfig(satLinkXmlElement);
             satLinkXmlElement = ((tinyxml2::XMLElement*)satLinkXmlElement)->NextSiblingElement("SateliteLink");
         }
@@ -348,14 +352,14 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     else
         Log.INFO("decoder::onConfig: No satLinks provided, no satelites will be configured" CR);
     delete xmlConfigDoc;
-    unSetOpState(OP_UNCONFIGURED);
+    unSetOpStateByBitmap(OP_UNCONFIGURED);
     Log.INFO("decoder::onConfig: Configuration successfully finished" CR);
 }
 
 rc_t decoder::start(void) {
     Log.INFO("decoder::start: Starting decoder" CR);
     uint16_t i = 0;
-    while (systemState::getOpState() & OP_UNCONFIGURED) {
+    while (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         if (i == 0)
             Log.INFO("decoder::start: Waiting for decoder to be configured before it can start" CR);
         if (i++ >= DECODER_CONFIG_TIMEOUT_S * 10)
@@ -365,17 +369,17 @@ rc_t decoder::start(void) {
     }
     Log.INFO("decoder::start: Subscribing to adm- and op state topics" CR);
     char admopSubscribeTopic[300];
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), getSystemName());
     if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this))
         panic("decoder::start: Failed to suscribe to admState topic - rebooting..." CR);
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_TOPIC, mqtt::getDecoderUri(), getSystemName());
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), getSystemName());
     if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this))
         panic("decoder::start: Failed to suscribe to opState topic - rebooting..." CR);
     Log.INFO("decoder::start: Starting lightgroup link Decoders" CR);
     for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
         Log.TERSE("decoder::start: Starting LgLink-%d" CR, lgLinkItter);
         if (lgLinks[lgLinkItter] == NULL)
-            panic("decoder::start: lgLink - % d does not exist - rebooting..." CR, lgLinkItter);
+            panic("decoder::start: lgLink - %d does not exist - rebooting..." CR, lgLinkItter);
         lgLinks[lgLinkItter]->start();
     }
 
@@ -383,76 +387,102 @@ Log.INFO("decoder::start: Starting satelite link Decoders" CR);
 for (int satLinkItter = 0; satLinkItter < MAX_SATLINKS; satLinkItter++) {
     Log.TERSE("decoder::start: Starting SatLink-%d" CR, satLinkItter);
     if (satLinks[satLinkItter] == NULL)
-        panic("decoder::start: satLink - % d does not exist - rebooting..." CR, satLinkItter);
+        panic("decoder::start: satLink - %d does not exist - rebooting..." CR, satLinkItter);
     satLinks[satLinkItter]->start();
 }
-
-    unSetOpState(OP_INIT);
+    unSetOpStateByBitmap(OP_INIT);
     Log.INFO("decoder::start: decoder started" CR);
     return RC_OK;
 }
 
-void decoder::onSysStateChangeHelper(const void* p_miscData, uint16_t p_sysState) {
+void decoder::onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysState) {
     ((decoder*)p_miscData)->onSysStateChange(p_sysState);
 }
 
-void decoder::onSysStateChange(uint16_t p_sysState) {
+void decoder::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    sysState_t sysStateChange = p_sysState ^ prevSysState;
-    if (!sysStateChange)
-        return;
-    if (p_sysState){
-        Log.INFO("decoder::onSystateChange: The decoder has a new OP-state: %s" CR, systemState::getOpStateStr(opStateStr, p_sysState));
-        Log.TERSE("decoder::onSystateChange: Following OP-states have changed: %s" CR, systemState::getOpStateStr(opStateStr, sysStateChange));
+    Log.INFO("decoder::onSysStateChange: decoder has a new OP-state: %s, Queueing it for processing" CR, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
+    sysState_t* sysStateToQ = new sysState_t;
+    *sysStateToQ = p_sysState;
+    sysStateQ->push_back(sysStateToQ);
+    xSemaphoreGive(decoderSysStateLock);
+    if (!processingSysState) {
+        processingSysState = true;
+        processSysState();
     }
-    else
-        Log.TERSE("decoder::onSystateChange: he decoder has a new OP-state: \"WORKING\"" CR);
+}
 
-    if ((sysStateChange & OP_INTFAIL) && (p_sysState & OP_INTFAIL)){
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
-        mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
-        panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
-        prevSysState = p_sysState;
-        return;
+void decoder::processSysState(void) {
+    sysState_t newSysState;
+    bool entering = true;
+    xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
+    while (sysStateQ->size()) {
+        if (!entering) {
+            xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
+            entering = false;
+        }
+        newSysState = *(sysStateQ->front());
+        delete sysStateQ->front();
+        sysStateQ->pop_front();
+        xSemaphoreGive(decoderSysStateLock);
+        char opStateStr[100];
+        sysState_t sysStateChange = newSysState ^ prevSysState;
+        if (!sysStateChange)
+            continue;
+        Log.INFO("decoder::onSystateChange: The decoder has a new OP-state: %s" CR, systemState::getOpStateStr(opStateStr));
+        if ((sysStateChange & ~(OP_CBL | OP_SERVUNAVAILABLE)) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+            char publishTopic[200];
+            char publishPayload[100];
+            sprintf(publishTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_DECODER_SYSNAME]);
+            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL & ~OP_SERVUNAVAILABLE, publishPayload), false);
+        }
+        if ((sysStateChange & OP_INTFAIL) && (newSysState & OP_INTFAIL)) {
+            panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
+            prevSysState = newSysState;
+            continue;
+        }
+        if (newSysState & OP_INIT) {
+            Log.TERSE("decoder::onSystateChange: The decoder is initializing - doing nothing" CR);
+            prevSysState = newSysState;
+            continue;
+        }
+        if ((sysStateChange & OP_DISCONNECTED) && (newSysState & OP_DISCONNECTED)) {
+            panic("decoder::onSystateChange: decoder has been disconnected after initialization phase, rebooting..." CR);
+            prevSysState = newSysState;
+            continue;
+        }
+        if ((sysStateChange & OP_INIT) && !(newSysState & OP_DISABLED)) {
+            Log.TERSE("decoder::onSystateChange: The decoder have been initialized and is enabled - enabling decoder supervision" CR);
+            mqtt::up();
+        }
+        else if ((sysStateChange & OP_INIT) && (newSysState & OP_DISABLED)) {
+            Log.TERSE("decoder::onSystateChange: The decoder have been initialized but is enabled - will not enable decoder supervision" CR);
+            mqtt::up();
+        }
+        if ((sysStateChange & OP_DISABLED) && (newSysState & OP_DISABLED)) {
+            Log.INFO("decoder::onSystateChange: decocoder has been disabled by server, disabling decoder supervision" CR);
+            mqtt::down();
+        }
+        else if ((sysStateChange & OP_DISABLED) && !(newSysState & OP_DISABLED)) {
+            Log.INFO("decoder::onSystateChange: decocoder has been enabled by server, enabling decoder supervision" CR);
+            mqtt::up();
+        }
+        if ((sysStateChange & OP_SERVUNAVAILABLE) && !(newSysState & OP_SERVUNAVAILABLE)) {
+            Log.INFO("decoder::onSystateChange: server is recieving MQTT Pings from the decoder" CR);
+        }
+        else if ((sysStateChange & OP_SERVUNAVAILABLE) && (newSysState & OP_SERVUNAVAILABLE)) {
+            Log.INFO("decoder::onSystateChange: server failed to receive MQTT Pings from the decoder" CR);
+        }
+        if ((sysStateChange & OP_CLIEUNAVAILABLE) && !(newSysState & OP_CLIEUNAVAILABLE)) {
+            Log.INFO("decoder::onSystateChange: decoder is recieving MQTT Pings from the server" CR);
+        }
+        else if ((sysStateChange & OP_CLIEUNAVAILABLE) && (newSysState & OP_CLIEUNAVAILABLE)) {
+            Log.INFO("decoder::onSystateChange: decider failed to receive MQTT Pings from the server" CR);
+        }
+        prevSysState = newSysState;
     }
-    if (p_sysState & OP_INIT) {
-        Log.TERSE("decoder::onSystateChange: The decoder is initializing - doing nothing" CR);
-        prevSysState = p_sysState;
-        return;
-    }
-    if ((sysStateChange & OP_DISCONNECTED) && (p_sysState & OP_DISCONNECTED)) {
-        panic("decoder::onSystateChange: decoder has been disconnected after initialization phase, rebooting..." CR);
-        prevSysState = p_sysState;
-        return;
-    }
-    if ((sysStateChange & OP_INIT) && !(p_sysState & OP_DISABLED)){
-        Log.TERSE("decoder::onSystateChange: The decoder have been initialized and is enabled - enabling decoder supervision" CR);
-        mqtt::up();
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
-        mqtt::sendMsg(publishTopic, MQTT_OP_AVAIL_PAYLOAD, false);
-        prevSysState = p_sysState;
-        return;
-    }
-    if ((sysStateChange & OP_DISABLED) && (p_sysState & OP_DISABLED)) {
-        Log.INFO("decoder::onSystateChange: decocoder has been disabled by server, disabling decoder supervision" CR);
-        mqtt::down();
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
-        mqtt::sendMsg(publishTopic, MQTT_OP_UNAVAIL_PAYLOAD, false);
-        prevSysState = p_sysState;
-        return;
-    }
-    if ((sysStateChange & OP_DISABLED) && !(p_sysState & OP_DISABLED)) {
-        Log.INFO("decoder::onSystateChange: decocoder has been enabled by server, enabling decoder supervision" CR);
-        mqtt::up();
-        char publishTopic[300];
-        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_OPSTATE_TOPIC, "/", mqtt::getDecoderUri());
-        mqtt::sendMsg(publishTopic, MQTT_OP_AVAIL_PAYLOAD, false);
-        prevSysState = p_sysState;
-        return;
-    }
+    processingSysState = false;
 }
 
 void decoder::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
@@ -460,16 +490,11 @@ void decoder::onOpStateChangeHelper(const char* p_topic, const char* p_payload, 
 }
 
 void decoder::onOpStateChange(const char* p_topic, const char* p_payload) {
-    if (!strcmp(p_payload, MQTT_OP_AVAIL_PAYLOAD)) {
-        unSetOpState(OP_UNAVAILABLE);
-        Log.INFO("decoder::onOpStateChange: got available message from server" CR);
-    }
-    else if (!strcmp(p_payload, MQTT_OP_UNAVAIL_PAYLOAD)) {
-        setOpState(OP_UNAVAILABLE);
-        Log.INFO("decoder::onOpStateChange: got unavailable message from server" CR);
-    }
-    else
-        Log.ERROR("decoder::onOpStateChange: got an invalid availability message from server - doing nothing" CR);
+    sysState_t newServerOpState;
+    Log.INFO("decoder::onOpStateChange: got a new opState from server: %s" CR, p_payload);
+    newServerOpState = getOpStateBitmapByStr(p_payload);
+    setOpStateByBitmap(newServerOpState & (OP_CBL | OP_SERVUNAVAILABLE));
+    unSetOpStateByBitmap(~newServerOpState & (OP_CBL | OP_SERVUNAVAILABLE));
 }
 
 void decoder::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
@@ -478,11 +503,11 @@ void decoder::onAdmStateChangeHelper(const char* p_topic, const char* p_payload,
 
 void decoder::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
-        unSetOpState(OP_DISABLED);
+        unSetOpStateByBitmap(OP_DISABLED);
         Log.INFO("decoder::onAdmStateChange: got online message from server" CR);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
-        setOpState(OP_DISABLED);
+        setOpStateByBitmap(OP_DISABLED);
         Log.INFO("decoder::onAdmStateChange: got off-line message from server" CR);
     }
     else
@@ -495,13 +520,13 @@ void decoder::onMqttOpStateChangeHelper(const void* p_miscCbData, sysState_t p_s
 
 void decoder::onMqttOpStateChange(sysState_t p_sysState) {
     if (p_sysState)
-        setOpState(OP_CBL);
+        setOpStateByBitmap(OP_CBL);
     else
-        unSetOpState(OP_CBL);
+        unSetOpStateByBitmap(OP_CBL);
     if (p_sysState & OP_DISCONNECTED)
-        setOpState(OP_DISCONNECTED);
+        setOpStateByBitmap(OP_DISCONNECTED);
     else
-        unSetOpState(OP_DISCONNECTED);
+        unSetOpStateByBitmap(OP_DISCONNECTED);
 }
 
 rc_t decoder::getOpStateStr(char* p_opStateStr) {
@@ -530,7 +555,7 @@ rc_t decoder::setMqttBrokerURI(const char* p_mqttBrokerURI, bool p_force) {
 }
 
 const char* decoder::getMqttBrokerURI(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getMqttBrokerURI: cannot get MQTT URI as decoder is not configured" CR);
         return NULL;
     }
@@ -558,7 +583,7 @@ rc_t decoder::setMqttPort(int32_t p_mqttPort, bool p_force) {
 }
 
 uint16_t decoder::getMqttPort(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getMqttPort: cannot get MQTT port as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -581,7 +606,7 @@ rc_t decoder::setMqttPrefix(const char* p_mqttPrefix, bool p_force) { //NEED TO 
 }
 
 const char* decoder::getMqttPrefix(bool p_force) {  //NEED TO FIX
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getMqttPrefix: cannot get MQTT prefix as decoder is not configured" CR);
         return NULL;
     }
@@ -605,7 +630,7 @@ rc_t decoder::setKeepAlivePeriod(uint8_t p_keepAlivePeriod, bool p_force) {
 }
 
 float decoder::getKeepAlivePeriod(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getKeepAlivePeriod: cannot get keep-alive period as decoder is not configured" CR);
         return RC_GEN_ERR;
     }
@@ -630,7 +655,7 @@ rc_t decoder::setPingPeriod(float p_pingPeriod, bool p_force) {
 }
 
 float decoder::getPingPeriod(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force){
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force){
         Log.ERROR("decoder::getPingPeriod: cannot get keep-alive period as decoder is not configured" CR);
         return RC_GEN_ERR;
     }
@@ -672,7 +697,7 @@ rc_t decoder::setNtpServer(const char* p_ntpServer, bool p_force) {
 }
 
 const char* decoder::getNtpServer(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && p_force) {
         Log.ERROR("decoder::getNtpServer: cannot get NTP server as decoder is not configured" CR);
         return NULL;
     }
@@ -695,7 +720,7 @@ rc_t decoder::setNtpPort(int32_t p_ntpPort, bool p_force) {
 }
 
 uint16_t decoder::getNtpPort(bool p_force) {
-    if (systemState::getOpState() & OP_UNCONFIGURED) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         Log.ERROR("decoder::getNtpPort: cannot get NTP port as decoder is not configured" CR);
         return 0;
     }
@@ -778,7 +803,7 @@ rc_t decoder::setTz(const char* p_tz, bool p_force) {
 }
 
 rc_t decoder::getTz(char* p_tz, bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getTz: cannot get Time-zone as decoder is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -837,7 +862,7 @@ rc_t decoder::setFailSafe(const bool p_failsafe, bool p_force) {
 }
 
 bool decoder::getFailSafe(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getFailSafe: cannot get fail-safe as decoder is not configured" CR);
         return false;
     }
@@ -853,7 +878,7 @@ rc_t decoder::setSystemName(const char* p_systemName, bool p_force) {
 }
 
 const char* decoder::getSystemName(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getSystemName: cannot get System name as decoder is not configured" CR);
         return NULL;
     }
@@ -875,7 +900,7 @@ rc_t decoder::setUsrName(const char* p_usrName, bool p_force) {
 }
 
 const char* decoder::getUsrName(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getUsrName: cannot get User name as decoder is not configured" CR);
         return NULL;
     }
@@ -896,7 +921,7 @@ rc_t decoder::setDesc(const char* p_description, bool p_force) {
 }
 
 const char* decoder::getDesc(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getDesc: cannot get Description as decoder is not configured" CR);
         return NULL;
     }
@@ -915,7 +940,7 @@ rc_t decoder::setMac(const char* p_mac, bool p_force) {
 }
 
 const char* decoder::getMac(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getMac: cannot get MAC as decoder is not configured" CR);
         return NULL;
     }
@@ -934,7 +959,7 @@ rc_t decoder::setDecoderUri(const char* p_decoderUri, bool p_force) {
 }
 
 const char* decoder::getDecoderUri(bool p_force) {
-    if ((systemState::getOpState() & OP_UNCONFIGURED) && !p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getDecoderUri: cannot get Decoder URI as decoder is not configured" CR);
         return NULL;
     }

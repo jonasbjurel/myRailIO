@@ -229,6 +229,7 @@ class satelite(systemState, schema):
             self.childs.value
         except:
             childs = False
+
         if childs:
             for child in self.childs.value:
                 res = child.commit1()
@@ -441,7 +442,7 @@ class satelite(systemState, schema):
         if str(statsXmlTree.getroot().tag) != "statReport":
             trace.notify(DEBUG_ERROR, "Satelite statistics report missformated")
             return
-        if not (self.getOpStateDetail() & OP_DISABLED):
+        if not (self.getOpStateDetail() & OP_DISABLED[STATE]):
             statsXmlVal = parse_xml(statsXmlTree.getroot(),
                                     {"rxCrcErr": MANINT,
                                     "txCrcErr": MANINT,
