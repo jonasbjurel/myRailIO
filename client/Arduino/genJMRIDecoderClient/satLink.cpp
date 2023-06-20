@@ -142,6 +142,7 @@ rc_t satLink::init(void) {
     Log.INFO("satLink::init: Creating satelites for link channel %d" CR, linkNo);
     for (uint8_t satAddress = 0; satAddress < MAX_SATELITES; satAddress++) {
         sats[satAddress] = new sat(satAddress, this);
+        Serial.printf("Creating satelite %i, pointer %i" CR, satAddress, sats[satAddress]);
         if (sats[satAddress] == NULL)
             panic("satLink::init: Could not create satelite object for link channel - rebooting...");
         addSysStateChild(sats[satAddress]);
@@ -326,7 +327,7 @@ void satLink::pmPollHelper(void* p_metaData) {
 void satLink::onPmPoll(void) {
     if (xSemaphoreTake(satLinkPmPollLock, 0) == pdFALSE) {
         Log.VERBOSE("satLink::onPmPoll: Did not have time to exit the pmPoll loop from when pmPolling was ordered to be stop, no need to re-enter" CR);
-        return;
+        vTaskDelete(NULL);
     }
     Log.INFO("satLink::onPmPoll: Starting PM polling for satLink %d" CR, link);
     int64_t  nextLoopTime = esp_timer_get_time();
@@ -425,6 +426,7 @@ void satLink::processSysState(void) {
         sysState_t sysStateChange = newSysState ^ prevSysState;
         if (!sysStateChange)
             continue;
+        Serial.println(systemState::getOpStateStr(opStateStr));
         Log.INFO("satLink::processSysState: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
         if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
             char publishTopic[200];

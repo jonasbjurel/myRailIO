@@ -112,7 +112,7 @@
 
 
 // Turnouts
-#define MQTT_TURN_TOPIC							MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_TURN_TOPIC_FRAGMENT										///followed by /sysname
+#define MQTT_TURN_TOPIC							MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_TURN_TOPIC_FRAGMENT "/state"										///followed by /sysname
 #define MQTT_TURN_SOLENOID_PAYLOAD				"SOLENOID"
 #define MQTT_TURN_SERVO_PAYLOAD					"SERVO"
 #define MQTT_TURN_CLOSED_PAYLOAD				"CLOSED"

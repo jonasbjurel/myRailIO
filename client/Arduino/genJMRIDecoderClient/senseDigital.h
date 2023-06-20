@@ -64,7 +64,7 @@ public:
     rc_t start(void); //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
     void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
     void onSysStateChange(uint16_t p_sysState);
-    void onSensChange(bool p_senseVal);
+    void onSenseChange(bool p_senseVal);
     void failsafe(bool p_failSafe);
     void getSensing(char* p_sensing);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);

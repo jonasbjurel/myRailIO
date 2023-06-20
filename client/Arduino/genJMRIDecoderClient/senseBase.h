@@ -92,6 +92,7 @@ public:
 	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement);
 	rc_t start(void);
 	void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
+	void onSenseChange(bool p_senseVal);
 	static void onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
 	void processSysState(void);

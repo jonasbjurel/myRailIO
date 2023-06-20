@@ -71,8 +71,9 @@
 // Sensor configuration
 // ====================
 #define DEFAULT_SENS_FILTER_TIME					5	// Digital sensor filter (ms)
-#define MAX_SENS									0	//8 Maximum sensors // Maximum satelites per satelite link
+#define MAX_SENS									1	//8 Maximum sensors // Maximum satelites per satelite link
 #define SATLINK_UPDATE_MS							5	// Satelite scan period (ms)
+#define SENSDIGITAL_DEFAULT_FAILSAFE				true
 
 // Actuator configuration
 // ======================

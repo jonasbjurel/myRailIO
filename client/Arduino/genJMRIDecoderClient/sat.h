@@ -79,6 +79,8 @@ public:
 	void onPmPoll(void);
 	static void onSatLibStateChangeHelper(satelite* p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle);
 	void onSatLibStateChange(satOpState_t p_satOpState);
+	static void onSenseChangeHelper(satelite* p_satelite, uint8_t p_linkAddr, uint8_t p_satAddr_p, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata);
+	void onSenseChange(uint8_t p_senseAddr, bool p_senseVal);
 	static void onSysStateChangeHelper(const void* p_satHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
 	void processSysState(void);

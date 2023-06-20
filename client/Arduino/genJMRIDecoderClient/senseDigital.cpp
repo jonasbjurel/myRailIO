@@ -42,7 +42,7 @@ senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     satLibHandle = NULL;
     sysState = OP_WORKING;
     failSafe = false;
-    filteredSenseVal = false;
+    filteredSenseVal = SENSDIGITAL_DEFAULT_FAILSAFE;
     debug = false;
 
     Log.INFO("senseDigital::senseDigital: Creating senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
@@ -87,10 +87,11 @@ void senseDigital::onSysStateChange(uint16_t p_sysState) {
     Log.INFO("senseDigital::onSystateChange: Got a new systemState %d for senseDigital extention class object %s, on sensor port %d, on satelite adress %d, satLink %d" CR, sysState, sensPort, satAddr, satLinkNo);
 
     if (!sysState)
-        onSensChange(filteredSenseVal);
+        onSenseChange(filteredSenseVal);
 }
 
-void senseDigital::onSensChange(bool p_filteredSensorVal) {
+void senseDigital::onSenseChange(bool p_filteredSensorVal) {
+    Log.VERBOSE("senseDigital::onSensChange, sensorvalue have changed to: %i" CR, p_filteredSensorVal);
     filteredSenseVal = p_filteredSensorVal;
     if (!failSafe) {
         char publishTopic[300];
@@ -111,7 +112,7 @@ void senseDigital::failsafe(bool p_failSafe) {
     else {
         Log.INFO("actLight::setFailSafe: Fail-safe un-set for light actuator %s" CR, sensSysName);
         failSafe = p_failSafe;
-        onSensChange(filteredSenseVal);
+        onSenseChange(filteredSenseVal);
     }
 }
 

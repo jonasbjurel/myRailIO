@@ -129,13 +129,13 @@ void actTurn::onActTurnChangeHelper(const char* p_topic, const char* p_payload, 
 
 void actTurn::onActTurnChange(const char* p_topic, const char* p_payload) {
     xSemaphoreTake(actTurnLock, portMAX_DELAY);
-    if (strcmp(p_payload, MQTT_TURN_CLOSED_PAYLOAD)) {
+    if (!strcmp(p_payload, MQTT_TURN_CLOSED_PAYLOAD)) {
         Log.INFO("senseDigital::onTurnChange: Got a close turnout change order for turnout %s" CR, sysName);
         orderedTurnOutPos = TURN_CLOSED_POS;
         if (!failSafe)
             turnOutPos = TURN_CLOSED_POS;
     }
-    else if (strcmp(p_payload, MQTT_TURN_THROWN_PAYLOAD)) {
+    else if (!strcmp(p_payload, MQTT_TURN_THROWN_PAYLOAD)) {
         Log.INFO("senseDigital::onTurnChange: Got a throw turnout change order for turnout %s" CR, sysName);
         orderedTurnOutPos = TURN_THROWN_POS;
         if (!failSafe)

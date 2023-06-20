@@ -209,6 +209,15 @@ void senseBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
         Log.INFO("senseBase::onDiscovered: sensor port %d, on satelite adress %d, satLink %d discovered, but was not configured" CR, sensPort, satAddr, satLinkNo);
 }
 
+void senseBase::onSenseChange(bool p_senseVal) {
+    if (!getOpStateBitmap())
+        SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], onSenseChange(p_senseVal));
+    else
+        Log.TERSE("senseBase::onSenseChange: Sensor has changed to %i, but satelite is not OP_WORKING, doing nothing..." CR, p_senseVal);
+
+}
+
+
 void senseBase::onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState) {
     ((senseBase*)p_senseBaseHandle)->onSysStateChange(p_sysState);
 }

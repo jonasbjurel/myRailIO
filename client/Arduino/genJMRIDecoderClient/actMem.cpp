@@ -35,7 +35,7 @@
 /*==============================================================================================================================================*/
 actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actBaseHandle = p_actBaseHandle;
-    actBaseHandle->getPort(&actPort);
+    actPort = actBaseHandle->getPort(true);
     satAddr = actBaseHandle->satHandle->getAddr();
     satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
     sysName = actBaseHandle->getSystemName(true);
@@ -85,10 +85,6 @@ void actMem::onConfig(const tinyxml2::XMLElement* p_actExtentionXmlElement) {
 
 rc_t actMem::start(void) {
     Log.INFO("actMem::start: Starting actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
-    if (actBaseHandle->systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.INFO("actMem::start: actMem actuator extention object %s, on actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sysName, actPort, satAddr, satLinkNo);
-        return RC_NOT_CONFIGURED_ERR;
-    }
     return RC_OK;
 }
 
@@ -131,6 +127,10 @@ void actMem::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
         else if (actMemType == ACTMEM_TYPE_ONOFF) {
             Log.INFO("actMem::onDiscovered: Startings ON/OFF memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
         }
+        else if (actMemType == ACTMEM_TYPE_PULSE) {
+            Log.INFO("actMem::onDiscovered: Startings Pulse memory actuator %s, on port %d, on satelite adress %d, satLink %d" CR, sysName, actPort, satAddr, satLinkNo);
+            satLibHandle->setSatActMode(SATMODE_PULSE, actPort);
+        }
     }
     else {
         satLibHandle = NULL;
@@ -149,14 +149,14 @@ void actMem::onActMemChangeHelper(const char* p_topic, const char* p_payload, co
 }
 
 void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
-    Log.INFO("actMem::onMemActChange: Got a change order for memory actuator %s - new value %d" CR, sysName, p_payload);
+    Log.INFO("actMem::onMemActChange: Got a change order for memory actuator %s - new value %s" CR, sysName, p_payload);
     xSemaphoreTake(actMemLock, portMAX_DELAY);
-    if (strcmp(p_payload, "ON")) {
+    if (!strcmp(p_payload, "ON")) {
         orderedActMemPos = 255;
         if (!failSafe)
             actMemPos = 255;
     }
-    else if (strcmp(p_payload, "OFF")) {
+    else if (!strcmp(p_payload, "OFF")) {
         orderedActMemPos = 0;
         if (!failSafe)
             actMemPos = 0;
@@ -172,41 +172,57 @@ void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
 }
 
 void actMem::setActMem(void) {
+    satErr_t libRc;
     if ((satLibHandle != NULL) && !failSafe) {
         if (actMemType == ACTMEM_TYPE_SOLENOID) {
             if ((actMemPos) ^ actMemSolenoidPushPort) {
-                if (satLibHandle->setSatActVal(actMemSolenoidActivationTime, actPort))
-                    Log.ERROR("actMem::setActMem: Failed to execute order for memory solenoid actuator %s" CR, sysName);
-                Log.INFO("actMem::setActMem: Memory solenoid actuator change order for %s fininished" CR, sysName);
+                if (libRc = satLibHandle->setSatActVal(actMemSolenoidActivationTime, actPort))
+                    Log.ERROR("actMem::setActMem: Failed to execute order for memory solenoid actuator %s" CR, sysName, libRc);
+                else
+                    Log.INFO("actMem::setActMem: Memory solenoid actuator change order for %s fininished" CR, sysName);
             }
         }
         else if (actMemType == ACTMEM_TYPE_SERVO) {
             uint8_t tmpServoPwmPos = SERVO_LEFT_PWM_VAL + (actMemPos * (SERVO_RIGHT_PWM_VAL - SERVO_LEFT_PWM_VAL) / 256);
-            if (satLibHandle->setSatActVal(tmpServoPwmPos, actPort))
-                Log.ERROR("actMem::setActMem: Failed to execute order for memory servo actuator %s" CR, sysName);
-            Log.INFO("actMem::setActMem: Memory servo actuator change order for %s fininished" CR, sysName);
+            if (libRc = satLibHandle->setSatActVal(tmpServoPwmPos, actPort))
+                Log.ERROR("actMem::setActMem: Failed to execute order for memory servo actuator %s, return code: 0x%llx" CR, sysName, libRc);
+            else
+                Log.INFO("actMem::setActMem: Memory servo actuator change order for %s fininished" CR, sysName);
         }
         else if (actMemType == ACTMEM_TYPE_PWM100) {
-            if (satLibHandle->setSatActVal(actMemPos, actPort))
-                Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 100 Hz actuator %s" CR, sysName);
-            Log.INFO("actMem::setActMem: Memory 100 Hz PWM actuator change order for %s fininished" CR, sysName);
+            if (libRc = satLibHandle->setSatActVal(actMemPos, actPort))
+                Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 100 Hz actuator %s, return code: 0x%llx" CR, sysName, libRc);
+            else
+                Log.INFO("actMem::setActMem: Memory 100 Hz PWM actuator change order for %s fininished" CR, sysName);
         }
         else if (actMemType == ACTMEM_TYPE_PWM125K) {
-            if (satLibHandle->setSatActVal(actMemPos, actPort))
-                Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 125 KHz actuator %s" CR, sysName);
-            Log.INFO("actMem::setActMem: Memory 125 KHz PWM actuator change order for %s fininished" CR, sysName);
+            if (libRc = satLibHandle->setSatActVal(actMemPos, actPort))
+                Log.ERROR("actMem::setActMem: Failed to execute order for memory PWM 125 KHz actuator %s, return code: 0x%llx" CR, sysName, libRc);
+            else
+                Log.INFO("actMem::setActMem: Memory 125 KHz PWM actuator change order for %s fininished" CR, sysName);
         }
         else if (actMemType == ACTMEM_TYPE_ONOFF) {
             if (actMemPos) {
-                if (satLibHandle->setSatActMode(SATMODE_HIGH, actPort))
-                    Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
+                if (libRc = satLibHandle->setSatActMode(SATMODE_HIGH, actPort))
+                    Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s, return code: 0x%llx" CR, sysName, libRc);
+                else
+                    Log.INFO("actMem::setActMem: Memory ON actuator change order for %s fininished" CR, sysName);
             }
             else {
-                if (satLibHandle->setSatActMode(SATMODE_LOW, actPort))
-                    Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s" CR, sysName);
+                if (libRc = satLibHandle->setSatActMode(SATMODE_LOW, actPort))
+                    Log.ERROR("actMem::setActMem: Failed to execute order for memory ON/OFF actuator %s, return code: 0x%llx" CR, sysName, libRc);
+                else
+                    Log.INFO("actMem::setActMem: Memory OFF actuator change order for %s fininished" CR, sysName);
             }
-            Log.INFO("actMem::setActMem: Memory ON/OFF actuator change order for %s fininished" CR, sysName);
         }
+        else if (actMemType == ACTMEM_TYPE_PULSE) {
+            if (libRc = satLibHandle->setSatActVal(actMemPos, actPort))
+                Log.ERROR("actMem::setActMem: Failed to execute order for Pulse actuator %s, return code: 0x%llx" CR, sysName, libRc);
+            else
+                Log.INFO("actMem::setActMem: Memory Pulse actuator change order for %s fininished" CR, sysName);
+        }
+        else 
+            Log.ERROR("actMem::setActMem: Configured memActuator type %i for actuator %s, not supported" CR, actMemType, sysName);
     }
 }
 

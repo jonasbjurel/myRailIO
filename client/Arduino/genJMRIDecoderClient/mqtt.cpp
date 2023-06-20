@@ -534,11 +534,13 @@ rc_t mqtt::reSubscribe(void) {
 }
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
-    Log.VERBOSE("mqtt::onMqttMsg, Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, p_payload, p_length);
     bool subFound = false;
     char* payload = new char[p_length + 1];
+    if (!payload)
+        panic("mqtt::onMqttMsg: Failed to allocate a MQTT receive buffer, rebooting...");
     memcpy(payload, p_payload, p_length);
     payload[p_length] = '\0';
+    Log.VERBOSE("mqtt::onMqttMsg, Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, payload, p_length);
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, p_topic)) {
             for (int j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
@@ -610,6 +612,7 @@ void mqtt::poll(void* dummy) {
         case MQTT_CONNECTED:
             if (mqttStatus != stat) {
                 sysState->unSetOpStateByBitmap(OP_DISCONNECTED);
+                //mqttClient->unsubscribe("#");
                 //resubscribe
                 Log.INFO("mqtt::poll, MQTT connection established - unsetting opstate OP_DISCONNECTED" CR);
             }

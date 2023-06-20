@@ -96,12 +96,12 @@ void actLight::onActLightChangeHelper(const char* p_topic, const char* p_payload
 void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
     Log.INFO("actLight::onMemActChange: Got a change order for light actuator %s - new value %d" CR, sysName, p_payload);
     xSemaphoreTake(actLightLock, portMAX_DELAY);
-    if (strcmp(p_payload, MQTT_LIGHT_ON_PAYLOAD)) {
+    if (!strcmp(p_payload, MQTT_LIGHT_ON_PAYLOAD)) {
         orderedActLightPos = 255;
         if (!failSafe)
             actLightPos = 255;
     }
-    else if (strcmp(p_payload, MQTT_LIGHT_OFF_PAYLOAD)) {
+    else if (!strcmp(p_payload, MQTT_LIGHT_OFF_PAYLOAD)) {
         orderedActLightPos = 0;
         if (!failSafe)
             actLightPos = 0;
@@ -127,7 +127,7 @@ void actLight::setActLight(void) {
 void actLight::failsafe(bool p_failSafe) {
     xSemaphoreTake(actLightLock, portMAX_DELAY);
     if (p_failSafe) {
-        Log.INFO("actLight::setFailSafe: Fail-safe set for light actuator %s" CR, sysName);
+        Log.INFO("actLight::setFailSafe: Fail-safe set for light actuator" CR);
         actLightPos = actLightFailsafePos;
         setActLight();
         failSafe = p_failSafe;

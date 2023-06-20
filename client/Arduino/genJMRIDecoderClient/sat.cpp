@@ -277,9 +277,12 @@ void sat::up(void) {
     rc_t rc = satLibHandle->enableSat();
     if (rc)
         panic("sat::up: could not enable Satelite, return code: %i - rebooting..." CR, rc);
+    Serial.printf("Regesting CB, pointer: %i" CR, this);
+    satLibHandle->satRegSenseCb(onSenseChangeHelper, this);
 }
 
 void sat::down(void) {
+    Serial.printf("Unregestring CB, pointer: %i" CR, this);
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED) {
         Log.INFO("sat::down: Could not disable sat-%d as it has not been discovered" CR, satAddr);
         return;
@@ -288,6 +291,7 @@ void sat::down(void) {
     rc_t rc = satLibHandle->disableSat();
     if (rc)
         panic("sat::down: could not disable Satelite - rebooting..." CR);
+    satLibHandle->satUnRegSenseCb();
 }
 
 void sat::failsafe(bool p_failsafe) {
@@ -309,7 +313,7 @@ void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_
         panic("sat::onDiscovered: Inconsistant satelite address provided - rebooting..." CR);
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
-        Serial.printf("Regestering stateCb from obj: %i" CR, satLibHandle);
+        Serial.printf("Regestering stateCb from obj: %i to object %i" CR, satLibHandle, this);
         satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
         satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
         unSetOpStateByBitmap(OP_UNDISCOVERED);
@@ -347,6 +351,18 @@ void sat::onPmPoll(void) {
         pmData.wdErr);
     if (mqtt::sendMsg(pmPublishTopic, pmPublishPayload, false))
         Log.ERROR("sat::onPmPoll: Failed to send PM report" CR);
+}
+
+void sat::onSenseChangeHelper(satelite* p_satelite, uint8_t p_LinkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata) {
+    ((sat*)p_metadata)->onSenseChange(p_senseAddr, p_senseVal);
+}
+
+void sat::onSenseChange(uint8_t p_senseAddr, bool p_senseVal) {
+    Serial.printf("Landed in context %i for sensor %i" CR, this, p_senseAddr);
+    if (!getOpStateBitmap() && p_senseAddr >= 0 && p_senseAddr < MAX_SENS)
+        senses[p_senseAddr]->onSenseChange(p_senseVal);
+    else
+        Log.TERSE("sat::onSenseChange: Sensor has changed to %i, but satelite is not OP_WORKING, doing nothing..." CR, p_senseVal);
 }
 
 void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
