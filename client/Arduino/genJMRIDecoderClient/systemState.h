@@ -30,6 +30,7 @@
 #include "logHelpers.h"
 #include "panic.h"
 #include "strHelpers.h"
+#include "job.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -42,7 +43,6 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-
 //Operational state bitmap
 typedef uint16_t sysState_t;
 
@@ -70,6 +70,14 @@ typedef uint16_t sysState_t;
 
 //Call-back prototypes
 typedef void (*sysStateCb_t)(const void* p_miscCbData, sysState_t p_sysState);
+
+//Jobqueue
+#define JOB_QUEUE_SIZE                  32
+struct sysStateJobDesc_t {
+    sysStateCb_t cb;
+    void* miscCbData;
+    sysState_t opState;
+};
 
 struct cb_t {
     sysStateCb_t cb;
@@ -100,6 +108,8 @@ public:
     char* getSysStateObjName(char* p_objName);
     const char* getSysStateObjName(void);
     void updateObjOpStates(void);
+    static void sysCbHelper(void* p_jobCbDesc);
+
 
     //Public data structures
     //--
@@ -115,7 +125,7 @@ private:
     sysState_t opState;
     QList<cb_t*>* cbList;
     QList<systemState*>* childList;
-
+    static job* jobHandler;
 };
 
 #endif SYSSTATE_H

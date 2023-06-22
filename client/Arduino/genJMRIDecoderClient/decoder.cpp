@@ -46,10 +46,6 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     setSysStateObjName("Decoder");
     Serial.printf("decoder: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("Decoder: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    processingSysState = false;
-    sysStateQ = new QList<sysState_t*>;
-    if (!(decoderSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("decoder::decoder: Could not create Lock objects - rebooting..." CR);
     debug = false;
     Log.INFO("decoder::init: Creating lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
@@ -406,91 +402,63 @@ void decoder::onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysSta
 
 void decoder::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    Log.INFO("decoder::onSysStateChange: decoder has a new OP-state: %s, Queueing it for processing" CR, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(decoderSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        processSysState();
-    }
-}
-
-void decoder::processSysState(void) {
+    Log.INFO("decoder::onSysStateChange: decoder has a new OP-state: %s" CR, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()) {
-        if (!entering)
-            xSemaphoreTake(decoderSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(decoderSysStateLock);
-        char opStateStr[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange)
-            continue;
-        Log.INFO("decoder::onSystateChange: The decoder has a new OP-state: %s" CR, systemState::getOpStateStr(opStateStr));
-        if ((sysStateChange & ~(OP_CBL | OP_SERVUNAVAILABLE)) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_DECODER_SYSNAME]);
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL & ~OP_SERVUNAVAILABLE, publishPayload), false);
-        }
-        if ((sysStateChange & OP_INTFAIL) && (newSysState & OP_INTFAIL)) {
-            panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
-            prevSysState = newSysState;
-            continue;
-        }
-        if (newSysState & OP_INIT) {
-            Log.TERSE("decoder::onSystateChange: The decoder is initializing - doing nothing" CR);
-            prevSysState = newSysState;
-            continue;
-        }
-        if ((sysStateChange & OP_DISCONNECTED) && (newSysState & OP_DISCONNECTED)) {
-            panic("decoder::onSystateChange: decoder has been disconnected after initialization phase, rebooting..." CR);
-            prevSysState = newSysState;
-            continue;
-        }
-        if ((sysStateChange & OP_INIT) && !(newSysState & OP_DISABLED)) {
-            Log.TERSE("decoder::onSystateChange: The decoder have been initialized and is enabled - enabling decoder supervision" CR);
-            Serial.printf("Bringing up MQTT 0" CR);
-            mqtt::up();
-            Serial.printf("Brought up MQTT 0" CR);
-        }
-        else if ((sysStateChange & OP_INIT) && (newSysState & OP_DISABLED)) {
-            Log.TERSE("decoder::onSystateChange: The decoder have been initialized but is disabled - will not enable decoder supervision" CR);
-            mqtt::down();
-        }
-        if ((sysStateChange & OP_DISABLED) && (newSysState & OP_DISABLED)) {
-            Log.INFO("decoder::onSystateChange: decocoder has been disabled by server, disabling decoder supervision" CR);
-            mqtt::down();
-        }
-        else if ((sysStateChange & OP_DISABLED) && !(newSysState & OP_DISABLED)) {
-            Log.INFO("decoder::onSystateChange: decocoder has been enabled by server, enabling decoder supervision" CR);
-            mqtt::up();
-        }
-        if ((sysStateChange & OP_SERVUNAVAILABLE) && !(newSysState & OP_SERVUNAVAILABLE)) {
-            Log.INFO("decoder::onSystateChange: server is recieving MQTT Pings from the decoder" CR);
-        }
-        else if ((sysStateChange & OP_SERVUNAVAILABLE) && (newSysState & OP_SERVUNAVAILABLE)) {
-            Log.INFO("decoder::onSystateChange: server failed to receive MQTT Pings from the decoder" CR);
-        }
-        if ((sysStateChange & OP_CLIEUNAVAILABLE) && !(newSysState & OP_CLIEUNAVAILABLE)) {
-            Log.INFO("decoder::onSystateChange: decoder is recieving MQTT Pings from the server" CR);
-        }
-        else if ((sysStateChange & OP_CLIEUNAVAILABLE) && (newSysState & OP_CLIEUNAVAILABLE)) {
-            Log.INFO("decoder::onSystateChange: decider failed to receive MQTT Pings from the server" CR);
-        }
+    newSysState = p_sysState;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    Serial.printf(">>>>>>>NewState 0x%x PrevState 0x%x Changed 0x%x" CR, newSysState, prevSysState, sysStateChange);
+    if (!sysStateChange)
+        return;
+    if ((sysStateChange & ~(OP_CBL | OP_SERVUNAVAILABLE)) && mqtt::getDecoderUri() && !(newSysState & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_DECODER_SYSNAME]);
+        systemState::getOpStateStrByBitmap(newSysState, publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(newSysState & ~OP_CBL & ~OP_SERVUNAVAILABLE, publishPayload), false);
+    }
+    if ((sysStateChange & OP_INTFAIL) && (newSysState & OP_INTFAIL)) {
+        panic("decoder::onSystateChange: decoder has experienced an internal error - rebooting..." CR);
+        prevSysState = newSysState;
+        return;
+    }
+    if (newSysState & OP_INIT) {
+        Log.TERSE("decoder::onSystateChange: The decoder is initializing - doing nothing" CR);
+        prevSysState = newSysState;
+        return;
+    }
+    if ((sysStateChange & OP_DISCONNECTED) && (newSysState & OP_DISCONNECTED)) {
+        Log.ERROR("decoder::onSystateChange: decoder has been disconnected" CR);
         prevSysState = newSysState;
     }
-    processingSysState = false;
-    Serial.printf("Stoped processing" CR);
+    if ((sysStateChange & OP_INIT) && !(newSysState & OP_DISABLED)) {
+        Log.TERSE("decoder::onSystateChange: The decoder have been initialized and is enabled - enabling decoder supervision" CR);
+        mqtt::up();
+    }
+    else if ((sysStateChange & OP_INIT) && (newSysState & OP_DISABLED)) {
+        Log.TERSE("decoder::onSystateChange: The decoder have been initialized but is disabled - will not enable decoder supervision" CR);
+        mqtt::down();
+    }
+    if ((sysStateChange & OP_DISABLED) && (newSysState & OP_DISABLED)) {
+        Log.INFO("decoder::onSystateChange: decocoder has been disabled by server, disabling decoder supervision" CR);
+        mqtt::down();
+    }
+    else if ((sysStateChange & OP_DISABLED) && !(newSysState & OP_DISABLED)) {
+        Log.INFO("decoder::onSystateChange: decocoder has been enabled by server, enabling decoder supervision" CR);
+        mqtt::up();
+    }
+    if ((sysStateChange & OP_SERVUNAVAILABLE) && !(newSysState & OP_SERVUNAVAILABLE)) {
+        Log.INFO("decoder::onSystateChange: server is recieving MQTT Pings from the decoder" CR);
+    }
+    else if ((sysStateChange & OP_SERVUNAVAILABLE) && (newSysState & OP_SERVUNAVAILABLE)) {
+        Log.INFO("decoder::onSystateChange: server failed to receive MQTT Pings from the decoder" CR);
+    }
+    if ((sysStateChange & OP_CLIEUNAVAILABLE) && !(newSysState & OP_CLIEUNAVAILABLE)) {
+        Log.INFO("decoder::onSystateChange: decoder is recieving MQTT Pings from the server" CR);
+    }
+    else if ((sysStateChange & OP_CLIEUNAVAILABLE) && (newSysState & OP_CLIEUNAVAILABLE)) {
+        Log.INFO("decoder::onSystateChange: decider failed to receive MQTT Pings from the server" CR);
+    }
+    prevSysState = newSysState;
 }
 
 void decoder::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {

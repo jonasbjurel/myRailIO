@@ -154,10 +154,7 @@ private:
 	bool debug;
 	satelite* satLibHandle;
 	void* extentionActClassObj;
-	bool processingSysState;
-	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t actLock;
-	SemaphoreHandle_t actBaseSysStateLock;
 };
 
 #endif /*ACTBASE_H*/

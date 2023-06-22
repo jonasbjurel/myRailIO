@@ -130,10 +130,7 @@ private:
 	bool debug;
 	sysState_t prevSysState;
 	bool satScanDisabled;
-	bool processingSysState;
-	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t satLock;
-	SemaphoreHandle_t satSysStateLock;
 	satelite* satLibHandle;
 	actBase* acts[MAX_ACT];
 	senseBase* senses[MAX_SENS];

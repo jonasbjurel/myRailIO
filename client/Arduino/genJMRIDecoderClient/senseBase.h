@@ -143,10 +143,7 @@ private:
 	bool debug;
 	satelite* satLibHandle;
 	void* extentionSensClassObj;
-	bool processingSysState;
-	QList<sysState_t*>* sysStateQ;
 	SemaphoreHandle_t sensLock;
-	SemaphoreHandle_t sensBaseSysStateLock;
 };
 
 #endif /*SENSBASE_H*/

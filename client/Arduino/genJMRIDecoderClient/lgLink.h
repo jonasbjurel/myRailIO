@@ -99,7 +99,6 @@ public:
     void down(void);
     static void onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysState);
     void onSysStateChange(sysState_t p_sysState);
-    void processSysState(void);
     static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
     void onOpStateChange(const char* p_topic, const char* p_payload);
     static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject);
@@ -154,9 +153,6 @@ private:
     bool linkScan;
     sysState_t prevSysState;
     bool lgLinkScanDisabled;
-    bool processingSysState;
-    QList<sysState_t*>* sysStateQ;
-    SemaphoreHandle_t lgLinkSysStateLock;
     bool failsafeSet;
     char* xmlconfig[5];
     SemaphoreHandle_t lgLinkLock;

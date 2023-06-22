@@ -153,9 +153,6 @@ private:
 	bool pmPoll;
 	sysState_t prevSysState;
 	bool satLinkScanDisabled;
-	bool processingSysState;
-	QList<sysState_t*>* sysStateQ;
-	SemaphoreHandle_t satLinkSysStateLock;
 	SemaphoreHandle_t satLinkPmPollLock;
 	wdt* satLinkWdt;
 	sateliteLink* satLinkLibHandle;

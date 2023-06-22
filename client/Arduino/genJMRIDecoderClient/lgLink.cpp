@@ -43,12 +43,7 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     linkNo = p_linkNo;
     linkScan = false;
     lgLinkScanDisabled = true;
-    processingSysState = false;
-    sysStateQ = new QList<sysState_t*>;
     heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-    //if (!(satLinkSysStateLock = xSemaphoreCreateMutex()))
-    if (!(lgLinkSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("lgLink::lgLink: Could not create Lock objects - rebooting..." CR);
     failsafeSet = false;
     //if (!(lgLinkLock = xSemaphoreCreateMutex()))                       //Why do we have this
     if (!(lgLinkLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
@@ -306,92 +301,68 @@ void lgLink::onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysStat
 
 void lgLink::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    Log.INFO("lgLink::onSysStateChange: lgLink-%d has a new OP-state: %s, Queueing it for processing" CR, linkNo, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(lgLinkSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(lgLinkSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        processSysState();
-    }
-}
-
-void lgLink::processSysState(void) {
+    Log.INFO("lgLink::onSysStateChange: lgLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(lgLinkSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()) {
-        if (!entering)
-            xSemaphoreTake(lgLinkSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(lgLinkSysStateLock);
-        bool lgLinkDisableScan = false;
-        char opStateStr[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange) {
-            continue;
-        }
-        Log.INFO("lgLink::onSysStateChange: lgLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
-        failsafe(newSysState != OP_WORKING);
-        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_LGLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LGLINK_SYSNAME]);
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
-        }
-        if ((newSysState & OP_INTFAIL)) {
-            lgLinkDisableScan = true;
-            down();
-            lgLinkScanDisabled = true;
-            prevSysState = newSysState;
-            //failsafe
-            panic("lgLink::onSysStateChange: lgLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
-            return;
-        }
-        if (newSysState & OP_INIT) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d is initializing - informing server if not already done" CR, linkNo);
-            lgLinkDisableScan = true;
-        }
-        if (newSysState & OP_UNUSED) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d is unused - informing server if not already done" CR, linkNo);
-            lgLinkDisableScan = true;
-        }
-        if (newSysState & OP_DISABLED) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
-            lgLinkDisableScan = true;
-        }
-        if (newSysState & OP_CBL) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
-            lgLinkDisableScan = true;
-        }
-        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
-        }
-        if (lgLinkDisableScan && !lgLinkScanDisabled) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d disabling lgLink scaning" CR, linkNo);
-            down();
-            lgLinkScanDisabled = true;
-        }
-        else if (lgLinkDisableScan && lgLinkScanDisabled) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
-        }
-        else if (!lgLinkDisableScan && lgLinkScanDisabled) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d enabling lgLink scaning" CR, linkNo);
-            up();
-            lgLinkScanDisabled = false;
-        }
-        else if (!lgLinkDisableScan && !lgLinkScanDisabled) {
-            Log.INFO("lgLink::onSysStateChange: lgLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
-        }
-        prevSysState = newSysState;
+    newSysState = p_sysState;
+    bool lgLinkDisableScan = false;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    if (!sysStateChange) {
+        return;
     }
-    processingSysState = false;
+    Log.INFO("lgLink::onSysStateChange: lgLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
+    failsafe(newSysState != OP_WORKING);
+    if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_LGLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LGLINK_SYSNAME]);
+        systemState::getOpStateStr(publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
+    }
+    if ((newSysState & OP_INTFAIL)) {
+        lgLinkDisableScan = true;
+        down();
+        lgLinkScanDisabled = true;
+        prevSysState = newSysState;
+        //failsafe
+        panic("lgLink::onSysStateChange: lgLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
+        return;
+    }
+    if (newSysState & OP_INIT) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d is initializing - informing server if not already done" CR, linkNo);
+        lgLinkDisableScan = true;
+    }
+    if (newSysState & OP_UNUSED) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d is unused - informing server if not already done" CR, linkNo);
+        lgLinkDisableScan = true;
+    }
+    if (newSysState & OP_DISABLED) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
+        lgLinkDisableScan = true;
+    }
+    if (newSysState & OP_CBL) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
+        lgLinkDisableScan = true;
+    }
+    if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+    }
+    if (lgLinkDisableScan && !lgLinkScanDisabled) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d disabling lgLink scaning" CR, linkNo);
+        down();
+        lgLinkScanDisabled = true;
+    }
+    else if (lgLinkDisableScan && lgLinkScanDisabled) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
+    }
+    else if (!lgLinkDisableScan && lgLinkScanDisabled) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d enabling lgLink scaning" CR, linkNo);
+        up();
+        lgLinkScanDisabled = false;
+    }
+    else if (!lgLinkDisableScan && !lgLinkScanDisabled) {
+        Log.INFO("lgLink::onSysStateChange: lgLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
+    }
+    prevSysState = newSysState;
 }
 
 void lgLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgLinkObject) {

@@ -43,15 +43,7 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLi
     lgAddress = p_lgAddress;
     lgLinkHandle->getLink(&lgLinkNo);
     extentionLgClassObj = NULL;
-    processingSysState = false;
-    Log.INFO("lgBase::lgBase: Creating lgBase stem-object for lgAddress %d, on lgLink %d" CR, lgAddress, lgLinkHandle);
-    sysStateQ = new QList<sysState_t*>;
-    heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-    //if (!(satLinkSysStateLock = xSemaphoreCreateMutex()))
-    if (!(lgSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("lgLink::lgLink: Could not create Lock objects - rebooting..." CR);
-
-    Log.INFO("lgBase::lgBase: Creating lgBase stem-object for lg address %d, on lgLink %d" CR, p_lgAddress, lgLinkNo);
+    Log.INFO("lgBase::lgBase: Creating lgBase stem-object for lgAddress %d, on lgLink %d" CR, p_lgAddress, lgLinkNo);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "lg-%d", lgAddress);
     setSysStateObjName(sysStateObjName);
@@ -251,72 +243,44 @@ void lgBase::onSysStateChangeHelper(const void* p_lgBaseHandle, sysState_t p_sys
 void lgBase::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
     Log.INFO("lgBase::onSysStateChange: lg has a new OP-state: %s, Queueing it for processing" CR, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(lgSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(lgSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        processSysState();
-    }
-}
-
-void lgBase::processSysState(void) {
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(lgSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()) {
-        if (!entering)
-            xSemaphoreTake(lgSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(lgSysStateLock);
-        char opStateStr[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange)
-            continue;
-        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has a new OP-state: %s" CR, lgLinkNo, lgAddress, systemState::systemState::getOpStateStr(opStateStr));
-        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_LG_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]);
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
-        }
-        if (newSysState & OP_INTFAIL) {
-            if (extentionLgClassObj)
-                LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
-            panic("lgBase::onSysStateChange: lgLink-%d:lg-%d has experienced an internal error - rebooting..." CR, lgLinkNo, lgAddress);
-            prevSysState = newSysState;
-            continue;
-        }
-
-        if (newSysState & OP_INIT) {
-            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is initializing - informing server if not already done" CR, lgLinkNo, lgAddress);
-        }
-
-        if (newSysState & OP_UNUSED) {
-            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is unused - informing server if not already done" CR, lgLinkNo, lgAddress);
-        }
-
-        if (newSysState & OP_DISABLED) {
-            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is disabled by server - doing nothing" CR, lgLinkNo, lgAddress);
-        }
-        if (newSysState & OP_CBL) {
-            Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is control blocked by decoder - doing nothing" CR, lgLinkNo, lgAddress);
-        }
-
-        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
-            Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, lgLinkNo, lgAddress, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
-        }
-        if (extentionLgClassObj && !(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-            LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
-        prevSysState = newSysState;
+    newSysState = p_sysState;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    if (!sysStateChange)
+        return;
+    Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has a new OP-state: %s" CR, lgLinkNo, lgAddress, systemState::systemState::getOpStateStr(opStateStr));
+    if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_LG_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_LG_SYSNAME]);
+        systemState::getOpStateStr(publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
-    processingSysState = false;
+    if (newSysState & OP_INTFAIL) {
+        if (extentionLgClassObj)
+            LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
+        panic("lgBase::onSysStateChange: lgLink-%d:lg-%d has experienced an internal error - rebooting..." CR, lgLinkNo, lgAddress);
+        prevSysState = newSysState;
+        return;
+    }
+    if (newSysState & OP_INIT) {
+        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is initializing - informing server if not already done" CR, lgLinkNo, lgAddress);
+    }
+    if (newSysState & OP_UNUSED) {
+        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is unused - informing server if not already done" CR, lgLinkNo, lgAddress);
+    }
+    if (newSysState & OP_DISABLED) {
+        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is disabled by server - doing nothing" CR, lgLinkNo, lgAddress);
+    }
+    if (newSysState & OP_CBL) {
+        Log.TERSE("lgBase::onSysStateChange: lgLink-%d:lg-%d is control blocked by decoder - doing nothing" CR, lgLinkNo, lgAddress);
+    }
+    if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
+        Log.INFO("lgBase::onSysStateChange: lgLink-%d:lg-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, lgLinkNo, lgAddress, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+    }
+    if (extentionLgClassObj && !(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
+        LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
+    prevSysState = newSysState;
 }
 
 void lgBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgHandle) {

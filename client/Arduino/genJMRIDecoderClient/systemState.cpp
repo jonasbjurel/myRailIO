@@ -36,6 +36,8 @@
 /*==============================================================================================================================================*/
 uint16_t systemState::sysStateIndex = 0;
 const char* systemState::OP_STR[14] = OP_ARR;
+job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, CPU_SYSSTATE_JOB_CORE);
+
 systemState::systemState(systemState* p_parent) {
     parent = p_parent;
     if (parent) {
@@ -72,7 +74,7 @@ systemState::~systemState(void) {
 }
 
 rc_t systemState::regSysStateCb(void* p_miscCbData, sysStateCb_t p_cb) {
-    Log.TERSE("systemState::regSysStateCb: Registering systemState callback %d for system state object %s" CR, p_cb, getSysStateObjName());
+    Log.TERSE("systemState::regSysStateCb: Registering systemState callback %i for system state object %s with miscDataPointer %i" CR, p_cb, getSysStateObjName(), p_miscCbData);
     for (uint8_t i = 0; i < cbList->size(); i++) {
         if (cbList->at(i)->cb == p_cb) {
             Log.warning("systemState::regSysStateCb: Callback function already exists, over-writing it" CR);
@@ -160,55 +162,24 @@ sysState_t systemState::getOpStateBitmapByStr(const char* p_opStateStrBuff) {
     char opStr[20];
     char* opStateStrBuff;
     opStateStrBuff = new char[strlen(p_opStateStrBuff) + 1];
-    Serial.printf("NEW: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
-    Serial.printf("A\n");
-    heap_caps_check_integrity_all(true);
     strcpy(opStateStrBuff, p_opStateStrBuff);
-    Serial.printf("CPY: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
-    Serial.printf("Strlen Source %i, Copy %i\n", strlen(p_opStateStrBuff), strlen(opStateStrBuff));
-    Serial.printf("B\n");
-    heap_caps_check_integrity_all(true);
     sysState_t opStateBitmap = 0;
-    Serial.printf("C\n");
-    heap_caps_check_integrity_all(true);
     trimSpace(opStateStrBuff);
-    Serial.printf("Strlen trimed %i\n", strlen(opStateStrBuff));
-    Serial.printf("D\n");
-    heap_caps_check_integrity_all(true);
     uint16_t j = 0;
-    Serial.printf("E\n");
-    heap_caps_check_integrity_all(true);
-    Serial.printf("BEFORE: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
-    Serial.printf("%s, %s\n", opStateStrBuff, OP_STR[0]);
-
     if (!strcmp(opStateStrBuff, OP_STR[0])){
-        Serial.printf("AFTER: 0x%X, 0x%X, 0x%X, 0x%X \n", *opStateStrBuff, *(opStateStrBuff + 1), *(opStateStrBuff + 2), *(opStateStrBuff + 3));
-        Serial.printf("%s, %s\n", opStateStrBuff, OP_STR[0]);
-        Serial.printf("F\n");
-        heap_caps_check_integrity_all(true);
         delete opStateStrBuff;
-        Serial.printf("G\n");
-        heap_caps_check_integrity_all(true);
         return OP_WORKING;
     }
     else {
-        Serial.printf("H\n");
-        heap_caps_check_integrity_all(true);
         for (uint16_t i = 0; i < strlen(opStateStrBuff) + 1; i++) {
             if ((opStateStrBuff[i] == '|') || (opStateStrBuff[i] == '\0')) {
                 memcpy(opStr, opStateStrBuff + j, i - j);
                 opStr[i - j] = '\0';
-                Serial.printf("I\n");
-                heap_caps_check_integrity_all(true);
                 trimSpace(opStr);
-                Serial.printf("J\n");
-                heap_caps_check_integrity_all(true);
                 if (opStateStrBuff[i] == '|')
                     j = i + 1;
                 else
                     j = i;
-                Serial.printf("K\n");
-                heap_caps_check_integrity_all(true);
                 sysState_t opStateBitmapItter = 0b1;
                 bool found = false;
                 for (uint8_t k = 0; k < NO_OPSTATES - 1; k++) {
@@ -360,7 +331,11 @@ void systemState::updateObjOpStates(void) {
     }
     for (uint16_t i = 0; i < cbList->size(); i++){
         Log.VERBOSE("systemState::updateObjOpStates: Sending call-back to %i" CR, cbList->at(i)->cb);
-        cbList->at(i)->cb(cbList->at(i)->miscCbData, opState);
+        sysStateJobDesc_t* sysStateJobDesc = new sysStateJobDesc_t;
+        sysStateJobDesc->cb = cbList->at(i)->cb;
+        sysStateJobDesc->miscCbData = cbList->at(i)->miscCbData;
+        sysStateJobDesc->opState = opState;
+        jobHandler->enqueue(sysCbHelper, (void*)sysStateJobDesc, 0);
     }
     char objName[100];
     char childObjName1[100];
@@ -376,6 +351,15 @@ void systemState::updateObjOpStates(void) {
         }
     }
 }
+
+void systemState::sysCbHelper(void* p_jobCbDesc) {
+
+    //DET SMÄLLER HÄR
+    ((sysStateJobDesc_t*)p_jobCbDesc)->cb(((sysStateJobDesc_t*)p_jobCbDesc)->miscCbData, ((sysStateJobDesc_t*)p_jobCbDesc)->opState);
+    if (!heap_caps_check_integrity_all(true))
+    delete (sysStateJobDesc_t*)p_jobCbDesc;
+}
+
 
 /*==============================================================================================================================================*/
 /* END Class systemState                                                                                                                        */

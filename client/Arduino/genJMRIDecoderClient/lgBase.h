@@ -150,9 +150,6 @@ private:
 	bool debug;
 	uint16_t stripOffset;
 	void* extentionLgClassObj;
-	bool processingSysState;
-	QList<sysState_t*>* sysStateQ;
-	SemaphoreHandle_t lgSysStateLock;
 	SemaphoreHandle_t lgBaseLock;
 	sysState_t prevSysState;
 };

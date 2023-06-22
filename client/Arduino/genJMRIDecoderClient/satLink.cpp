@@ -41,7 +41,6 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     linkNo = p_linkNo;
     pmPoll = false;
     satLinkScanDisabled = true;
-    processingSysState = false;
     //We need to have this early since RMT requires internal RAM
     satLinkLibHandle = new sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
         (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
@@ -57,11 +56,7 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     char sysStateObjName[20];
     sprintf(sysStateObjName, "satLink-%d", p_linkNo);
     setSysStateObjName(sysStateObjName);
-    sysStateQ = new QList<sysState_t*>;
     heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-    //if (!(satLinkSysStateLock = xSemaphoreCreateMutex()))
-    if (!(satLinkSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("satLink::satLink: Could not create Lock objects - rebooting..." CR);
     //if (!(satLinkPmPollLock = xSemaphoreCreateMutex()))
     if (!(satLinkPmPollLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
         panic("satLink::satLink: Could not create Lock objects - rebooting..." CR);
@@ -142,7 +137,6 @@ rc_t satLink::init(void) {
     Log.INFO("satLink::init: Creating satelites for link channel %d" CR, linkNo);
     for (uint8_t satAddress = 0; satAddress < MAX_SATELITES; satAddress++) {
         sats[satAddress] = new sat(satAddress, this);
-        Serial.printf("Creating satelite %i, pointer %i" CR, satAddress, sats[satAddress]);
         if (sats[satAddress] == NULL)
             panic("satLink::init: Could not create satelite object for link channel - rebooting...");
         addSysStateChild(sats[satAddress]);
@@ -275,7 +269,6 @@ void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t 
         panic("satLink::onDiscoveredSateliteHelper: More than maximum (%i) allowed satelites discovered (%i) on the link - Rebooting..." CR, MAX_SATELITES, p_satAddr + 1);
         return;
     }
-    Serial.printf("Sending discovered message to sat No: %i, obj %i" CR, p_satAddr, p_satLinkHandle);
     if(p_satAddr < MAX_SATELITES)
         ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
 }
@@ -397,91 +390,66 @@ void satLink::onSysStateChangeHelper(const void* p_satLinkHandle, sysState_t p_s
 
 void satLink::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    Log.INFO("satLink::onSysStateChange: satLink-%d has a new OP-state: %s, Queueing it for processing" CR, linkNo, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(satLinkSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(satLinkSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        processSysState();
-    }
-}
-
-void satLink::processSysState(void) {
+    Log.INFO("satLink::onSysStateChange: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(satLinkSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()){
-        if (!entering)
-            xSemaphoreTake(satLinkSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(satLinkSysStateLock);
-        bool satLinkDisableScan = false;
-        char opStateStr[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange)
-            continue;
-        Serial.println(systemState::getOpStateStr(opStateStr));
-        Log.INFO("satLink::processSysState: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
-        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
-        }
-        if ((newSysState & OP_INTFAIL)) {
-            satLinkDisableScan = true;
-            down();
-            prevSysState = newSysState;
-            panic("satLink::processSysState: satLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
-            continue;
-        }
-        if (newSysState & OP_INIT) {
-            Log.INFO("satLink::processSysState: satLink-%d is initializing - informing server if not already done" CR, linkNo);
-            satLinkDisableScan = true;
-        }
-        if (newSysState & OP_UNUSED) {
-            Log.INFO("satLink::processSysState: satLink-%d is unused - informing server if not already done" CR, linkNo);
-            satLinkDisableScan = true;
-        }
-        if (newSysState & OP_ERRSEC) {
-            Log.INFO("satLink::processSysState: satLink-%d has experienced excessive PM errors - informing server if not already done" CR, linkNo);
-        }
-        if (newSysState & OP_GENERR) {
-            Log.INFO("satLink::processSysState: satLink-%d has experienced an error - informing server if not already done" CR, linkNo);
-        }
-        if (newSysState & OP_DISABLED) {
-            Log.INFO("satLink::processSysState: satLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
-            satLinkDisableScan = true;
-        }
-        if (newSysState & OP_CBL) {
-            Log.INFO("satLink::processSysState: satLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
-            satLinkDisableScan = true;
-        }
-        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
-            Log.INFO("satLink::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
-        }
-        if (satLinkDisableScan && !satLinkScanDisabled) {
-            Log.INFO("satLink::processSysState: satLink-%d disabling satLink scaning" CR, linkNo);
-            down();
-        }
-        else if (satLinkDisableScan && satLinkScanDisabled)
-            Log.INFO("satLink::processSysState: satLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
-        else if (!satLinkDisableScan && satLinkScanDisabled) {
-            Log.INFO("satLink::processSysState: satLink-%d enabling satLink scaning" CR, linkNo);
-            up();
-        }
-        else if (!satLinkDisableScan && !satLinkScanDisabled)
-            Log.INFO("satLink::processSysState: satLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
-        prevSysState = newSysState;
+    newSysState = p_sysState;
+    bool satLinkDisableScan = false;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    if (!sysStateChange)
+        return;
+    Log.INFO("satLink::processSysState: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
+    if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        systemState::getOpStateStr(publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
-    processingSysState = false;
+    if ((newSysState & OP_INTFAIL)) {
+        satLinkDisableScan = true;
+        down();
+        prevSysState = newSysState;
+        panic("satLink::processSysState: satLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
+        return;
+    }
+    if (newSysState & OP_INIT) {
+        Log.INFO("satLink::processSysState: satLink-%d is initializing - informing server if not already done" CR, linkNo);
+        satLinkDisableScan = true;
+    }
+    if (newSysState & OP_UNUSED) {
+        Log.INFO("satLink::processSysState: satLink-%d is unused - informing server if not already done" CR, linkNo);
+        satLinkDisableScan = true;
+    }
+    if (newSysState & OP_ERRSEC) {
+        Log.INFO("satLink::processSysState: satLink-%d has experienced excessive PM errors - informing server if not already done" CR, linkNo);
+    }
+    if (newSysState & OP_GENERR) {
+        Log.INFO("satLink::processSysState: satLink-%d has experienced an error - informing server if not already done" CR, linkNo);
+    }
+    if (newSysState & OP_DISABLED) {
+        Log.INFO("satLink::processSysState: satLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
+        satLinkDisableScan = true;
+    }
+    if (newSysState & OP_CBL) {
+        Log.INFO("satLink::processSysState: satLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
+        satLinkDisableScan = true;
+    }
+    if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
+        Log.INFO("satLink::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+    }
+    if (satLinkDisableScan && !satLinkScanDisabled) {
+        Log.INFO("satLink::processSysState: satLink-%d disabling satLink scaning" CR, linkNo);
+        down();
+    }
+    else if (satLinkDisableScan && satLinkScanDisabled)
+        Log.INFO("satLink::processSysState: satLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
+    else if (!satLinkDisableScan && satLinkScanDisabled) {
+        Log.INFO("satLink::processSysState: satLink-%d enabling satLink scaning" CR, linkNo);
+        up();
+    }
+    else if (!satLinkDisableScan && !satLinkScanDisabled)
+        Log.INFO("satLink::processSysState: satLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
+    prevSysState = newSysState;
 }
 
 void satLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject) {

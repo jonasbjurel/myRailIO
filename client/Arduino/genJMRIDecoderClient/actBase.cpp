@@ -46,11 +46,6 @@ actBase::actBase(uint8_t p_actPort, sat * p_satHandle) : systemState(p_satHandle
     char sysStateObjName[20];
     sprintf(sysStateObjName, "act-%d", p_actPort);
     setSysStateObjName(sysStateObjName);
-    processingSysState = false;
-    sysStateQ = new QList<sysState_t*>;
-    //if (!(actBaseSysStateLock = xSemaphoreCreateMutex()))
-    if (!(actBaseSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("actBase::actBase: Could not create Lock objects - rebooting..." CR);
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSysStateChangeHelper);
@@ -226,50 +221,26 @@ void actBase::onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sys
 void actBase::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
     Log.INFO("sat::onSysStateChange: sat-%d:act-%d has a new OP-state: %s" CR, satAddr, actPort, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(actBaseSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        processSysState();
-    }
-}
-
-void actBase::processSysState(void) {
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()) {
-        if (!entering)
-            xSemaphoreTake(actBaseSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(actBaseSysStateLock);
-        char opStateStr[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange)
-            continue;
-        failsafe(newSysState != OP_WORKING);
-        Log.INFO("actBase::processSysState: ActPort-%d has a new OP-state: %s" CR, actPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
-        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
-        }
-        if ((newSysState & OP_INTFAIL)) {
-            prevSysState = newSysState;
-            panic("actBase::processSysState: act has experienced an internal error - informing server and rebooting..." CR);
-            continue;
-        }
-        prevSysState = newSysState;
+    newSysState = p_sysState;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    if (!sysStateChange)
+        return;
+    failsafe(newSysState != OP_WORKING);
+    Log.INFO("actBase::processSysState: ActPort-%d has a new OP-state: %s" CR, actPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        systemState::getOpStateStr(publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
-    processingSysState = false;
+    if ((newSysState & OP_INTFAIL)) {
+        prevSysState = newSysState;
+        panic("actBase::processSysState: act has experienced an internal error - informing server and rebooting..." CR);
+        return;
+    }
+    prevSysState = newSysState;
 }
 
 void actBase::failsafe(bool p_failsafe) {

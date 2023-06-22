@@ -18,12 +18,25 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
-
+#ifndef JOB_H
+#define JOB_H
 
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-#include "strHelpers.h"
+#include <stdlib.h>
+#include <cstddef>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <ArduinoLog.h>
+#include <QList.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "rc.h"
+#include "panic.h"
+#include "config.h"
+
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -31,92 +44,50 @@
 
 
 /*==============================================================================================================================================*/
-/* Helper: strHelpers                                                                                                                           */
-/* Purpose: Provides helper functions for string handling                                                                                       */
+/* Class: job                                                                                                                                   */
+/* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
+/* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-char* createNcpystr(const char* src) {
-    int length = strlen(src);
-    char* dst = new char[length + 1];
-    if (dst == NULL) {
-        Log.ERROR("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
-        ESP.restart();
-    }
-    strcpy(dst, src);
-    dst[length] = '\0';
-    return dst;
-}
 
-/* Flawed
-char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings) {
-    int resLen = 0;
-    char* dst;
-    for (uint8_t i = 0; i < noOfSrcStrings; i++) {
-        resLen += strlen(srcStrings[i]);
-    }
-    dst = new char[resLen + 1];
-    char* stringptr = dst;
-    for (uint8_t i = 0; i < noOfSrcStrings; i++) {
-        strcpy(stringptr, srcStrings[i]);
-        stringptr += strlen(srcStrings[i]);
-    }
-    dst[resLen] = '\0';
-    return dst;
-}
-*/
+typedef void(*jobCb_t)(void* jobCbMetaData);
 
-bool isUri(const char* p_uri) {
-    bool prevDot = false;
-    if (p_uri[0] == '.' || p_uri[strlen(p_uri) - 1] == '.')
-        return false;
-    for (uint16_t i = 0; i < strlen(p_uri); i++) {
-        if (!(isAlphaNumeric(p_uri[i]) || p_uri[i] == '.' || p_uri[i] == '_'))
-            return false;
-        if (p_uri[i] == '.') {
-            if (prevDot)
-                return false;
-            else
-                prevDot = true;
-        }
-        else
-            prevDot = false;
-    }
-    return true;
-}
+struct jobdesc_t {
+    TaskHandle_t taskHandle;
+    jobCb_t jobCb;
+    void* jobCbMetaData;
+    uint8_t jobPrio;
+};
 
-bool isIntNumberStr(const char* p_numberStr) {
-    for (uint8_t i = 0; i < strlen(p_numberStr); i++) {
-        if (!isDigit(*(p_numberStr + i)))
-            return false;
-    }
-    return true;
-}
+struct lapseDesc_t {
+    TaskHandle_t taskHandle;
+    QList<jobdesc_t*>* jobDescList;
+};
 
-bool isFloatNumberStr(const char* p_numberStr) {
-    char* floatItter;
-    char* floatTok;
-    floatTok = (char*)p_numberStr;
-    if (!(floatItter = strtok(floatTok, ".")))
-        return false;
-    if (!isIntNumberStr(floatItter))
-        return false;
-    if (!isIntNumberStr(floatTok))
-        return false;
-    return true;
-}
+class job {
 
-char* trimSpace(char* p_s) {
-    char* s = p_s;
-    char* d = p_s;
-    uint8_t itter = 0;
-    do {
-        while (*d == ' ') {
-            ++d;
-        } 
-    } while (*s++ = *d++);
-    return p_s;
-}
+public:
+    //Public methods
+    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, uint8_t p_coreMap);
+    ~job(void);
+    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio);
+
+    //Public data structures
+    //--
+
+private:
+    //Private methods
+    static void jobProcessHelper(void* p_objectHandle);
+    void jobProcess(void);
+
+    //Private data structures
+    QList<lapseDesc_t*>* lapseDescList;
+    SemaphoreHandle_t jobLock;
+    SemaphoreHandle_t jobSleepSemaphore;
+    static uint16_t jobId;
+};
 
 /*==============================================================================================================================================*/
-/* END strHelpers                                                                                                                               */
+/* END Class job                                                                                                                                */
 /*==============================================================================================================================================*/
+#endif /*JOB_H*/

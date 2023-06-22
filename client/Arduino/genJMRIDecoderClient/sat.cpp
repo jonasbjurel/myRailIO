@@ -44,19 +44,13 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
     memset(acts, NULL, sizeof(acts));
     memset(senses, NULL, sizeof(senses));
     satScanDisabled = true;
-    processingSysState = false;
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sat-%d", p_satAddr);
     setSysStateObjName(sysStateObjName);
-    sysStateQ = new QList<sysState_t*>;
-    //if (!(satLock = xSemaphoreCreateMutex()))
     if (!(satLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
         panic("sat::sat: Could not create Lock objects - rebooting...");
-    //if (!(satSysStateLock = xSemaphoreCreateMutex()))
-    if (!(satSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("sat::sat: Could not create Lock objects - rebooting...");
     prevSysState = OP_WORKING;
-    setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
+    setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNDISCOVERED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
     xmlconfig[XML_SAT_SYSNAME] = NULL;
     xmlconfig[XML_SAT_USRNAME] = NULL;
@@ -197,6 +191,7 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
                 panic("sat::onConfig:: Actuator port missing - rebooting...");
             if ((atoi(actXmlConfig[XML_ACT_PORT])) < 0 || atoi(actXmlConfig[XML_ACT_PORT]) >= MAX_ACT)
                 panic("sat::onConfig:: Actuator port out of bounds - rebooting..." CR);
+            Log.TERSE("sat::onConfig: Configuring Actuator %i" CR, atoi(actXmlConfig[XML_ACT_PORT]));
             acts[atoi(actXmlConfig[XML_ACT_PORT])]->onConfig(actXmlElement);
             actXmlElement = ((tinyxml2::XMLElement*)actXmlElement)->NextSiblingElement("Actuator");
         }
@@ -228,8 +223,9 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
                 panic("sat::onConfig:: Sensor port missing - rebooting..." CR);
             if ((atoi(sensXmlConfig[XML_SENS_PORT])) < 0 || atoi(sensSearchTags[XML_SENS_PORT]) >= MAX_SENS)
                 panic("sat::onConfig:: Sensor port out of bounds - rebooting...");
+            Log.TERSE("sat::onConfig: Configuring Sensor %i" CR, atoi(sensXmlConfig[XML_SENS_PORT]));
             senses[atoi(sensXmlConfig[XML_SENS_PORT])]->onConfig(sensXmlElement);
-            sensXmlElement = ((tinyxml2::XMLElement*)p_satXmlElement)->NextSiblingElement("Sensor");
+            sensXmlElement = ((tinyxml2::XMLElement*)sensXmlElement)->NextSiblingElement("Sensor");
         }
     }
     else
@@ -277,12 +273,10 @@ void sat::up(void) {
     rc_t rc = satLibHandle->enableSat();
     if (rc)
         panic("sat::up: could not enable Satelite, return code: %i - rebooting..." CR, rc);
-    Serial.printf("Regesting CB, pointer: %i" CR, this);
     satLibHandle->satRegSenseCb(onSenseChangeHelper, this);
 }
 
 void sat::down(void) {
-    Serial.printf("Unregestring CB, pointer: %i" CR, this);
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED) {
         Log.INFO("sat::down: Could not disable sat-%d as it has not been discovered" CR, satAddr);
         return;
@@ -313,7 +307,6 @@ void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_
         panic("sat::onDiscovered: Inconsistant satelite address provided - rebooting..." CR);
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
-        Serial.printf("Regestering stateCb from obj: %i to object %i" CR, satLibHandle, this);
         satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
         satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
         unSetOpStateByBitmap(OP_UNDISCOVERED);
@@ -331,7 +324,6 @@ void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_
 void sat::onPmPoll(void) {
     if (getOpStateBitmap())
         return;
-    Serial.printf("Polling Sat-%i - onPmPoll" CR, satAddr);
     satPerformanceCounters_t pmData;
     satLibHandle->getSatStats(&pmData, true);
     rxCrcErr += pmData.rxCrcErr;
@@ -358,7 +350,6 @@ void sat::onSenseChangeHelper(satelite* p_satelite, uint8_t p_LinkAddr, uint8_t 
 }
 
 void sat::onSenseChange(uint8_t p_senseAddr, bool p_senseVal) {
-    Serial.printf("Landed in context %i for sensor %i" CR, this, p_senseAddr);
     if (!getOpStateBitmap() && p_senseAddr >= 0 && p_senseAddr < MAX_SENS)
         senses[p_senseAddr]->onSenseChange(p_senseVal);
     else
@@ -366,7 +357,6 @@ void sat::onSenseChange(uint8_t p_senseAddr, bool p_senseVal) {
 }
 
 void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
-    Serial.printf("Sathandle is %i" CR, p_satHandle);
     ((sat*)p_satHandle)->onSatLibStateChange(p_satOpState);
 }
 
@@ -388,96 +378,71 @@ void sat::onSysStateChangeHelper(const void* p_satHandle, sysState_t p_sysState)
 void sat::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
     Log.INFO("sat::onSysStateChange: sat-%d has a new OP-state: %s" CR, satAddr, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(satSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(satSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        processSysState();
-    }
-}
-
-void sat::processSysState(void) {
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(satSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()) {
-        if (!entering)
-            xSemaphoreTake(satSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(satSysStateLock);
-        bool satDisableScan = false;
-        char opStateStr[100];
-        char opStateStr1[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange)
-            continue;
-        failsafe(newSysState != OP_WORKING);
-        Log.INFO("sat::processSysState: sat-%d has a new OP-state: %s, Setting failsafe" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
-        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_SAT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
-        }
-        if ((newSysState & OP_INTFAIL)) {
-            satDisableScan = true;
-            down();
-            satScanDisabled = true;
-            prevSysState = newSysState;
-            panic("sat::processSysState: sat-%d has experienced an internal error - informing server and rebooting..." CR, satAddr);
-            continue;
-        }
-        if (newSysState & OP_INIT) {
-            Log.INFO("sat::processSysState: sat-%d is initializing - informing server if not already done" CR, satAddr);
-            satDisableScan = true;
-        }
-        if (newSysState & OP_UNUSED) {
-            Log.INFO("satLink::processSysState: sat-%d is unused - informing server if not already done" CR, satAddr);
-            satDisableScan = true;
-        }
-        if (newSysState & OP_ERRSEC) {
-            Log.INFO("sat::processSysState: sat-%d has experienced excessive PM errors - informing server if not already done" CR, satAddr);
-        }
-        if (newSysState & OP_GENERR) {
-            Log.INFO("sat::processSysState: sat-%d has experienced an error - informing server if not already done" CR, satAddr);
-        }
-        if (newSysState & OP_DISABLED) {
-            Log.INFO("sat::processSysState: sat-%d is disabled by server - disabling linkscanning if not already done" CR, satAddr);
-            satDisableScan = true;
-        }
-        if (newSysState & OP_CBL) {
-            Log.INFO("sat::processSysState: sat-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, satAddr);
-            satDisableScan = true;
-        }
-        if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
-            Log.INFO("sat::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
-        }
-        if (satDisableScan && !satScanDisabled) {
-            Log.INFO("sat::processSysState: satLink-%d disabling sat scaning" CR, satAddr);
-            down();
-            satScanDisabled = true;
-        }
-        else if (satDisableScan && satScanDisabled) {
-            Log.INFO("sat::processSysState: sat-%d scaning already disabled - doing nothing..." CR, satAddr);
-        }
-        else if (!satDisableScan && satScanDisabled) {
-            Log.INFO("sat::processSysState: sat-%d enabling sat scaning" CR, satAddr);
-            up();
-            satScanDisabled = false;
-        }
-        else if (!satDisableScan && !satScanDisabled) {
-            Log.INFO("sat::processSysState: sat-%d sat scan already enabled - doing nothing..." CR, satAddr);
-        }
-        prevSysState = newSysState;
+    newSysState = p_sysState;
+    bool satDisableScan = false;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    if (!sysStateChange)
+        return;
+    failsafe(newSysState != OP_WORKING);
+    Log.INFO("sat::processSysState: sat-%d has a new OP-state: %s, Setting failsafe" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SAT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        systemState::getOpStateStr(publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
-    processingSysState = false;
+    if ((newSysState & OP_INTFAIL)) {
+        satDisableScan = true;
+        down();
+        satScanDisabled = true;
+        prevSysState = newSysState;
+        panic("sat::processSysState: sat-%d has experienced an internal error - informing server and rebooting..." CR, satAddr);
+        return;
+    }
+    if (newSysState & OP_INIT) {
+        Log.INFO("sat::processSysState: sat-%d is initializing - informing server if not already done" CR, satAddr);
+        satDisableScan = true;
+    }
+    if (newSysState & OP_UNUSED) {
+        Log.INFO("satLink::processSysState: sat-%d is unused - informing server if not already done" CR, satAddr);
+        satDisableScan = true;
+    }
+    if (newSysState & OP_ERRSEC) {
+        Log.INFO("sat::processSysState: sat-%d has experienced excessive PM errors - informing server if not already done" CR, satAddr);
+    }
+    if (newSysState & OP_GENERR) {
+        Log.INFO("sat::processSysState: sat-%d has experienced an error - informing server if not already done" CR, satAddr);
+    }
+    if (newSysState & OP_DISABLED) {
+        Log.INFO("sat::processSysState: sat-%d is disabled by server - disabling satscanning if not already done" CR, satAddr);
+        satDisableScan = true;
+    }
+    if (newSysState & OP_CBL) {
+        Log.INFO("sat::processSysState: sat-%d is control-blocked by decoder - informing server and disabling satscanning if not already done" CR, satAddr);
+        satDisableScan = true;
+    }
+    if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
+        Log.INFO("sat::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+    }
+    if (satDisableScan && !satScanDisabled) {
+        Log.INFO("sat::processSysState: satLink-%d disabling sat scanning" CR, satAddr);
+        down();
+        satScanDisabled = true;
+    }
+    else if (satDisableScan && satScanDisabled) {
+        Log.INFO("sat::processSysState: sat-%d scaning already disabled - doing nothing..." CR, satAddr);
+    }
+    else if (!satDisableScan && satScanDisabled) {
+        Log.INFO("sat::processSysState: sat-%d enabling sat scaning" CR, satAddr);
+        up();
+        satScanDisabled = false;
+    }
+    else if (!satDisableScan && !satScanDisabled) {
+        Log.INFO("sat::processSysState: sat-%d sat scan already enabled - doing nothing..." CR, satAddr);
+    }
+    prevSysState = newSysState;
 }
 
 void sat::onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satHandle) {

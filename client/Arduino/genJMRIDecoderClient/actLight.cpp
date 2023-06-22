@@ -68,7 +68,7 @@ rc_t actLight::start(void) {
 }
 
 void actLight::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
-    Log.INFO("actLight::onDiscovered: actLight extention class object %s, on actuator port %s, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
+    Log.INFO("actLight::onDiscovered: actLight extention class object %s, on actuator port %d, on satelite adress %d, satLink %d discovered" CR, sysName, actPort, satAddr, satLinkNo);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_LIGHT_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
     if (p_exists) {
@@ -94,7 +94,7 @@ void actLight::onActLightChangeHelper(const char* p_topic, const char* p_payload
 }
 
 void actLight::onActLightChange(const char* p_topic, const char* p_payload) {
-    Log.INFO("actLight::onMemActChange: Got a change order for light actuator %s - new value %d" CR, sysName, p_payload);
+    Log.INFO("actLight::onActLightChange: Got a change order for light actuator %s - new value %s" CR, sysName, p_payload);
     xSemaphoreTake(actLightLock, portMAX_DELAY);
     if (!strcmp(p_payload, MQTT_LIGHT_ON_PAYLOAD)) {
         orderedActLightPos = 255;

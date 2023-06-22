@@ -34,7 +34,7 @@
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								1	//2
-#define MAX_LGLINKS									0	//2
+#define MAX_LGLINKS									1	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
@@ -58,7 +58,7 @@
 
 // Satelite link configuration
 // ===========================
-#define MAX_SATELITES								2 //8 Max satelites for each Satelite link
+#define MAX_SATELITES								1 //8 Max satelites for each Satelite link
 #define SATLINK_LINKERR_HIGHTRES					10 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 #define SATLINK_LINKERR_LOWTRES						0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 
@@ -71,13 +71,13 @@
 // Sensor configuration
 // ====================
 #define DEFAULT_SENS_FILTER_TIME					5	// Digital sensor filter (ms)
-#define MAX_SENS									1	//8 Maximum sensors // Maximum satelites per satelite link
+#define MAX_SENS									8	//8 Maximum sensors // Maximum satelites per satelite link
 #define SATLINK_UPDATE_MS							5	// Satelite scan period (ms)
 #define SENSDIGITAL_DEFAULT_FAILSAFE				true
 
 // Actuator configuration
 // ======================
-#define MAX_ACT										2	//4 Maximum actuators per satelite
+#define MAX_ACT										4	//4 Maximum actuators per satelite
 
 // General servo configuration
 #define SERVO_LEFT_PWM_VAL							26
@@ -150,15 +150,21 @@
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 
+// System state job task
+#define CPU_SYSSTATE_JOB_CORE							3
+#define CPU_SYSSTATE_JOB_PRIO							10
+#define CPU_SYSSTATE_JOB_STACKSIZE_1K					6
+#define CPU_SYSSTATE_JOB_TASKNAME						"mqttPing"
+
 // MQTT message supervision
 #define CPU_MQTT_PING_CORE							CORE_0
 #define CPU_MQTT_PING_PRIO							10
 #define CPU_MQTT_PING_STACKSIZE_1K					6
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 
-// Satelit link
+// Satelite link
 const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
-#define CPU_SATLINK_PRIO							15
+#define CPU_SATLINK_PRIO							20
 #define CPU_SATLINK_STACKSIZE_1K					6
 #define CPU_SATLINK_TASKNAME						"satLink %d"
 

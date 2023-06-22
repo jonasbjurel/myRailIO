@@ -102,7 +102,6 @@ class actuator(systemState, schema):
         trace.notify(DEBUG_INFO,"New Actuator: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, ACTUATOR, displayIcon=ACTUATOR_ICON)
         self.commitAll()
-        self.sensTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -337,13 +336,13 @@ class actuator(systemState, schema):
             self.rpcClient.setCommentBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.LIGHTS, self.jmriActSystemName.value, self.__actChangeListener)
-            self.rpcClient.regMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value, MQTT_LIGHT_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
+            self.rpcClient.regMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value, MQTT_LIGHT_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
         elif self.actType.value == "MEMORY":
             self.rpcClient.setUserNameBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.userName.value)
             self.rpcClient.setCommentBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.MEMORIES, self.jmriActSystemName.value, self.__actChangeListener)
-            self.rpcClient.regMqttPub(jmriObj.MEMORIES, self.jmriActSystemName.value, MQTT_MEMORY_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
+            self.rpcClient.regMqttPub(jmriObj.MEMORIES, self.jmriActSystemName.value, MQTT_MEMORY_TOPIC + MQTT_STATE_TOPIC+ self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
         self.actOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
         self.actOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
         self.actAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value

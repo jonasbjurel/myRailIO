@@ -46,14 +46,9 @@ satHandle = p_satHandle;
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sens-%d", p_sensPort);
     setSysStateObjName(sysStateObjName);
-    processingSysState = false;
-    sysStateQ = new QList<sysState_t*>;
     //if (!(sensLock = xSemaphoreCreateMutex()))
     if (!(sensLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
         panic("senseBase::senseBase: Could not create Lock objects - rebooting...");
-    //if (!(sensBaseSysStateLock = xSemaphoreCreateMutex()))
-    if (!(sensBaseSysStateLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
-        panic("senseBase::senseBase: Could not create Lock objects - rebooting..." CR);
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSystateChangeHelper);
@@ -212,11 +207,12 @@ void senseBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
 void senseBase::onSenseChange(bool p_senseVal) {
     if (!getOpStateBitmap())
         SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], onSenseChange(p_senseVal));
-    else
-        Log.TERSE("senseBase::onSenseChange: Sensor has changed to %i, but satelite is not OP_WORKING, doing nothing..." CR, p_senseVal);
-
+    else {
+        char opStateStr[100];
+        getOpStateStr(opStateStr);
+        Log.TERSE("senseBase::onSenseChange: Sensor has changed to %i, but senseBase has opState: %s and is not OP_WORKING, doing nothing..." CR, p_senseVal, opStateStr);
+    }
 }
-
 
 void senseBase::onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState) {
     ((senseBase*)p_senseBaseHandle)->onSysStateChange(p_sysState);
@@ -225,54 +221,27 @@ void senseBase::onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t 
 void senseBase::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
     Log.INFO("senseBase::onSysStateChange: sat-%d:sens-%d has a new OP-state: %s" CR, satAddr, sensPort, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
-    xSemaphoreTake(sensBaseSysStateLock, portMAX_DELAY);
-    sysState_t* sysStateToQ = new sysState_t;
-    *sysStateToQ = p_sysState;
-    sysStateQ->push_back(sysStateToQ);
-    xSemaphoreGive(sensBaseSysStateLock);
-    if (!processingSysState) {
-        processingSysState = true;
-        Log.VERBOSE("senseBase::onSysStateChange: sens-%d: processSysState is idle, processing the new sysState" CR, sensPort);
-        processSysState();
-    }
-    else
-        Log.VERBOSE("senseBase::onSysStateChange: sens-%d: processSysState is busy, Queing it in the backlog" CR, sensPort);
-}
-
-void senseBase::processSysState(void) {
     sysState_t newSysState;
-    bool entering = true;
-    xSemaphoreTake(sensBaseSysStateLock, portMAX_DELAY);
-    while (sysStateQ->size()) {
-        if (!entering)
-            xSemaphoreTake(sensBaseSysStateLock, portMAX_DELAY);
-        entering = false;
-        newSysState = *(sysStateQ->front());
-        delete sysStateQ->front();
-        sysStateQ->pop_front();
-        xSemaphoreGive(sensBaseSysStateLock);
-        char opStateStr[100];
-        sysState_t sysStateChange = newSysState ^ prevSysState;
-        if (!sysStateChange) {
-            continue;
-        }
-        failsafe(newSysState != OP_WORKING);
-        Log.INFO("sensBase::processSysState: sensPort-%d has a new OP-state: %s" CR, sensPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
-        if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
-            char publishTopic[200];
-            char publishPayload[100];
-            sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-            systemState::getOpStateStr(publishPayload);
-            mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
-        }
-        if ((newSysState & OP_INTFAIL)) {
-            prevSysState = newSysState;
-            panic("senseBase::processSysState: act has experienced an internal error - informing server and rebooting..." CR);
-            continue;
-        }
-        prevSysState = newSysState;
+    newSysState = p_sysState;
+    sysState_t sysStateChange = newSysState ^ prevSysState;
+    if (!sysStateChange) {
+        return;
     }
-    processingSysState = false;
+    failsafe(newSysState != OP_WORKING);
+    Log.INFO("sensBase::processSysState: sensPort-%d has a new OP-state: %s" CR, sensPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
+        char publishTopic[200];
+        char publishPayload[100];
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        systemState::getOpStateStr(publishPayload);
+        mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
+    }
+    if ((newSysState & OP_INTFAIL)) {
+        prevSysState = newSysState;
+        panic("senseBase::processSysState: act has experienced an internal error - informing server and rebooting..." CR);
+        return;
+    }
+    prevSysState = newSysState;
 }
 
 void senseBase::failsafe(bool p_failsafe) {

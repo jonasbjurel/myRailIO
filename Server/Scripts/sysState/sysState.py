@@ -4,10 +4,10 @@ import time
 import threading
 import traceback
 import imp
-from trace import *
+#from trace import *
 #from genJMRIRc import rc
-#imp.load_source('myTrace', '..\\trace\\trace.py')
-#from myTrace import *
+imp.load_source('myTrace', '..\\trace\\trace.py')
+from myTrace import *
 imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 
@@ -257,7 +257,9 @@ class systemState():
                     opStateDetailBitMap = opStateDetailBitMap | opBitMapItter[STATE]
                     strFound = True
                     break
-            assert strFound == True
+            if not strFound:
+                trace.notify(DEBUG_VERBOSE, opStr + " is not a valid OP-state")
+                return self.opStateDetail
         return opStateDetailBitMap
 
     def maskOpStateDetailBitMapToClient(self, opStateDetailBitmap):

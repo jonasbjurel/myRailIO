@@ -49,8 +49,6 @@ signalMastAspects::~signalMastAspects(void) {
 
 rc_t signalMastAspects::onConfig(const tinyxml2::XMLElement* p_smAspectsXmlElement) {
     Log.INFO("signalMastAspects::onConfig: Configuring Mast aspects" CR);
-    Serial.println((int)p_smAspectsXmlElement);
-    Serial.println(p_smAspectsXmlElement->FirstChildElement()->Name());
     tinyxml2::XMLElement* smAspectsXmlElement = (tinyxml2::XMLElement * )p_smAspectsXmlElement;
     for (uint8_t i = 0; i < SM_MAXHEADS; i++) {
         failsafeMastAppearance[i] = UNUSED_APPEARANCE;
@@ -214,8 +212,6 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
 }
 
 rc_t signalMastAspects::getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads, bool p_force) {
-    Serial.printf("p_force: %i\n", p_force);
-    Serial.printf("Searching for mast: %s\n", p_smType);
     if ((parentHandle->systemState::getOpStateBitmap() != OP_WORKING) && !p_force) { //NEEDS ATTENTION
         Log.ERROR("signalMastAspects::getNoOfHeads: OP_State is not OP_WORKING, doing nothing..." CR);
         *p_noOfHeads = 0;

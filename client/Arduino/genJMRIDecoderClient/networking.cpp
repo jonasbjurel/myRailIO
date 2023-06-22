@@ -745,7 +745,6 @@ void networking::wifiWd(const void* p_args, sysState_t p_wifiOpState) {
         networkConfig.previousNetworkFail = 0;
         //persistentSaveConfig(&networkConfig); NEEDS TO BE FIXED
         Log.VERBOSE("networking::wifiWd: Watchdog timer stoped" CR);
-
     }
 }
 
