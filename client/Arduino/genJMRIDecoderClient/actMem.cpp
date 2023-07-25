@@ -139,9 +139,9 @@ void actMem::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
     }
 }
 
-void actMem::onSysStateChange(uint16_t p_sysState) {
+void actMem::onSysStateChange(sysState_t p_sysState) {
     char opState[100];
-    Log.INFO("actMem::onSystateChange: Got a new systemState %d for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, actBaseHandle->getOpStateStr(opState), actPort, satAddr, satLinkNo);
+    Log.INFO("actMem::onSystateChange: Got a new systemState %d for actMem extention class object %s, on actuator port %d, on satelite adress %d, satLink %d" CR, actBaseHandle->systemState::getOpStateStr(opState), actPort, satAddr, satLinkNo);
 }
 
 void actMem::onActMemChangeHelper(const char* p_topic, const char* p_payload, const void* p_actMemHandle) {

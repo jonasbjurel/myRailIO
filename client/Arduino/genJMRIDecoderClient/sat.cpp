@@ -36,7 +36,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), globalCli(SAT_MO_NAME, SAT_MO_NAME, p_satAddr) {
+sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), globalCli(SAT_MO_NAME, SAT_MO_NAME, p_satAddr, p_linkHandle) {
     Log.INFO("sat::sat: Creating Satelite adress %d" CR, p_satAddr);
     linkHandle = p_linkHandle;
     satLinkNo = linkHandle->getLink();
@@ -57,10 +57,21 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
     xmlconfig[XML_SAT_DESC] = NULL;
     xmlconfig[XML_SAT_ADDR] = NULL;
     xmlconfig[XML_SAT_ADMSTATE] = NULL;
+}
 
+sat::~sat(void) {
+    panic("sat::~sat: sat destructior not supported - rebooting..." CR);
+}
+
+rc_t sat::init(void) {
+    uint8_t link;
+    link = linkHandle->getLink();
+    Log.INFO("sat::init: Initializing Satelite address %d" CR, satAddr);
     /* CLI decoration methods */
+    Log.INFO("sat::init: Registering CLI methods for satelite %d, on satLink %d" CR, satAddr, link);
+    //Global and common MO Commands
+    regGlobalNCommonCliMOCmds();
     // get/set address
-    /*
     regCmdMoArg(GET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, onCliGetAddrHelper);
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, SAT_GET_SATADDR_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, SAT_MO_NAME, SATADDR_SUB_MO_NAME, onCliSetAddrHelper);
@@ -80,20 +91,10 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, SAT_GET_SATWDERR_HELP_TXT);
     regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, onCliClearWdErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, SAT_CLEAR_SATWDERR_HELP_TXT);
-    */
-}
-
-sat::~sat(void) {
-    panic("sat::~sat: sat destructior not supported - rebooting..." CR);
-}
-
-rc_t sat::init(void) {
-    uint8_t link;
-    link = linkHandle->getLink();
-    Log.INFO("sat::init: Initializing Satelite address %d" CR, satAddr);
+    Log.INFO("sat::init: CLI methods for satelite %d, on satLink %d registered" CR, satAddr, link);
     Log.INFO("sat::init: Creating actuators for satelite address %d on link %d" CR, satAddr, link);
     for (uint8_t actPort = 0; actPort < MAX_ACT; actPort++) {
-        acts[actPort] = new actBase(actPort, this);
+        acts[actPort] = new (heap_caps_malloc(sizeof(actBase(actPort, this)), MALLOC_CAP_SPIRAM)) actBase(actPort, this);
         if (acts[actPort] == NULL)
             panic("sat::init: Could not create actuator object - rebooting...");
         addSysStateChild(acts[actPort]);
@@ -101,7 +102,7 @@ rc_t sat::init(void) {
     }
     Log.INFO("sat::init: Creating sensors for satelite address %d on link %d" CR, satAddr, link);
     for (uint8_t sensPort = 0; sensPort < MAX_SENS; sensPort++) {
-        senses[sensPort] = new senseBase(sensPort, this);
+        senses[sensPort] = new (heap_caps_malloc(sizeof(senseBase(sensPort, this)), MALLOC_CAP_SPIRAM)) senseBase(sensPort, this);
         if (senses[sensPort] == NULL)
             panic("sat::init: Could not create sensor object - rebooting..." CR);
         addSysStateChild(senses[sensPort]);
@@ -385,7 +386,7 @@ void sat::onSysStateChange(sysState_t p_sysState) {
     if (!sysStateChange)
         return;
     failsafe(newSysState != OP_WORKING);
-    Log.INFO("sat::processSysState: sat-%d has a new OP-state: %s, Setting failsafe" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    Log.INFO("sat::onSysStateChange: sat-%d has a new OP-state: %s, Setting failsafe" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -398,49 +399,49 @@ void sat::onSysStateChange(sysState_t p_sysState) {
         down();
         satScanDisabled = true;
         prevSysState = newSysState;
-        panic("sat::processSysState: sat-%d has experienced an internal error - informing server and rebooting..." CR, satAddr);
+        panic("sat::onSysStateChange: sat-%d has experienced an internal error - informing server and rebooting..." CR, satAddr);
         return;
     }
     if (newSysState & OP_INIT) {
-        Log.INFO("sat::processSysState: sat-%d is initializing - informing server if not already done" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d is initializing - informing server if not already done" CR, satAddr);
         satDisableScan = true;
     }
     if (newSysState & OP_UNUSED) {
-        Log.INFO("satLink::processSysState: sat-%d is unused - informing server if not already done" CR, satAddr);
+        Log.INFO("satLink::onSysStateChange: sat-%d is unused - informing server if not already done" CR, satAddr);
         satDisableScan = true;
     }
     if (newSysState & OP_ERRSEC) {
-        Log.INFO("sat::processSysState: sat-%d has experienced excessive PM errors - informing server if not already done" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d has experienced excessive PM errors - informing server if not already done" CR, satAddr);
     }
     if (newSysState & OP_GENERR) {
-        Log.INFO("sat::processSysState: sat-%d has experienced an error - informing server if not already done" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d has experienced an error - informing server if not already done" CR, satAddr);
     }
     if (newSysState & OP_DISABLED) {
-        Log.INFO("sat::processSysState: sat-%d is disabled by server - disabling satscanning if not already done" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d is disabled by server - disabling satscanning if not already done" CR, satAddr);
         satDisableScan = true;
     }
     if (newSysState & OP_CBL) {
-        Log.INFO("sat::processSysState: sat-%d is control-blocked by decoder - informing server and disabling satscanning if not already done" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d is control-blocked by decoder - informing server and disabling satscanning if not already done" CR, satAddr);
         satDisableScan = true;
     }
     if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
-        Log.INFO("sat::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+        Log.INFO("sat::onSysStateChange: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
     }
     if (satDisableScan && !satScanDisabled) {
-        Log.INFO("sat::processSysState: satLink-%d disabling sat scanning" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: satLink-%d disabling sat scanning" CR, satAddr);
         down();
         satScanDisabled = true;
     }
     else if (satDisableScan && satScanDisabled) {
-        Log.INFO("sat::processSysState: sat-%d scaning already disabled - doing nothing..." CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d scaning already disabled - doing nothing..." CR, satAddr);
     }
     else if (!satDisableScan && satScanDisabled) {
-        Log.INFO("sat::processSysState: sat-%d enabling sat scaning" CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d enabling sat scaning" CR, satAddr);
         up();
         satScanDisabled = false;
     }
     else if (!satDisableScan && !satScanDisabled) {
-        Log.INFO("sat::processSysState: sat-%d sat scan already enabled - doing nothing..." CR, satAddr);
+        Log.INFO("sat::onSysStateChange: sat-%d sat scan already enabled - doing nothing..." CR, satAddr);
     }
     prevSysState = newSysState;
 }
@@ -551,6 +552,16 @@ rc_t sat::setAddr(uint8_t p_addr) {
 
 uint8_t sat::getAddr(void) {
     return satAddr;
+}
+
+const char* sat::getLogLevel(void) {
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.ERROR("sat::satLink: Could not retrieve a valid Log-level" CR);
+        return NULL;
+    }
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
 }
 
 void sat::setDebug(bool p_debug) {

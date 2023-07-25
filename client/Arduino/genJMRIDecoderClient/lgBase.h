@@ -86,8 +86,7 @@ class lgSignalMast;
 			panic("lgBase::CALL_EXT_RC: Non supported type: \"%s\" - rebooting..." CR, type);\
 		}
 
-//class lgBase : public systemState, public globalCli {
-class lgBase : public systemState {
+class lgBase : public systemState, public globalCli {
 public:
 	//Public methods
 	lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle);
@@ -101,7 +100,6 @@ public:
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_lgBaseHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
-	void processSysState(void);
 	static void wdtKickedHelper(void* lgBaseHandle);
 	void wdtKicked(void);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
@@ -118,12 +116,12 @@ public:
 	rc_t getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force = false);
 	rc_t getShowing(char* p_showing, bool p_force = false);
 	rc_t setShowing(const char* p_showing, bool p_force = false);
+	const char* getLogLevel(void);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	void setStripOffset(const uint16_t p_stripOffset);
 	uint16_t getStripOffset(void);
 	/* CLI decoration methods */
-	/*
 	static void onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -134,7 +132,6 @@ public:
 	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
-	*/
 
 	//Public data structures
 	lgLink* lgLinkHandle;

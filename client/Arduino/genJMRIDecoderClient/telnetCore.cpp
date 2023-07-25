@@ -60,7 +60,11 @@ rc_t telnetCore::start(void) {
 		});
 	if (telnet.begin()) {
 		Log.INFO("decoderCli::init: CLI started" CR);
-		if (xTaskCreatePinnedToCore(
+		Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
+		Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
+		Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+		BaseType_t rc;
+		if (rc = xTaskCreatePinnedToCore(
 			poll,																		// Task function
 			CPU_TELNET_TASKNAME,														// Task function name reference
 			CPU_TELNET_STACKSIZE_1K * 1024,												// Stack size
@@ -68,7 +72,7 @@ rc_t telnetCore::start(void) {
 			CPU_TELNET_PRIO,															// Priority 0-24, higher is more
 			NULL,																		// Task handle
 			CPU_TELNET_CORE) != pdPASS)													// Core [CORE_0 | CORE_1]
-			panic("telnetCore::start: Could not start Telnet polling task");
+			panic("telnetCore::start: Could not start Telnet polling task, return code: %i - rebooting..." CR, rc);
 	}
 	else {
 		Log.ERROR("decoderCli::init: Failed to start CLI" CR);
@@ -135,7 +139,7 @@ void telnetCore::print(const char* p_output) {
 
 void telnetCore::poll(void* dummy) {
 	Log.INFO("telnetServer::poll: telnet polling started" CR);
-	telnetWdt = new wdt(10 * 1000, "Telnet watchdog",
+	telnetWdt = new (heap_caps_malloc(sizeof(wdt(10 * 1000, "Telnet watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT)), MALLOC_CAP_SPIRAM)) wdt(10 * 1000, "Telnet watchdog",
 						FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
 	while (true) {
 		telnet.loop();

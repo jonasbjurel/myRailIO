@@ -188,7 +188,7 @@ const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 // Telnet
 #define CPU_TELNET_CORE								CORE_1
 #define CPU_TELNET_PRIO								5
-#define CPU_TELNET_STACKSIZE_1K						50
+#define CPU_TELNET_STACKSIZE_1K						6
 #define CPU_TELNET_TASKNAME							"telnetPoll"
 
 // CPU-PM

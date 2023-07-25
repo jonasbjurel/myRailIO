@@ -57,19 +57,19 @@ uint8_t transformLogLevelXmlStr2Int(const char* p_loglevelXmlTxt) {
 
 const char* transformLogLevelInt2XmlStr(uint8_t p_loglevelInt) {
     if (p_loglevelInt == GJMRI_DEBUG_VERBOSE)
-        return "DEBUG-VERBOSE";
+        return "DEBUG-VERBOSE\0";
     else if (p_loglevelInt == GJMRI_DEBUG_TERSE)
-        return "DEBUG-TERSE";
+        return "DEBUG-TERSE\0";
     else if (p_loglevelInt == GJMRI_DEBUG_INFO)
-        return "DEBUG-INFO";
+        return "DEBUG-INFO\0";
     else if (p_loglevelInt == GJMRI_DEBUG_WARN)
-        return "DEBUG-WARN";
+        return "DEBUG-WARN\0";
     else if (p_loglevelInt == GJMRI_DEBUG_ERROR)
-        return "DEBUG-ERROR";
+        return "DEBUG-ERROR\0";
     else if (p_loglevelInt ==  GJMRI_DEBUG_PANIC)
-        return "DEBUG-PANIC";
+        return "DEBUG-PANIC\0";
     else if (p_loglevelInt == GJMRI_DEBUG_SILENT)
-        return "DEBUG-SILENT";
+        return "DEBUG-SILENT\0";
     else
         return NULL;
 }

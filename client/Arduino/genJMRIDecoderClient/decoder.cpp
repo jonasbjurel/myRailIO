@@ -41,7 +41,7 @@
 /*          as ntp-, rsyslog-, ntp-, watchdog- and cli configuration and is the cooridnator and root of such servicies.                         */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, true) {
+decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, NULL, true) {
     Log.INFO("decoder::decoder: Creating decoder" CR);
     setSysStateObjName("Decoder");
     Serial.printf("decoder: Free Heap: %i\n", esp_get_free_heap_size());
@@ -49,18 +49,30 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     debug = false;
     Log.INFO("decoder::init: Creating lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
-        lgLinks[lgLinkNo] = new lgLink(lgLinkNo, this);
+        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
+        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+        lgLinks[lgLinkNo] = new (heap_caps_malloc(sizeof(lgLink(lgLinkNo, this)), MALLOC_CAP_SPIRAM)) lgLink(lgLinkNo, this);
         if (lgLinks[lgLinkNo] == NULL)
             panic("decoder::init: Could not create lgLink objects - rebooting..." CR);
+        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
+        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         addSysStateChild(lgLinks[lgLinkNo]);
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     Log.INFO("decoder::init: lgLinks created" CR);
     Log.INFO("decoder::init: Creating satLinks" CR);
     for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
-        satLinks[satLinkNo] = new satLink(satLinkNo, this);
+        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
+        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+        satLinks[satLinkNo] = new (heap_caps_malloc(sizeof(satLink(satLinkNo, this)), MALLOC_CAP_SPIRAM)) satLink(satLinkNo, this);
         if (satLinks[satLinkNo] == NULL)
             panic("decoder::init: Could not create satLink objects - rebooting..." CR);
+        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
+        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
+        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         Log.VERBOSE("Added Satlink index %d with object %d" CR, satLinkNo, satLinks[satLinkNo]);
         addSysStateChild(satLinks[satLinkNo]);
         vTaskDelay(5 / portTICK_PERIOD_MS);
@@ -73,20 +85,20 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     if (!(decoderLock = xSemaphoreCreateMutex()))
         panic("decoder::decoder: Could not create Lock objects - rebooting..." CR);
     xmlconfig[XML_DECODER_MQTT_URI] = createNcpystr(networking::getMqttUri());
-    xmlconfig[XML_DECODER_MQTT_PORT] = new char[6];
+    xmlconfig[XML_DECODER_MQTT_PORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
     xmlconfig[XML_DECODER_MQTT_PORT] = itoa(networking::getMqttPort(), xmlconfig[XML_DECODER_MQTT_PORT], 10);
     xmlconfig[XML_DECODER_MQTT_PREFIX] = createNcpystr(MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
-    xmlconfig[XML_DECODER_MQTT_PINGPERIOD] = new char[6];
+    xmlconfig[XML_DECODER_MQTT_PINGPERIOD] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
     xmlconfig[XML_DECODER_MQTT_PINGPERIOD] = itoa(MQTT_DEFAULT_PINGPERIOD_S, xmlconfig[XML_DECODER_MQTT_PINGPERIOD], 10);
-    xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = new char[6];
+    xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
     xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = itoa(MQTT_DEFAULT_KEEP_ALIVE_S, xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD], 10);
     xmlconfig[XML_DECODER_NTPURI] = createNcpystr(NTP_DEFAULT_URI); //SHOULD THIS ORIGINATE FROM networking
-    xmlconfig[XML_DECODER_NTPPORT] = new char[6];
+    xmlconfig[XML_DECODER_NTPPORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
     xmlconfig[XML_DECODER_NTPPORT] = itoa(NTP_DEFAULT_PORT, xmlconfig[XML_DECODER_NTPPORT], 10); //SHOULD THIS ORIGINATE FROM networking
     xmlconfig[XML_DECODER_TZ_AREA] = createNcpystr(NTP_DEFAULT_TZ_AREA);
-    xmlconfig[XML_DECODER_TZ_GMTOFFSET] = new char[4];
+    xmlconfig[XML_DECODER_TZ_GMTOFFSET] = new (heap_caps_malloc(sizeof(char[4]), MALLOC_CAP_SPIRAM)) char[4];
     xmlconfig[XML_DECODER_TZ_GMTOFFSET] = itoa(NTP_DEFAULT_TZ_GMTOFFSET, xmlconfig[XML_DECODER_TZ_GMTOFFSET], 10);
-    xmlconfig[XML_DECODER_LOGLEVEL] = new char[2];
+    xmlconfig[XML_DECODER_LOGLEVEL] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM)) char[2];
     xmlconfig[XML_DECODER_LOGLEVEL] = itoa(DEFAULT_LOGLEVEL, xmlconfig[XML_DECODER_LOGLEVEL], 10);
     xmlconfig[XML_DECODER_FAILSAFE] = createNcpystr(DEFAULT_FAILSAFE);
     xmlconfig[XML_DECODER_SYSNAME] = NULL;
@@ -95,10 +107,6 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     xmlconfig[XML_DECODER_MAC] = createNcpystr(networking::getMac());
     xmlconfig[XML_DECODER_URI] = NULL;
     xmlconfig[XML_DECODER_ADMSTATE] = NULL;
-
-    Log.INFO("decoder::decoder: Starting CLI service" CR);
-    //globalCli::start();
-    Log.INFO("decoder::decoder: Decoder created" CR);
 }
 
 decoder::~decoder(void) {
@@ -149,6 +157,10 @@ rc_t decoder::init(void){
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     Log.INFO("decoder::init: Got valid configuration" CR);
+    Log.INFO("decoder::init: Starting CLI service" CR);
+    regGlobalNCommonCliMOCmds();
+    globalCli::start();
+    Log.INFO("decoder::init: CLI service started" CR);
     Log.INFO("decoder::init: Initialized" CR);
     return RC_OK;
 }
@@ -162,7 +174,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         panic("decoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
     Log.INFO("decoder::onConfig: Received an uverified configuration, parsing and validating it..." CR);
-    xmlConfigDoc = new tinyxml2::XMLDocument;
+    xmlConfigDoc = new (heap_caps_malloc(sizeof(tinyxml2::XMLDocument), MALLOC_CAP_SPIRAM)) tinyxml2::XMLDocument;
     if (xmlConfigDoc->Parse(p_payload))
         panic("decoder::onConfig: Configuration parsing failed - Rebooting..." CR);
     if (xmlConfigDoc->FirstChildElement("genJMRI") == NULL || xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder") == NULL || xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SystemName") == NULL)
@@ -245,17 +257,23 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         setFailSafe(failSafe, true))
             panic("decoder::onConfig: Could not validate and set provided configuration - rebooting..." CR);
 */
+    if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
+        setNtpServer(xmlconfig[XML_DECODER_NTPURI], atoi(xmlconfig[XML_DECODER_NTPPORT]), true);
+        ntpTime::start();
+    }
+    else
+        panic("panicing" CR);
     if (xmlconfig[XML_DECODER_SYSNAME] == NULL)
         panic("decoder::onConfig: System name was not provided - rebooting..." CR);
     if (xmlconfig[XML_DECODER_USRNAME] == NULL){
         Log.WARN("decoder::onConfig: User name was not provided - using %s-UserName" CR, xmlconfig[XML_DECODER_SYSNAME]);
-        xmlconfig[XML_DECODER_USRNAME] = new char[strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10];
+        xmlconfig[XML_DECODER_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10), MALLOC_CAP_SPIRAM)) char[strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10];
         const char* usrName[2] = { xmlconfig[XML_DECODER_SYSNAME], "-" };
         strcpy(xmlconfig[XML_DECODER_USRNAME], "-");
     }
     if (xmlconfig[XML_DECODER_DESC] == NULL){
         Log.WARN("decoder::onConfig: Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_DECODER_DESC] = new char[2];
+        xmlconfig[XML_DECODER_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM)) char[2];
         strcpy(xmlconfig[XML_DECODER_DESC], "-");
     }
     if (strcmp(xmlconfig[XML_DECODER_MAC], networking::getMac()))
@@ -368,10 +386,10 @@ rc_t decoder::start(void) {
     }
     Log.INFO("decoder::start: Subscribing to adm- and op state topics" CR);
     char admopSubscribeTopic[300];
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), getSystemName());
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
     if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this))
         panic("decoder::start: Failed to suscribe to admState topic - rebooting..." CR);
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), getSystemName());
+    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
     if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this))
         panic("decoder::start: Failed to suscribe to opState topic - rebooting..." CR);
     Log.INFO("decoder::start: Starting lightgroup link Decoders" CR);
@@ -638,7 +656,7 @@ float decoder::getPingPeriod(bool p_force) {
     return atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]);
 }
 
-rc_t decoder::setNtpServer(const char* p_ntpServer, bool p_force) {
+rc_t decoder::setNtpServer(const char* p_ntpServer, uint16_t p_port, bool p_force) {
     IPAddress ntpAddress;
     if (!debug && !p_force) {
         Log.ERROR("decoder::setNtpServer: cannot set NTP server as debug is inactive" CR);
@@ -670,37 +688,6 @@ rc_t decoder::setNtpServer(const char* p_ntpServer, bool p_force) {
             return RC_PARAMETERVALUE_ERR;
         }
     }
-}
-
-const char* decoder::getNtpServer(bool p_force) {
-    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && p_force) {
-        Log.ERROR("decoder::getNtpServer: cannot get NTP server as decoder is not configured" CR);
-        return NULL;
-    }
-    return xmlconfig[XML_DECODER_NTPURI];
-}
-
-rc_t decoder::setNtpPort(int32_t p_ntpPort, bool p_force) {
-    if (!debug && !p_force) {
-        Log.ERROR("decoder::setNtpPort: cannot set NTP port as debug is inactive" CR);
-        return RC_DEBUG_NOT_SET_ERR;
-    }
-    else {
-        if (!(p_ntpPort >= 0 && p_ntpPort <= 65535)) {
-            panic("decoder::setNtpPort: Provided NTP port out of range (0-65365): " CR);
-            return RC_PARAMETERVALUE_ERR;
-        }
-        Log.ERROR("decoder::setNtpPort: cannot set NTP port - not implemented" CR);
-        return RC_OK;
-    }
-}
-
-uint16_t decoder::getNtpPort(bool p_force) {
-    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("decoder::getNtpPort: cannot get NTP port as decoder is not configured" CR);
-        return 0;
-    }
-    return atoi(xmlconfig[XML_DECODER_NTPPORT]);
 }
 
 rc_t decoder::setTz(const char* p_tz, bool p_force) {
@@ -809,7 +796,7 @@ rc_t decoder::setLogLevel(const char* p_logLevel, bool p_force) {
 
 const char* decoder::getLogLevel(void) {
     if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
-        Log.WARN("decoder::getLogLevel: Could not retrieve a valid Log-level" CR);
+        Log.ERROR("decoder::getLogLevel: Could not retrieve a valid Log-level" CR);
         return NULL;
     }
     else {
@@ -853,12 +840,14 @@ rc_t decoder::setSystemName(const char* p_systemName, bool p_force) {
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-const char* decoder::getSystemName(bool p_force) {
+rc_t decoder::getSystemName(char* p_systemName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getSystemName: cannot get System name as decoder is not configured" CR);
-        return NULL;
+        strcpy(p_systemName, "-");
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_DECODER_SYSNAME];
+    strcpy(p_systemName, xmlconfig[XML_DECODER_SYSNAME]);
+    return RC_OK;
 }
 
 rc_t decoder::setUsrName(const char* p_usrName, bool p_force) {
@@ -875,12 +864,14 @@ rc_t decoder::setUsrName(const char* p_usrName, bool p_force) {
     }
 }
 
-const char* decoder::getUsrName(bool p_force) {
+rc_t decoder::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getUsrName: cannot get User name as decoder is not configured" CR);
-        return NULL;
+        strcpy(p_userName, "-");
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_DECODER_USRNAME];
+    strcpy(p_userName, xmlconfig[XML_DECODER_USRNAME]);
+    return RC_OK;
 }
 
 rc_t decoder::setDesc(const char* p_description, bool p_force) {
@@ -896,12 +887,14 @@ rc_t decoder::setDesc(const char* p_description, bool p_force) {
     }
 }
 
-const char* decoder::getDesc(bool p_force) {
+rc_t decoder::getDesc(char* p_desc, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("decoder::getDesc: cannot get Description as decoder is not configured" CR);
-        return NULL;
+        strcpy(p_desc, "-");
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_DECODER_DESC];
+    strcpy(p_desc, xmlconfig[XML_DECODER_DESC]);
+    return RC_OK;
 }
 
 rc_t decoder::setMac(const char* p_mac, bool p_force) {

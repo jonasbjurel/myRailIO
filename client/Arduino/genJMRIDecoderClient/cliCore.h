@@ -112,7 +112,7 @@ struct cliCmdTable_t {                                                          
     char subMo[20];
     cmdFlags* commandFlags;
     char* help;
-    QList< contextMap_t*>* contextMap;
+    QList<contextMap_t*>* contextMap;
 };
 
 struct cli_context_descriptor_t {                                                       //CLI context descriptor
@@ -130,12 +130,11 @@ class cliCore{
 public:
     //Public methods
     cliCore(const char* p_moType, const char* p_moName, uint16_t p_moIndex,             //Constructor for a new CLI context instance
-            bool p_root=false);
+        cliCore* p_parentContext, bool p_root=false);
     ~cliCore(void);                                                                     //Destructor
     void regParentContext(const cliCore* p_parentContext);                              //Register parent CLI context
     void unRegParentContext(const cliCore* p_parentContext);                            //UnRegister parent CLI context
-    void regChildContext(const cliCore* p_childContext, const char* contextName,        //Register a child CLI context
-                         uint16_t p_contextIndex);
+    void regChildContext(const cliCore* p_childContext);                                //Register a child CLI context
     void unRegChildContext(const cliCore* p_childContext);                              //Unregister a child CLI context
     QList<cliCore*>* getChildContexts(cliCore* p_cliContext);                           //Get all child contexts
     void setContextName(const char* p_contextName);                                     //Set CLI context name
@@ -146,7 +145,6 @@ public:
     uint16_t getContextIndex(void);                                                     //Get CLI context type instance index
     void setContextSysName(const char* p_contextSysName);                               //Set CLI context system name
     const char* getContextSysName(void);                                                //Get CLI context system name
-    void setRoot(void);                                                                 //Assign this context as root CLI context
     void start(void);                                                                   //Start the CLI service
     static void onCliConnect(const char* p_clientIp, bool p_connected,                  //Telnet/CLI client connected - CAN WE MAKE THIS PRIVATE?
                              void* p_metaData);

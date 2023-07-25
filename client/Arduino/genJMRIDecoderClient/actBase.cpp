@@ -36,8 +36,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-//actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(ACTUATOR_MO_NAME, ACTUATOR_MO_NAME, p_actPort) {
-actBase::actBase(uint8_t p_actPort, sat * p_satHandle) : systemState(p_satHandle) {
+actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(ACTUATOR_MO_NAME, ACTUATOR_MO_NAME, p_actPort, p_satHandle) {
     satHandle = p_satHandle;
     actPort = p_actPort;
     satAddr = satHandle->getAddr();
@@ -62,25 +61,6 @@ actBase::actBase(uint8_t p_actPort, sat * p_satHandle) : systemState(p_satHandle
     extentionActClassObj = NULL;
     satLibHandle = NULL;
     debug = false;
-
-/* CLI decoration methods */
-    // get/set port
-    /*
-    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliGetPortHelper);
-    regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_GET_ACTPORT_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliSetPortHelper);
-    regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_SET_ACTPORT_HELP_TXT);
-    // get/set showing
-    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliGetShowingHelper);
-    regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_GET_ACTSHOWING_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
-    regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_SET_ACTSHOWING_HELP_TXT);
-    // get/set property
-    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
-    regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_GET_ACTPROPERTY_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
-    regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_SET_ACTPROPERTY_HELP_TXT);
-    */
 }
 
 actBase::~actBase(void) {
@@ -89,6 +69,27 @@ actBase::~actBase(void) {
 
 rc_t actBase::init(void) {
     Log.INFO("actBase::init: Initializing stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
+    /* CLI decoration methods */
+    Log.INFO("actBase::init: Registering CLI methods for actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
+    //Global and common MO Commands
+    regGlobalNCommonCliMOCmds();
+    // get/set port
+    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliGetPortHelper);
+    regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_GET_ACTPORT_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliSetPortHelper);
+    regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_SET_ACTPORT_HELP_TXT);
+
+    // get/set showing
+    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliGetShowingHelper);
+    regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_GET_ACTSHOWING_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
+    regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_SET_ACTSHOWING_HELP_TXT);
+
+    // get/set property
+    regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
+    regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_GET_ACTPROPERTY_HELP_TXT);
+    regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
+    regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPROPERTY_SUB_MO_NAME, ACT_SET_ACTPROPERTY_HELP_TXT);
     return RC_OK;
 }
 
@@ -147,15 +148,15 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     //    Log.INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
     if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
             Log.INFO("actBase::onConfig: actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR);
-            extentionActClassObj = (void*) new actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+            extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE])), MALLOC_CAP_SPIRAM)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
         }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "LIGHT")) {
         Log.INFO("actBase::onConfig: actuator type is light - programing act-stem object by creating an lightAct extention class object" CR);
-        extentionActClassObj = (void*) new actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE])), MALLOC_CAP_SPIRAM)) actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "MEMORY")) {
         Log.INFO("actBase::onConfig: actuator type is memory - programing act-stem object by creating an memAct extention class object" CR);
-        extentionActClassObj = (void*) new actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE])), MALLOC_CAP_SPIRAM)) actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else
         panic("actBase::onConfig: actuator type not supported");
@@ -227,7 +228,7 @@ void actBase::onSysStateChange(sysState_t p_sysState) {
     if (!sysStateChange)
         return;
     failsafe(newSysState != OP_WORKING);
-    Log.INFO("actBase::processSysState: ActPort-%d has a new OP-state: %s" CR, actPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    Log.INFO("actBase::onSysStateChange: ActPort-%d has a new OP-state: %s" CR, actPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -237,7 +238,7 @@ void actBase::onSysStateChange(sysState_t p_sysState) {
     }
     if ((newSysState & OP_INTFAIL)) {
         prevSysState = newSysState;
-        panic("actBase::processSysState: act has experienced an internal error - informing server and rebooting..." CR);
+        panic("actBase::onSysStateChange: act has experienced an internal error - informing server and rebooting..." CR);
         return;
     }
     prevSysState = newSysState;
@@ -408,6 +409,16 @@ rc_t actBase::setShowing(const char* p_showing, bool p_force) {
     return EXT_RC;
 }
 
+const char* actBase::getLogLevel(void) {
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.ERROR("actBase::satLink: Could not retrieve a valid Log-level" CR);
+        return NULL;
+    }
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
+}
+
 void actBase::setDebug(bool p_debug) {
     debug = p_debug;
 }
@@ -417,7 +428,6 @@ bool actBase::getDebug(void) {
 }
 
 /* CLI decoration methods */
-/*
 void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
@@ -523,7 +533,6 @@ void actBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
-*/
 /*==============================================================================================================================================*/
 /* END Class actBase                                                                                                                           */
 /*==============================================================================================================================================*/

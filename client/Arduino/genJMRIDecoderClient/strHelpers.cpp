@@ -117,6 +117,37 @@ char* trimSpace(char* p_s) {
     return p_s;
 }
 
+void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen) {
+    if (strlen(p_src) <= p_maxStrLen) {
+        strcpy(p_dest, p_src);
+    }
+    else {
+        memcpy(p_dest, p_src, p_maxStrLen - 3);
+        memcpy(p_dest + p_maxStrLen - 3, "...\0", 4);
+    }
+}
+
+void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen) {
+    if (strlen(p_src) + strlen(p_cat) <= p_maxStrLen) {
+        strcat(p_src, p_cat);
+    }
+    else {
+        if ((strlen(p_src) >= p_maxStrLen) && (p_maxStrLen <= 3)) {
+            for (uint8_t i = 0; i < p_maxStrLen; i++) {
+                memcpy(p_src + i, ".", 1);
+            }
+            memcpy(p_src + p_maxStrLen, "\0", 1);
+        }
+        else if (strlen(p_src) + 3 >= p_maxStrLen) {
+            memcpy(p_src + p_maxStrLen - 3, "...\0", 4);
+        }
+        else {
+            memcpy(p_src + strlen(p_src), p_cat, p_maxStrLen - strlen(p_src));
+            memcpy(p_src + p_maxStrLen - 3, "...\0", 4);
+        }
+    }
+}
+
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */
 /*==============================================================================================================================================*/

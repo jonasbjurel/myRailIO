@@ -88,8 +88,8 @@ rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
         panic("lgSignalMast::onConfig: Could not set lgMast properties - rebooting...");
     Log.info("lgSignalMast::onConfig: Successfully configured lgMast - Mast Type: %s, Dim time: %s, Flash Freq: %s, Flash duty: %s, Brightness: %s" CR, xmlConfig[SM_TYPE], xmlConfig[SM_DIMTIME], xmlConfig[SM_FLASHFREQ], xmlConfig[SM_FLASH_DUTY], xmlConfig[SM_BRIGHTNESS]);
     mastDesc.lgLinkHandle->getSignalMastAspectObj()->getNoOfHeads(mastDesc.lgSmType, &mastDesc.lgNoOfLed, true);
-    appearance = new uint8_t[mastDesc.lgNoOfLed];
-    appearanceWriteBuff = new uint8_t[mastDesc.lgNoOfLed];
+    appearance = new (heap_caps_malloc(sizeof(uint8_t) * mastDesc.lgNoOfLed, MALLOC_CAP_SPIRAM)) uint8_t[mastDesc.lgNoOfLed];
+    appearanceWriteBuff = new (heap_caps_malloc(sizeof(uint8_t) * mastDesc.lgNoOfLed, MALLOC_CAP_SPIRAM)) uint8_t[mastDesc.lgNoOfLed];
     return RC_OK;
 }
 

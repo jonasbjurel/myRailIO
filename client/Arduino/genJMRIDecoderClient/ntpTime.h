@@ -131,6 +131,7 @@ class ntpTime {                                                                 
     static rc_t setTz(const char* p_tz, char* p_resultStr = NULL);                      //Set Timezone from string
     static rc_t getTz(char* p_tz);                                                      //Get Timezone to string
     static rc_t getTz(timezone** p_tz);                                                 //Get Timezone to timezone struct
+    static rc_t setDayLightSaving(bool p_daylightSaving);                               //Set current day-light saving status
     static rc_t getDayLightSaving(bool* p_daylightSaving);                              //Get current day-light saving status
 
     //Public data structures

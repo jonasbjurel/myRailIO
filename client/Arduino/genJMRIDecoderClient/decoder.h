@@ -40,6 +40,7 @@
 #include "lgLink.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
+#include "ntpTime.h"
 #include "config.h"
 #include "panic.h"
 #include "strHelpers.h"
@@ -215,10 +216,7 @@ public:
 	float getKeepAlivePeriod(bool p_force = false);
 	rc_t setPingPeriod(float p_pingPeriod, bool p_force = false);
 	float getPingPeriod(bool p_force = false);
-	rc_t setNtpServer(const char* p_ntpServer, bool p_force = false);
-	const char* getNtpServer(bool p_force = false);
-	rc_t setNtpPort(int32_t p_ntpPort, bool p_force = false);
-	uint16_t getNtpPort(bool p_force = false);
+	rc_t setNtpServer(const char* p_ntpServer, uint16_t p_port, bool p_force = false);
 	rc_t setTz(const char* p_tz, bool p_force = false);
 	rc_t getTz(char* p_tz, bool p_force = false);
 	rc_t setLogLevel(const char* p_logLevel, bool p_force = false);
@@ -226,11 +224,11 @@ public:
 	rc_t setFailSafe(const bool p_failsafe, bool p_force = false);
 	bool getFailSafe(bool p_force = false);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
-	const char* getSystemName(bool p_force = false);
+	rc_t getSystemName(char* p_systemName, bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);
-	const char* getUsrName(bool p_force = false);
+	rc_t getUsrName(char* p_userName, bool p_force = false);
 	rc_t setDesc(const char* p_description, bool p_force = false);
-	const char* getDesc(bool p_force = false);
+	rc_t getDesc(char* p_desc, bool p_force = false);
 	rc_t setMac(const char* p_mac, bool p_force = false);
 	const char* getMac(bool p_force = false);
 	rc_t setDecoderUri(const char* p_decoderUri, bool p_force = false);

@@ -43,7 +43,9 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 	//if (!(jobSleepSemaphore = xSemaphoreCreateCountingStatic(p_jobQueueDepth, 0, (StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
 	if (!(jobSleepSemaphore = xSemaphoreCreateCounting(p_jobQueueDepth, 0)))
 		panic("job::job: Could not create jobProcess sleep semaphore  objects - rebooting..." CR);
+	//if (!(lapseDescList = new (heap_caps_malloc(sizeof(QList<lapseDesc_t*>), MALLOC_CAP_SPIRAM)) QList<lapseDesc_t*>))
 	if (!(lapseDescList = new QList<lapseDesc_t*>))
+
 		panic("job::job: Could not create lapse list object - rebooting..." CR);
 	//uint8_t jobProcessCore = ....
 	BaseType_t core;
@@ -68,7 +70,7 @@ job::~job(void) {
 }
 
 void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio){
-	jobdesc_t* jobDesc = new jobdesc_t;
+	jobdesc_t* jobDesc = new (heap_caps_malloc(sizeof(jobdesc_t), MALLOC_CAP_SPIRAM)) jobdesc_t;
 	if (!jobDesc)
 		panic("job::enqueue: Failed to create a new jobdescriptor, rebooting..." CR);
 	jobDesc->jobCb = p_jobCb;
@@ -76,10 +78,10 @@ void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio){
 	jobDesc->taskHandle = xTaskGetCurrentTaskHandle();
 	xSemaphoreTake(jobLock, portMAX_DELAY);
 	if (lapseDescList->size() == 0) {
-		lapseDescList->push_back(new lapseDesc_t);
+		lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM)) lapseDesc_t);
 		if (!lapseDescList->back())
 			panic("job::enqueue: Could not create lapse descriptor object - rebooting..." CR);
-		if (!(lapseDescList->back()->jobDescList = new QList<jobdesc_t*>))
+		if (!(lapseDescList->back()->jobDescList = new (heap_caps_malloc(sizeof(QList<jobdesc_t*>), MALLOC_CAP_SPIRAM)) QList<jobdesc_t*>))
 			panic("job::enqueue: Could not create job descriptor list object - rebooting..." CR);
 		lapseDescList->back()->jobDescList->push_back(jobDesc);
 		lapseDescList->back()->taskHandle = jobDesc->taskHandle;
@@ -91,10 +93,10 @@ void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio){
 				break;
 			}
 			if (lapseItter + 1 == lapseDescList->size()) {
-				lapseDescList->push_back(new lapseDesc_t);
+				lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM)) lapseDesc_t);
 				if (!lapseDescList->back())
 					panic("job::enqueue: Could not create lapse descriptor object - rebooting..." CR);
-				if (!(lapseDescList->back()->jobDescList = new QList<jobdesc_t*>))
+				if (!(lapseDescList->back()->jobDescList = new (heap_caps_malloc(sizeof(QList<jobdesc_t*>), MALLOC_CAP_SPIRAM)) QList<jobdesc_t*>))
 					panic("job::enqueue: Could not create job descriptor list object - rebooting..." CR);
 				lapseDescList->back()->jobDescList->push_back(jobDesc);
 				lapseDescList->back()->taskHandle = jobDesc->taskHandle;

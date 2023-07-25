@@ -97,6 +97,7 @@ public:
 	const char* getDesc(bool p_force = false);
 	rc_t setLink(uint8_t p_link);
 	uint8_t getLink(void);
+	const char* getLogLevel(void);
 	void setDebug(const bool p_debug);
 	bool getDebug(void);
 	uint32_t getTxUnderruns(void);

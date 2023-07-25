@@ -34,8 +34,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-//lgLink::lgLink(uint8_t p_linkNo) : systemState(p_decoderHandle), globalCli(LGLINK_MO_NAME, LGLINK_MO_NAME, lgLinkIndex) {
-lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle) {
+lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(LGLINK_MO_NAME, LGLINK_MO_NAME, p_linkNo, p_decoderHandle) {
     Log.INFO("lgLink::lgLink: Creating Lightgroup link channel %d" CR, p_linkNo);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "lgLink-%d", p_linkNo);
@@ -43,6 +42,7 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     linkNo = p_linkNo;
     linkScan = false;
     lgLinkScanDisabled = true;
+    debug = false;
     heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
     failsafeSet = false;
     //if (!(lgLinkLock = xSemaphoreCreateMutex()))                       //Why do we have this
@@ -52,7 +52,7 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     if (dirtyPixelLock == NULL)
         panic("lgLink::satLink: Could not create \"dirtyPixelLock\" object - rebooting..." CR);
     Log.INFO("lgLink::lgLink: Creating stripled objects for lgLink Channel" CR, linkNo);
-    strip = new Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
+    strip = new (heap_caps_malloc(sizeof(Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800)), MALLOC_CAP_SPIRAM)) Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
     strip->begin();
     stripWritebuff = strip->getPixels();
     Log.INFO("lgLink::lgLink: stripled for lgLink Channel started" CR, linkNo);
@@ -65,14 +65,24 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     xmlconfig[XML_LGLINK_LINK] = NULL;
     xmlconfig[XML_LGLINK_ADMSTATE] = NULL;
     avgSamples = UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS;
-    latencyVect = new int64_t[avgSamples];
-    runtimeVect = new uint32_t[avgSamples];
+    latencyVect = new (heap_caps_malloc(sizeof(int64_t) * avgSamples, MALLOC_CAP_SPIRAM)) int64_t[avgSamples];
+    runtimeVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM)) uint32_t[avgSamples];
     if (latencyVect == NULL || runtimeVect == NULL)
         panic("lgLink::satLink: Could not create PM vectors - rebooting..." CR);
+}
+
+lgLink::~lgLink(void) {
+    panic("lgLink::~lgLink: lgLink destructior not supported - rebooting..." CR);
+}
+
+rc_t lgLink::init(void) {
+    Log.INFO("lgLink::init: Initializing Lightgroup link channel %d" CR, linkNo);
 
     /* CLI decoration methods */
+    Log.INFO("lgLink::init: Registering CLI methods for Lightgroup link channel %d" CR, linkNo);
+    //Global and common MO Commands
+    regGlobalNCommonCliMOCmds();
     // get/set lgLinkNo
-    /*
     regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, onCliGetLinkHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, LGLINKNO_GET_LGLINK_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, LGLINK_MO_NAME, LGLINKNO_SUB_MO_NAME, onCliSetLinkHelper);
@@ -84,6 +94,7 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, onCliClearLinkOverrunsHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKOVERRUNS_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKOVERRUNS_HELP_TXT);
 
+    // get/clear lgLink latency stats
     regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, onCliGetMeanLatencyHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANLATENCY_SUB_MO_NAME, LGLINKNO_GET_LGLINKMEANLATENCY_HELP_TXT);
     regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, onCliGetMaxLatencyHelper);
@@ -91,24 +102,18 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, onCliClearMaxLatencyHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXLATENCY_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXLATENCY_HELP_TXT);
 
+    // get/clear lgLink runtime stats
     regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, onCliGetMeanRuntimeHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMEANRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMEANRUNTIME_HELP_TXT);
     regCmdMoArg(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, onCliGetMaxRuntimeHelper);
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMAXRUNTIME_HELP_TXT);
     regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, onCliClearMaxRuntimeHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXRUNTIME_HELP_TXT);
-*/
-}
+    Log.INFO("lgLink::init: CLI methods for Lightgroup link channel %d registered" CR, linkNo);
 
-lgLink::~lgLink(void) {
-    panic("lgLink::~lgLink: lgLink destructior not supported - rebooting..." CR);
-}
-
-rc_t lgLink::init(void) {
-    Log.INFO("lgLink::init: Initializing Lightgroup link channel %d" CR, linkNo);
     Log.INFO("lgLink::init: Creating lighGrups for link channel %d" CR, linkNo);
     for (uint8_t lgAddress = 0; lgAddress < MAX_LGS; lgAddress++) {
-        lgs[lgAddress] = new lgBase(lgAddress, this);
+        lgs[lgAddress] = new (heap_caps_malloc(sizeof(lgBase(lgAddress, this)), MALLOC_CAP_SPIRAM)) lgBase(lgAddress, this);
         if (lgs[lgAddress] == NULL)
             panic("lgLink::init: Could not create light-group object - rebooting...");
         addSysStateChild(lgs[lgAddress]);
@@ -118,9 +123,9 @@ rc_t lgLink::init(void) {
     Log.VERBOSE("lgLink::init: lighGrups for link channel %d created" CR, linkNo);
 
     Log.INFO("lgLink::init: Creating flash objects for lgLink Channel" CR, linkNo);
-    FLASHNORMAL = new flash(FLASH_1_0_HZ, 50);
-    FLASHSLOW = new flash(FLASH_0_5_HZ, 50);
-    FLASHFAST = new flash(FLASH_1_5_HZ, 50);
+    FLASHNORMAL = new (heap_caps_malloc(sizeof(flash(FLASH_1_0_HZ, 50)), MALLOC_CAP_SPIRAM)) flash(FLASH_1_0_HZ, 50);
+    FLASHSLOW = new (heap_caps_malloc(sizeof(flash(FLASH_0_5_HZ, 50)), MALLOC_CAP_SPIRAM)) flash(FLASH_0_5_HZ, 50);
+    FLASHFAST = new (heap_caps_malloc(sizeof(flash(FLASH_1_5_HZ, 50)), MALLOC_CAP_SPIRAM)) flash(FLASH_1_5_HZ, 50);
     if (FLASHNORMAL == NULL || FLASHSLOW == NULL || FLASHFAST == NULL) {
         panic("lgLink::init: Could not create flash objects - rebooting..." CR);
     }
@@ -152,13 +157,13 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         panic("lgLink::onConfig: System name was not provided - rebooting..." CR);
     if (!xmlconfig[XML_LGLINK_USRNAME]){
         Log.WARN("lgLink::onConfig: User name was not provided - using \"%s-UserName\"" CR);
-        xmlconfig[XML_LGLINK_USRNAME] = new char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10];
+        xmlconfig[XML_LGLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10), MALLOC_CAP_SPIRAM)) char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10];
         const char* usrName[2] = { xmlconfig[XML_LGLINK_SYSNAME], "-" };
         strcpy(xmlconfig[XML_LGLINK_USRNAME], "-");
     }
     if (!xmlconfig[XML_LGLINK_DESC]){
         Log.WARN("lgLink::onConfig: Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_LGLINK_DESC] = new char[2];
+        xmlconfig[XML_LGLINK_DESC] = new (heap_caps_malloc(sizeof(char) * 2, MALLOC_CAP_SPIRAM)) char[2];
         strcpy(xmlconfig[XML_LGLINK_DESC], "-");
     }
     if (!xmlconfig[XML_LGLINK_LINK])
@@ -189,7 +194,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
 
     //CONFIFIGURING LIGHTGROUP ASPECTS
     Log.INFO("lgLink::onConfig: Creating and configuring signal mast aspect description object" CR);
-    signalMastAspectsObject = new signalMastAspects(this);
+    signalMastAspectsObject = new (heap_caps_malloc(sizeof(signalMastAspects(this)), MALLOC_CAP_SPIRAM)) signalMastAspects(this);
     if (signalMastAspectsObject == NULL)
         panic("lgLink:onConfig: Could not start signalMastAspect object - rebooting..." CR);
     if (!(p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc"))
@@ -475,6 +480,16 @@ rc_t lgLink::getLink(uint8_t* p_link) {
     return RC_OK;
 }
 
+const char* lgLink::getLogLevel(void) {
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.ERROR("decoder::lgLink: Could not retrieve a valid Log-level" CR);
+        return NULL;
+    }
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
+}
+
 void lgLink::setDebug(bool p_debug) {
     debug = p_debug;
 }
@@ -501,7 +516,7 @@ rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wanted
         }
         if (!alreadyDirty) {
             if (p_wantedValueBuff[i] != stripWritebuff[p_seqOffset + i]) {
-                dirtyPixel_t* dirtyPixel = new dirtyPixel_t;
+                dirtyPixel_t* dirtyPixel = new (heap_caps_malloc(sizeof(dirtyPixel_t), MALLOC_CAP_SPIRAM)) dirtyPixel_t;
                 if (!dirtyPixel)
                     panic("lgLink::updateLg: Could not allocate an dirtyPixel object - rebooting..." CR);
                 dirtyPixel->index = p_seqOffset + i;
@@ -706,7 +721,6 @@ void lgLink::failsafe(bool p_set) {
 }
 
 /* CLI decoration methods */
-/*
 void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
@@ -816,7 +830,6 @@ void lgLink::onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCm
     static_cast<lgLink*>(p_cliContext)->clearMaxRuntime();
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
-*/
 /*==============================================================================================================================================*/
 /* END Class lgLink                                                                                                                             */
 /*==============================================================================================================================================*/

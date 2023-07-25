@@ -245,7 +245,7 @@ class topDecoder(systemState, schema):
                 self.logVerbosity.value = topDecoderXmlConfig.get("LogLevel")
                 if trace.getSeverityFromSeverityStr(self.logVerbosity.candidateValue) == None:
                     trace.notify(DEBUG_ERROR, "Specified debug-level is not valid, will use default debug-level")
-            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = [topDecoderXmlConfig.get("SNMPServer")]
+            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("TracksFailSafe") != None: 
                 if topDecoderXmlConfig.get("TracksFailSafe") == "Yes": 
                     self.trackFailSafe.value = True
@@ -507,7 +507,7 @@ class topDecoder(systemState, schema):
                 childXml = ET.SubElement(topXml, "JMRIRpcKeepAlivePeriod")
                 childXml.text = str(self.JMRIRpcKeepAlivePeriod.value)
             childXml = ET.SubElement(topXml, "NTPServer")
-            if self.ntpUri.value: childXml.text = self.ntpUri.value[0]
+            if self.ntpUri.value: childXml.text = self.ntpUri.value
             childXml = ET.SubElement(topXml, "NTPPort")
             if self.ntpPort.value: childXml.text = str(self.ntpPort.value)
             childXml = ET.SubElement(topXml, "TimeZoneGmtOffset")
@@ -523,7 +523,7 @@ class topDecoder(systemState, schema):
             childXml.text = self.logVerbosity.value
             if not decoder:
                 childXml = ET.SubElement(topXml, "SNMPServer")
-                if self.rsyslogUri.value: childXml.text = self.snmpUri.value[0]
+                if self.snmpUri.value: childXml.text = self.snmpUri.value
                 childXml = ET.SubElement(topXml, "SNMPPort")
                 if self.snmpPort.value: childXml.text = str(self.snmpPort.value)
                 childXml = ET.SubElement(topXml, "SNMPProtocol")
@@ -651,7 +651,6 @@ class topDecoder(systemState, schema):
             self.mqttClient.restart(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId="genJMRIServer")
             self.mqttClient.setTopicPrefix(self.decoderMqttTopicPrefix.value)
         self.setLogVerbosity(self.logVerbosity.value)
-
         # Set NTP server
         # Set RSYSLOG server
         self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]

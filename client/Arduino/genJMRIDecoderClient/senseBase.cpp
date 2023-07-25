@@ -36,8 +36,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-//senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(SENSOR_MO_NAME, SENSOR_MO_NAME, p_sensPort) {
-senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHandle) {
+senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(SENSOR_MO_NAME, SENSOR_MO_NAME, p_sensPort, p_satHandle) {
 satHandle = p_satHandle;
     sensPort = p_sensPort;
     satLinkNo = satHandle->linkHandle->getLink();
@@ -63,10 +62,20 @@ satHandle = p_satHandle;
     extentionSensClassObj = NULL;
     satLibHandle = NULL;
     debug = false;
+}
 
-/* CLI decoration methods */
+senseBase::~senseBase(void) {
+    panic("senseBase::~senseBase: senseBase destructior not supported - rebooting...");
+}
+
+rc_t senseBase::init(void) {
+    Log.INFO("senseBase::init: Initializing stem-object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+
+    /* CLI decoration methods */
+    Log.INFO("senseBase::init: Registering CLI methods for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    //Global and common MO Commands
+    regGlobalNCommonCliMOCmds();
     // get/set port
-    /*
     regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliGetPortHelper);
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, SENS_GET_SENSPORT_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliSetPortHelper);
@@ -79,15 +88,7 @@ satHandle = p_satHandle;
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_GET_SENSORPROPERTY_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
     regCmdHelp(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_SET_SENSORPROPERTY_HELP_TXT);
-    */
-}
-
-senseBase::~senseBase(void) {
-    panic("senseBase::~senseBase: senseBase destructior not supported - rebooting...");
-}
-
-rc_t senseBase::init(void) {
-    Log.INFO("senseBase::init: Initializing stem-object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    Log.INFO("senseBase::init: CLI methods for sensor port %d, on satelite adress %d, satLink %d reistered" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
@@ -144,7 +145,7 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
     //CONFIFIGURING SENSORS
     if (!strcmp((const char*)xmlconfig[XML_SENS_TYPE], "DIGITAL")) {
         Log.INFO("senseBase::onConfig: Sensor type is digital - programing sens-stem object by creating a senseDigital extention class object" CR);
-        extentionSensClassObj = (void*) new senseDigital(this);
+        extentionSensClassObj = (void*) new (heap_caps_malloc(sizeof(senseDigital(this)), MALLOC_CAP_SPIRAM)) senseDigital(this);
     }
     // else if (other sensor types) {...}
     else
@@ -228,7 +229,7 @@ void senseBase::onSysStateChange(sysState_t p_sysState) {
         return;
     }
     failsafe(newSysState != OP_WORKING);
-    Log.INFO("sensBase::processSysState: sensPort-%d has a new OP-state: %s" CR, sensPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    Log.INFO("sensBase::onSysStateChange: sensPort-%d has a new OP-state: %s" CR, sensPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -238,7 +239,7 @@ void senseBase::onSysStateChange(sysState_t p_sysState) {
     }
     if ((newSysState & OP_INTFAIL)) {
         prevSysState = newSysState;
-        panic("senseBase::processSysState: act has experienced an internal error - informing server and rebooting..." CR);
+        panic("senseBase::onSysStateChange: act has experienced an internal error - informing server and rebooting..." CR);
         return;
     }
     prevSysState = newSysState;
@@ -395,6 +396,16 @@ rc_t senseBase::getSensing(const char* p_sensing) {
     return RC_OK;
 }
 
+const char* senseBase::getLogLevel(void) {
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.ERROR("senseBase::satLink: Could not retrieve a valid Log-level" CR);
+        return NULL;
+    }
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
+}
+
 void senseBase::setDebug(bool p_debug) {
     debug = p_debug;
 }
@@ -404,7 +415,6 @@ bool senseBase::getDebug(void) {
 }
 
 /* CLI decoration methods */
-/*
 void senseBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
@@ -494,7 +504,6 @@ void senseBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmd
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
 }
-*/
 /*==============================================================================================================================================*/
 /* END Class senseBase                                                                                                                           */
 /*==============================================================================================================================================*/

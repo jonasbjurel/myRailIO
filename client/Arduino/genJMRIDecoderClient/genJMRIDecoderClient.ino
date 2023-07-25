@@ -76,7 +76,7 @@ void setupTask(void* p_dummy) {
     ntpTime::init();
     Log.INFO("genJMRIDecoderClient::setupTask: Time- and NTP- service initialized" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Starting the runtime web-portal service" CR);
-    wifiManager = new WiFiManager;
+    wifiManager = new WiFiManager; //Static SPIMem allocation, or is the performance penalty too high
     wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
     wifiManager->setShowStaticFields(true);
     wifiManager->setShowDnsFields(true);
@@ -85,6 +85,7 @@ void setupTask(void* p_dummy) {
     wifiManager->startWebPortal();
     Log.INFO("genJMRIDecoderClient::setupTask: Runtime web-portal service started" CR);
     Log.INFO("genJMRIDecoderClient::setupTask: Starting the decoder service" CR);
+    //decoderHandle = new (heap_caps_malloc(sizeof(decoder()), MALLOC_CAP_SPIRAM)) decoder();
     decoderHandle = new decoder();
     decoderHandle->init();
     decoderHandle->start();

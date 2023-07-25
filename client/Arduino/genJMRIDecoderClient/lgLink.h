@@ -85,9 +85,7 @@ struct dirtyPixel_t {
 
 
 
-//class lgLink : public systemState, public globalCli {
-class lgLink : public systemState {
-
+class lgLink : public systemState, public globalCli {
 public:
     //Public methods
     lgLink(uint8_t p_linkNo, decoder* p_decoderHandle);
@@ -112,6 +110,7 @@ public:
     rc_t getDesc(char* p_desc, bool p_force = false);
     rc_t setLink(uint8_t p_link);
     rc_t getLink(uint8_t* p_link);
+    const char* getLogLevel(void);
     void setDebug(bool p_debug);
     bool getDebug(void);
     flash* getFlashObj(uint8_t p_flashType);
@@ -138,7 +137,6 @@ public:
     static void onCliGetMeanRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
     static void onCliGetMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
     static void onCliClearMaxRuntimeHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
-
 
     //Public data structures
     //--

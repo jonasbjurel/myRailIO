@@ -53,6 +53,8 @@ bool isUri(const char* p_uri);
 bool isIntNumberStr(const char* p_numberStr);
 bool isFloatNumberStr(const char* p_numberStr);
 char* trimSpace(char* p_s);
+void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen);
+void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen);
 
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */

@@ -82,8 +82,7 @@ class senseDigital;
 		}
 
 
-//class senseBase : public systemState, globalCli {
-class senseBase : public systemState {
+class senseBase : public systemState, globalCli {
 public:
 	//Public methods
 	senseBase(uint8_t p_sensPort, sat* p_satHandle);
@@ -95,7 +94,6 @@ public:
 	void onSenseChange(bool p_senseVal);
 	static void onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
-	void processSysState(void);
 	void failsafe(bool p_failsafe);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
@@ -115,16 +113,15 @@ public:
 	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
 	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
 	rc_t getSensing(const char* p_sensing);
+	const char* getLogLevel(void);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	/* CLI decoration methods */
-	/*
 	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
-	*/
 
 	//Public data structures
 	sat* satHandle;

@@ -590,6 +590,26 @@ void mqtt::clearMaxLatency(void) {
     maxLatency = 0;
 }
 
+bool mqtt::getSubs(uint16_t p_index, char* p_topic, uint16_t p_topicSize, char* p_cbs, uint16_t p_cbSize) {
+    Serial.printf("retreiving info on Index %i" CR, p_index);
+    if (p_index >= mqttTopics.size()) {
+        Serial.printf("Index %i does not exist" CR, p_index);
+        return false;
+    }
+    else {
+        Serial.printf("Index %i does exist" CR, p_index);
+        strcpyTruncMaxLen(p_topic, mqttTopics.at(p_index)->topic, p_topicSize);
+        Serial.printf("Index %i topic: %s" CR, p_index, p_topic);
+        strcpyTruncMaxLen(p_cbs, itoa((int)(void*)mqttTopics.at(p_index)->topicList->at(0)->mqttSubCallback, p_cbs, 10), p_cbSize);
+        for (uint16_t i = 1; i < mqttTopics.at(p_index)->topicList->size(); i++) {
+            strcatTruncMaxLen(p_cbs, ", ", p_cbSize);
+            strcatTruncMaxLen(p_cbs, itoa((int)(void*)mqttTopics.at(p_index)->topicList->at(0)->mqttSubCallback, p_cbs, 10), p_cbSize);
+        }
+        Serial.printf("Index %i topic: %s has following CBs: %s" CR, p_index, p_topic, p_cbs);
+    }
+    return true;
+}
+
 void mqtt::poll(void* dummy) {
     int64_t  nextLoopTime = esp_timer_get_time();
     int64_t thisLoopTime;
@@ -689,7 +709,6 @@ void mqtt::mqttPingTimer(void* dummy) {
     Log.INFO("mqtt::mqttPingTimer: MQTT Ping timer started, ping period: %d" CR, pingPeriod);
     missedPings = 0;
     while (supervision) {
-        //Serial.println("Ping");
         if (!(sysState->getOpStateBitmap() & OP_DISABLED) && (pingPeriod != 0)) {
             if (++missedPings >= MAX_MQTT_LOST_PINGS) {
                 sysState->setOpStateByBitmap(OP_CLIEUNAVAILABLE);

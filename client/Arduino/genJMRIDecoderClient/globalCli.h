@@ -71,17 +71,17 @@ class globalCli : public cliCore {
 public:
     //Public methods
     globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex,           //globalCLI instance constructor, one for each MO instance
-              bool p_root=false);                                                       //set root if top MO instance
+        globalCli* p_parent_context, bool p_root=false);                                //set root if top MO instance
 
     ~globalCli(void);                                                                   //globalCLI instance destructor
+
+    void regGlobalNCommonCliMOCmds(void);                                               //Register global and common MOs and sub-MOs
 
     //Public data structures
     // -
 
 private:
     //Private methods
-    void regCliMOCmds(void);                                                            //Internal class procedure, register global and common MOs and sub-MOs
-
     void regGlobalCliMOCmds(void);                                                      //Internal class procedure, register global MOs and sub-MOs
 
     void regCommonCliMOCmds(void);                                                      //Internal class procedure, register common MOs and sub-MOs
@@ -90,19 +90,15 @@ private:
 
     /* Global CLI decoration methods */
     static void onCliHelp(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);//Prints help-text
-
     static void onCliGetContextHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get CLI-context helper
                                       cliCmdTable_t* p_cmdTable);
     rc_t onCliGetContext(char* p_fullContextPath);                                      //Get CLI-context
-
     static void onCliSetContextHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set CLI-context helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliSetContext(cmd* p_cmd);                                                   //Set CLI-context
-
     static void onClishowTopology(cmd* p_cmd, cliCore* p_cliContext,                    //Show CLI-context
                                   cliCmdTable_t* p_cmdTable);
     rc_t printTopology(bool p_start = true);                                            //Print CLI topology
-
     static void onCliReboot(cmd* p_cmd, cliCore* p_cliContext,                          //Reboot sub-MO command
                             cliCmdTable_t* p_cmdTable);
     static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,                       //Get decoder uptime sub-MO command
@@ -126,15 +122,15 @@ private:
     static void onCliShowNetwork(cmd* p_cmd, cliCore* p_cliContext,                     //Show Network sub-MO
                                  cliCmdTable_t* p_cmdTable);
     static void showNetwork(void);                                                      //Show Network sub-MO
-
     static void onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,                         //Set MQTT sub-MO
                              cliCmdTable_t* p_cmdTable);
     static void onCliClearMqtt(cmd* p_cmd, cliCore* p_cliContext,                       //Clear MQTT sub-MO
                                cliCmdTable_t* p_cmdTable);
     static void onCliGetMqtt(cmd* p_cmd, cliCore* p_cliContext,                         //Get MQTT sub-MO
                              cliCmdTable_t* p_cmdTable);
-    static void onCliShowMqtt(cmd* p_cmd, cliCore* p_cliContext,                        //Show MQTT sub-MO
+    static void onCliShowMqtt(cmd* p_cmd, cliCore* p_cliContext,                        //Show MQTT sub-MO, same as get mqtt
                               cliCmdTable_t* p_cmdTable);
+    static void showMqtt(void);
     static void onCliAddTime(cmd* p_cmd, cliCore* p_cliContext,                         //Add time sub-MO
                              cliCmdTable_t* p_cmdTable);
     static void onCliDeleteTime(cmd* p_cmd, cliCore* p_cliContext,                      //Delete time sub-MO
@@ -151,85 +147,62 @@ private:
                               cliCmdTable_t* p_cmdTable);
     static void showTime(void);                                                         //Show time sub-MO
 
+    /* Common CLI decoration methods */
     static void onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Set log level helper sub-MO
                                   cliCmdTable_t* p_cmdTable);
     static void onCliUnSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Un-set log level helper sub-MO
         cliCmdTable_t* p_cmdTable);
     virtual rc_t setLogLevel(const char* p_logLevel, bool p_force = false);             //Set log level for context - not yet supported
-
     static void onCliGetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Get log level helper
                                   cliCmdTable_t* p_cmdTable);
     virtual const char* getLogLevel(void);                                              //Get log level for context - not yet supported
-
     static void onCliShowLogHelper(cmd* p_cmd, cliCore* p_cliContext,
                                    cliCmdTable_t* p_cmdTable);
     static void onCliShowLog(void);                                                     //Show log for context- not supported
-
     static void onCliSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,               //Set failsafe helper
                                        cliCmdTable_t* p_cmdTable);
-
     virtual rc_t setFailSafe(const bool p_failsafe, bool p_force = false);              //Set failsafe for context - not supported
-
     static void onCliUnSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,             //Un-set failsafe helper
                                        cliCmdTable_t* p_cmdTable);
-
     virtual rc_t unSetFailSafe(const bool p_failsafe, bool p_force = false);            //Un-set failsafe for context - not supported
-
     static void onCliGetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,               //Get failsafe property helper
                                        cliCmdTable_t* p_cmdTable);
-
     virtual bool getFailSafe(void);                                                     //Get failsafe for context - not supported
-
     static void onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Set Debugflag helper
                                     cliCmdTable_t* p_cmdTable);
-    static void onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set Debugflag helper
+    static void onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                //unSet Debugflag helper
                                       cliCmdTable_t* p_cmdTable);
     virtual void setDebug(bool p_debug);                                                //Set Debugflag for context - not supported
-
     static void onCliGetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Get Debugflag helper
                                     cliCmdTable_t* p_cmdTable);
     virtual bool getDebug(void);                                                        //Get Debugflag for context - not supported
-
     static void onCliGetOpStateHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get OP-state (Operational-state) helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliGetOpState(cmd* p_cmd);                                                   //Get context OP-state (Operational-state)
-
     virtual rc_t getOpStateStr(char* p_opStateStr);                                     //Get context OP-state string (Operational-state)
-
     static void onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get System name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliGetSysName(cmd* p_cmd);                                                   //Get System name for context parser
-
-    virtual rc_t getSystemName(const char* p_systemName);                               //Get System name for context
-
+    virtual rc_t getSystemName(char* p_systemName, bool p_force = false);                               //Get System name for context
     static void onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set System name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliSetSysName(cmd* p_cmd);                                                   //Set System name for context parser
-
     virtual rc_t setSystemName(const char* p_systemName);                               //Set System name for context
-
     static void onCliGetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get User name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliGetUsrName(cmd* p_cmd);                                                   //Get User name for context parser
-
-    virtual rc_t getUsrName(const char* p_usrName);                                     //Get User name for context
-
+    virtual rc_t getUsrName(const char* p_usrName, bool p_force = false);               //Get User name for context
     static void onCliSetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set User name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliSetUsrName(cmd* p_cmd);                                                   //Set User name for context parser
-
     virtual rc_t setUsrName(const char* p_usrName);                                     //Set User name for context
-
     static void onCliGetDescHelper(cmd* p_cmd, cliCore* p_cliContext,                   //Get Description helper
                                    cliCmdTable_t* p_cmdTable);
     void onCliGetDesc(cmd* p_cmd);                                                      //Get Description for context parser
-
-    virtual rc_t getDesc(const char* p_description);                                    //Get Description for context
-
+    virtual rc_t getDesc(const char* p_description, bool p_force = false);              //Get Description for context
     static void onCliSetDescHelper(cmd* p_cmd, cliCore* p_cliContext,                   //Set Description helper
                                    cliCmdTable_t* p_cmdTable);
     void onCliSetDesc(cmd* p_cmd);                                                      //Set Description for context parser
-
     virtual rc_t setDesc(const char* p_description);                                    //Set Description for context
 
     //Private data structures

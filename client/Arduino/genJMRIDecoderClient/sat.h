@@ -79,11 +79,10 @@ public:
 	void onPmPoll(void);
 	static void onSatLibStateChangeHelper(satelite* p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle);
 	void onSatLibStateChange(satOpState_t p_satOpState);
-	static void onSenseChangeHelper(satelite* p_satelite, uint8_t p_linkAddr, uint8_t p_satAddr_p, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata);
+	static void onSenseChangeHelper(satelite* p_satelite, uint8_t p_linkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata);
 	void onSenseChange(uint8_t p_senseAddr, bool p_senseVal);
 	static void onSysStateChangeHelper(const void* p_satHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
-	void processSysState(void);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkHandle);
@@ -97,6 +96,7 @@ public:
 	const char* getDesc(bool p_force = false);
 	rc_t setAddr(uint8_t p_addr);
 	uint8_t getAddr(void);
+	const char* getLogLevel(void);
 	void setDebug(const bool p_debug);
 	bool getDebug(void);
 	uint32_t getRxCrcErrs(void);

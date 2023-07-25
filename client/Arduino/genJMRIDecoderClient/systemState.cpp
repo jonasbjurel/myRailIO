@@ -37,25 +37,26 @@
 uint16_t systemState::sysStateIndex = 0;
 const char* systemState::OP_STR[14] = OP_ARR;
 job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, CPU_SYSSTATE_JOB_CORE);
+//job* systemState::jobHandler = new (heap_caps_malloc(sizeof(job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, CPU_SYSSTATE_JOB_CORE)), MALLOC_CAP_SPIRAM)) job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, CPU_SYSSTATE_JOB_CORE);
 
 systemState::systemState(systemState* p_parent) {
     parent = p_parent;
     if (parent) {
         Log.TERSE("systemState::systemState: Creating systemState object %s:sysStateObjIndex-%d to parent object %s" CR, parent->getSysStateObjName(), sysStateIndex, parent->getSysStateObjName());
-        objName = new char[strlen(parent->getSysStateObjName()) + 25];
+        objName = new (heap_caps_malloc(sizeof(char) * (strlen(parent->getSysStateObjName()) + 25), MALLOC_CAP_SPIRAM)) char[strlen(parent->getSysStateObjName()) + 25];
         sprintf(objName, "%s:sysStateObjIndex-%d", parent->getSysStateObjName(), sysStateIndex);
     }
     else {
         Log.TERSE("systemState::systemState: Creating systemState top object sysStateObjIndex-%d" CR, sysStateIndex);
-        objName = new char[25];
+        objName = new (heap_caps_malloc(sizeof(char[25]), MALLOC_CAP_SPIRAM)) char[25];
         sprintf(objName, "sysStateObjIndex-%d", sysStateIndex);
     }
     if (parent && parent->getOpStateBitmap())
         opState = OP_CBL;
     else
         opState = OP_WORKING;
-    cbList = new QList<cb_t*>;
-    childList = new QList<systemState*>;
+    cbList = new (heap_caps_malloc(sizeof(QList<cb_t*>), MALLOC_CAP_SPIRAM)) QList<cb_t*>;
+    childList = new (heap_caps_malloc(sizeof(QList<systemState*>), MALLOC_CAP_SPIRAM)) QList<systemState*>;
     sysStateIndex++;
 }
 
@@ -83,7 +84,7 @@ rc_t systemState::regSysStateCb(void* p_miscCbData, sysStateCb_t p_cb) {
             return RC_ALREADYEXISTS_ERR;
         }
     }
-    cb_t* cbObj = new cb_t;
+    cb_t* cbObj = new (heap_caps_malloc(sizeof(cb_t), MALLOC_CAP_SPIRAM)) cb_t;
     cbObj->cb = p_cb;
     cbObj->miscCbData = p_miscCbData;
     cbList->push_back(cbObj);
@@ -161,7 +162,7 @@ char* systemState::getOpStateStrByBitmap(sysState_t p_opStateBitmap, char* p_opS
 sysState_t systemState::getOpStateBitmapByStr(const char* p_opStateStrBuff) {
     char opStr[20];
     char* opStateStrBuff;
-    opStateStrBuff = new char[strlen(p_opStateStrBuff) + 1];
+    opStateStrBuff = new (heap_caps_malloc(sizeof(char) * (strlen(p_opStateStrBuff) + 1), MALLOC_CAP_SPIRAM)) char[strlen(p_opStateStrBuff) + 1];
     strcpy(opStateStrBuff, p_opStateStrBuff);
     sysState_t opStateBitmap = 0;
     trimSpace(opStateStrBuff);
@@ -278,7 +279,7 @@ void systemState::setSysStateObjName(const char* p_objName) {
         }
         else
             Log.TERSE("systemState::setSysStateObjName: Setting child object name: %s:%s, previous object name: -" CR, parent->getSysStateObjName(), p_objName);
-        objName = new char[strlen(parent->getSysStateObjName()) + strlen(p_objName) + 1];
+        objName = new (heap_caps_malloc(sizeof(char) * (strlen(parent->getSysStateObjName()) + strlen(p_objName) + 1), MALLOC_CAP_SPIRAM)) char[strlen(parent->getSysStateObjName()) + strlen(p_objName) + 1];
         sprintf(objName, "%s:%s", parent->getSysStateObjName(), p_objName);
     }
     else {
@@ -288,7 +289,7 @@ void systemState::setSysStateObjName(const char* p_objName) {
         }
         else
             Log.TERSE("systemState::setSysStateObjName: Setting top object name: %s, previous object name: -" CR, p_objName);
-        objName = new char[strlen(p_objName)];
+        objName = new (heap_caps_malloc(sizeof(char) * strlen(p_objName), MALLOC_CAP_SPIRAM)) char[strlen(p_objName)];
         sprintf(objName, "%s", p_objName);
     }
     for (uint16_t i = 9; i < childList->size(); i++)
@@ -331,7 +332,7 @@ void systemState::updateObjOpStates(void) {
     }
     for (uint16_t i = 0; i < cbList->size(); i++){
         Log.VERBOSE("systemState::updateObjOpStates: Sending call-back to %i" CR, cbList->at(i)->cb);
-        sysStateJobDesc_t* sysStateJobDesc = new sysStateJobDesc_t;
+        sysStateJobDesc_t* sysStateJobDesc = new (heap_caps_malloc(sizeof(sysStateJobDesc_t), MALLOC_CAP_SPIRAM)) sysStateJobDesc_t;
         sysStateJobDesc->cb = cbList->at(i)->cb;
         sysStateJobDesc->miscCbData = cbList->at(i)->miscCbData;
         sysStateJobDesc->opState = opState;

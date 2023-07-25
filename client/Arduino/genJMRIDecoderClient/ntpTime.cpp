@@ -42,7 +42,7 @@ void ntpTime::init(void) {
 	Log.TERSE("ntpTime::init: Initializing ntptime" CR);
 	ntpDescriptor.ntpServerIndexMap = 0;
 	ntpDescriptor.opState = NTP_CLIENT_DISABLED | NTP_CLIENT_NOT_SYNCHRONIZED;
-	ntpDescriptor.dhcp = true;
+	ntpDescriptor.dhcp = false;
 	char defaultTz[20];
 	sprintf(defaultTz, "%s%+.2i", NTP_DEFAULT_TZ_AREA, NTP_DEFAULT_TZ_GMTOFFSET);
 	setTz(defaultTz);
@@ -373,12 +373,12 @@ rc_t ntpTime::setTimeOfDay(const char* p_timeOfDayStr, char* p_resultStr) {
 }
 
 rc_t ntpTime::setTimeOfDay(tm* p_tm, char* p_resultStr) {
-	ntpDescriptor_t ntpDescriptor;
 	timeval tv;
 	tv.tv_usec = 0;
 	Log.TERSE("ntpTime::setTimeOfDay: Setting time of day from tm" CR);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
+	Serial.printf("time OPStatus %x, %x" CR, ntpDescriptor.opState, NTP_CLIENT_DISABLED);
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		Log.WARN("ntpTime::setTimeOfDay: Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
@@ -462,7 +462,7 @@ rc_t ntpTime::setEpochTime(const timeval* p_tv, char* p_resultStr) {
 	Log.TERSE("ntpTime::setEpochTime: Setting epoch time from tv to %i" CR, p_tv->tv_sec);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
-	if (ntpDescriptor.opState & NTP_CLIENT_DISABLED) {
+	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time as NTP Client is running");
 		Log.WARN("ntpTime::setEpochTime: Cannot set time as NTP Client is running" CR);
@@ -511,6 +511,22 @@ rc_t ntpTime::getTz(timezone** p_tz) {
 	return gettimeofday(NULL, *p_tz);
 }
 
+rc_t ntpTime::setDayLightSaving(bool p_daylightSaving) {
+	timeval tv;
+	timezone tz;
+	tm t;
+	if(p_daylightSaving)
+		Log.TERSE("ntpTime::setDayLightSaving: Setting daylightsaving to \"true\"" CR);
+	else
+		Log.TERSE("ntpTime::setDayLightSaving: Setting daylightsaving to \"false\"" CR);
+	gettimeofday(&tv, &tz);
+	
+	t = *localtime(&(tv.tv_sec));
+	t.tm_isdst = p_daylightSaving;
+	settimeofday(&tv, &tz);
+	return RC_OK;
+}
+
 rc_t ntpTime::getDayLightSaving(bool* p_daylightSaving) {
 	timeval tv;
 	timezone tz;
@@ -544,7 +560,7 @@ rc_t ntpTime::updateNtpDescriptorStr(ntpDescriptor_t* p_ntpDescriptor) {
 			strcat(p_ntpDescriptor->opStateStr, "NOTSYCRONIZED|");
 		if (p_ntpDescriptor->opState & NTP_CLIENT_SYNCHRONIZING)
 			strcat(p_ntpDescriptor->opStateStr, "SYNCHRONIZING|");
-		//*(p_ntpDescriptor->opStateStr + strlen(p_ntpDescriptor->opStateStr)) = '\0'; //NEED TO TRIM AWHE LAST |
+		p_ntpDescriptor->opStateStr[strlen(p_ntpDescriptor->opStateStr) - 1] = '\0';
 	}
 	switch (p_ntpDescriptor->syncStatus) {
 	case SNTP_SYNC_STATUS_COMPLETED:

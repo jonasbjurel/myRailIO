@@ -36,13 +36,23 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
-satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, p_linkNo) {
+satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(SATLINK_MO_NAME, SATLINK_MO_NAME, p_linkNo, p_decoderHandle) {
     Log.INFO("satLink::satLink: Creating Satelite link channel %d" CR, p_linkNo);
     linkNo = p_linkNo;
     pmPoll = false;
     satLinkScanDisabled = true;
+    debug = false;
     //We need to have this early since RMT requires internal RAM
-    satLinkLibHandle = new sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
+    satLinkLibHandle = new (heap_caps_malloc(sizeof(sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
+        (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
+        (rmt_channel_t)(SATLINK_RMT_TX_CHAN[p_linkNo]),
+        (rmt_channel_t)(SATLINK_RMT_RX_CHAN[p_linkNo]),
+        SATLINK_RMT_TX_MEMBANK[p_linkNo],
+        SATLINK_RMT_RX_MEMBANK[p_linkNo],
+        CPU_SATLINK_PRIO,
+        CPU_SATLINK_CORE[p_linkNo],
+        SATLINK_UPDATE_MS)), MALLOC_CAP_SPIRAM)) \
+        sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
         (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
         (rmt_channel_t)(SATLINK_RMT_TX_CHAN[p_linkNo]),
         (rmt_channel_t)(SATLINK_RMT_RX_CHAN[p_linkNo]),
@@ -68,11 +78,30 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     xmlconfig[XML_SATLINK_DESC] = NULL;
     xmlconfig[XML_SATLINK_LINK] = NULL;
     xmlconfig[XML_SATLINK_ADMSTATE] = NULL;
+    satLinkLibHandle->satLinkRegSatDiscoverCb(&onDiscoveredSateliteHelper, this);
+    satLinkLibHandle->satLinkRegStateCb(&onSatLinkLibStateChangeHelper, this);
+    satLinkLibHandle->setErrTresh(SATLINK_LINKERR_HIGHTRES, SATLINK_LINKERR_LOWTRES);
+    txUnderunErr = 0;
+    rxOverRunErr = 0;
+    scanTimingViolationErr = 0;
+    rxCrcErr = 0;
+    remoteCrcErr = 0;
+    rxSymbolErr = 0;
+    rxDataSizeErr = 0;
+    wdErr = 0;
+}
 
-    //TODO CLI Initialization needs to move to a separate method to not eat all internal heap
+satLink::~satLink(void) {
+    panic("satLink::~satLink: satLink destructior not supported - rebooting..." CR);
+}
+
+rc_t satLink::init(void) {
+    Log.INFO("satLink::init: Initializing Satelite link channel %d" CR, linkNo);
     /* CLI decoration methods */
+    Log.INFO("satLink::init: Registering CLI methods for Satelite link channel %d" CR, linkNo);
+    //Global and common MO Commands
+    regGlobalNCommonCliMOCmds();
     // get/set satLinkNo
-    /*
     regCmdMoArg(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, onCliGetLinkHelper);
     regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, SATLINK_GET_SATLINKNO_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, SATLINK_MO_NAME, SATLINKNO_SUB_MO_NAME, onCliSetLinkHelper);
@@ -125,35 +154,16 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     regCmdHelp(GET_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, SATLINK_GET_WDERRS_HELP_TXT);
     regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, onCliClearWdErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, SATLINK_CLEAR_WDERRS_HELP_TXT);
-    */
-}
-
-satLink::~satLink(void) {
-    panic("satLink::~satLink: satLink destructior not supported - rebooting..." CR);
-}
-
-rc_t satLink::init(void) {
-    Log.INFO("satLink::init: Initializing Satelite link channel %d" CR, linkNo);
+    Log.INFO("satLink::init: CLI methods for Satelite link channel %d registered" CR, linkNo);
     Log.INFO("satLink::init: Creating satelites for link channel %d" CR, linkNo);
     for (uint8_t satAddress = 0; satAddress < MAX_SATELITES; satAddress++) {
-        sats[satAddress] = new sat(satAddress, this);
+        sats[satAddress] = new (heap_caps_malloc(sizeof(sat(satAddress, this)), MALLOC_CAP_SPIRAM)) sat(satAddress, this);
         if (sats[satAddress] == NULL)
             panic("satLink::init: Could not create satelite object for link channel - rebooting...");
         addSysStateChild(sats[satAddress]);
         sats[satAddress]->init();
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
-    satLinkLibHandle->satLinkRegSatDiscoverCb(&onDiscoveredSateliteHelper, this);
-    satLinkLibHandle->satLinkRegStateCb(&onSatLinkLibStateChangeHelper, this);
-    satLinkLibHandle->setErrTresh(SATLINK_LINKERR_HIGHTRES, SATLINK_LINKERR_LOWTRES);
-    txUnderunErr = 0;
-    rxOverRunErr = 0;
-    scanTimingViolationErr = 0;
-    rxCrcErr = 0;
-    remoteCrcErr = 0;
-    rxSymbolErr = 0;
-    rxDataSizeErr = 0;
-    wdErr = 0;
     return RC_OK;
 }
 
@@ -397,7 +407,7 @@ void satLink::onSysStateChange(sysState_t p_sysState) {
     sysState_t sysStateChange = newSysState ^ prevSysState;
     if (!sysStateChange)
         return;
-    Log.INFO("satLink::processSysState: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
+    Log.INFO("satLink::onSysStateChange: satLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -409,46 +419,46 @@ void satLink::onSysStateChange(sysState_t p_sysState) {
         satLinkDisableScan = true;
         down();
         prevSysState = newSysState;
-        panic("satLink::processSysState: satLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
+        panic("satLink::onSysStateChange: satLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
         return;
     }
     if (newSysState & OP_INIT) {
-        Log.INFO("satLink::processSysState: satLink-%d is initializing - informing server if not already done" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d is initializing - informing server if not already done" CR, linkNo);
         satLinkDisableScan = true;
     }
     if (newSysState & OP_UNUSED) {
-        Log.INFO("satLink::processSysState: satLink-%d is unused - informing server if not already done" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d is unused - informing server if not already done" CR, linkNo);
         satLinkDisableScan = true;
     }
     if (newSysState & OP_ERRSEC) {
-        Log.INFO("satLink::processSysState: satLink-%d has experienced excessive PM errors - informing server if not already done" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d has experienced excessive PM errors - informing server if not already done" CR, linkNo);
     }
     if (newSysState & OP_GENERR) {
-        Log.INFO("satLink::processSysState: satLink-%d has experienced an error - informing server if not already done" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d has experienced an error - informing server if not already done" CR, linkNo);
     }
     if (newSysState & OP_DISABLED) {
-        Log.INFO("satLink::processSysState: satLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
         satLinkDisableScan = true;
     }
     if (newSysState & OP_CBL) {
-        Log.INFO("satLink::processSysState: satLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
         satLinkDisableScan = true;
     }
     if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
-        Log.INFO("satLink::processSysState: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+        Log.INFO("satLink::onSysStateChange: satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
     }
     if (satLinkDisableScan && !satLinkScanDisabled) {
-        Log.INFO("satLink::processSysState: satLink-%d disabling satLink scaning" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d disabling satLink scaning" CR, linkNo);
         down();
     }
     else if (satLinkDisableScan && satLinkScanDisabled)
-        Log.INFO("satLink::processSysState: satLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
     else if (!satLinkDisableScan && satLinkScanDisabled) {
-        Log.INFO("satLink::processSysState: satLink-%d enabling satLink scaning" CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d enabling satLink scaning" CR, linkNo);
         up();
     }
     else if (!satLinkDisableScan && !satLinkScanDisabled)
-        Log.INFO("satLink::processSysState: satLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
+        Log.INFO("satLink::onSysStateChange: satLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
     prevSysState = newSysState;
 }
 
@@ -556,6 +566,16 @@ rc_t satLink::setLink(uint8_t p_link) {
 
 uint8_t satLink::getLink(void) {
     return linkNo;
+}
+
+const char* satLink::getLogLevel(void) {
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.ERROR("decoder::satLink: Could not retrieve a valid Log-level" CR);
+        return NULL;
+    }
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
 }
 
 void satLink::setDebug(const bool p_debug) {

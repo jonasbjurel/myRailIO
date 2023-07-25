@@ -782,7 +782,7 @@ class UI_topDialog(QDialog):
         self.versionLineEdit.setText(str(self.parentObjHandle.version.value))
         self.dateLineEdit.setText(str(self.parentObjHandle.date.value))
         # General genJMRI services configuration
-        self.ntpLineEdit.setText(str(self.parentObjHandle.ntpUri.value[0]))
+        self.ntpLineEdit.setText(str(self.parentObjHandle.ntpUri.value))
         self.timeZoneSpinBox.setValue(self.parentObjHandle.tz.value)
         self.rsyslogLineEdit.setText(str(self.parentObjHandle.rsyslogUri.value))
         self.logVerbosityComboBox.setCurrentText(str(long2shortVerbosity(self.parentObjHandle.logVerbosity.value)))
@@ -814,7 +814,7 @@ class UI_topDialog(QDialog):
         self.parentObjHandle.version.value = self.versionLineEdit.displayText()
         self.parentObjHandle.date.value = self.dateLineEdit.displayText()
         # General genJMRI services configuration
-        self.parentObjHandle.ntpUri.value[0] = self.ntpLineEdit.displayText()
+        self.parentObjHandle.ntpUri.value = self.ntpLineEdit.displayText()
         self.parentObjHandle.tz.value = self.timeZoneSpinBox.value()
         self.parentObjHandle.rsyslogUri.value = self.rsyslogLineEdit.displayText()
         self.parentObjHandle.logVerbosity.value = short2longVerbosity(self.logVerbosityComboBox.currentText())

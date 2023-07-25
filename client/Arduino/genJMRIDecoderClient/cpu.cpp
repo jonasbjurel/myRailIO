@@ -335,15 +335,15 @@ uint cpu::getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt) {
 	strcpy(p_heapMemTxt, "");
 	strcpy(p_heapHeadingTxt, "");
 	sprintf(p_heapHeadingTxt, "| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
-							  -20, "FreeMem(B)",
-							  -20, "UsedMem(B)",
-							  -20, "TotalMem(B)",
-							  -20, "HighMemWatermark(B)",
-							  -20, "MemUsage(%)",
-							  -20, "MemUsage10s(deltaB)",
-							  -20, "MemUsage30s(deltaB)",
-							  -20, "MemUsage1m(deltaB)",
-							  -20, "MemUsage10m(deltaB)");
+							  -10, "FreeMem(B)",
+							  -10, "UsedMem(B)",
+							  -11, "TotalMem(B)",
+							  -19, "HighMemWatermark(B)",
+							  -11, "MemUsage(%)",
+							  -19, "MemUsage10s(deltaB)",
+							  -19, "MemUsage30s(deltaB)",
+							  -18, "MemUsage1m(deltaB)",
+							  -19, "MemUsage10m(deltaB)");
 	if (cpuPmEnable) {
 		char delta10S[10];
 		if (!getHeapMemTime(10))
@@ -366,27 +366,27 @@ uint cpu::getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt) {
 		else
 			itoa(getHeapMemTime(10*60) - getHeapMemTime(0), delta10M, 10);
 		sprintf(p_heapMemTxt, "| %*i | %*i | %*i | %*i | %*.2f | %*s | %*s | %*s | %*s |",
-							  -20, heapInfo.freeSize,
-							  -20, heapInfo.totalSize - heapInfo.freeSize,
-							  -20, heapInfo.totalSize,
-							  -20, heapInfo.highWatermark,
-							  -20, (float)(100 - 100 * heapInfo.freeSize / heapInfo.totalSize),
-							  -20, delta10S,
-							  -20, delta30S,
-							  -20, delta1M,
-							  -20, delta10M);
+							  -10, heapInfo.freeSize,
+							  -10, heapInfo.totalSize - heapInfo.freeSize,
+							  -11, heapInfo.totalSize,
+							  -19, heapInfo.highWatermark,
+							  -11, (float)(100 - 100 * heapInfo.freeSize / heapInfo.totalSize),
+							  -19, delta10S,
+							  -19, delta30S,
+							  -18, delta1M,
+							  -19, delta10M);
 	}
 	else {
 		sprintf(p_heapMemTxt, "| %*i | %*i | %*i | %*i | %*.2f | %*s | %*s | %*s | %*s |",
-							  -20, heapInfo.freeSize,
-							  -20, heapInfo.totalSize - heapInfo.freeSize,
-							  -20, heapInfo.totalSize,
-							  -20, heapInfo.highWatermark,
-							  -20, (float)(100 - 100 * heapInfo.freeSize / heapInfo.totalSize),
-							  -20, "-",
-							  -20, "-",
-							  -20, "-",
-							  -20, "-");
+							  -10, heapInfo.freeSize,
+							  -10, heapInfo.totalSize - heapInfo.freeSize,
+							  -11, heapInfo.totalSize,
+							  -19, heapInfo.highWatermark,
+							  -11, (float)(100 - 100 * heapInfo.freeSize / heapInfo.totalSize),
+							  -19, "-",
+							  -19, "-",
+							  -18, "-",
+							  -19, "-");
 	}
 	return heapInfo.freeSize;
 }

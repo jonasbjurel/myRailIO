@@ -38,18 +38,16 @@
 globalCli* globalCli::rootHandle;
 char* globalCli::testBuff = NULL;
 
-globalCli::globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex, bool p_root) : cliCore(p_moType, p_moName, p_moIndex, p_root) {
+globalCli::globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex, globalCli* p_parent_context, bool p_root) : cliCore(p_moType, p_moName, p_moIndex, p_parent_context, p_root) {
 	if (p_root) {
 		rootHandle = this;
-		setRoot();
 	}
-	//regCliMOCmds();
 }
 
 globalCli::~globalCli(void) {
 }
 
-void globalCli::regCliMOCmds(void) {
+void globalCli::regGlobalNCommonCliMOCmds(void) {
 	regGlobalCliMOCmds();
 	regCommonCliMOCmds();
 }
@@ -204,8 +202,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "meanlatency", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "overruns", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "opstate", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, "subscriptions", 1, false);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_GET_MQTT_HELP_TXT);
-
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, onCliShowMqtt);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_SHOW_MQTT_HELP_TXT);
 
@@ -237,13 +235,13 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "tod", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "epochtime", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timezone", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "daylightsaving", 1, true);
 	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_SET_TIME_HELP_TXT);
 
 	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliGetTime);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timeofday", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "tod", 1, false);							//Synonym for timeofday
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "utc", 2, false);							//Looking for UTC time
-
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "epochtime", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "timezone", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, "daylightsaving", 1, false);
@@ -331,8 +329,8 @@ void globalCli::regCommonCliMOCmds(void) {
 }
 
 void globalCli::regContextCliMOCmds(void) {
-	Log.INFO("globalCli::regContextCliMOCmds: No context unique \
-				MOs supported for CLI context" CR);
+	Log.INFO("globalCli::regContextCliMOCmds: No context unique" \
+			 "MOs supported for CLI context" CR);
 }
 
 /* Global CLI decoration methods */
@@ -381,9 +379,9 @@ void globalCli::onCliSetContext(cmd* p_cmd) {
 	else if (!(targetContext = getCliContextHandleByPath(cmd.getArg(1).getValue().
 														 c_str()))) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Context %s does not exist",
-													  cmd.getArg(0).getValue().c_str());
+													  cmd.getArg(1).getValue().c_str());
 		Log.VERBOSE("globalCli::onCliSetContext: Context %s does not exist" CR,
-					cmd.getArg(0).getValue().c_str());
+					cmd.getArg(1).getValue().c_str());
 	}
 	else {
 		Log.VERBOSE("Setting context to: %s" CR, cmd.getArgument(1).getValue().c_str());
@@ -554,8 +552,8 @@ void globalCli::onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	if ((p_cmdTable->commandFlags->isPresent("tasks"))) {
-		char* taskShowHeadingStr = new char[200];
-		char* taskShowStr = new char[10000];
+		char* taskShowHeadingStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM)) char[200];
+		char* taskShowStr = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM)) char[10000];
 		if (rc = cpu::getTaskInfoAllTxt(taskShowStr, taskShowHeadingStr)) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "Could not provide task information, \
 												return code %i", rc);
@@ -571,8 +569,8 @@ void globalCli::onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,
 		}
 	}
 	if ((p_cmdTable->commandFlags->isPresent("task"))) {
-		char* taskShowHeadingStr = new char[200];
-		char* taskShowStr = new char[200];
+		char* taskShowHeadingStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM)) char[200];
+		char* taskShowStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM)) char[200];
 		if (rc = cpu::getTaskInfoAllByTaskTxt(cmd.getArgument(1).getValue().c_str(),
 											  taskShowStr, taskShowHeadingStr)) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "Could not provide task information, \
@@ -641,8 +639,8 @@ void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {							//WE NEED TO WORK ON THIS - SHOULD BE THE SAME AS show
-		char* memShowHeadingStr = new char[300];
-		char* memShowStr = new char[300];
+		char* memShowHeadingStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
+		char* memShowStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
 		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
 		printCli("%s\r\n%s", memShowHeadingStr, memShowStr);
 		delete memShowHeadingStr;
@@ -726,7 +724,8 @@ void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
 			return;
 		}
 		else {
-			testBuff = new char[atoi(p_cmdTable->commandFlags->isPresent("allocation")->
+			testBuff = new (heap_caps_malloc(sizeof(char) * atoi(p_cmdTable->commandFlags->isPresent("allocation")->
+				getValue()), MALLOC_CAP_SPIRAM)) char[atoi(p_cmdTable->commandFlags->isPresent("allocation")->
 				getValue())];
 			if (!testBuff) {
 				notAcceptedCliCommand(CLI_GEN_ERR, "Failed to allocate %i bytes",
@@ -772,8 +771,8 @@ void globalCli::onCliShowMem(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	else {
-		char* memShowHeadingStr = new char[300];
-		char* memShowStr = new char[300];
+		char* memShowHeadingStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
+		char* memShowStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
 		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
 		printCli("%s\r\n%s", memShowHeadingStr, memShowStr);
 		delete memShowHeadingStr;
@@ -1041,26 +1040,26 @@ void globalCli::onCliShowNetwork(cmd* p_cmd, cliCore* p_cliContext,
 }
 
 void globalCli::showNetwork(void) {
-	char ssid[20];																		//It apears that sprintf is multi-threaded, networking is not thread safe.
-	strcpy(ssid, networking::getSsid());
-	char bssid[18];
-	strcpy(bssid, networking::getBssid());
+	char ssid[20 + 1];																		//It apears that sprintf is multi-threaded, networking is not thread safe.
+	strcpyTruncMaxLen(ssid, networking::getSsid(), 20);
+	char bssid[18 + 1];
+	strcpyTruncMaxLen(bssid, networking::getBssid(), 18);
 	uint8_t channel = networking::getChannel();
-	char auth[11];
-	strcpy(auth, networking::getAuth());
+	char auth[11 + 1];
+	strcpyTruncMaxLen(auth, networking::getAuth(), 11);
 	int rssi = networking::getRssi();
-	char mac[18];
-	strcpy(mac, networking::getMac());
-	char hostname[35];
-	strcpy(hostname, networking::getHostname());
-	char ipaddr[16];
-	strcpy(ipaddr, networking::getIpAddr().toString().c_str());
-	char mask[16];
-	strcpy(mask, networking::getIpAddr().toString().c_str());
-	char gw[16];
-	strcpy(gw, networking::getGatewayIpAddr().toString().c_str());
-	char dns[16];
-	strcpy(dns, networking::getDnsIpAddr().toString().c_str());
+	char mac[18 + 1];
+	strcpyTruncMaxLen(mac, networking::getMac(), 18);
+	char hostname[35 + 1];
+	strcpyTruncMaxLen(hostname, networking::getHostname(), 35);
+	char ipaddr[16 + 1];
+	strcpyTruncMaxLen(ipaddr, networking::getIpAddr().toString().c_str(), 35);
+	char mask[16 + 1];
+	strcpyTruncMaxLen(mask, networking::getIpMask().toString().c_str(), 16);
+	char gw[16 + 1];
+	strcpyTruncMaxLen(gw, networking::getGatewayIpAddr().toString().c_str(), 16);
+	char dns[16 + 1];
+	strcpyTruncMaxLen(dns, networking::getDnsIpAddr().toString().c_str(), 16);
 	uint8_t ch = networking::getChannel();
 	printCli("| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |", 
 			-20, "SSID:",
@@ -1230,53 +1229,9 @@ void globalCli::onCliGetMqtt(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
-		char uri[20];
-		if (mqtt::getBrokerUri())
-			strcpy(uri, mqtt::getBrokerUri());
-		else
-			strcpy(uri, "-");
-		uint16_t port = mqtt::getBrokerPort();
-		char clientId[20];
-		if (mqtt::getClientId())
-			strcpy(clientId, mqtt::getClientId());
-		else
-			strcpy(clientId, "-");
-		uint8_t qos = mqtt::getDefaultQoS();
-		float keepAlive = mqtt::getKeepAlive();
-		float ping = mqtt::getPingPeriod();
-		uint32_t maxLatency = mqtt::getMaxLatency();
-		uint32_t meanLatency = mqtt::getMeanLatency();
-		uint32_t overRuns = mqtt::getOverRuns();
-		char opState[100];
-		mqtt::getOpStateStr(opState);
-		char mqttInfo[200];
-		sprintf(mqttInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | \
-							 %*s | %*s | %*s | %*s |",
-						  -20, "MQTT URI:",
-						  -7, "Port:",
-						  -12, "Client-Id:",
-						  -6, "QoS:",
-						  -13, "Keep-alive:",
-						  -7, "Ping:",
-						  -14, "Max latency:",
-						  -15, "Mean latency:",
-						  -11, "Overruns:",
-						  -40, "OP-State:");
-		printCli("%s", mqttInfo);
-		sprintf(mqttInfo, "| %*s | %*i | %*s | %*i | %*.2f | %*.2f | \
-							 %*i | %*i | %*i | %*s |",
-						 -20, uri,
-						 -7, port,
-						 -12, clientId,
-						 -6, qos,
-						 -13, keepAlive,
-						 -7, ping,
-						 -14, maxLatency,
-						 -15, meanLatency,
-						 -11, overRuns,
-						 -40, opState);
-		printCli("%s", mqttInfo);
+		showMqtt();
 		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
 	}
 	if (p_cmdTable->commandFlags->isPresent("uri")) {
 		if(mqtt::getBrokerUri())
@@ -1326,29 +1281,54 @@ void globalCli::onCliGetMqtt(cmd* p_cmd, cliCore* p_cliContext,
 		printCli("MQTT Operational state: %s", opState);
 		cmdHandled = true;
 	}
+	if (p_cmdTable->commandFlags->isPresent("subscriptions")) {
+		char cbInfo[200];
+		sprintf(cbInfo, "| %*s | %*s |",
+			-100, "Topic:",
+			-50, "Callbacks:");
+		printCli("%s", cbInfo);
+		char topic[100];
+		char cbs[50];
+		uint16_t i = 0;
+		Serial.printf("Starting itteration 0" CR);
+		while (mqtt::getSubs(i++, topic, 100, cbs, 50)) {
+			sprintf(cbInfo, "| %*s | %*s |",
+				-100, topic,
+				-50, cbs);
+			printCli("%s", cbInfo);
+			Serial.printf("Starting itteration %i" CR, i);
+		}
+		cmdHandled = true;
+	}
 	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_QUIET);
 	else
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
-void globalCli::onCliShowMqtt(cmd * p_cmd, cliCore * p_cliContext,
-							  cliCmdTable_t * p_cmdTable) {
+void globalCli::onCliShowMqtt(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
 	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		Log.WARN("globalCli::onCliShowMqtt: Bad number of arguments" CR);
 		return;
 	}
-	char uri[20];
+	showMqtt();
+	acceptedCliCommand(CLI_TERM_QUIET);
+	return;
+}
+
+void globalCli::showMqtt(void) {
+	char uri[20 + 1];
 	if (mqtt::getBrokerUri())
-		strcpy(uri, mqtt::getBrokerUri());
+		strcpyTruncMaxLen(uri, mqtt::getBrokerUri(), 20);
 	else
 		strcpy(uri, "-");
 	uint16_t port = mqtt::getBrokerPort();
-	char clientId[20];
+	char clientId[30 + 1];
 	if (mqtt::getClientId())
-		strcpy(clientId, mqtt::getClientId());
+		strcpyTruncMaxLen(clientId, mqtt::getClientId(), 30);
 	else
 		strcpy(clientId, "-");
 	uint8_t qos = mqtt::getDefaultQoS();
@@ -1360,35 +1340,34 @@ void globalCli::onCliShowMqtt(cmd * p_cmd, cliCore * p_cliContext,
 	char opState[100];
 	mqtt::getOpStateStr(opState);
 	char mqttInfo[200];
-	sprintf(mqttInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | \
-						 %*s | %*s | %*s | %*s |",
-					  -20, "URI:",
-					  -7, "Port:", 
-					  -12, "Client-Id:",
-					  -6, "QoS:",
-					  -13, "Keep-alive:",
-					  -7, "Ping:",
-					  -14, "Max latency:",
-					  -15, "Mean latency:",
-					  -11, "Overruns:",
-					  -40, "OP-State");
+	sprintf(mqttInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | " \
+		              "%*s | %*s | %*s | %*s |",
+		-20, "URI:",
+		-5, "Port:",
+		-30, "Client-Id:",
+		-6, "QoS:",
+		-13, "Keep-alive:",
+		-7, "Ping:",
+		-12, "Max latency:",
+		-13, "Mean latency:",
+		-9, "Overruns:",
+		-40, "OP-State");
 	printCli("%s", mqttInfo);
-	sprintf(mqttInfo, "| %*s | %*i | %*s | %*i | %*.2f | %*.2f | \
-						 %*i | %*i | %*i | %*s |",
-					  -20, uri,
-					  -7, port,
-					  -12, clientId,
-					  -6, qos,
-					  -13, keepAlive,
-					  -7, ping,
-					  -14, maxLatency,
-					  -15, meanLatency,
-					  -11, overRuns,
-					  -40, opState);
+	sprintf(mqttInfo, "| %*s | %*i | %*s | %*i | %*.2f | %*.2f | " \
+		"%*i | %*i | %*i | %*s |",
+		-20, uri,
+		-5, port,
+		-30, clientId,
+		-6, qos,
+		-13, keepAlive,
+		-7, ping,
+		-12, maxLatency,
+		-13, meanLatency,
+		-9, overRuns,
+		-40, opState);
 	printCli("%s", mqttInfo);
-	acceptedCliCommand(CLI_TERM_QUIET);
-}
 
+}
 void globalCli::onCliAddTime(cmd* p_cmd, cliCore* p_cliContext,
 							 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -1704,7 +1683,7 @@ void globalCli::onCliSetTime(cmd* p_cmd, cliCore* p_cliContext,
 		else {
 			if (ntpTime::setTimeOfDay(p_cmdTable->commandFlags->
 				isPresent("tod")->getValue(), response)) {
-				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "%s", response);
+				notAcceptedCliCommand(CLI_GEN_ERR, "%s", response);
 				Log.WARN("globalCli::onCliSetTime: %s" CR, response);
 				return;
 			}		
@@ -1733,6 +1712,24 @@ void globalCli::onCliSetTime(cmd* p_cmd, cliCore* p_cliContext,
 		}
 		Log.VERBOSE("globalCli::onCliSetTime: Successfully set time zone" CR);
 		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("daylightsaving")) {
+		Log.INFO("globalCli::onCliSetTime: Setting dayligh saving" CR);
+		if (!strcmp(p_cmdTable->commandFlags->isPresent("daylightsaving")->getValue(), "true")) {
+			ntpTime::setDayLightSaving(true);
+			Log.VERBOSE("globalCli::onCliSetTime: Successfully set time zone to \"true\"" CR);
+			cmdHandled = true;
+		}
+		else if (!strcmp(p_cmdTable->commandFlags->isPresent("daylightsaving")->getValue(), "false")) {
+			ntpTime::setDayLightSaving(false);
+			Log.VERBOSE("globalCli::onCliSetTime: Successfully set time zone to \"false\"" CR);
+			cmdHandled = true;
+		}
+		else {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "%s is not a value daylightsaving flag value, valid values are \"true\" or \false\"", response);
+			Log.WARN("globalCli::onCliSetTime: %s" CR, response);
+			return;
+		}
 	}
 	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_EXECUTED);
@@ -1775,6 +1772,11 @@ void globalCli::onCliGetTime(cmd* p_cmd, cliCore* p_cliContext,
 		}
 		cmdHandled = true;
 	}
+	else if(p_cmdTable->commandFlags->isPresent("utc")) {
+		ntpTime::getTimeOfDay(outputBuff, true);
+		printCli("Universal time: %s", outputBuff);
+		cmdHandled = true;
+	}
 	if (p_cmdTable->commandFlags->isPresent("epochtime")) {
 		ntpTime::getEpochTime(outputBuff);
 		printCli("Epoch time: %s", outputBuff);
@@ -1788,9 +1790,9 @@ void globalCli::onCliGetTime(cmd* p_cmd, cliCore* p_cliContext,
 		bool dls;
 		ntpTime::getDayLightSaving(&dls);
 		if (dls)
-			sprintf(outputBuff, "True");
+			sprintf(outputBuff, "true");
 		else
-			sprintf(outputBuff, "False");
+			sprintf(outputBuff, "false");
 		printCli("Daylight saving is %s", outputBuff);
 		cmdHandled = true;
 	}
@@ -2302,7 +2304,7 @@ void globalCli::onCliGetSysName(cmd* p_cmd) {
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-rc_t globalCli::getSystemName(const char* p_systemName) {
+rc_t globalCli::getSystemName(char* p_systemName, bool p_force) {
 	notAcceptedCliCommand(CLI_GEN_ERR, 
 						  "getSystemName not implemented for context %s-%i",
 						  getContextName(), getContextIndex());
@@ -2347,7 +2349,7 @@ void globalCli::onCliGetUsrName(cmd* p_cmd) {
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-rc_t globalCli::getUsrName(const char* p_usrName) {
+rc_t globalCli::getUsrName(const char* p_usrName, bool p_force) {
 	notAcceptedCliCommand(CLI_GEN_ERR, "getUsrName not implemented for context %s-%i",
 						  getContextName(), getContextIndex());
 }
@@ -2389,7 +2391,7 @@ void globalCli::onCliGetDesc(cmd* p_cmd) {
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-rc_t globalCli::getDesc(const char* p_description) {
+rc_t globalCli::getDesc(const char* p_description, bool p_force) {
 	notAcceptedCliCommand(CLI_GEN_ERR, "getDesc not implemented for context %s-%i",
 						  getContextName(), getContextIndex());
 }

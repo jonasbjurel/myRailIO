@@ -72,8 +72,8 @@ class schema():
     GIT_SCHEMA =        {"gitBranch":estr_t, "gitTag":estr_t, "gitUrl":uri_t}
     MQTT_SCHEMA =       {"decoderMqttURI":uri_t, "decoderMqttPort":ipPort_t, "decoderMqttTopicPrefix":estr_t, "decoderMqttKeepalivePeriod":efloat_t}
     JMRI_RPC_SCHEMA =   {"jmriRpcURI":uri_t, "jmriRpcPortBase":ipPort_t, "JMRIRpcKeepAlivePeriod":efloat_t}
-    SERVICES_SCHEMA =   {"ntpUri":multiChoiceUri_t, "ntpPort":ipPort_t, "ntpProtocol":ipProtocol_t, "tz":tz_t, "rsyslogUri":uri_t,
-                         "rsyslogPort":ipPort_t, "rsyslogProtocol":ipProtocol_t, "logVerbosity":logVerbosity_t, "snmpUri":multiChoiceUri_t,
+    SERVICES_SCHEMA =   {"ntpUri":uri_t, "ntpPort":ipPort_t, "ntpProtocol":ipProtocol_t, "tz":tz_t, "rsyslogUri":uri_t,
+                         "rsyslogPort":ipPort_t, "rsyslogProtocol":ipProtocol_t, "logVerbosity":logVerbosity_t, "snmpUri":uri_t,
                          "snmpPort":ipPort_t, "snmpProtocol":ipProtocol_t}
     ADM_STATE_SCHEMA =  {"admState":adminState_t}
     TOP_DECODER_SCHEMA =    {"decoders":elist_t, "decoderFailSafe":ebool_t, "trackFailSafe":ebool_t}

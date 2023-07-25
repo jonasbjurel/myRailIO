@@ -94,8 +94,7 @@ class actMem;
 			panic("actBase::CALL_EXT_RC: Non supported type - rebooting");\
 		}
 
-//class actBase : public systemState, globalCli {
-class actBase : public systemState {
+class actBase : public systemState, globalCli {
 public:
 	//Public methods
 	actBase(uint8_t p_actPort, sat* p_satHandle);
@@ -106,7 +105,6 @@ public:
 	void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
 	static void onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
-	void processSysState(void);
 	void failsafe(bool p_failsafe);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_sensHandle);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
@@ -126,17 +124,16 @@ public:
 	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
 	rc_t getShowing(char* p_showing, char* p_orderedShowing);
 	rc_t setShowing(const char* p_showing, bool p_force = false);
+	const char* getLogLevel(void);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	/* CLI decoration methods */
-	/*
 	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
-	*/
 
 	//Public data structures
 	sat* satHandle;

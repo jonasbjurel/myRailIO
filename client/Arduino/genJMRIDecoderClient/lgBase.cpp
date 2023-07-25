@@ -37,8 +37,7 @@
 /*==============================================================================================================================================*/
 
 
-//lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle), globalCli(LG_MO_NAME, LG_MO_NAME, lgIndex) {
-lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle) {
+lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle), globalCli(LG_MO_NAME, LG_MO_NAME, p_lgAddress, p_lgLinkHandle) {
     lgLinkHandle = (lgLink*)p_lgLinkHandle;
     lgAddress = p_lgAddress;
     lgLinkHandle->getLink(&lgLinkNo);
@@ -64,39 +63,6 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLi
     xmlconfig[XML_LG_ADMSTATE] = NULL;
     debug = false;
     stripOffset = 0;
-
-    //CLI decoration definitions
-    // get/set address
-/*
-    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, onCliGetAddressHelper);
-    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_GET_LGADDR_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, onCliSetAddressHelper);
-    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_SET_LGADDR_HELP_TXT);
-
-    // get/set ledcnt
-    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, onCliGetLedCntHelper);
-    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, LG_GET_LGLEDCNT_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, onCliSetLedCntHelper);
-    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, LG_SET_LGLEDCNT_HELP_TXT);
-
-    // get/set ledoffset
-    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, onCliGetLedOffsetHelper);
-    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, LG_GET_LGLEDOFFSET_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, onCliSetLedOffsetHelper);
-    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, LG_SET_LGLEDOFFSET_HELP_TXT);
-
-    // get/set properties
-    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
-    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, LG_GET_LGPROPERTY_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
-    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, LG_SET_LGPROPERTY_HELP_TXT);
-
-    // get/set showing
-    regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, onCliGetShowingHelper);
-    regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_GET_LGSHOWING_HELP_TXT);
-    regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
-    regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_SET_LGSHOWING_HELP_TXT);
-    */
 }
 
 lgBase::~lgBase(void) {
@@ -105,6 +71,40 @@ lgBase::~lgBase(void) {
 
 rc_t lgBase::init(void) {
     Log.INFO("lgBase::init: Initializing stem-object for lg-address %d, on lgLink %d" CR, lgAddress, lgLinkNo);
+    //CLI decoration definitions
+    Log.INFO("lgBase::init: Registering CLI methods for lg-address %d, on lgLink %d" CR, lgAddress, lgLinkNo);
+    //Global and common MO Commands
+    regGlobalNCommonCliMOCmds();
+    // get/set address
+        regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, onCliGetAddressHelper);
+        regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_GET_LGADDR_HELP_TXT);
+        regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, onCliSetAddressHelper);
+        regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGADDR_SUB_MO_NAME, LG_SET_LGADDR_HELP_TXT);
+
+        // get/set ledcnt
+        regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, onCliGetLedCntHelper);
+        regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, LG_GET_LGLEDCNT_HELP_TXT);
+        regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, onCliSetLedCntHelper);
+        regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGLEDCNT_SUB_MO_NAME, LG_SET_LGLEDCNT_HELP_TXT);
+
+        // get/set ledoffset
+        regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, onCliGetLedOffsetHelper);
+        regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, LG_GET_LGLEDOFFSET_HELP_TXT);
+        regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, onCliSetLedOffsetHelper);
+        regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGLEDOFFSET_SUB_MO_NAME, LG_SET_LGLEDOFFSET_HELP_TXT);
+
+        // get/set properties
+        regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
+        regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, LG_GET_LGPROPERTY_HELP_TXT);
+        regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
+        regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGPROPERTY_SUB_MO_NAME, LG_SET_LGPROPERTY_HELP_TXT);
+
+        // get/set showing
+        regCmdMoArg(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, onCliGetShowingHelper);
+        regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_GET_LGSHOWING_HELP_TXT);
+        regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
+        regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_SET_LGSHOWING_HELP_TXT);
+    Log.INFO("lgBase::init: CLI methods for lg-address %d, on lgLink %d registered" CR, lgAddress, lgLinkNo);
     return RC_OK;
 }
 
@@ -132,13 +132,13 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         panic("lgBase::onConfig: System Name missing for lg-address %d, on lgLink %d - rebooting..." CR, lgAddress, lgLinkNo);
     if (!xmlconfig[XML_LG_USRNAME]){
         Log.WARN("lgBase::onConfig: User name was not provided - using \"%s-UserName\"" CR);
-        xmlconfig[XML_LG_USRNAME] = new char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
+        xmlconfig[XML_LG_USRNAME] = new (heap_caps_malloc(strlen(xmlconfig[XML_LG_SYSNAME]) + 10, MALLOC_CAP_SPIRAM)) char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
         const char* usrName[2] = { xmlconfig[XML_LG_SYSNAME], "-" };
         strcpy(xmlconfig[XML_LG_USRNAME], "-");
     }
     if (!xmlconfig[XML_LG_DESC]) {
         Log.WARN("lgBase::onConfig: Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_LG_DESC] = new char[2];
+        xmlconfig[XML_LG_DESC] = new (heap_caps_malloc(2, MALLOC_CAP_SPIRAM)) char[2];
         strcpy(xmlconfig[XML_LG_DESC], "-");
     }
     if (!xmlconfig[XML_LG_LINKADDR])
@@ -178,7 +178,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     //CONFIFIGURING STEM OBJECT WITH PROPERTIES
     if (!strcmp((const char*)xmlconfig[XML_LG_TYPE], "SIGNAL MAST")) {
             Log.INFO("lgBase::onConfig: lg-type is Signal mast - programing act-stem object by creating an lgSignalMast extention class object" CR);
-            extentionLgClassObj = (void*) new lgSignalMast(this);
+            extentionLgClassObj = (void*) new (heap_caps_malloc(sizeof(lgSignalMast(this)), MALLOC_CAP_SPIRAM)) lgSignalMast(this);
         }
     else
         panic("lgBase::onConfig: lg type not supported" CR);
@@ -475,6 +475,16 @@ rc_t lgBase::getShowing(char* p_showing, bool p_force) {
     return RC_NOT_CONFIGURED_ERR;
 }
 
+const char* lgBase::getLogLevel(void) {
+    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
+        Log.ERROR("lgBase::getLogLevel: Could not retrieve a valid Log-level" CR);
+        return NULL;
+    }
+    else {
+        return transformLogLevelInt2XmlStr(Log.getLevel());
+    }
+}
+
 void lgBase::setDebug(const bool p_debug) {
     debug = p_debug;
 }
@@ -493,7 +503,6 @@ uint16_t lgBase::getStripOffset(void) {
 }
 
 /* CLI decoration methods*/
-/*
 void lgBase::onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
     if (cmd.getArgument(1)) {
@@ -638,10 +647,9 @@ void lgBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    static_cast<lgBase*>(p_cliContext)->getShowing(cmd.getArgument(1).getValue().c_str());
+    static_cast<lgBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str());
     acceptedCliCommand(CLI_TERM_ORDERED);
 }
-*/
 
 /*==============================================================================================================================================*/
 /* END Class lgBase                                                                                                                             */

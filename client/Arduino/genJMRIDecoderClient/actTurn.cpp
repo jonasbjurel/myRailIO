@@ -120,7 +120,7 @@ void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
 
 void actTurn::onSysStateChange(const uint16_t p_sysState) {
     char opState[100];
-    Log.INFO("actTurn::onSystateChange: Got a new systemState %d for actTurn extention class object for actuator port %d, on satelite adress %d, satLink %d" CR, actBaseHandle->getOpStateStr(opState), actPort, satAddr, satLinkNo);
+    Log.INFO("actTurn::onSystateChange: Got a new systemState %d for actTurn extention class object for actuator port %d, on satelite adress %d, satLink %d" CR, actBaseHandle->systemState::getOpStateStr(opState), actPort, satAddr, satLinkNo);
 }
 
 void actTurn::onActTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle) {
