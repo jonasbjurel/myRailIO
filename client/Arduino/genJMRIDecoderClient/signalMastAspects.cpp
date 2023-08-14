@@ -61,8 +61,8 @@ rc_t signalMastAspects::onConfig(const tinyxml2::XMLElement* p_smAspectsXmlEleme
     //Outer loop itterating all signal mast aspects
     for (uint8_t i = 0; true; i++) {
         Log.INFO("signalMastAspects::onConfig: Parsing Signal mast Aspect: %s" CR, smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
-        aspects_t* newAspect = new (heap_caps_malloc(sizeof(aspects_t), MALLOC_CAP_SPIRAM)) aspects_t;
-        newAspect->name = new (heap_caps_malloc(sizeof(char) * (strlen(smAspectsXmlElement->FirstChildElement("AspectName")->GetText()) + 1), MALLOC_CAP_SPIRAM)) char[strlen(smAspectsXmlElement->FirstChildElement("AspectName")->GetText()) + 1];
+        aspects_t* newAspect = new (heap_caps_malloc(sizeof(aspects_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) aspects_t;
+        newAspect->name = new (heap_caps_malloc(sizeof(char) * (strlen(smAspectsXmlElement->FirstChildElement("AspectName")->GetText()) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(smAspectsXmlElement->FirstChildElement("AspectName")->GetText()) + 1];
         strcpy(newAspect->name, smAspectsXmlElement->FirstChildElement("AspectName")->GetText());
         aspects.push_back(newAspect);
 
@@ -94,8 +94,8 @@ rc_t signalMastAspects::onConfig(const tinyxml2::XMLElement* p_smAspectsXmlEleme
             }
             else { //Creating a new signal mast type'
                 Log.INFO("signalMastAspects::onConfig: Creating Mast type %s" CR, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
-                aspects.back()->mastTypes.push_back(new (heap_caps_malloc(sizeof(mastType_t), MALLOC_CAP_SPIRAM)) mastType_t);
-                char* newMastTypeName = new (heap_caps_malloc(sizeof(char) * (strlen(mastTypeAspectXmlElement->FirstChildElement("Type")->GetText()) + 1), MALLOC_CAP_SPIRAM)) char[strlen(mastTypeAspectXmlElement->FirstChildElement("Type")->GetText()) + 1];
+                aspects.back()->mastTypes.push_back(new (heap_caps_malloc(sizeof(mastType_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mastType_t);
+                char* newMastTypeName = new (heap_caps_malloc(sizeof(char) * (strlen(mastTypeAspectXmlElement->FirstChildElement("Type")->GetText()) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(mastTypeAspectXmlElement->FirstChildElement("Type")->GetText()) + 1];
                 strcpy(newMastTypeName, mastTypeAspectXmlElement->FirstChildElement("Type")->GetText());
                 aspects.back()->mastTypes.back()->name = newMastTypeName;
                 aspects.back()->mastTypes.back()->noOfUsedHeads = atoi(mastTypeAspectXmlElement->FirstChildElement("NoofPxl")->GetText());

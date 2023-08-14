@@ -47,6 +47,7 @@
 #include "xmlHelpers.h"
 #include "pinout.h"
 #include "esp32SysConfig.h"
+#include "taskWrapper.h"
 class decoder;
 class sat;
 /*==============================================================================================================================================*/

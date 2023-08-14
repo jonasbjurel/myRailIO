@@ -48,75 +48,76 @@
 /*					"satelite", "sensor", "actuator, etc. Specific MOs may implent specific sub-MOs only rellevant for a particular specific MO.*/
 /*					CLI examples for specific MOs sub-MOs: "get lglink -overruns", "get lglink -overruns", "get lightgroup -showing", ...		*/
 /*==============================================================================================================================================*/
-#define ROOT_MO_NAME								"root"
+EXT_RAM_ATTR const char ROOT_MO_NAME[] = "root";
 
-#define GLOBAL_MO_NAME								"global"							//Practical usage of MO is vagely defined - other than that all global commands are allways available (no matter context) and served by the globalCli static class
-#define		CLIHELP_SUB_MO_NAME							"cli"							//Only for help, we need to add a property that this is only for help, and not a real command
-#define		HELP_SUB_MO_NAME							"help"							//Print help text, see help text definitions below
-#define		CONTEXT_SUB_MO_NAME							"context"						//Global MO instance context sub-MO
-#define		UPTIME_SUB_MO_NAME							"uptime"						//Global MO Decoder up-time sub-MO
-#define		CPU_SUB_MO_NAME								"cpu"							//Global MO CPU sub-MO
-#define		CPUMEM_SUB_MO_NAME							"memory"						//Global MO Memory sub-MO
-#define		NETWORK_SUB_MO_NAME							"network"						//Global Network MO sub-MO
-#define		TOPOLOGY_SUB_MO_NAME						"topology"						//Global MO topology sub-MO
-#define		MQTT_SUB_MO_NAME							"mqtt"							//Global MO MQTT sub-MO
-#define		PINGSUPERVISION_SUB_MO_NAME					"supervision"					//move to MQTT?????????
-#define		TIME_SUB_MO_NAME							"time"							//Global MO time sub-MO
-#define		LOG_SUB_MO_NAME								"log"							//Global MO log sub-MO
-#define		FAILSAFE_SUB_MO_NAME						"failsafe"						//Global MO failsafe-MO
+EXT_RAM_ATTR const char GLOBAL_MO_NAME[] = "global";								//Practical usage of MO is vagely defined - other than that all global commands are allways available (no matter context) and served by the globalCli static class
+EXT_RAM_ATTR const char		CLIHELP_SUB_MO_NAME[] = "cli";							//Only for help, we need to add a property that this is only for help, and not a real command
+EXT_RAM_ATTR const char		HELP_SUB_MO_NAME[] = "help";							//Print help text, see help text definitions below
+EXT_RAM_ATTR const char		CONTEXT_SUB_MO_NAME[] = "context";						//Global MO instance context sub-MO
+EXT_RAM_ATTR const char		UPTIME_SUB_MO_NAME[] = "uptime";						//Global MO Decoder up-time sub-MO
+EXT_RAM_ATTR const char		CPU_SUB_MO_NAME[] = "cpu";								//Global MO CPU sub-MO
+EXT_RAM_ATTR const char		CPUMEM_SUB_MO_NAME[] = "memory";						//Global MO Memory sub-MO
+EXT_RAM_ATTR const char		NETWORK_SUB_MO_NAME[] = "network";						//Global Network MO sub-MO
+EXT_RAM_ATTR const char		TOPOLOGY_SUB_MO_NAME[] = "topology";					//Global MO topology sub-MO
+EXT_RAM_ATTR const char		COMMANDS_SUB_MO_NAME[] = "commands";					//Global Context available commands sub-MO
+EXT_RAM_ATTR const char		MQTT_SUB_MO_NAME[] = "mqtt";							//Global MO MQTT sub-MO
+EXT_RAM_ATTR const char		PINGSUPERVISION_SUB_MO_NAME[] = "supervision";			//move to MQTT?????????
+EXT_RAM_ATTR const char		TIME_SUB_MO_NAME[] = "time";							//Global MO time sub-MO
+EXT_RAM_ATTR const char		LOG_SUB_MO_NAME[] = "log";								//Global MO log sub-MO
+EXT_RAM_ATTR const char		FAILSAFE_SUB_MO_NAME[] = "failsafe";					//Global MO failsafe-MO
 
 
-#define COMMON_MO_NAME								"common"							//Common MO
-#define		OPSTATE_SUB_MO_NAME							"opstate"						//Common MO OP-state sub-MO
-#define		SYSNAME_SUB_MO_NAME							"systemname"					//Common MO System name sub-MO
-#define		USER_SUB_MO_NAME							"username"						//Common MO User ame sub-MO
-#define		DESC_SUB_MO_NAME							"description"					//Common MO Description sub-MO
-#define		DEBUG_SUB_MO_NAME							"debug"							//Common MO Debug sub-MO
+EXT_RAM_ATTR const char COMMON_MO_NAME[] = "common";								//Common MO
+EXT_RAM_ATTR const char		OPSTATE_SUB_MO_NAME[] = "opstate";						//Common MO OP-state sub-MO
+EXT_RAM_ATTR const char		SYSNAME_SUB_MO_NAME[] = "systemname";					//Common MO System name sub-MO
+EXT_RAM_ATTR const char		USER_SUB_MO_NAME[] = "username";						//Common MO User ame sub-MO
+EXT_RAM_ATTR const char		DESC_SUB_MO_NAME[] = "description";						//Common MO Description sub-MO
+EXT_RAM_ATTR const char		DEBUG_SUB_MO_NAME[] = "debug";							//Common MO Debug sub-MO
 
-#define	DECODER_MO_NAME								"decoder"							// All decoder MOs are mapped to the global and common context
+EXT_RAM_ATTR const char	DECODER_MO_NAME[] = "decoder";							// All decoder MOs are mapped to the global and common context
 
-#define LGLINK_MO_NAME								"lglink"
-#define		LGLINKNO_SUB_MO_NAME						"link"
-#define		LGLINKOVERRUNS_SUB_MO_NAME					"overruns"
-#define		LGLINKMEANLATENCY_SUB_MO_NAME				"meanlatency"
-#define		LGLINKMAXLATENCY_SUB_MO_NAME				"maxlatency"
-#define		LGLINKMEANRUNTIME_SUB_MO_NAME				"meanruntime"
-#define		LGLINKMAXRUNTIME_SUB_MO_NAME				"maxruntime"
+EXT_RAM_ATTR const char LGLINK_MO_NAME[] = "lglink";
+EXT_RAM_ATTR const char		LGLINKNO_SUB_MO_NAME[] = "link";
+EXT_RAM_ATTR const char		LGLINKOVERRUNS_SUB_MO_NAME[] = "overruns";
+EXT_RAM_ATTR const char		LGLINKMEANLATENCY_SUB_MO_NAME[] = "meanlatency";
+EXT_RAM_ATTR const char		LGLINKMAXLATENCY_SUB_MO_NAME[] = "maxlatency";
+EXT_RAM_ATTR const char		LGLINKMEANRUNTIME_SUB_MO_NAME[] = "meanruntime";
+EXT_RAM_ATTR const char		LGLINKMAXRUNTIME_SUB_MO_NAME[] = "maxruntime";
 
-#define LG_MO_NAME									"lightgroup"
-#define		LGADDR_SUB_MO_NAME							"address"
-#define		LGLEDCNT_SUB_MO_NAME						"ledcnt"
-#define		LGLEDOFFSET_SUB_MO_NAME						"ledoffset"
-#define		LGPROPERTY_SUB_MO_NAME						"property"
-#define		LGSTATE_SUB_MO_NAME							"state"
-#define		LGSHOWING_SUB_MO_NAME						"showing"
+EXT_RAM_ATTR const char LG_MO_NAME[] = "lightgroup";
+EXT_RAM_ATTR const char		LGADDR_SUB_MO_NAME[] = "address";
+EXT_RAM_ATTR const char		LGLEDCNT_SUB_MO_NAME[] = "ledcnt";
+EXT_RAM_ATTR const char		LGLEDOFFSET_SUB_MO_NAME[] = "ledoffset";
+EXT_RAM_ATTR const char		LGPROPERTY_SUB_MO_NAME[] = "property";
+EXT_RAM_ATTR const char		LGSTATE_SUB_MO_NAME[] = "state";
+EXT_RAM_ATTR const char		LGSHOWING_SUB_MO_NAME[] = "showing";
 
-#define SATLINK_MO_NAME								"satelitelink"
-#define		SATLINKNO_SUB_MO_NAME						"link"
-#define		SATLINKTXUNDERRUN_SUB_MO_NAME				"txunderrun"
-#define		SATLINKRXOVERRUN_SUB_MO_NAME				"rxoverrun"
-#define		SATLINKTIMINGVIOLATION_SUB_MO_NAME			"timingviolation"
-#define		SATLINKRXCRCERR_SUB_MO_NAME					"rxcrcerr"
-#define		SATLINKREMOTECRCERR_SUB_MO_NAME				"remotecrcerr"
-#define		SATLINKRXSYMERRS_SUB_MO_NAME				"rxsymbolerr"
-#define		SATLINKRXSIZEERRS_SUB_MO_NAME				"rxsizeerr"
-#define		SATLINKWDERRS_SUB_MO_NAME					"wderr"
+EXT_RAM_ATTR const char SATLINK_MO_NAME[] = "satelitelink";
+EXT_RAM_ATTR const char		SATLINKNO_SUB_MO_NAME[] = "link";
+EXT_RAM_ATTR const char		SATLINKTXUNDERRUN_SUB_MO_NAME[] = "txunderrun";
+EXT_RAM_ATTR const char		SATLINKRXOVERRUN_SUB_MO_NAME[] = "rxoverrun";
+EXT_RAM_ATTR const char		SATLINKTIMINGVIOLATION_SUB_MO_NAME[] = "timingviolation";
+EXT_RAM_ATTR const char		SATLINKRXCRCERR_SUB_MO_NAME[] = "rxcrcerr";
+EXT_RAM_ATTR const char		SATLINKREMOTECRCERR_SUB_MO_NAME[] = "remotecrcerr";
+EXT_RAM_ATTR const char		SATLINKRXSYMERRS_SUB_MO_NAME[] = "rxsymbolerr";
+EXT_RAM_ATTR const char		SATLINKRXSIZEERRS_SUB_MO_NAME[] = "rxsizeerr";
+EXT_RAM_ATTR const char		SATLINKWDERRS_SUB_MO_NAME[] = "wderr";
 
-#define SAT_MO_NAME									"satelite"
-#define		SATADDR_SUB_MO_NAME							"address"
-#define		SATRXCRCERR_SUB_MO_NAME						"rxcrcerr"
-#define		SATTXCRCERR_SUB_MO_NAME						"txcrcerr"
-#define		SATWDERR_SUB_MO_NAME						"wderr"
+EXT_RAM_ATTR const char SAT_MO_NAME[] = "satelite";
+EXT_RAM_ATTR const char		SATADDR_SUB_MO_NAME[] = "address";
+EXT_RAM_ATTR const char		SATRXCRCERR_SUB_MO_NAME[] = "rxcrcerr";
+EXT_RAM_ATTR const char		SATTXCRCERR_SUB_MO_NAME[] = "txcrcerr";
+EXT_RAM_ATTR const char		SATWDERR_SUB_MO_NAME[] = "wderr";
 
-#define SENSOR_MO_NAME								"sensor"
-#define		SENSPORT_SUB_MO_NAME						"port"
-#define		SENSSENSING_SUB_MO_NAME						"sensing"
-#define		SENSORPROPERTY_SUB_MO_NAME					"property"
+EXT_RAM_ATTR const char SENSOR_MO_NAME[] = "sensor";
+EXT_RAM_ATTR const char		SENSPORT_SUB_MO_NAME[] = "port";
+EXT_RAM_ATTR const char		SENSSENSING_SUB_MO_NAME[] = "sensing";
+EXT_RAM_ATTR const char		SENSORPROPERTY_SUB_MO_NAME[] = "property";
 
-#define ACTUATOR_MO_NAME							"actuator"
-#define		ACTUATORPORT_SUB_MO_NAME					"port"
-#define		ACTUATORSHOWING_SUB_MO_NAME					"showing"
-#define		ACTUATORPROPERTY_SUB_MO_NAME				"property"
+EXT_RAM_ATTR const char ACTUATOR_MO_NAME[] = "actuator";
+EXT_RAM_ATTR const char		ACTUATORPORT_SUB_MO_NAME[] = "port";
+EXT_RAM_ATTR const char		ACTUATORSHOWING_SUB_MO_NAME[] = "showing";
+EXT_RAM_ATTR const char		ACTUATORPROPERTY_SUB_MO_NAME[] = "property";
 
 /*==============================================================================================================================================*/
 /* End MO definitions                                                                                                                           */
@@ -129,324 +130,359 @@
 /* Purpose: Defines the managed objects (MOs/sub-MOs) help texts																				*/
 /* Description:																																	*/
 /*==============================================================================================================================================*/
-#define GLOBAL_HELP_HELP_TXT											"[{context-path}/]help [-m MO-object][{MO-subobject}]:\n\rProvides the full CLI help text, or only "\
-																		"the help text for a particular managed sub-object related to the context/managed"\
-																		"object. If [-m {MO-objecttype}] is provided, the help text for the MO-subobject "\
-																		"is related to the given MO-object type rather than current context. Use \"show "\
-																		" motypes\" to see available MO-types\n\r"
-
-#define GLOBAL_FULL_CLI_HELP_TXT										"The genJMRIDecoder CLI provides interactive management capabilities throughout it\'s "\
-																		"management object types:\n\r"\
-																		"- Global\n\r"\
-																		"- Common\n\r"\
-																		"- Decoder\n\r"\
-																		"	- Lightgroup-link\n\r"\
-																		"		- Lightgroup\n\r"\
-																		"	- Satelite-link\n\r"\
-																		"		- Satelite\n\r"\
-																		"			- Actuator\n\r"\
-																		"			- Sensor\n\r"\
-																		"The managed objects are not directly exposed in the CLI, but are indirectly referred"\
-																		"to by the current- or temporary- CLI context. A CLI context is a hierarchical"\
-																		"name-space which can only operate on the given managed-object - and instance sub-managed"\
-																		"objects, with three exeptions:\n\r"\
-																		"- Global management objects are available in any CLI context, and operates on system wide singelton objects\n\r"\
-																		"- Common management objects are available for all CLI contexts and operates on the current/or indicated"\
-																		"CLI context.\n\r"\
-																		"CLI context can ne provided in two ways:\n\r"\
-																		"- Current CLI context represents the CLI context pat that is currently active, the current"\
-																		"active CLI context tree path is shown at the CLI prompt: \"{Current active absolute CLI context-path}>> \""\
-																		"or you can retreive it by the command: \">> set context {absolute CLI context-path}|{rellative context-path}\"\n\r"\
-																		"is shown\n\r"\
-																		"- Temporary context represents a method to redirect a single command to a different CLI context than the current."\
-																		"the temporary CLI context is limited to a single command and the current CLI context remains as before"\
-																		"after the command has executed. The temporary CLI context is prepended the CLI command and can be an"\
-																		"absolute or a rellative CLI context path: Ie: [{absolute-CLI-Context-Path}|{rellative-CLI-Context-Path}]command [parameters]\n\r"\
-																		"\n\r"\
-																		"Available genJMRI CLI commands:\n\r"\
-																		"helpCliCmd [args]\n\r"\
-																		"reboot\n\r"\
-																		"show [args]\n\r"\
-																		"get [args]\n\r"\
-																		"set [args]\n\r"\
-																		"unset [args]\n\r"\
-																		"clear [args]\n\r"\
-																		"add [args]\n\r"\
-																		"delete [args]\n\r"\
-																		"copy [args]\n\r"\
-																		"paste [args]\n\r"\
-																		"move [args]\n\r"\
-																		"start [args]\n\r"\
-																		"stop [args]\n\r"\
-																		"restart [args]"
-
-#define GLOBAL_GET_CONTEXT_HELP_TXT										"get context: Prints current Context/Managed object"
-
-#define GLOBAL_SET_CONTEXT_HELP_TXT										"set context {context-path}: Sets current context/Managed object path. If context-path "\
-																		"begins with \"/\" it is considered to be an absolute path, other wise it is considered "\
-																		"to be a rellative path. \"..\" is used to ascend one level in the context/Managed object "\
-																		"tree. \".\" indicates current level in the context/Managed object tree"
-
-#define GLOBAL_SHOW_TOPOLOGY_HELP_TXT									"show topology [{root-path}]: Shows decoder context/Manage object topology-tree."\
-																		"if \"{root-path}\" is given, the topology-tree shown will start from that "\
-																		"path-junction and, otherwise the topology shown will start from the current "\
-																		"context-path. Eg. if \"/\" is given, the printout will start from the decoder-root"\
-																		"showing the full topology.\n\r"
-
-#define GLOBAL_REBOOT_HELP_TXT											"reboot: Reboots the decoder"
-
-#define GLOBAL_GET_UPTIME_HELP_TXT										"get uptime: Prints the time in seconds sinse the previous reboot"
-
-#define GLOBAL_START_CPU_HELP_TXT										"start cpu -stats: Starts collection of CPU and Memory statistics"
-#define GLOBAL_STOP_CPU_HELP_TXT										"stop cpu -stats: Stops collection of CPU and Memory statistics"
-#define GLOBAL_GET_CPU_HELP_TXT											"get cpu [-tasks] [-task {taskName}] [-cpuusage] [-watermark] [-stats]\n\r"\
-																		"get cpu: Is identical to \"show cpu\"\n\r"\
-																		"get cpu -tasks: Prints task information for all running tasks\n\r"\
-																		"get cpu -task {taskName}: Prints information for tasks \"taskName\"\n\r"\
-																		"get cpu -cpuusage: Prints current and trending CPU-usage information, the CPU and memory statistics collection function needs to be active (\"set cpu -stats\") \n\r"\
-																		"get cpu -watermark: Prints the High Watermark CPU-usage since CPU statistics collection was started\n\r"\
-																		"get cpu -stats: Prints the state of the CPU and memory statistics collection function\n\r"
-#define GLOBAL_SHOW_CPU_HELP_TXT										"show cpu: Shows a collection of CPU status- and statistics"
-
-#define GLOBAL_GET_CPUMEM_HELP_TXT										"get memory [-total] [-used] [-available] [-watermark] [-average {averagePeriod_s}] [-trend {trendPeriod_s}] [-maxblock] [-allocation {aloccation_bytes] | -free]\n\r"\
-																		"get memory Is identical to \"show memory\"\n\r"\
-																		"get memory -total: Prints the total installed memory capacity in bytes\n\r"\
-																		"get memory -used: Prints currently used memory capacity in bytes\n\r"\
-																		"get memory -available: Prints currently available memory capacity in bytes\n\r"\
-																		"get memory -watermark: Prints the lowest available memory watermark in bytes since CPU statistics collection was started\n\r"\
-																		"get memory -average {averagePeriod_s}: Prints the average memory usage in bytes over \"averagePeriod_s\" seconds, the CPU and memory statistics collection function needs to be active - see \"set cpu -stats\"\n\r"\
-																		"get memory -trend {trendPeriod_s}: Prints the memory usage trend in bytes over \"trendPeriod_s\" seconds, the CPU and memory statistics collection function needs to be active - see \"set cpu -stats\"\n\r"\
-																		"get memory -maxblock: Prints the maximum block of heap memory in bytes that currently can be allocated\n\r"\
-																		"get memory -allocate {size}: Allocates a memory chunk of \"size\" bytes for memory debug reasons - debug flag needs to be set - see \"set debug\"\n\r"\
-																		"get memory -free: Frees/deallocates a previously allocated memory shunk from \"get memory -allocate {size}\"\n\r"
-#define GLOBAL_SHOW_CPUMEM_HELP_TXT										"show memory: Prints a summary of memory status and statistics"
-
-#define GLOBAL_SET_NETWORK_HELP_TXT										"set network [-hostname {hostName}] [-address {hostIpAddress}] [-mask {networkIpMask}] [-gw {networkIpAddress}] [-dns {dnsIpAddress}] [-persist]\n\r"\
-																		"set network -hostname {hostName}: Sets the host name\n\r"\
-																		"set network -address {hostIpAddress}: Sets the host IPv4 network address\n\r"\
-																		"set network -mask {networkIpMask}: Sets the IPv4 network mask\n\r"\
-																		"set network -gw {networkIpAddress}: Sets the IPv4 network default gateway address\n\r"\
-																		"set network -dns {dnsIpAddress}: Sets the IPv4 DNS address\n\r"\
-																		"set network -persist: Persists the network configuration\n\r"
-#define GLOBAL_GET_NETWORK_HELP_TXT										"get network [-ssid] [-bssid] [-channel] [-auth] [-rssi] [-mac] [-hostname] [-address] [-mask] [-gw] [-dns] [-opstate] [-scanap]\n\r"\
-																		"get network: Is identical to \"show network\"\n\r"\
-																		"get network -ssid: Prints the AP SSID connected to\n\r"\
-																		"get network -bssid: Prints the AP BSSID connected to\n\r"\
-																		"get network -channel: Prints the AP WiFi channel connected to\n\r"\
-																		"get network -auth: Prints current WiFi Autentication/Encryption method\n\r"\
-																		"get network -rssi: Prints current SNR/RSSI WiFi signal quality\n\r"\
-																		"get network -mac: Prints decoder WiFi MAC address\n\r"\
-																		"get network -hostname: Prints decoder host name\n\r"\
-																		"get network -address: Prints the host IPv4 network address\n\r"\
-																		"get network -mask: Prints the IPv4 network mask\n\r"\
-																		"get network -gw: Prints the IPv4 network default gateway address\n\r"\
-																		"get network -dns: Prints the IPv4 DNS address\n\r"\
-																		"get network -opstate Prints current network operational state\n\r"\
-																		"get network -scanap: Scans availabe APs and prints the information about them\n\r"
-#define GLOBAL_SHOW_NETWORK_HELP_TXT									"show network: Prints a summary of network information\n\r"
-
-#define GLOBAL_SET_MQTT_HELP_TXT										"set mqtt [-uri {mqttBrokerUri}] [-port {mqttBrokerPort}] [-clientid {mqttClientId}] [-qos {mqttDefaultQos}] [-keepalive {mqttKeepAlive_s}] [-ping {ping_s}] [-persist]\n\r"\
-																		"set mqtt -uri {mqttBrokerUri}: Sets MQTT Broker URI to \"mqttBrokerUri\" URI or IPv4 address\n\r"\
-																		"set mqtt -port {mqttBrokerPort}: Sets MQTT Broker port to \"mqttBrokerPort\"\n\r"\
-																		"set mqtt -clientid {mqttClientId}: Sets MQTT client ID to \"mqttClientId\"\n\r"\
-																		"set mqtt -qos {mqttDefaultQos}: Sets MQTT default QoS to \"mqttDefaultQos\"\n\r"\
-																		"set mqtt -keepalive {mqttKeepAlive_s}: Sets MQTT keepalive period to \"mqttKeepAlive_s\" seconds\n\r"\
-																		"set mqtt -ping {ping_s}: Sets MQTT overlay server-client MQTT ping period to \"ping_s\" seconds\n\r"\
-																		"set mqtt -persist: Persists MQTT configuration of Broker URI and Broker port\n\r"
-#define GLOBAL_CLEAR_MQTT_HELP_TXT										"clear mqtt [-maxlatency] [-overruns]\n\r"\
-																		"clear mqtt -maxlatency: Clears MQTT max-latency statistics\n\r"\
-																		"clear mqtt -overruns: Clears MQTT overrun statistics\n\r"
-#define GLOBAL_GET_MQTT_HELP_TXT										"get mqtt [-uri] [-port] [-clientid] [-qos] [-keepalive] [-ping] [-maxlatency] [-meanlatency] [-overruns] [-opstate]\n\r"\
-																		"get mqtt: Identical to \"show mqtt\"\n\r"\
-																		"get mqtt -uri: Print MQTT broker URI or IPv4 address\n\r"\
-																		"get mqtt -port: Prints the MQTT broker port\n\r"\
-																		"get mqtt -clientid: Prints the MQTT client identifier\n\r"\
-																		"get mqtt -qos: Prints the MQTT client default Quality of Service class\n\r"\
-																		"get mqtt -keepalive: Prints the MQTT keep-alive period in seconds\n\r"\
-																		"get mqtt -ping: Prints the server-client ping period in seconds\n\r"\
-																		"get mqtt -maxlatency: Prints the MQTT poll loop max latency in uS\n\r"\
-																		"get mqtt -meanlatency: Prints the MQTT poll loop mean latency in uS\n\r"\
-																		"get mqtt -overruns: Prints the MQTT poll loop overrun counter\n\r"\
-																		"get mqtt -opstate: Prints the MQTT client operational state\n\r"
-#define GLOBAL_SHOW_MQTT_HELP_TXT										"show mqtt: Prints a summary of the MQTT information\n\r" 
-
-#define GLOBAL_ADD_TIME_HELP_TXT										"add time -ntpserver {ntpServerURI | ntpServerIPv4Address} [-ntpport {ntpPort}]: Adds a new NTP server with URI: \"ntpServerURI\" or IPv4 IP address: \"ntpServerIPv4Address\",\n\r"\
-																		"the NTP port can be set with \"-ntpport {ntpPort}\", if the port is not given 123 will be used as the default port\n\r"
-#define GLOBAL_DELETE_TIME_HELP_TXT										"delete time -ntpserver {ntpServerURI | ntpServerIPv4Address}: Deletes a previously provisioned NTP server with URI: \"ntpServerURI\" or IPv4 IP address: \"ntpServerIPv4Address\"\n\r"
-#define GLOBAL_START_TIME_HELP_TXT										"start time -ntpclient: Starts the NTP client\n\r"
-#define GLOBAL_STOP_TIME_HELP_TXT										"stop time -ntpclient: Stopps the NTP client\n\r"
-#define GLOBAL_SET_TIME_HELP_TXT										"set time [-timeofday | -tod {timeOfDay}] [-epochtime {epochTime_s}] [-timezone {timeZone_h}] [-daylightsaving]\n\r"\
-																		"set time -timeofday | -tod {timeOfDay}: Sets time of day in UTC, \"timeOfDay\" format: \"YYYY-MM-DDTHH:MM:SS\"\n\r"\
-																		"set time -epochtime {epochTime_s}: Sets Epoch time, \"epochTime_s\" format: NNNNNN - seconds since Jan 1 1970 UTC\n\r"\
-																		"set time -timezone {timeZone_h}: Sets the timezone, \"timeZone_h\" format (-)NN houres, NN <= 12\n\r"
-#define GLOBAL_GET_TIME_HELP_TXT										"get time [-timeofday | -tod [-utc]] [-epochtime] [-timezone] [-daylightsaving] [-ntpservers] [-ntpsyncstatus] [-ntpsyncmode] [-ntpopstate]\n\r"\
-																		"get time -timeofday | -tod [-utc]: Prints the local or universal time\n\r"\
-																		"get time -epochtime: Prints the epoch time - seconds sinse Jan 1 1970 UTC\n\r"\
-																		"get time -timezone: Prints current time-zone\n\r"\
-																		"get time -daylightsaving: Prints daylight-saving status\n\r"\
-																		"get time -ntpservers: Prints the current status of all provisioned NTP servers\n\r"\
-																		"get time -ntpsyncstatus: Prints the current NTP client sync status\n\r"\
-																		"get time -ntpsyncmode: Prints the current NTP client sync mode\n\r"\
-																		"get time -ntpopstate: Prints the current NTP client operational state\n\r"
-#define GLOBAL_SHOW_TIME_HELP_TXT										"show time: Prints a summary of time information\n\r"
+EXT_RAM_ATTR const char GLOBAL_HELP_HELP_TXT[] =					"Provides help text for a command or a particular managed sub-object (sub-MO)\n\r" \
+																		"Type \"help cli\" to find out about the general CLI principles and concepts.\n\r" \
+																		"Type \"show commands [-all] [-help] to see available commands\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_FULL_CLI_HELP_TXT[] =				"The CLI provides interactive management capabilities throughout it\'s " \
+																		"management object types:\n\r" \
+																		"- Global\n\r" \
+																		"- Common\n\r" \
+																		"- Decoder\n\r" \
+																		"	- Lightgroup-link\n\r" \
+																		"		- Lightgroup\n\r" \
+																		"	- Satelite-link\n\r" \
+																		"		- Satelite\n\r" \
+																		"			- Actuator\n\r" \
+																		"			- Sensor\n\r" \
+																		"The managed objects are not directly exposed in the CLI, but are indirectly referred " \
+																		"to by the current- or temporary- CLI context. A CLI context is a hierarchical " \
+																		"name-space which can only operate on the given managed-object - and instance sub-managed " \
+																		"objects, with two exeptions:\n\r" \
+																		"- Global management objects are available in any CLI context, and operates on system wide objects\n\r" \
+																		"- Common management objects are available for all CLI contexts and operates on the current/or indicated" \
+																		"CLI context.\n\r" \
+																		"CLI context can be provided in two ways:\n\r" \
+																		"- Current CLI context represents the CLI context path that is currently active, the current " \
+																		"active CLI context tree path is shown at the CLI prompt: \"{Current active absolute CLI context-path}>> \"" \
+																		"or you can retreive it from the command: \"set context {absolute CLI context-path}|{rellative context-path}\"\n\r" \
+																		"- Temporary contexts represents a method to redirect a single command to a different CLI context than the current." \
+																		"The temporary CLI context is limited to a single command and after the command has been executed the current "\
+																		"CLI context remains as before." \
+																		"The temporary CLI context is prepended the CLI command sub-MO and can be an absolute or a rellative CLI context path: " \
+																		"Ie: \"command [{absolute - CLI - Context - Path} | {rellative - CLI - Context - Path}] sub-MO arguments...\"\n\r" \
+																		"To show the CLI context topology-, available CLI contexts- as well as current context, type \"show topology\"\n\r" \
+																		"Available CLI commands:\n\r" \
+																		"	help [{command} [{sub-MO}\n\r" \
+																		"	reboot\n\r" \
+																		"	show {sub-MO} [-flags...]\n\r" \
+																		"	get {sub-MO} [-flags...]\n\r" \
+																		"	set {sub-MO} {value} [-flags...]\n\r" \
+																		"	unset {sub-MO} [-flags...]\n\r" \
+																		"	clear {sub-MO} [-flags...]\n\r" \
+																		"	add {sub-MO} [-flags...]\n\r" \
+																		"	delete {sub-MO} [-flags...]\n\r" \
+																		"	copy {sub-MO} [-flags...]\n\r" \
+																		"	paste {sub-MO}\n\r" \
+																		"	move {sub-MO} {dest} [-flags...]\n\r" \
+																		"	start {sub-MO} [-flags...]\n\r" \
+																		"	stop {sub-MO} [-flags...]\n\r" \
+																		"	restart {sub-MO} [-flags...]\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_GET_CONTEXT_HELP_TXT[] =				"Prints current current CLI context\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SET_CONTEXT_HELP_TXT[] =				"Sets current context path. If {value} begins with \"/\" it is considered to be an absolute path, " \
+																		"otherwise it is considered to be a rellative path. \"..\" is used to ascend one level in " \
+																		"the CLI context topology. \".\" is a NULL separator which does not change (ascend or decend) " \
+																		"the CLI context path, I.e. \"./././path represents the same path as \"path\"\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_TOPOLOGY_HELP_TXT[] =			"Shows the CLI topology tree.\n\r" \
+																		"Current active context is highlighted with an \"<<<\" indication on the right side of the table. " \
+																		"	- If the \"-childs\" flag is given, only the CLI topology from the curren CLI context junction and below is shown.\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_COMMANDS_HELP_TXT[] =			"Shows available commands and their MO belonging\n\r" \
+																		"	- If the \"-all\"flag is provided, all possible CLI commands are shown, if it is not - only those commands\n\r" \
+																		"	  only those commands available from the current CLI context are shown.\n\r" \
+																		"	- \"-help\" Shows a truncated help text for each command\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_REBOOT_HELP_TXT[] =					"Reboots the decoder.\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_GET_UPTIME_HELP_TXT[] =				"Prints the time in seconds sinse the previous boot.\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_START_CPU_HELP_TXT[] =				"Starts a CPU activity.\n\r" \
+																		"	- If the \"-stats\" flag is provided, the collection of CPU- and Memory- statistics is started\n\r" \
+																		"	  CPU- and memory- collection is a prerequisite for some of the statistics \n\r" \
+																		"	  that can be provided by \"get cpu [-flags]\", \"show cpu\", \"get memory [-flags]\" \n\r" \
+																		"	  and \"show memory\". CPU and memory collection of statistics can have a significant negative impact on the system performance\"\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_STOP_CPU_HELP_TXT[] =				"Stops an ongoing CPU activity.\n\r" \
+																		"	If the \"-stats\" flag is provided - ongoing collection of CPU- and Memory- statistics is stoped\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_GET_CPU_HELP_TXT[] =					"get cpu [-tasks] [-task {taskName}] [-cpuusage] [-watermark] [-stats]\n\r" \
+																		"get cpu: Is identical to \"show cpu\"\n\r" \
+																		"get cpu -tasks: Prints task information for all running tasks\n\r" \
+																		"get cpu -task {taskName}: Prints information for tasks \"taskName\"\n\r" \
+																		"get cpu -cpuusage: Prints current and trending CPU-usage information, the CPU and memory statistics collection function needs to be active (\"set cpu -stats\") \n\r" \
+																		"get cpu -watermark: Prints the High Watermark CPU-usage since CPU statistics collection was started\n\r" \
+																		"get cpu -stats: Prints the state of the CPU and memory statistics collection function\n\r";
+EXT_RAM_ATTR const char GLOBAL_SHOW_CPU_HELP_TXT[] =				"show cpu: Shows a collection of CPU status- and statistics";
+
+EXT_RAM_ATTR const char GLOBAL_GET_CPUMEM_HELP_TXT[] =				"Provides heap memory status and statistics\n\r" \
+																		"	- If no flags are provided-, a summary of the global (Internal + SPIRAM) memory status is provided\n\r" \
+																		"	- If the \"-internal\" flag is provided, the status of the internal on-chip RAM status is provided\n\r" \
+																		"	  else the total combined memory statistics is shown\n\r" \
+																		"	- \"-total\" : Provides the total installed memory capacity in bytes\n\r" \
+																		"	- \"-available\": Prints currently available memory capacity in bytes\n\r" \
+																		"	- \"-used\": Provides currently used memory capacity in bytes\n\r" \
+																		"	- \"-watermark\": Prints the lowest available memory watermark in bytes\n\r" \
+																		"	- \"-average {seconds}\": Prints the average memory usage in bytes over \"{value}\" seconds, the CPU and memory statistics collection function needs to be active - see \"start cpu -stats\"\n\r" \
+																		"	- \"-trend {seconds}\": Prints the memory usage trend in bytes over \"{value}\" seconds, the CPU and memory statistics collection function needs to be active - see \"set cpu -stats\"\n\r" \
+																		"	- \"-maxblock\" : Prints the maximum block of heap memory in bytes that can be allocated\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_START_CPUMEM_HELP_TXT[] =			"Starts a heap memory activity.\n\r" \
+																		"	- If the \"-allocation {value}\" flag is provided a test-buffer of \"{value}\" bytes is allocated.\n\r" \
+																		"	- \"-internal\" Operates on internal memory segmants.\n\r" \
+																		"	- \"-external\" Operates on external SPI-RAM memory segments.\n\r" \
+																		"	- \"-default\" Operates on memory segments as defined by the OS memory allocation policy.\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_STOP_CPUMEM_HELP_TXT[] =				"Stops earlier started heap memory activities.\n\r" \
+																	"	- If the \"-allocation\" flag is provided, memory earlier allocated by \"start memory -allocation {value}\" will be freed\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_CPUMEM_HELP_TXT[] =				"Shows a summary of the heap status and statistics, is identical to \"get memory\"";
+
+EXT_RAM_ATTR const char GLOBAL_SET_NETWORK_HELP_TXT[] =				"Sets IP and WIFI networking parameters.\n\r" \
+																		"	-hostname {hostName}: Sets the host name\n\r" \
+																		"	-address {hostIpAddress}: Sets the host IPv4 network address\n\r" \
+																		"	-mask {networkIpMask}: Sets the IPv4 network mask\n\r" \
+																		"	-gw {networkIpAddress}: Sets the IPv4 network default gateway address\n\r" \
+																		"	-dns {dnsIpAddress}: Sets the IPv4 DNS address\n\r" \
+																		"	-persist: Persists the network configuration\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_GET_NETWORK_HELP_TXT[] =				"Prints IP and WIFI networking parameters and statistics. \"get network\" without flags is identical to \"show network\"\n\r" \
+																		"Available flags:\n\r"
+																		"	- \"-ssid\": Prints the AP SSID connected to\n\r" \
+																		"	- \"-bssid\": Prints the AP BSSID connected to\n\r" \
+																		"	- \"-channel\": Prints the AP WiFi channel connected to\n\r" \
+																		"	- \"-auth\": Prints current WiFi Autentication/Encryption method\n\r" \
+																		"	- \"-rssi\": Prints current SNR/RSSI WiFi signal quality\n\r" \
+																		"	- \"-mac\": Prints decoder WiFi MAC address\n\r" \
+																		"	- \"-hostname\": Prints decoder host name\n\r" \
+																		"	- \"-address\": Prints the host IPv4 network address\n\r" \
+																		"	- \"-mask\": Prints the IPv4 network mask\n\r" \
+																		"	- \"-gw\": Prints the IPv4 network default gateway address\n\r" \
+																		"	- \"-dns\": Prints the IPv4 DNS address\n\r" \
+																		"	- \"opstate\": Prints current network operational state\n\r" \
+																		"	- \"scanap\": Scans availabe APs and prints the information about them\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_NETWORK_HELP_TXT[] =			"Shows a summary of network information. Identical to \"get network\" without flags.\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SET_MQTT_HELP_TXT[] =				"Sets MQTT parameters.\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-uri {mqttBrokerUri}\": Sets MQTT Broker URI to \"mqttBrokerUri\" URI or IPv4 address\n\r" \
+																		"	- \"-port {mqttBrokerPort}\": Sets MQTT Broker port to \"mqttBrokerPort\"\n\r" \
+																		"	- \"-clientid {mqttClientId}\": Sets MQTT client ID to \"mqttClientId\"\n\r" \
+																		"	- \"-qos {mqttDefaultQos}\": Sets MQTT default QoS to \"mqttDefaultQos\"\n\r" \
+																		"	- \"-keepalive {mqttKeepAlive_s}\": Sets MQTT keepalive period to \"mqttKeepAlive_s\" seconds\n\r" \
+																		"	- \"-ping {ping_s}\": Sets MQTT overlay server-client MQTT ping period to \"ping_s\" seconds\n\r" \
+																		"	- \"-persist\": Persists MQTT configuration of Broker URI and Broker port\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_CLEAR_MQTT_HELP_TXT[] =				"Clear MQTT statistics.\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-maxlatency\": Clears MQTT max-latency statistics\n\r" \
+																		"	- \"-overruns\n\r: Clears MQTT overrun statistics\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_GET_MQTT_HELP_TXT[] =				"Prints MQTT parameters and statistics. \"get mqtt\" without flags is identical to \"show mqtt\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-uri\": Print MQTT broker URI or IPv4 address\n\r" \
+																		"	- \"-port\": Prints the MQTT broker port\n\r" \
+																		"	- \"-clientid\": Prints the MQTT client identifier\n\r" \
+																		"	- \"-qos\": Prints the MQTT client default Quality of Service class\n\r" \
+																		"	- \"-keepalive\": Prints the MQTT keep-alive period in seconds\n\r" \
+																		"	- \"-ping\": Prints the server-client ping period in seconds\n\r" \
+																		"	- \"-maxlatency\": Prints the MQTT poll loop max latency in uS\n\r" \
+																		"	- \"-meanlatency\": Prints the MQTT poll loop mean latency in uS\n\r" \
+																		"	- \"-overruns\": Prints the MQTT poll loop overrun counter\n\r" \
+																		"	- \"-opstate\": Prints the MQTT client operational state\n\r" \
+																		"	- \"-subscriptions\": Prints current subscriptions and call backs.";
 
-#define GLOBAL_SET_LOG_HELP_TXT											"set log [-loglevel {logLevel} [-logmo {logMo}]] [-logdestination {logDestination}]\n\r"\
-																		"set log -loglevel {logLevel}[-logmo {logMo}]: Sets the loglevel \"logLevel\" to \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"\n\r"\
-																		"                                              if \"logmo {logMo}\" is provided, the given loglevel is only valid for the provided \"logMo\" (managed object) - NOT YET SUPPORTED\n\r"\
-																		"set log -logdestination {logDestination}: Sets a remote log destination - NOT YET SUPPORTED\n\r"
-#define GLOBAL_UNSET_LOG_HELP_TXT										"unset log -logdestination: Terminates logging to the previously provisioned remote log destination - NOT YET SUPPORTED\n\r"
-#define GLOBAL_GET_LOG_HELP_TXT											"get log [-loglevel [-logmo {logMo}]] [-logdestination] [-tail {lines}]\n\r"\
-																		"get log -loglevel [-logmo {logMo}] Prints the current loglevel, if \"logmo {logMo}\" is provided, the loglevel for the provided \"logMo\" (managed object) is given - NOT YET SUPPORTED\n\r"\
-																		"get log - logdestination: Prints the remote loglevel destination - NOT YET SUPPORTED\n\r"\
-																		"get log -tail {lines}: Prints the last \"lines\" of the log - NOT YET SUPPORTED\n\r"
-#define GLOBAL_SHOW_LOG_HELP_TXT										"show log: Prints a summary of log information\n\r"
+EXT_RAM_ATTR const char GLOBAL_SHOW_MQTT_HELP_TXT[] =				"Shows a summary of the MQTT information. Is idetical to \"get mqtt\" without flags\n\r";
 
-#define COMMON_SET_DEBUG_HELP_TXT										"[{context-path}/]set debug: Sets the debug state of current-, or provided"\
-																		"context-path/Managed object\n\r"
-#define COMMON_UNSET_DEBUG_HELP_TXT										"[{context-path}/]unset debug: Un-sets the debug state of current-, or provided"\
-																		"context-path/Managed object\n\r"
-#define COMMON_GET_DEBUG_HELP_TXT										"[{context-path}/]get debug: Prints the debug state of current-, or provided"\
-																		"context-path/Managed object\n\r"
-#define COMMON_GET_OPSTATE_HELP_TXT										"[{context-path}/]get opstate: Prints operational state of current-, or provided"\
-																		"context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_ADD_TIME_HELP_TXT[] =				"Adds an NTP server.\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-ntpserver {ntpServerURI | ntpServerIPv4Address} [-ntpport {ntpPort}]\": Adds a new NTP server with URI: \"ntpServerURI\" or IPv4 IP address: \"ntpServerIPv4Address\",\n\r" \
+																		"	     the NTP port can be set with \"-ntpport {ntpPort}\", if the port is not given 123 will be used as the default port\n\r";
 
-#define COMMON_GET_SYSNAME_HELP_TXT										"[{context-path}/]get systemname: Prints system-name of current-, or provided"\
-																		"context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_DELETE_TIME_HELP_TXT[] =				"Deletes an NTP server.\n\r" \
+																		"Available flags:\n\r" \
+																		"- \"-ntpserver{ntpServerURI | ntpServerIPv4Address}\": Deletes a previously provisioned NTP server with URI : \"ntpServerURI\" or IPv4 IP address: \"ntpServerIPv4Address\"\n\r";
 
-#define COMMON_SET_SYSNAME_HELP_TXT										"[{context-path}/]set systemname {system-name}: Sets system-name of current-, "\
-																		"or provided context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_START_TIME_HELP_TXT[] =				"Starts time services.\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-ntpclient\": Starts the NTP client\n\r";
 
-#define COMMON_GET_USRNAME_HELP_TXT										"[{context-path}/]get username: Prints user-name of current-, or provided"\
-																		"context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_STOP_TIME_HELP_TXT[] =				"Stops time services.\n\r" \
+																	"Available flags:\n\r" \
+																		"	- \"-ntpclient\": Stopps the NTP client\n\r";
 
-#define COMMON_SET_USRNAME_HELP_TXT										"[{context-path}/]set username {user-name}: Sets user-name of current-, "\
-																		"or provided context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_SET_TIME_HELP_TXT[] =				"Sets the system time.\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-timeofday | -tod {timeOfDay}\": Sets time of day in UTC, \"timeOfDay\" format: \"YYYY-MM-DDTHH:MM:SS\"\n\r" \
+																		"	- \"-epochtime {epochTime_s}\": Sets Epoch time, \"epochTime_s\" format: NNNNNN - seconds since Jan 1 1970 UTC\n\r" \
+																		"	- \"-timezone {timeZone_h}\": Sets the timezone, \"timeZone_h\" format (-)NN houres, NN <= 12, E.g. \"CET+1\".\n\r";
 
-#define COMMON_GET_DESCRIPTION_HELP_TXT									"[{context-path}/]get description: Prints description of current-, or provided"\
-																		"context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_GET_TIME_HELP_TXT[] =				"Prints the system time. \"get time\" without flags is identical to \"show time\".\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-timeofday | -tod [-utc]\": Prints the local or universal time\n\r" \
+																		"	- \"-epochtime\": Prints the epoch time - seconds sinse Jan 1 1970 UTC\n\r" \
+																		"	- \"-timezone\": Prints current time-zone\n\r" \
+																		"	- \"-daylightsaving\": Prints daylight-saving status\n\r" \
+																		"	- \"-ntpservers\": Prints the current status of all provisioned NTP servers\n\r" \
+																		"	- \"-ntpsyncstatus\": Prints the current NTP client sync status\n\r" \
+																		"	- \"-ntpsyncmode\": Prints the current NTP client sync mode\n\r" \
+																		"	- \"-ntpopstate\": Prints the current NTP client operational state\n\r";
 
-#define COMMON_SET_DESCRIPTION_HELP_TXT									"[{context-path}/]set username {description}: Sets description of current-, "\
-																		"or provided context-path/Managed object\n\r"
+EXT_RAM_ATTR const char GLOBAL_SHOW_TIME_HELP_TXT[] =				"Shows a summary of the time services. Identical to \"get time\" without flags.\n\r";
 
-#define DECODER_GET_FAILSAFE_HELP_TXT									"[{context-path}/]get failsafe: Prints the current fail-safe state"
+EXT_RAM_ATTR const char GLOBAL_SET_LOG_HELP_TXT[] =					"set log [-loglevel {logLevel} [-logmo {logMo}]] [-logdestination {logDestination}]\n\r" \
+																		"set log -loglevel {logLevel}[-logmo {logMo}]: Sets the loglevel \"logLevel\" to \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"\n\r" \
+																		"                                              if \"logmo {logMo}\" is provided, the given loglevel is only valid for the provided \"logMo\" (managed object) - NOT YET SUPPORTED\n\r" \
+																		"set log -logdestination {logDestination}: Sets a remote log destination - NOT YET SUPPORTED\n\r";
+EXT_RAM_ATTR const char GLOBAL_UNSET_LOG_HELP_TXT[] =				"unset log -logdestination: Terminates logging to the previously provisioned remote log destination - NOT YET SUPPORTED\n\r";
+EXT_RAM_ATTR const char GLOBAL_GET_LOG_HELP_TXT[] =					"get log [-loglevel [-logmo {logMo}]] [-logdestination] [-tail {lines}]\n\r" \
+																		"get log -loglevel [-logmo {logMo}] Prints the current loglevel, if \"logmo {logMo}\" is provided, the loglevel for the provided \"logMo\" (managed object) is given - NOT YET SUPPORTED\n\r" \
+																		"get log - logdestination: Prints the remote loglevel destination - NOT YET SUPPORTED\n\r" \
+																		"get log -tail {lines}: Prints the last \"lines\" of the log - NOT YET SUPPORTED\n\r";
+EXT_RAM_ATTR const char GLOBAL_SHOW_LOG_HELP_TXT[] =				"show log: Prints a summary of log information\n\r";
 
-#define DECODER_SET_FAILSAFE_HELP_TXT									"[{context-path}/]set failsafe: Sets/activates fail-safe state. Debug state needs to be activated before fail-safe can be activated by CLI"
+EXT_RAM_ATTR const char COMMON_SET_DEBUG_HELP_TXT[] =				"Sets the debug state of the MO, this enables setting of MO/Sub-MO atributes which may lead to system inconsistensy.\n\r";
 
-#define DECODER_UNSET_FAILSAFE_HELP_TXT									"[{context-path}/]unset failsafe: Unsets/deactivates fail-safe state. Debug state needs to be activated before fail-safe can be de-activated by CLI"
+EXT_RAM_ATTR const char COMMON_UNSET_DEBUG_HELP_TXT[] =				"Un-sets the debug state of the MO.\n\r";
 
-#define LGLINKNO_GET_LGLINK_HELP_TXT									"[{context-path}/]get link: Prints the lgLink instance number - the link"
+EXT_RAM_ATTR const char COMMON_GET_DEBUG_HELP_TXT[] =				"Prints the debug state of the MO.\n\r";
 
-#define LGLINKNO_SET_LGLINK_HELP_TXT									"[{context-path}/]set link {lgKink-number}: Sets the lgLink instance number - the link, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char COMMON_GET_OPSTATE_HELP_TXT[] =				"Prints the Operational state of the MO.\n\r";
 
-#define LGLINKNO_GET_LGLINKOVERRUNS_HELP_TXT							"[{context-path}/]get overruns: Prints the accumulated number of lgLink over-runs, I.e. for which the lgLink scan had not finished before the next was due"
+EXT_RAM_ATTR const char COMMON_GET_SYSNAME_HELP_TXT[] =				"Prints Systemname of the MO.\n\r";
 
-#define LGLINKNO_CLEAR_LGLINKOVERRUNS_HELP_TXT							"[{context-path}/]clear overruns: Clears the counter for accumulated lgLink over-runs"
+EXT_RAM_ATTR const char COMMON_SET_SYSNAME_HELP_TXT[] =				"Sets the Systemname of the MO. MO Debugstate needs to be active - use \"set debug\"\n\r";
 
-#define LGLINKNO_GET_LGLINKMEANLATENCY_HELP_TXT							"[{context-path}/]get meanlatency: Prints the mean latency of the lgLink scan, E.g. how much its start was delayed compared to schedule"
+EXT_RAM_ATTR const char COMMON_GET_USRNAME_HELP_TXT[] =				"Prints the Username of the MO.\n\r";
 
-#define LGLINKNO_GET_LGLINKMAXLATENCY_HELP_TXT							"[{context-path}/]get maxlatency: Prints the maximum latency of the lgLink scan, E.g. how much its start was delayed compared to schedule"
+EXT_RAM_ATTR const char COMMON_SET_USRNAME_HELP_TXT[] =				"Sets the Username of the MO. MO Debugstate needs to be active - use \"set debug\"\n\r";
 
-#define LGLINKNO_CLEAR_LGLINKMAXLATENCY_HELP_TXT						"[{context-path}/]clear maxlatency: Clears the maximum latency watermark of the lgLink scan"
+EXT_RAM_ATTR const char COMMON_GET_DESCRIPTION_HELP_TXT[] =			"Prints the Description of the MO.\n\r";
 
-#define LGLINKNO_GET_LGLINKMEANRUNTIME_HELP_TXT							"[{context-path}/]get meanruntime: Prints the mean run-time of the lgLink scan, E.g. how long the linkscan took"
+EXT_RAM_ATTR const char COMMON_SET_DESCRIPTION_HELP_TXT[] =			"Sets the description of the MO. MO Debugstate needs to be active - use \"set debug\"\n\r";
 
-#define LGLINKNO_GET_LGLINKMAXRUNTIME_HELP_TXT							"[{context-path}/]get maxruntime: Prints the maximum run-time of the lgLink scan, E.g. how long the linkscan took"
+EXT_RAM_ATTR const char DECODER_GET_FAILSAFE_HELP_TXT[] =			"[{context-path}/]get failsafe: Prints the current fail-safe state\n\r";
 
-#define LGLINKNO_CLEAR_LGLINKMAXRUNTIME_HELP_TXT						"[{context-path}/]clear maxruntime: Clears the maximum run-time watermark of the lgLink scan"
+EXT_RAM_ATTR const char DECODER_SET_FAILSAFE_HELP_TXT[] =			"[{context-path}/]set failsafe: Sets/activates fail-safe state. Debug state needs to be activated before fail-safe can be activated by CLI\n\r";
 
-#define LG_GET_LGADDR_HELP_TXT											"[{context-path}/]get address: Prints the Lg-link adsress of the Lightgroup"
+EXT_RAM_ATTR const char DECODER_UNSET_FAILSAFE_HELP_TXT[] =			"[{context-path}/]unset failsafe: Unsets/deactivates fail-safe state. Debug state needs to be activated before fail-safe can be de-activated by CLI\n\r";
 
-#define LG_SET_LGADDR_HELP_TXT											"[{context-path}/]set address: Sets the Lg-link adsress of the Lightgroup, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char LGLINKNO_GET_LGLINK_HELP_TXT[] =			"[{context-path}/]get link: Prints the lgLink instance number - the link\n\r";
 
-#define LG_GET_LGLEDCNT_HELP_TXT										"[{context-path}/]get ledcnt: Prints the number of Leds/pixels for the light group"
+EXT_RAM_ATTR const char LGLINKNO_SET_LGLINK_HELP_TXT[] =			"[{context-path}/]set link {lgKink-number}: Sets the lgLink instance number - the link, debug mode needs to be activated to perform this action\n\r";
 
-#define LG_SET_LGLEDCNT_HELP_TXT										"[{context-path}/]set ledcnt {ledcnt}: Sets the number of Leds/pixels for the light group, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char LGLINKNO_GET_LGLINKOVERRUNS_HELP_TXT[] =	"[{context-path}/]get overruns: Prints the accumulated number of lgLink over-runs, I.e. for which the lgLink scan had not finished before the next was due\n\r";
 
-#define LG_GET_LGLEDOFFSET_HELP_TXT										"[{context-path}/]get ledoffset: Prints the Lightgrop LED offset on the Lg-link"
+EXT_RAM_ATTR const char LGLINKNO_CLEAR_LGLINKOVERRUNS_HELP_TXT[] =	"[{context-path}/]clear overruns: Clears the counter for accumulated lgLink over-runs\n\r";
 
-#define LG_SET_LGLEDOFFSET_HELP_TXT										"[{context-path}/]set ledoffset {ledoffset}: Sets the Lightgrop LED offset on the Lg-link, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char LGLINKNO_GET_LGLINKMEANLATENCY_HELP_TXT[] = "[{context-path}/]get meanlatency: Prints the mean latency of the lgLink scan, E.g. how much its start was delayed compared to schedule\n\r";
 
-#define LG_GET_LGPROPERTY_HELP_TXT										"[{context-path}/]get property [{property-index}]: Prints the Lightgrop properties, if property index is provided the property corresponding to the index is provided, else all properties are provided"
+EXT_RAM_ATTR const char LGLINKNO_GET_LGLINKMAXLATENCY_HELP_TXT[] =	"[{context-path}/]get maxlatency: Prints the maximum latency of the lgLink scan, E.g. how much its start was delayed compared to schedule\n\r";
 
-#define LG_SET_LGPROPERTY_HELP_TXT										"[{context-path}/]set property {property-index} {property}: Sets the Lightgrop property according to given property index, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char LGLINKNO_CLEAR_LGLINKMAXLATENCY_HELP_TXT[] = "[{context-path}/]clear maxlatency: Clears the maximum latency watermark of the lgLink scan\n\r";
 
-#define LG_GET_LGSHOWING_HELP_TXT										"[{context-path}/]get showing: Prints the Light-group current aspect/show"
+EXT_RAM_ATTR const char LGLINKNO_GET_LGLINKMEANRUNTIME_HELP_TXT[] = "[{context-path}/]get meanruntime: Prints the mean run-time of the lgLink scan, E.g. how long the linkscan took\n\r";
 
-#define LG_SET_LGSHOWING_HELP_TXT										"[{context-path}/]set showing {aspect/show}: Sets the Light-group current aspect/show, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char LGLINKNO_GET_LGLINKMAXRUNTIME_HELP_TXT[] =	"[{context-path}/]get maxruntime: Prints the maximum run-time of the lgLink scan, E.g. how long the linkscan took\n\r";
 
-#define SATLINK_GET_SATLINKNO_HELP_TXT									"[{context-path}/]get link: Prints the Satelite-link number"
+EXT_RAM_ATTR const char LGLINKNO_CLEAR_LGLINKMAXRUNTIME_HELP_TXT[] = "[{context-path}/]clear maxruntime: Clears the maximum run-time watermark of the lgLink scan\n\r";
 
-#define SATLINK_SET_SATLINKNO_HELP_TXT									"[{context-path}/]set link {satelite-link}: Sets the Satelite-link number, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char LG_GET_LGADDR_HELP_TXT[] =					"[{context-path}/]get address: Prints the Lg-link address of the Lightgroup\n\r";
 
-#define SATLINK_GET_TXUNDERRUNS_HELP_TXT								"[{context-path}/]get txunderrun: Prints number of Satelite-link TX underruns"
+EXT_RAM_ATTR const char LG_SET_LGADDR_HELP_TXT[] =					"[{context-path}/]set address: Sets the Lg-link address of the Lightgroup, debug mode needs to be activated to perform this action\n\r";
 
-#define SATLINK_CLEAR_TXUNDERRUNS_HELP_TXT								"[{context-path}/]clear txunderrun: Clears the Satelite-link TX underruns counter"
+EXT_RAM_ATTR const char LG_GET_LGLEDCNT_HELP_TXT[] =				"[{context-path}/]get ledcnt: Prints the number of Leds/pixels for the light group\n\r";
 
-#define SATLINK_GET_RXOVERRUNS_HELP_TXT									"[{context-path}/]get rxoverrun: Prints number of Satelite-link RX overruns"
+EXT_RAM_ATTR const char LG_SET_LGLEDCNT_HELP_TXT[] =				"[{context-path}/]set ledcnt {ledcnt}: Sets the number of Leds/pixels for the light group, debug mode needs to be activated to perform this action\n\r";
 
-#define SATLINK_CLEAR_RXOVERRUNS_HELP_TXT								"[{context-path}/]clear rxoverrun: Clears the Satelite-link RX overruns counter"
+EXT_RAM_ATTR const char LG_GET_LGLEDOFFSET_HELP_TXT[] =				"[{context-path}/]get ledoffset: Prints the Lightgrop LED offset on the Lg-link\n\r";
 
-#define SATLINK_GET_TIMINGVIOLATION_HELP_TXT							"[{context-path}/]get timingviolation: Prints number of Satelite-link timingviolations"
+EXT_RAM_ATTR const char LG_SET_LGLEDOFFSET_HELP_TXT[] =				"[{context-path}/]set ledoffset {ledoffset}: Sets the Lightgrop LED offset on the Lg-link, debug mode needs to be activated to perform this action\n\r";
 
-#define SATLINK_CLEAR_TIMINGVIOLATION_HELP_TXT							"[{context-path}/]clear timingviolation: Clears the Satelite-link timingviolation counter"
+EXT_RAM_ATTR const char LG_GET_LGPROPERTY_HELP_TXT[] =				"[{context-path}/]get property [{property-index}]: Prints the Lightgrop properties, if property index is provided the property corresponding to the index is provided, else all properties are provided\n\r";
 
-#define SATLINK_GET_RXCRCERR_HELP_TXT									"[{context-path}/]get rxcrcerr: Prints number of Satelite-link RX CRC errors"
+EXT_RAM_ATTR const char LG_SET_LGPROPERTY_HELP_TXT[] =				"[{context-path}/]set property {property-index} {property}: Sets the Lightgrop property according to given property index, debug mode needs to be activated to perform this action\n\r";
 
-#define SATLINK_CLEAR_RXCRCERR_HELP_TXT									"[{context-path}/]clear rxcrcerr: Clears the Satelite-link RX CRC error counter"
+EXT_RAM_ATTR const char LG_GET_LGSHOWING_HELP_TXT[] =				"[{context-path}/]get showing: Prints the Light-group current aspect/show\n\r";
 
-#define SATLINK_GET_REMOTECRCERR_HELP_TXT								"[{context-path}/]get remotecrcerr: Prints number of Satelite-link RX CRC errors"
+EXT_RAM_ATTR const char LG_SET_LGSHOWING_HELP_TXT[] =				"[{context-path}/]set showing {aspect/show}: Sets the Light-group current aspect/show, debug mode needs to be activated to perform this action\n\r";
 
-#define SATLINK_CLEAR_REMOTECRCERR_HELP_TXT								"[{context-path}/]clear remotecrcerr: Clears the Satelite-link RX CRC error counter"
+EXT_RAM_ATTR const char SATLINK_GET_SATLINKNO_HELP_TXT[] =			"[{context-path}/]get link: Prints the Satelite-link number\n\r";
 
-#define SATLINK_GET_RXSYMERRS_HELP_TXT									"[{context-path}/]get symerr: Prints number of Satelite-link RX symbol errors"
+EXT_RAM_ATTR const char SATLINK_SET_SATLINKNO_HELP_TXT[] =			"[{context-path}/]set link {satelite-link}: Sets the Satelite-link number, debug mode needs to be activated to perform this action\n\r";
 
-#define SATLINK_CLEAR_RXSYMERRS_HELP_TXT								"[{context-path}/]clear symerr: Clears the Satelite-link RX symbol error counter"
+EXT_RAM_ATTR const char SATLINK_GET_TXUNDERRUNS_HELP_TXT[] =		"[{context-path}/]get txunderrun: Prints number of Satelite-link TX underruns\n\r";
 
-#define SATLINK_GET_RXSIZEERRS_HELP_TXT									"[{context-path}/]get rxsizeerr: Prints number of Satelite-link RX size errors"
+EXT_RAM_ATTR const char SATLINK_CLEAR_TXUNDERRUNS_HELP_TXT[] =		"[{context-path}/]clear txunderrun: Clears the Satelite-link TX underruns counter\n\r";
 
-#define SATLINK_CLEAR_RXSIZEERRS_HELP_TXT								"[{context-path}/]clear rxsizeerr: Clears the Satelite-link RX size error counter"
+EXT_RAM_ATTR const char SATLINK_GET_RXOVERRUNS_HELP_TXT[] =			"[{context-path}/]get rxoverrun: Prints number of Satelite-link RX overruns\n\r";
 
-#define SATLINK_GET_WDERRS_HELP_TXT										"[{context-path}/]get wderr: Prints number of Satelite-link watchdog errors, I.e aggregated watchdog error reported by Satelites on the Satelite-link"
+EXT_RAM_ATTR const char SATLINK_CLEAR_RXOVERRUNS_HELP_TXT[] =		"[{context-path}/]clear rxoverrun: Clears the Satelite-link RX overruns counter\n\r";
 
-#define SATLINK_CLEAR_WDERRS_HELP_TXT									"[{context-path}/]clear wderr: Clears the Satelite-link watchdog error counter"
+EXT_RAM_ATTR const char SATLINK_GET_TIMINGVIOLATION_HELP_TXT[] =	"[{context-path}/]get timingviolation: Prints number of Satelite-link timingviolations\n\r";
 
-#define SAT_GET_SATADDR_HELP_TXT										"[{context-path}/]get address: Prints the Satelite address"
+EXT_RAM_ATTR const char SATLINK_CLEAR_TIMINGVIOLATION_HELP_TXT[] =	"[{context-path}/]clear timingviolation: Clears the Satelite-link timingviolation counter\n\r";
 
-#define SAT_SET_SATADDR_HELP_TXT										"[{context-path}/]set address {Satelite-address}: Sets the Satelite address, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char SATLINK_GET_RXCRCERR_HELP_TXT[] =			"[{context-path}/]get rxcrcerr: Prints number of Satelite-link RX CRC errors\n\r";
 
-#define SAT_GET_SATRXCRCERR_HELP_TXT									"[{context-path}/]get rxcrcerr: Prints Satelite RX CRC errors"
+EXT_RAM_ATTR const char SATLINK_CLEAR_RXCRCERR_HELP_TXT[] =			"[{context-path}/]clear rxcrcerr: Clears the Satelite-link RX CRC error counter\n\r";
 
-#define SAT_CLEAR_SATRXCRCERR_HELP_TXT									"[{context-path}/]clear rxcrcerr: Clears the Satelite RX CRC error counter"
+EXT_RAM_ATTR const char SATLINK_GET_REMOTECRCERR_HELP_TXT[] =		"[{context-path}/]get remotecrcerr: Prints number of Satelite-link RX CRC errors\n\r";
 
-#define SAT_GET_SATTXCRCERR_HELP_TXT									"[{context-path}/]get txcrcerr: Prints Satelite TX CRC errors"
+EXT_RAM_ATTR const char SATLINK_CLEAR_REMOTECRCERR_HELP_TXT[] =		"[{context-path}/]clear remotecrcerr: Clears the Satelite-link RX CRC error counter\n\r";
 
-#define SAT_CLEAR_SATTXCRCERR_HELP_TXT									"[{context-path}/]clear txcrcerr: Clears the Satelite TX CRC error counter"
+EXT_RAM_ATTR const char SATLINK_GET_RXSYMERRS_HELP_TXT[] =			"[{context-path}/]get symerr: Prints number of Satelite-link RX symbol errors\n\r";
 
-#define SAT_GET_SATWDERR_HELP_TXT										"[{context-path}/]get wderr: Prints Satelite watchdog CRC errors"
+EXT_RAM_ATTR const char SATLINK_CLEAR_RXSYMERRS_HELP_TXT[] =		"[{context-path}/]clear symerr: Clears the Satelite-link RX symbol error counter\n\r";
 
-#define SAT_CLEAR_SATWDERR_HELP_TXT										"[{context-path}/]clear wderr: Clears the Satelite watchdog error counter"
+EXT_RAM_ATTR const char SATLINK_GET_RXSIZEERRS_HELP_TXT[] =			"[{context-path}/]get rxsizeerr: Prints number of Satelite-link RX size errors\n\r";
 
-#define SENS_GET_SENSPORT_HELP_TXT										"[{context-path}/]get port: Prints the Sensor port number"
+EXT_RAM_ATTR const char SATLINK_CLEAR_RXSIZEERRS_HELP_TXT[] =		"[{context-path}/]clear rxsizeerr: Clears the Satelite-link RX size error counter\n\r";
 
-#define SENS_SET_SENSPORT_HELP_TXT										"[{context-path}/]set port {sensor-port}: Sets the Sensor port number, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char SATLINK_GET_WDERRS_HELP_TXT[] =				"[{context-path}/]get wderr: Prints number of Satelite-link watchdog errors, I.e aggregated watchdog error reported by Satelites on the Satelite-link\n\r";
 
-#define SENS_GET_SENSING_HELP_TXT										"[{context-path}/]get sensing: Prints current Sensor state"
+EXT_RAM_ATTR const char SATLINK_CLEAR_WDERRS_HELP_TXT[] =			"[{context-path}/]clear wderr: Clears the Satelite-link watchdog error counter\n\r";
 
-#define SENS_GET_SENSORPROPERTY_HELP_TXT								"[{context-path}/]get property [{property-index}] : Prints the Sensor properties, if property index is provided the property corresponding to the index is provided, else all properties are provided"
+EXT_RAM_ATTR const char SAT_GET_SATADDR_HELP_TXT[] =				"[{context-path}/]get address: Prints the Satelite address\n\r";
 
-#define SENS_SET_SENSORPROPERTY_HELP_TXT								"[{context-path}/]set property {property-index} : Sets the Sensor property according to given property index, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char SAT_SET_SATADDR_HELP_TXT[] =				"[{context-path}/]set address {Satelite-address}: Sets the Satelite address, debug mode needs to be activated to perform this action\n\r";
 
-#define ACT_GET_ACTPORT_HELP_TXT										"[{context-path}/]get port: Prints the Actuator port"
+EXT_RAM_ATTR const char SAT_GET_SATRXCRCERR_HELP_TXT[] =			"[{context-path}/]get rxcrcerr: Prints Satelite RX CRC errors\n\r";
 
-#define ACT_SET_ACTPORT_HELP_TXT										"[{context-path}/]set port {actuator-port}: Sets the actuator port, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char SAT_CLEAR_SATRXCRCERR_HELP_TXT[] =			"[{context-path}/]clear rxcrcerr: Clears the Satelite RX CRC error counter\n\r";
 
-#define ACT_GET_ACTSHOWING_HELP_TXT										"[{context-path}/]get showing: Prints the actuator showing state"
+EXT_RAM_ATTR const char SAT_GET_SATTXCRCERR_HELP_TXT[] =			"[{context-path}/]get txcrcerr: Prints Satelite TX CRC errors\n\r";
 
-#define ACT_SET_ACTSHOWING_HELP_TXT										"[{context-path}/]set showing {actuator-showing}: Sets the actuator showing state, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char SAT_CLEAR_SATTXCRCERR_HELP_TXT[] =			"[{context-path}/]clear txcrcerr: Clears the Satelite TX CRC error counter\n\r";
 
-#define ACT_GET_ACTPROPERTY_HELP_TXT									"[{context-path}/]get property [{property-index}] : Prints the Actuator properties, if property index is provided the property corresponding to the index is provided, else all properties are provided"
+EXT_RAM_ATTR const char SAT_GET_SATWDERR_HELP_TXT[] =				"[{context-path}/]get wderr: Prints Satelite watchdog CRC errors\n\r";
 
-#define ACT_SET_ACTPROPERTY_HELP_TXT									"[{context-path}/]set property {property-index} : Sets the Actuator property according to given property index, debug mode needs to be activated to perform this action"
+EXT_RAM_ATTR const char SAT_CLEAR_SATWDERR_HELP_TXT[] =				"[{context-path}/]clear wderr: Clears the Satelite watchdog error counter\n\r";
+
+EXT_RAM_ATTR const char SENS_GET_SENSPORT_HELP_TXT[] =				"[{context-path}/]get port: Prints the Sensor port number\n\r";
+
+EXT_RAM_ATTR const char SENS_SET_SENSPORT_HELP_TXT[] =				"[{context-path}/]set port {sensor-port}: Sets the Sensor port number, debug mode needs to be activated to perform this action\n\r";
+
+EXT_RAM_ATTR const char SENS_GET_SENSING_HELP_TXT[] =				"[{context-path}/]get sensing: Prints current Sensor state\n\r";
+
+EXT_RAM_ATTR const char SENS_GET_SENSORPROPERTY_HELP_TXT[] =		"[{context-path}/]get property [{property-index}] : Prints the Sensor properties, if property index is provided the property corresponding to the index is provided, else all properties are provided\n\r";
+
+EXT_RAM_ATTR const char SENS_SET_SENSORPROPERTY_HELP_TXT[] =		"[{context-path}/]set property {property-index} : Sets the Sensor property according to given property index, debug mode needs to be activated to perform this action\n\r";
+
+EXT_RAM_ATTR const char ACT_GET_ACTPORT_HELP_TXT[] =				"[{context-path}/]get port: Prints the Actuator port\n\r";
+
+EXT_RAM_ATTR const char ACT_SET_ACTPORT_HELP_TXT[] =				"[{context-path}/]set port {actuator-port}: Sets the actuator port, debug mode needs to be activated to perform this action\n\r";
+
+EXT_RAM_ATTR const char ACT_GET_ACTSHOWING_HELP_TXT[] =				"[{context-path}/]get showing: Prints the actuator showing state\n\r";
+
+EXT_RAM_ATTR const char ACT_SET_ACTSHOWING_HELP_TXT[] =				"[{context-path}/]set showing {actuator-showing}: Sets the actuator showing state, debug mode needs to be activated to perform this action\n\r";
+
+EXT_RAM_ATTR const char ACT_GET_ACTPROPERTY_HELP_TXT[] =			"[{context-path}/]get property [{property-index}] : Prints the Actuator properties, if property index is provided the property corresponding to the index is provided, else all properties are provided\n\r";
+
+EXT_RAM_ATTR const char ACT_SET_ACTPROPERTY_HELP_TXT[] =			"[{context-path}/]set property {property-index} : Sets the Actuator property according to given property index, debug mode needs to be activated to perform this action\n\r";
 
 /*==============================================================================================================================================*/
 /* End MO CLI help texts                                                                                                                        */

@@ -155,10 +155,10 @@ public:
     static bool parseContextPath(char* p_cmd, char* p_nextHopContextPathRoute);         //Parse the CLI context path from the CLI command - CAN WE MAKE THIS PRIVATE?
     rc_t contextRoute(char* p_nextHop, char* p_contextCmd, bool p_setContext = false);  //Route the CLI command to next hop CLI context - CAN WE MAKE THIS PRIVATE?
     rc_t getFullCliContextPath(char* p_fullCliContextPath,                              //Get the full CLI context path
-                               const cliCore* p_cliContextHandle = NULL);
+                               const cliCore* p_cliContextHandle = NULL, bool p_first = true);
     static cliCore* getCliContextHandleByPath(const char* p_path);                      //Get the CLI context handle from CLI context path
     static void printCli(const char* fmt, ...);                                         //Print a string with sprintf formatting to CLI client output
-    void printCliNoFormat(char* p_msg);                                                 //Print a string without formatting to CLI client output
+    static void printCliNoFormat(char* p_msg);                                          //Print a string without formatting to CLI client output
     rc_t regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,                      //Register a CLI command
                      const char* p_cmdSubMoArg, cliCmdCb_t* p_cliCmdCb);
     rc_t unRegCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,                    //Un-register a CLI command
@@ -170,7 +170,7 @@ public:
                          const char* p_cmdSubMoArg, const char* p_flag);
     rc_t regCmdHelp(cliMainCmd_t p_commandType, const char* p_mo,                       //Register command help text
                    const char* p_cmdSubMoArg, const char* p_helpText);
-    rc_t getHelp(cmd* p_cmd);                                                           //Print help to CLI client
+    static const char* getHelpStr(char* p_helpStrBuff, cliMainCmd_t p_cmdType, const char* p_mo, const char* p_subMo, bool p_showCmdSyntax, bool p_showAvailableInMo);//Provides a textbuff help to CLI client, if p_cmdSyntax is given the help text is preceeded with the registered command syntax, if p_availableInMo is provided the helptext is prepended with the MOs it is available in
     static void notAcceptedCliCommand(cmdErr_t p_cmdErr, const char* errStr, ...);      //Method to call when a CLI command is not accepted
     static void acceptedCliCommand(successCmdTerm_t p_cmdTermType);                     //Method to call when a CLI command has been accepted
     static void onCliError(cmd_error* e);                                               //Call-back for simpleCLI command parse error - CAN WE MAKE THIS PRIVATE?
@@ -183,6 +183,7 @@ public:
     static cliCore* getCurrentContext(void);                                            //Get current CLI context handle
     static const QList<cliCore*>* getAllContexts(void);                                 //Get all CLI context handles
     static void setCurrentContext(cliCore* p_currentContext);                           //Set current CLI context
+    static QList<cliCmdTable_t*>* getCliCommandTable(void);                             //Get global command table list
     cli_context_descriptor_t* getCliContextDescriptor(void);                            //Get CLI context descriptor
     //Public data structures
 
@@ -251,7 +252,10 @@ public:
     cmdFlag* isPresent(const char* p_flag);                                             //Check if a particular flag from name is present in a parsed
                                                                                         //   simpleCLI command and get the corresponding flag handle
                                                                                         //   from flag name (p_flag)
+    QList<cmdFlag*>* getAllRegistered(void);                                            //Get all registered flags
+    const char* getAllRegisteredStr(char* p_flags);                                     //Get all registered flags in a string
     QList<cmdFlag*>* getAllPresent(void);                                               //Get all all flags in a parsed simpleCLI command
+    const char* getAllPresentStr(char* p_flags);
     const char* getParsErrs(void);                                                      //Get flag parse errors from previous parse() method
     static const char* isFlag(const char* p_arg);                                       //Check if a command fragment is a flag - CAN WE MOVE THIS TO PRIVATE
     static const char* check(const char* p_arg);                                        //Check command flags - CAN WE MOVE THIS TO PRIVATE

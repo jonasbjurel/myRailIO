@@ -39,37 +39,61 @@
 /*==============================================================================================================================================*/
 cpu CPU;
 
-bool cpu::cpuPmEnable = false;
-bool cpu::cpuPmLogging = false;
-uint8_t cpu::secondCount = 0;
-uint cpu::maxCpuLoad;
-uint cpu::busyTicksHistory[CPU_HISTORY_SIZE];
-uint cpu::idleTicksHistory[CPU_HISTORY_SIZE];
-uint cpu::heapHistory[CPU_HISTORY_SIZE] = { 0 };
-QList<const char*> cpu::taskNameList;
-QList<taskPmDesc_t*> cpu::taskPmDescList;
-SemaphoreHandle_t cpu::cpuPMLock = xSemaphoreCreateMutex();
-	
+EXT_RAM_ATTR bool cpu::cpuPmEnable = false;
+EXT_RAM_ATTR bool cpu::cpuPmLogging = false;
+EXT_RAM_ATTR uint16_t cpu::secondCount = 0;
+EXT_RAM_ATTR uint cpu::maxCpuLoad;
+EXT_RAM_ATTR uint* cpu::busyTicksHistory = NULL;
+EXT_RAM_ATTR uint* cpu::idleTicksHistory = NULL;
+EXT_RAM_ATTR uint* cpu::totHeapFreeHistory = NULL;
+EXT_RAM_ATTR uint* cpu::intHeapFreeHistory = NULL;
+EXT_RAM_ATTR QList<const char*> cpu::taskNameList;
+EXT_RAM_ATTR QList<taskPmDesc_t*> cpu::taskPmDescList;
+EXT_RAM_ATTR SemaphoreHandle_t cpu::cpuPMLock = xSemaphoreCreateMutex();
 
 void cpu::startPm(void) {
 	cpuPmEnable = true;
-	xTaskCreatePinnedToCore(
-		cpuPmCollect,																	// Task function
-		CPU_PM_TASKNAME,																// Task function name reference
-		CPU_PM_STACKSIZE_1K * 1024,														// Stack size
-		NULL,																			// Parameter passing
-		CPU_PM_PRIO,																	// Priority 0-24, higher is more
-		NULL,																			// Task handle
-		CPU_PM_CORE);																	// Core [CORE_0 | CORE_1]
-	Log.INFO("cpu::startPm: CPU PM collection started");
+	busyTicksHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
+	idleTicksHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
+	totHeapFreeHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
+	intHeapFreeHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
+	if (!busyTicksHistory || !idleTicksHistory || !totHeapFreeHistory || !intHeapFreeHistory)
+		panic("cpu::startPm: Could not allocate PM history vectors, rebooting..." CR);
+	for (uint i = 0; i < CPU_HISTORY_SIZE; i++){
+		*(busyTicksHistory + i) = 0;
+		*(idleTicksHistory + i) = 0; //FILL IT WITH MAX TICKS FOR THE PERIOD
+	}
+	heapInfo_t heapInfo;
+	getHeapMemInfo(&heapInfo, false);
+	for (uint i = 0; i < CPU_HISTORY_SIZE; i++){
+		*(totHeapFreeHistory + i) = heapInfo.freeSize;
+	}
+	getHeapMemInfo(&heapInfo, true);
+	for (uint i = 0; i < CPU_HISTORY_SIZE; i++)
+		*(intHeapFreeHistory + i) = heapInfo.freeSize;
+	rc_t rc = xTaskCreatePinnedToCore(
+				cpuPmCollect,																	// Task function
+				CPU_PM_TASKNAME,																// Task function name reference
+				CPU_PM_STACKSIZE_1K * 1024,														// Stack size
+				NULL,																			// Parameter passing
+				CPU_PM_PRIO,																	// Priority 0-24, higher is more
+				NULL,																			// Task handle
+				CPU_PM_CORE);																	// Core [CORE_0 | CORE_1]
+	if (rc != pdPASS)
+		panic("cpu::startPm: Could not start CPU PM collection task, return code %i, - rebooting..." CR, rc);
+	Log.INFO("cpu::startPm: CPU PM collection started" CR);
 }
 
 void cpu::stopPm(void) {
 	cpuPmEnable = false;
-	Log.VERBOSE("cpu::stopPm: Stoping CPU PM collection");
+	delete busyTicksHistory;
+	delete idleTicksHistory;
+	delete totHeapFreeHistory;
+	delete intHeapFreeHistory;
+	Log.VERBOSE("cpu::stopPm: Stoping CPU PM collection" CR);
 	while (cpuPmLogging)
 		vTaskDelay(100 / portTICK_PERIOD_MS);
-	Log.INFO("cpu::stopPm: CPU PM collection stopped");
+	Log.INFO("cpu::stopPm: CPU PM collection stopped" CR);
 }
 
 bool cpu::getPm(void) {
@@ -81,14 +105,14 @@ void cpu::cpuPmCollect(void* dummy) {
 	UBaseType_t uxArraySize;
 	UBaseType_t uxCurrentNumberOfTasks;
 	TaskStatus_t* pxTaskStatusArray;
-	int busyTicks;
-	int idleDelta1sTicks;
-	uint8_t delta1sStartIndex;
-	int tmpMaxCpuLoad;
-	memset(heapHistory, 0, sizeof heapHistory);
+	int busyTicks = 0;
+	int idleDelta1sTicks = 0;
+	uint8_t delta1sStartIndex = 0;
+	int tmpMaxCpuLoad = 0;
 	cpuPmLogging = true;
 	while(cpuPmEnable){
-/*
+		//CPU load status/statistics collection
+		/*
 		busyTicks = 0;
 		if (!secondCount)
 			delta1sStartIndex = CPU_HISTORY_SIZE - 1;
@@ -129,9 +153,12 @@ void cpu::cpuPmCollect(void* dummy) {
 		tmpMaxCpuLoad = 100 * busyTicksHistory[secondCount] / (busyTicksHistory[secondCount] + idleTicksHistory[secondCount]);
 		if (tmpMaxCpuLoad > maxCpuLoad)
 			maxCpuLoad = tmpMaxCpuLoad;
-*/
-		heapHistory[secondCount] = xPortGetFreeHeapSize();
-/*
+		*/
+		//Heap memory status/statistics collection
+		totHeapFreeHistory[secondCount] = xPortGetFreeHeapSize();
+		intHeapFreeHistory[secondCount] = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+		//Task status/statistics collection
+		/*
 		for (uint8_t task = 0; task < taskPmDescList.length(); task++) {
 			if (taskPmDescList.at(task)->scanned == false) {
 				delete taskPmDescList.at(task);
@@ -139,7 +166,7 @@ void cpu::cpuPmCollect(void* dummy) {
 				taskNameList.clear(task);
 			}
 		}
-*/
+		*/
 		if (secondCount == CPU_HISTORY_SIZE - 1)
 			secondCount = 0;
 		else
@@ -269,7 +296,7 @@ rc_t cpu::getTaskInfoAllByTaskTxt(const char* p_task, char* p_taskInfoTxt, char*
 	return RC_NOTIMPLEMENTED_ERR;
 }
 
-rc_t cpu::getHeapMemInfoAll(heapInfo_t* p_heapInfo) {
+rc_t cpu::getHeapMemInfo(heapInfo_t* p_heapInfo, bool p_internal) {
 	uint32_t caps = 0;
 	caps =
 		//MALLOC_CAP_EXEC |
@@ -282,56 +309,63 @@ rc_t cpu::getHeapMemInfoAll(heapInfo_t* p_heapInfo) {
 		//MALLOC_CAP_PID5 |
 		//MALLOC_CAP_PID6 |
 		//MALLOC_CAP_PID7 |
-		MALLOC_CAP_SPIRAM |
+		//MALLOC_CAP_SPIRAM |
 		MALLOC_CAP_INTERNAL;
 		//MALLOC_CAP_DEFAULT |
 		//MALLOC_CAP_IRAM_8BIT |
 		//MALLOC_CAP_RETENTION |
 		//MALLOC_CAP_RTCRAM;
-	uint32_t totMem = 0;
+	if (!p_internal)
+		caps = caps | MALLOC_CAP_SPIRAM;
+	p_heapInfo->totalSize = 0;
+	p_heapInfo->freeSize = 0;
+	p_heapInfo->highWatermark = 0;
 	uint32_t capItterator = 1;
 	for (uint8_t i=0; i<32; i++) {
-		if (caps & capItterator)
-			totMem += heap_caps_get_total_size(caps & capItterator);
+		if (caps & capItterator){
+			p_heapInfo->totalSize += heap_caps_get_total_size(caps & capItterator);
+			p_heapInfo->freeSize += heap_caps_get_free_size(caps & capItterator);
+			p_heapInfo->highWatermark += heap_caps_get_minimum_free_size(caps & capItterator);
+		}
 		capItterator = capItterator << 1;
 	}
-	p_heapInfo->totalSize = totMem;
-	p_heapInfo->freeSize = xPortGetFreeHeapSize();
-	p_heapInfo->highWatermark = xPortGetMinimumEverFreeHeapSize();
 	return RC_OK;
 }
 
-uint cpu::getHeapMemTime(uint16_t p_time_s) {
-	uint8_t timeSecond;
-	if (secondCount -1 >= p_time_s - 1)
-		timeSecond = secondCount -1 - p_time_s;
+uint cpu::getHeapMemFreeTime(uint16_t p_time_s, bool p_internal) {
+	uint16_t timeSecond;
+	if (secondCount <= p_time_s)
+		timeSecond = CPU_HISTORY_SIZE - p_time_s + secondCount - 1;
 	else
-		timeSecond = (CPU_HISTORY_SIZE) + secondCount - 1 - p_time_s + 1;
-	return heapHistory[timeSecond];
+		timeSecond = secondCount - p_time_s - 1;
+	if (p_internal)
+		return intHeapFreeHistory[timeSecond];
+	else
+		return totHeapFreeHistory[timeSecond];
 }
 
-uint cpu::getAverageMemTime(uint16_t p_time_s) {
-	int avgMem = 0;
+uint cpu::getAverageMemFreeTime(uint16_t p_time_s, bool p_internal) {
+	unsigned long long int avgMem = 0;
 	if (!p_time_s)
 		return 0;
 	if (p_time_s > CPU_HISTORY_SIZE)
 		return 0;
 	for (uint16_t i = 0; i < p_time_s; i++) {
-		if (getHeapMemTime(i))
-			avgMem += getHeapMemTime(i);
+		if (getHeapMemFreeTime(i, p_internal))
+			avgMem += getHeapMemFreeTime(i, p_internal);
 	}
 	return avgMem / p_time_s;
 }
 
-uint cpu::getTrendMemTime(uint16_t p_time) {
+uint cpu::getTrendMemFreeTime(uint16_t p_time, bool p_internal) {
 	if (p_time > CPU_HISTORY_SIZE)
 		return 0;
-	return getHeapMemTime(p_time) - getHeapMemTime(0);
+	return getHeapMemFreeTime(p_time, p_internal) - getHeapMemFreeTime(0, p_internal);
 }
 
-uint cpu::getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt) {
+uint cpu::getHeapMemTrendTxt(char* p_heapMemTxt, char* p_heapHeadingTxt, bool p_internal) {
 	heapInfo_t heapInfo;
-	getHeapMemInfoAll(&heapInfo);
+	getHeapMemInfo(&heapInfo, p_internal);
 	strcpy(p_heapMemTxt, "");
 	strcpy(p_heapHeadingTxt, "");
 	sprintf(p_heapHeadingTxt, "| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
@@ -346,25 +380,25 @@ uint cpu::getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt) {
 							  -19, "MemUsage10m(deltaB)");
 	if (cpuPmEnable) {
 		char delta10S[10];
-		if (!getHeapMemTime(10))
+		if (!getHeapMemFreeTime(10, p_internal))
 			strcpy(delta10S, "-");
 		else
-			itoa(getHeapMemTime(10) - getHeapMemTime(0), delta10S, 10);
+			itoa(getHeapMemFreeTime(10, p_internal) - getHeapMemFreeTime(0, p_internal), delta10S, 10);
 		char delta30S[10];
-		if (!getHeapMemTime(30))
+		if (!getHeapMemFreeTime(30, p_internal))
 			strcpy(delta30S, "-");
 		else
-			itoa(getHeapMemTime(30) - getHeapMemTime(0), delta30S, 10);
+			itoa(getHeapMemFreeTime(30, p_internal) - getHeapMemFreeTime(0, p_internal), delta30S, 10);
 		char delta1M[10];
-		if (!getHeapMemTime(60))
+		if (!getHeapMemFreeTime(60, p_internal))
 			strcpy(delta1M, "-");
 		else
-			itoa(getHeapMemTime(60) - getHeapMemTime(0), delta1M, 10);
+			itoa(getHeapMemFreeTime(60, p_internal) - getHeapMemFreeTime(0, p_internal), delta1M, 10);
 		char delta10M[10];
-		if (!getHeapMemTime(10*60))
+		if (!getHeapMemFreeTime(10 * 60, p_internal))
 			strcpy(delta10M, "-");
 		else
-			itoa(getHeapMemTime(10*60) - getHeapMemTime(0), delta10M, 10);
+			itoa(getHeapMemFreeTime(10 * 60, p_internal) - getHeapMemFreeTime(0, p_internal), delta10M, 10);
 		sprintf(p_heapMemTxt, "| %*i | %*i | %*i | %*i | %*.2f | %*s | %*s | %*s | %*s |",
 							  -10, heapInfo.freeSize,
 							  -10, heapInfo.totalSize - heapInfo.freeSize,
@@ -391,7 +425,9 @@ uint cpu::getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt) {
 	return heapInfo.freeSize;
 }
 
-uint cpu::getMaxAllocMemBlockSize(void) {
+uint cpu::getMaxAllocMemBlockSize(bool p_internal) {
+	if(p_internal)
+		return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
 	if (heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM) > heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL))
 		return heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
 	else

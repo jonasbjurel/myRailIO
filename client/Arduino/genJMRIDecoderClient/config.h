@@ -138,29 +138,31 @@
 
 // CPU execution parameters
 // ========================
-// Set-up task
-#define SETUP_CORE									CORE_1
+//Task stack attributes
+#define INTERNAL									true
+#define EXTERNAL									false
+
+// Setup task
 #define SETUP_PRIO									5
 #define SETUP_STACKSIZE_1K							10
 #define SETUP_TASKNAME								"setup"
+#define SETUP_STACK_ATTR							INTERNAL
 
 // MQTT message polling
-#define CPU_MQTT_POLL_CORE							CORE_1
 #define CPU_MQTT_POLL_PRIO							15
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 
 // System state job task
-#define CPU_SYSSTATE_JOB_CORE							3
-#define CPU_SYSSTATE_JOB_PRIO							10
-#define CPU_SYSSTATE_JOB_STACKSIZE_1K					6
-#define CPU_SYSSTATE_JOB_TASKNAME						"mqttPing"
+#define CPU_SYSSTATE_JOB_PRIO						10
+#define CPU_SYSSTATE_JOB_STACKSIZE_1K				6
+#define CPU_SYSSTATE_JOB_TASKNAME					"systateJob"
 
 // MQTT message supervision
-#define CPU_MQTT_PING_CORE							CORE_0
 #define CPU_MQTT_PING_PRIO							10
 #define CPU_MQTT_PING_STACKSIZE_1K					6
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
+#define CPU_MQTT_PING_STACK_ATTR					INTERNAL
 
 // Satelite link
 const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
@@ -168,33 +170,33 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_SATLINK_STACKSIZE_1K					6
 #define CPU_SATLINK_TASKNAME						"satLink %d"
 
-const uint8_t CPU_SATLINK_PM_CORE[] =				{CORE_0, CORE_1};
 #define CPU_SATLINK_PM_PRIO							10
 #define CPU_SATLINK_PM_STACKSIZE_1K					6
 #define CPU_SATLINK_PM_TASKNAME						"satLinkPmPoll %d"
+#define CPU_SATLINK_PM_STACK_ATTR					INTERNAL
 
 // Flash
-const uint8_t FLASH_LOOP_CORE[] =					{CORE_1, CORE_1};
 #define FLASH_LOOP_PRIO								10
 #define FLASH_LOOP_STACKSIZE_1K						6
 #define FLASH_LOOP_TASKNAME							"FlashLoop %d"
+#define FLASH_LOOP_STACK_ATTR						INTERNAL
 
 // LgLink
-const uint8_t  CPU_UPDATE_STRIP_CORE[] =			{CORE_0, CORE_1};
 #define CPU_UPDATE_STRIP_PRIO						20
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				3
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
+#define CPU_UPDATE_STRIP_SETUP_STACK_ATTR			INTERNAL
 
 // Telnet
-#define CPU_TELNET_CORE								CORE_1
 #define CPU_TELNET_PRIO								5
 #define CPU_TELNET_STACKSIZE_1K						6
 #define CPU_TELNET_TASKNAME							"telnetPoll"
+#define CPU_TELNET_STACK_ATTR						INTERNAL
 
 // CPU-PM
 #define CPU_PM_CORE									CORE_1
 #define CPU_PM_PRIO									10
-#define CPU_PM_STACKSIZE_1K							6
+#define CPU_PM_STACKSIZE_1K							1
 #define CPU_PM_TASKNAME								"cpuPm"
 
 // WIFI parameters

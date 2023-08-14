@@ -44,35 +44,21 @@
 decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, NULL, true) {
     Log.INFO("decoder::decoder: Creating decoder" CR);
     setSysStateObjName("Decoder");
-    Serial.printf("decoder: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("Decoder: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
     debug = false;
     Log.INFO("decoder::init: Creating lgLinks" CR);
     for (uint8_t lgLinkNo = 0; lgLinkNo < MAX_LGLINKS; lgLinkNo++) {
-        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
-        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-        lgLinks[lgLinkNo] = new (heap_caps_malloc(sizeof(lgLink(lgLinkNo, this)), MALLOC_CAP_SPIRAM)) lgLink(lgLinkNo, this);
+        lgLinks[lgLinkNo] = new (heap_caps_malloc(sizeof(lgLink), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lgLink(lgLinkNo, this);
         if (lgLinks[lgLinkNo] == NULL)
             panic("decoder::init: Could not create lgLink objects - rebooting..." CR);
-        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
-        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
         addSysStateChild(lgLinks[lgLinkNo]);
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     Log.INFO("decoder::init: lgLinks created" CR);
     Log.INFO("decoder::init: Creating satLinks" CR);
     for (uint8_t satLinkNo = 0; satLinkNo < MAX_SATLINKS; satLinkNo++) {
-        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
-        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-        satLinks[satLinkNo] = new (heap_caps_malloc(sizeof(satLink(satLinkNo, this)), MALLOC_CAP_SPIRAM)) satLink(satLinkNo, this);
+        satLinks[satLinkNo] = new (heap_caps_malloc(sizeof(satLink), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) satLink(satLinkNo, this);
         if (satLinks[satLinkNo] == NULL)
-            panic("decoder::init: Could not create satLink objects - rebooting..." CR);
-        Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
-        Serial.printf("setup: Free Internal Heap: %i\n", esp_get_free_internal_heap_size());
-        Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+            panic("decoder::init: Could not create satLink objects - rebooting..." CR);;
         Log.VERBOSE("Added Satlink index %d with object %d" CR, satLinkNo, satLinks[satLinkNo]);
         addSysStateChild(satLinks[satLinkNo]);
         vTaskDelay(5 / portTICK_PERIOD_MS);
@@ -85,20 +71,20 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     if (!(decoderLock = xSemaphoreCreateMutex()))
         panic("decoder::decoder: Could not create Lock objects - rebooting..." CR);
     xmlconfig[XML_DECODER_MQTT_URI] = createNcpystr(networking::getMqttUri());
-    xmlconfig[XML_DECODER_MQTT_PORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
+    xmlconfig[XML_DECODER_MQTT_PORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[6];
     xmlconfig[XML_DECODER_MQTT_PORT] = itoa(networking::getMqttPort(), xmlconfig[XML_DECODER_MQTT_PORT], 10);
     xmlconfig[XML_DECODER_MQTT_PREFIX] = createNcpystr(MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
-    xmlconfig[XML_DECODER_MQTT_PINGPERIOD] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
+    xmlconfig[XML_DECODER_MQTT_PINGPERIOD] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[6];
     xmlconfig[XML_DECODER_MQTT_PINGPERIOD] = itoa(MQTT_DEFAULT_PINGPERIOD_S, xmlconfig[XML_DECODER_MQTT_PINGPERIOD], 10);
-    xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
+    xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[6];
     xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD] = itoa(MQTT_DEFAULT_KEEP_ALIVE_S, xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD], 10);
     xmlconfig[XML_DECODER_NTPURI] = createNcpystr(NTP_DEFAULT_URI); //SHOULD THIS ORIGINATE FROM networking
-    xmlconfig[XML_DECODER_NTPPORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM)) char[6];
+    xmlconfig[XML_DECODER_NTPPORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[6];
     xmlconfig[XML_DECODER_NTPPORT] = itoa(NTP_DEFAULT_PORT, xmlconfig[XML_DECODER_NTPPORT], 10); //SHOULD THIS ORIGINATE FROM networking
     xmlconfig[XML_DECODER_TZ_AREA] = createNcpystr(NTP_DEFAULT_TZ_AREA);
-    xmlconfig[XML_DECODER_TZ_GMTOFFSET] = new (heap_caps_malloc(sizeof(char[4]), MALLOC_CAP_SPIRAM)) char[4];
+    xmlconfig[XML_DECODER_TZ_GMTOFFSET] = new (heap_caps_malloc(sizeof(char[4]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[4];
     xmlconfig[XML_DECODER_TZ_GMTOFFSET] = itoa(NTP_DEFAULT_TZ_GMTOFFSET, xmlconfig[XML_DECODER_TZ_GMTOFFSET], 10);
-    xmlconfig[XML_DECODER_LOGLEVEL] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM)) char[2];
+    xmlconfig[XML_DECODER_LOGLEVEL] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[2];
     xmlconfig[XML_DECODER_LOGLEVEL] = itoa(DEFAULT_LOGLEVEL, xmlconfig[XML_DECODER_LOGLEVEL], 10);
     xmlconfig[XML_DECODER_FAILSAFE] = createNcpystr(DEFAULT_FAILSAFE);
     xmlconfig[XML_DECODER_SYSNAME] = NULL;
@@ -174,7 +160,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         panic("decoder:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
     Log.INFO("decoder::onConfig: Received an uverified configuration, parsing and validating it..." CR);
-    xmlConfigDoc = new (heap_caps_malloc(sizeof(tinyxml2::XMLDocument), MALLOC_CAP_SPIRAM)) tinyxml2::XMLDocument;
+    xmlConfigDoc = new (heap_caps_malloc(sizeof(tinyxml2::XMLDocument), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) tinyxml2::XMLDocument;
     if (xmlConfigDoc->Parse(p_payload))
         panic("decoder::onConfig: Configuration parsing failed - Rebooting..." CR);
     if (xmlConfigDoc->FirstChildElement("genJMRI") == NULL || xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder") == NULL || xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SystemName") == NULL)
@@ -267,13 +253,13 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         panic("decoder::onConfig: System name was not provided - rebooting..." CR);
     if (xmlconfig[XML_DECODER_USRNAME] == NULL){
         Log.WARN("decoder::onConfig: User name was not provided - using %s-UserName" CR, xmlconfig[XML_DECODER_SYSNAME]);
-        xmlconfig[XML_DECODER_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10), MALLOC_CAP_SPIRAM)) char[strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10];
+        xmlconfig[XML_DECODER_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_DECODER_SYSNAME]) + 10];
         const char* usrName[2] = { xmlconfig[XML_DECODER_SYSNAME], "-" };
         strcpy(xmlconfig[XML_DECODER_USRNAME], "-");
     }
     if (xmlconfig[XML_DECODER_DESC] == NULL){
         Log.WARN("decoder::onConfig: Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_DECODER_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM)) char[2];
+        xmlconfig[XML_DECODER_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[2];
         strcpy(xmlconfig[XML_DECODER_DESC], "-");
     }
     if (strcmp(xmlconfig[XML_DECODER_MAC], networking::getMac()))
@@ -424,7 +410,6 @@ void decoder::onSysStateChange(sysState_t p_sysState) {
     sysState_t newSysState;
     newSysState = p_sysState;
     sysState_t sysStateChange = newSysState ^ prevSysState;
-    Serial.printf(">>>>>>>NewState 0x%x PrevState 0x%x Changed 0x%x" CR, newSysState, prevSysState, sysStateChange);
     if (!sysStateChange)
         return;
     if ((sysStateChange & ~(OP_CBL | OP_SERVUNAVAILABLE)) && mqtt::getDecoderUri() && !(newSysState & OP_UNCONFIGURED)) {

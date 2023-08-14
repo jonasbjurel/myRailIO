@@ -43,15 +43,7 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     satLinkScanDisabled = true;
     debug = false;
     //We need to have this early since RMT requires internal RAM
-    satLinkLibHandle = new (heap_caps_malloc(sizeof(sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
-        (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
-        (rmt_channel_t)(SATLINK_RMT_TX_CHAN[p_linkNo]),
-        (rmt_channel_t)(SATLINK_RMT_RX_CHAN[p_linkNo]),
-        SATLINK_RMT_TX_MEMBANK[p_linkNo],
-        SATLINK_RMT_RX_MEMBANK[p_linkNo],
-        CPU_SATLINK_PRIO,
-        CPU_SATLINK_CORE[p_linkNo],
-        SATLINK_UPDATE_MS)), MALLOC_CAP_SPIRAM)) \
+    satLinkLibHandle = new (heap_caps_malloc(sizeof(sateliteLink), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) \
         sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
         (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
         (rmt_channel_t)(SATLINK_RMT_TX_CHAN[p_linkNo]),
@@ -67,8 +59,7 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     sprintf(sysStateObjName, "satLink-%d", p_linkNo);
     setSysStateObjName(sysStateObjName);
     heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-    //if (!(satLinkPmPollLock = xSemaphoreCreateMutex()))
-    if (!(satLinkPmPollLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if (!(satLinkPmPollLock = xSemaphoreCreateMutex()))
         panic("satLink::satLink: Could not create Lock objects - rebooting..." CR);
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
@@ -157,7 +148,7 @@ rc_t satLink::init(void) {
     Log.INFO("satLink::init: CLI methods for Satelite link channel %d registered" CR, linkNo);
     Log.INFO("satLink::init: Creating satelites for link channel %d" CR, linkNo);
     for (uint8_t satAddress = 0; satAddress < MAX_SATELITES; satAddress++) {
-        sats[satAddress] = new (heap_caps_malloc(sizeof(sat(satAddress, this)), MALLOC_CAP_SPIRAM)) sat(satAddress, this);
+        sats[satAddress] = new (heap_caps_malloc(sizeof(sat), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) sat(satAddress, this);
         if (sats[satAddress] == NULL)
             panic("satLink::init: Could not create satelite object for link channel - rebooting...");
         addSysStateChild(sats[satAddress]);
@@ -292,21 +283,18 @@ void satLink::up(void) {
     Log.INFO("satLink::up: satLink-%d link and PM scanning starting" CR, linkNo);
     satErr_t rc = satLinkLibHandle->enableSatLink();
     if (rc != 0){
-        Serial.printf("satLink::up: Satelite link scannig could not be started, return code: 0x%llx - rebooting..." CR, rc); //HOW TO DEAL WITH A NON FUNCTIONAL SATLINK, SHALL WE REALLY REBOOT?
-        //panic("satLink::up: Satelite link scannig could not be started, return code: 0x%llx - rebooting..." CR, rc);
+        panic("satLink::up: Satelite link scannig could not be started, return code: 0x%llx - rebooting..." CR, rc);
     }
     char satlinkPmTaskName[30];
     sprintf(satlinkPmTaskName, CPU_SATLINK_PM_TASKNAME, linkNo);
     pmPoll = true;
-    BaseType_t taskRc = xTaskCreatePinnedToCore(
-        pmPollHelper,                                                                   // Task function
-        satlinkPmTaskName,                                                              // Task function name reference
-        CPU_SATLINK_PM_STACKSIZE_1K * 1024,                                             // Stack size
-        this,                                                                           // Parameter passing
-        CPU_SATLINK_PM_PRIO,                                                            // Priority 0-24, higher is more
-        NULL,                                                                           // Task handle
-        ((linkNo % MAX_SATLINKS) ? CPU_SATLINK_PM_CORE[0] : CPU_SATLINK_PM_CORE[1]));    // Core [CORE_0 | CORE_1]
-    if (taskRc != pdPASS)
+    if(!eTaskCreate(
+            pmPollHelper,                                                                   // Task function
+            satlinkPmTaskName,                                                              // Task function name reference
+            CPU_SATLINK_PM_STACKSIZE_1K * 1024,                                             // Stack size
+            this,                                                                           // Parameter passing
+            CPU_SATLINK_PM_PRIO,                                                            // Priority 0-24, higher is more
+            CPU_SATLINK_PM_STACK_ATTR))                                                     // Task stack atribute
         panic("satLink::up: could not start pm poll task  - rebooting..." CR);
 }
 

@@ -232,13 +232,13 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("JMRIRPCURI") != None: self.jmriRpcURI.value = topDecoderXmlConfig.get("JMRIRPCURI")
             if topDecoderXmlConfig.get("JMRIRPCPortBase") != None: self.jmriRpcPortBase.value = int(topDecoderXmlConfig.get("JMRIRPCPortBase"))
             if topDecoderXmlConfig.get("DecoderMqttTopicPrefix") != None: self.decoderMqttTopicPrefix.value = topDecoderXmlConfig.get("DecoderMqttTopicPrefix")
-            if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = [topDecoderXmlConfig.get("NTPServer")]
+            if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = topDecoderXmlConfig.get("NTPServer")
             if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
             if topDecoderXmlConfig.get("TimeZoneGmtOffset") != None: self.tz.value = int(topDecoderXmlConfig.get("TimeZoneGmtOffset"))
             if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsyslogUri.value = topDecoderXmlConfig.get("RSyslogServer")
             if topDecoderXmlConfig.get("RSyslogPort") != None: self.rsyslogPort.value = topDecoderXmlConfig.get("RSyslogPort")
             if topDecoderXmlConfig.get("RSyslogProtocol") != None: self.rsyslogProtocol.value = topDecoderXmlConfig.get("RSyslogProtocol")
-            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = [topDecoderXmlConfig.get("SNMPServer")]
+            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("SNMPPort") != None: self.snmpPort.value = int(topDecoderXmlConfig.get("SNMPPort"))
             if topDecoderXmlConfig.get("SNMPProtocol") != None: self.snmpProtocol.value = topDecoderXmlConfig.get("SNMPProtocol")
             if topDecoderXmlConfig.get("LogLevel") != None:

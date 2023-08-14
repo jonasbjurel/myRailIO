@@ -36,19 +36,19 @@
 /* Methods: See networking.h                                                                                                                    */
 /* Data structures: See networking.h                                                                                                            */
 /*==============================================================================================================================================*/
-systemState* networking::sysState;
-esp_timer_handle_t networking::WiFiWdTimerHandle;
-esp_timer_create_args_t networking::WiFiWdTimerArgs;
-bool networking::filtering = false;
-WiFiManager networking::wifiManager;
-netwStaConfig_t networking::networkConfig;
-netwStaConfig_t networking::networkConfigBackup;
-QList<wifiEventCallbackInstance_t*> networking::wifiEventCallbackList;
-QList<wifiProvisionCallbackInstance_t*> networking::wifiProvisionCallbackList;
-WiFiManagerParameter* networking::hostNameConfigParam;
-WiFiManagerParameter* networking::mqttServerUriConfigParam;
-WiFiManagerParameter* networking::mqttServerPortConfigParam;
-wifiProvisioningAction_t networking::provisionAction = NO_PROVISION;
+EXT_RAM_ATTR systemState* networking::sysState;
+EXT_RAM_ATTR esp_timer_handle_t networking::WiFiWdTimerHandle;
+EXT_RAM_ATTR esp_timer_create_args_t networking::WiFiWdTimerArgs;
+EXT_RAM_ATTR bool networking::filtering = false;
+EXT_RAM_ATTR WiFiManager networking::wifiManager;
+EXT_RAM_ATTR netwStaConfig_t networking::networkConfig;
+EXT_RAM_ATTR netwStaConfig_t networking::networkConfigBackup;
+EXT_RAM_ATTR QList<wifiEventCallbackInstance_t*> networking::wifiEventCallbackList;
+EXT_RAM_ATTR QList<wifiProvisionCallbackInstance_t*> networking::wifiProvisionCallbackList;
+EXT_RAM_ATTR WiFiManagerParameter* networking::hostNameConfigParam;
+EXT_RAM_ATTR WiFiManagerParameter* networking::mqttServerUriConfigParam;
+EXT_RAM_ATTR WiFiManagerParameter* networking::mqttServerPortConfigParam;
+EXT_RAM_ATTR wifiProvisioningAction_t networking::provisionAction = NO_PROVISION;
 
 void networking::provisioningConfigTrigger(void) {
     Log.INFO("networking::provisioningConfigTrigger: provisioning "
@@ -73,7 +73,7 @@ void networking::provisioningConfigTrigger(void) {
 
 void networking::start(void) {
     Log.INFO("networking::start: Starting networking service" CR);
-    sysState = new systemState(NULL);
+    sysState = new (heap_caps_malloc(sizeof(systemState), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) systemState(NULL);
     sysState->setSysStateObjName("networking");
     sysState->setOpStateByBitmap(OP_INIT | OP_DISCONNECTED | OP_NOIP | OP_UNCONFIGURED);
     WiFiWdTimerArgs.arg = NULL;
@@ -140,14 +140,14 @@ void networking::start(void) {
                         IPAddress(WIFI_MGR_AP_IP).toString().c_str());
             getNetworkConfig(&networkConfig);
         }
-        hostNameConfigParam = new WiFiManagerParameter("HostName", "HostName",
+        hostNameConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("HostName", "HostName",
                                                        networkConfig.hostName, 31);
         wifiManager.addParameter(hostNameConfigParam);
-        mqttServerUriConfigParam = new WiFiManagerParameter("MQTTserverURI", "MQTTserverURI",
+        mqttServerUriConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("MQTTserverURI", "MQTTserverURI",
                                                             networkConfig.mqttUri, 100);
         wifiManager.addParameter(mqttServerUriConfigParam);
         char tmpMqttPort[6];
-        mqttServerPortConfigParam = new WiFiManagerParameter("MQTTserverPort", "MQTTserverPort",
+        mqttServerPortConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("MQTTserverPort", "MQTTserverPort",
                                                              itoa(networkConfig.mqttPort,
                                                              tmpMqttPort, 10), 5);
         wifiManager.addParameter(mqttServerPortConfigParam);
@@ -172,7 +172,7 @@ void networking::start(void) {
 void networking::regWifiEventCallback(const wifiEventCallback_t p_callback,
                                       const void* p_args) {
     wifiEventCallbackInstance_t* wifiEventCallbackInstance = 
-                                 new wifiEventCallbackInstance_t;
+                                 new (heap_caps_malloc(sizeof(wifiEventCallbackInstance_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wifiEventCallbackInstance_t;
     wifiEventCallbackInstance->cb = p_callback;
     wifiEventCallbackInstance->args = (void*)p_args;
     wifiEventCallbackList.push_back(wifiEventCallbackInstance);
@@ -199,7 +199,7 @@ void networking::unRegWifiOpStateCallback(sysStateCb_t p_callback) {
 void networking::regWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
                                           const void* p_args) {
     wifiProvisionCallbackInstance_t* wifiProvisionCallbackInstance =
-                                     new wifiProvisionCallbackInstance_t;
+                                     new (heap_caps_malloc(sizeof(wifiProvisionCallbackInstance_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wifiProvisionCallbackInstance_t;
     wifiProvisionCallbackInstance->cb = p_callback;
     wifiProvisionCallbackInstance->args = (void*)p_args;
     wifiProvisionCallbackList.push_back(wifiProvisionCallbackInstance);
@@ -232,7 +232,7 @@ uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
         Log.info("%s" CR, apPrintOut);
     }
     for (int i = 0; i < networks; i++) {
-        apStruct_t* apInfo = new apStruct_t;
+        apStruct_t* apInfo = new (heap_caps_malloc(sizeof(apStruct_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) apStruct_t;
         strcpy(apInfo->ssid, WiFi.SSID(i).c_str());
         apInfo->rssi = WiFi.RSSI(i);
         apInfo->channel = WiFi.channel(i);
@@ -297,15 +297,16 @@ rc_t networking::setStaticIpAddr(IPAddress p_address, IPAddress p_mask, IPAddres
     nwConfig.ipMask = p_mask;
     nwConfig.gatewayIpAddr = p_gw;
     nwConfig.dnsIpAddr = p_dns;
-    if (!p_persist)
-        WiFi.persistent(false);
     if (setNetworkConfig(&networkConfig)) {
         WiFi.persistent(true);
         return RC_PARAMETERVALUE_ERR;
     }
-    if(p_persist)
+    if (p_persist) {
         persistentSaveConfig(&nwConfig);
-    WiFi.persistent(true);
+        WiFi.persistent(true);
+    }
+    else
+        WiFi.persistent(false);
     return RC_OK;
 }
 

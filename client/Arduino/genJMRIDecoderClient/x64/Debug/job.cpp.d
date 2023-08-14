@@ -137,4 +137,5 @@ C:\\Users\\jonas\\AppData\\Local\\Temp\\VMBuilds\\genJMRIDecoderClient\\esp32_es
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\panic.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\logHelpers.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\config.h \
- c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\esp32SysConfig.h
+ c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\esp32SysConfig.h \
+ c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\taskWrapper.h

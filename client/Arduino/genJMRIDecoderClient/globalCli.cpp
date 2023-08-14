@@ -35,13 +35,17 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-globalCli* globalCli::rootHandle;
+EXT_RAM_ATTR globalCli* globalCli::rootHandle;
 char* globalCli::testBuff = NULL;
 
 globalCli::globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex, globalCli* p_parent_context, bool p_root) : cliCore(p_moType, p_moName, p_moIndex, p_parent_context, p_root) {
 	if (p_root) {
 		rootHandle = this;
 	}
+	moType = p_moType;
+	moName = p_moName;
+	moIndex = p_moIndex;
+	parentContext = p_parent_context;
 }
 
 globalCli::~globalCli(void) {
@@ -63,23 +67,28 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, HELP_SUB_MO_NAME, GLOBAL_HELP_HELP_TXT);
 	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, CLIHELP_SUB_MO_NAME, onCliHelp);
 	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, CLIHELP_SUB_MO_NAME, GLOBAL_FULL_CLI_HELP_TXT);
-//	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, SUBMOS_SUB_MO_NAME, onCliHelp);
-//	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, SUBMOS_SUB_MO_NAME, GLOBAL_FULL_CLI_HELP_TXT);
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: context																												*/
 /* Description: See cliGlobalDefinitions.h																										*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
-//NEEDS TO BE WORKED ON
+	//Context SubMo - provides means for context navigation
 	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, onCliGetContextHelper);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, GLOBAL_GET_CONTEXT_HELP_TXT);
 	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, onCliSetContextHelper);
 	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, CONTEXT_SUB_MO_NAME, GLOBAL_SET_CONTEXT_HELP_TXT);
 
-	//Topolgy SubMo - needs work to be integrated with context
-	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, onClishowTopology);
+	//Topolgy SubMo - provides means for context topology visualization
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, onCliShowTopology);
+	regCmdFlagArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, "childs", 1, false);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, TOPOLOGY_SUB_MO_NAME, GLOBAL_SHOW_TOPOLOGY_HELP_TXT);
+
+	//Command SubMo - provides means to show commands available for a speciffic context
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, COMMANDS_SUB_MO_NAME, onCliShowCommands);
+	regCmdFlagArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, COMMANDS_SUB_MO_NAME, "all", 1, false);
+	regCmdFlagArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, COMMANDS_SUB_MO_NAME, "help", 1, false);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, COMMANDS_SUB_MO_NAME, GLOBAL_SHOW_COMMANDS_HELP_TXT);
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: reboot																												*/
@@ -126,6 +135,7 @@ void globalCli::regGlobalCliMOCmds(void) {
 /* Description: See cliGlobalDefinitions.h																										*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliGetMem);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "internal", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "total", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "available", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "used", 1, false);
@@ -133,11 +143,20 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "average", 1, true);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "trend", 1, true);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "maxblock", 1, false);
-	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "allocation", 1, true);
-	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "free", 1, false);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_GET_CPUMEM_HELP_TXT);
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliShowMem);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_SHOW_CPUMEM_HELP_TXT);
+
+	regCmdMoArg(START_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliStartMem);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "allocate", 1, true);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "internal", 1, false);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "external", 1, false);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "default", 1, false);
+	regCmdHelp(START_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_START_CPUMEM_HELP_TXT);
+
+	regCmdMoArg(STOP_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliStopMem);
+	regCmdFlagArg(STOP_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "allocate", 1, false);
+	regCmdHelp(STOP_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_STOP_CPUMEM_HELP_TXT);
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: network																												*/
@@ -336,22 +355,60 @@ void globalCli::regContextCliMOCmds(void) {
 /* Global CLI decoration methods */
 void globalCli::onCliHelp(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_dummy) {
 	Command cmd(p_cmd);
-	rc_t rc;
-	if (rc=p_cliContext->getHelp(p_cmd))
-		notAcceptedCliCommand(CLI_GEN_ERR, "Help request not accepted, return code: %i",
-							  rc);
-	else
+	char helpCmd[50];
+	char subMo[50];
+	if (!cmd.getArg(0).getValue().c_str() ||
+		!strcmp(cmd.getArg(0).getValue().c_str(), "")) {
+		strcpy(helpCmd, cmd.getName().c_str());
+		strcpy(subMo, "");
+		Log.VERBOSE("globalCli::onCliHelp: Searching for help text for %s" CR, helpCmd);
+	}
+	else if (cmd.getArg(0).getValue().c_str() && (!cmd.getArg(1).getValue().c_str() || !strcmp(cmd.getArg(1).getValue().c_str(), ""))) {
+		if (!strcmp(cmd.getArg(0).getValue().c_str(), "cli")) { //Exemption hack
+			strcpy(helpCmd, "help");
+			strcpy(subMo, "cli");
+			Log.VERBOSE("globalCli::onCliHelp: Searching for help text for CLI" CR);
+		}
+		else {
+			strcpy(helpCmd, cmd.getArg(0).getValue().c_str());
+			strcpy(subMo, "");
+			Log.VERBOSE("globalCli::onCliHelp: Searching for help text for %s" CR, helpCmd);
+		}
+	}
+	else if (cmd.getArg(0).getValue().c_str() && cmd.getArg(1).getValue().c_str() && (!cmd.getArg(2).getValue().c_str() || !strcmp(cmd.getArg(2).getValue().c_str(),""))) {
+		strcpy(helpCmd, cmd.getArg(0).getValue().c_str());
+		strcpy(subMo, cmd.getArg(1).getValue().c_str());
+		Log.VERBOSE("globalCli::onCliHelp: Searching for help text for %s %s" CR, helpCmd, subMo);
+	}
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onCliSetContext: Bad number of arguments" CR);
+		return;
+	}
+	char* helpStr = new(heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
+	if (getHelpStr(helpStr, getCliTypeByName(helpCmd), NULL, subMo, true, true)) {
+		printCliNoFormat(helpStr);
 		acceptedCliCommand(CLI_TERM_QUIET);
+		delete helpStr;
+		return;
+	}
+	else {
+		notAcceptedCliCommand(CLI_GEN_ERR, "No Help text available for %s %s", helpCmd, subMo);
+		Log.INFO("globalCli::onCliHelp: No Help text available for %s %s" CR, helpCmd, subMo);
+		delete helpStr;
+		return;
+	}
 }
 
 void globalCli::onCliGetContextHelper(cmd* p_cmd, cliCore* p_cliContext,
-									  cliCmdTable_t* p_cmdTable) {
+										cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
 	char fullCliContextPath[100];
 	strcpy(fullCliContextPath, "");
 	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		Log.VERBOSE("globalCli::onCliSetContext: Bad number of arguments" CR);
+		return;
 	}
 	else {
 		static_cast<globalCli*>(p_cliContext)->onCliGetContext(fullCliContextPath);
@@ -376,7 +433,7 @@ void globalCli::onCliSetContext(cmd* p_cmd) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		Log.VERBOSE("globalCli::onCliSetContext: Bad number of arguments" CR);
 	}
-	else if (!(targetContext = getCliContextHandleByPath(cmd.getArg(1).getValue().
+	else if (!(targetContext = getCliContextHandleByPath(cmd.getArg(1).getValue().			//TR LOW: WE SHOULD ONLY LOOK AT CHILD CANDIDATES RELATED TO THIS OBJECT, getCliContextHandleByPath IS STATIC AND GOES FROM CURRENT CONTEXT!
 														 c_str()))) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Context %s does not exist",
 													  cmd.getArg(1).getValue().c_str());
@@ -390,42 +447,140 @@ void globalCli::onCliSetContext(cmd* p_cmd) {
 	}
 }
 
-void globalCli::onClishowTopology(cmd* p_cmd, cliCore* p_cliContext,
+void globalCli::onCliShowTopology(cmd* p_cmd, cliCore* p_cliContext,
 								  cliCmdTable_t* p_cmdTable) {
-	char contextPath[150];
 	Command cmd(p_cmd);
 	if (!cmd.getArgument(0) || cmd.getArgument(2)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		Log.VERBOSE("globalCli::onClishowTopology: Bad number of arguments" CR);
 	}
-	if (cmd.getArgument(1)) {
-		strcpy(contextPath, cmd.getArgument(1).getValue().c_str());
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliShowTopology: Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
 	}
+	if (p_cmdTable->commandFlags->isPresent("childs"))
+		static_cast<globalCli*>(p_cliContext)->printTopology();
 	else
-		strcpy(contextPath, "/");
-	static_cast<globalCli*>(getCliContextHandleByPath(contextPath))->printTopology();
+		static_cast<globalCli*>(getCliContextHandleByPath("/"))->printTopology();
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-rc_t globalCli::printTopology(bool p_start) {
+void globalCli::printTopology(bool p_start) {
 	uint8_t noOfChilds;
-	char contextPath[150];
-	if(p_start)
-		printCli("| %*s | %*s | %*s |", -50, "Context-path:", -20, "Context:",
-										-20, "System-name");
-	getFullCliContextPath(contextPath);
-	printCli("| %*s | %*s-%i | %*s |",
-			 -50, contextPath,
-			 -20, getCliContextDescriptor()->contextName,
-			 getCliContextDescriptor()->contextIndex,
-			 -20, getCliContextDescriptor()->contextSysName);
+	{
+		char contextPath[150];
+		getFullCliContextPath(contextPath);
+		char contextNameIndex[20];
+		sprintf(contextNameIndex, "%s-%i", getCliContextDescriptor()->contextName, getCliContextDescriptor()->contextIndex);
+		if (p_start)
+			printCli("| %*s | %*s | %*s |", -50, "Context-path:", -20, "Context:",
+				-20, "System-name");
+		if(getCurrentContext() == this)
+			printCli("| %*s | %*s | %*s | <<<",
+				-50, contextPath,
+				-20, contextNameIndex,
+				-20, getCliContextDescriptor()->contextSysName ? getCliContextDescriptor()->contextSysName : "-");
+		else
+			printCli("| %*s | %*s | %*s |",
+				-50, contextPath,
+				-20, contextNameIndex,
+				-20, getCliContextDescriptor()->contextSysName ? getCliContextDescriptor()->contextSysName : "-");
+	}
 	for (uint8_t i = 0; i < getChildContexts(NULL)->size(); i++) {
 		static_cast<globalCli*>(getChildContexts(NULL)->at(i))->printTopology(false);
 	}
-	if (p_start) {
-		acceptedCliCommand(CLI_TERM_QUIET);
+}
+
+void globalCli::onCliShowCommands(cmd* p_cmd, cliCore* p_cliContext,
+									cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(0) || cmd.getArgument(3)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.VERBOSE("globalCli::onClishowCommands: Bad number of arguments" CR);
+		return;
 	}
-	return RC_OK;
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onClishowCommands: Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	static_cast<globalCli*>(p_cliContext)->processAvailCommands(p_cmdTable->commandFlags->isPresent("all") ? true : false, p_cmdTable->commandFlags->isPresent("help")? true : false);
+}
+	
+void globalCli::processAvailCommands(bool p_all, bool p_help) {
+	QList<cliCmdTable_t*>* commandTable = getCliCommandTable();
+	char flags[200];
+	printCommand(NULL, NULL, NULL, NULL, NULL, true, p_all, p_help);
+	char* helpStr = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
+	//First find all global MO sub-MOs
+	for (uint16_t i = 0; i < commandTable->size(); i++) {
+		if (!strcmp(commandTable->at(i)->mo, GLOBAL_MO_NAME)){
+			getHelpStr(helpStr, commandTable->at(i)->cmdType, NULL, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
+			printCommand(getCliNameByType(commandTable->at(i)->cmdType), commandTable->at(i)->mo, commandTable->at(i)->subMo? commandTable->at(i)->subMo : "-", commandTable->at(i)->commandFlags? commandTable->at(i)->commandFlags->getAllRegisteredStr(flags) : "", helpStr, false, p_all, p_help);
+		}
+	}
+	//Second find common MO sub-MOs
+	for (uint16_t i = 0; i < commandTable->size(); i++) {
+		if (!strcmp(commandTable->at(i)->mo, COMMON_MO_NAME)){
+			getHelpStr(helpStr, commandTable->at(i)->cmdType, NULL, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
+			printCommand(getCliNameByType(commandTable->at(i)->cmdType), commandTable->at(i)->mo, commandTable->at(i)->subMo? commandTable->at(i)->subMo : "-", commandTable->at(i)->commandFlags? commandTable->at(i)->commandFlags->getAllRegisteredStr(flags) : "", helpStr, false, p_all , p_help);
+		}
+	}
+	//Finally find uniqe MO sub-MOs
+	for (uint16_t i = 0; i < commandTable->size(); i++) {
+		if (p_all) {
+			if (strcmp(commandTable->at(i)->mo, GLOBAL_MO_NAME) && strcmp(commandTable->at(i)->mo, COMMON_MO_NAME)) {
+				getHelpStr(helpStr, commandTable->at(i)->cmdType, NULL, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
+				printCommand(getCliNameByType(commandTable->at(i)->cmdType), commandTable->at(i)->mo, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "-", commandTable->at(i)->commandFlags ? commandTable->at(i)->commandFlags->getAllRegisteredStr(flags) : "", helpStr, false, p_all, p_help);
+			}
+		}
+		else{
+			if (!strcmp(commandTable->at(i)->mo, moType)) {
+				getHelpStr(helpStr, commandTable->at(i)->cmdType, NULL, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
+				printCommand(getCliNameByType(commandTable->at(i)->cmdType), commandTable->at(i)->mo, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "-", commandTable->at(i)->commandFlags ? commandTable->at(i)->commandFlags->getAllRegisteredStr(flags) : "", helpStr, false, p_all, p_help);
+			}
+		}
+	}
+	acceptedCliCommand(CLI_TERM_QUIET);
+}
+		
+void globalCli::printCommand(const char* p_cmdType, const char* p_mo, const char* p_subMo, const char* p_flags, const char* p_helpStr, bool p_heading, bool p_all, bool p_showHelp) {
+	if (p_heading) {
+		if (p_showHelp)
+			printCli("| %*s | %*s | %*s |", -60, "Command", -15, "MO", -60, "Help text:");
+		else
+			printCli("| %*s | %*s |", -60, "Command", -15, "MO");
+		return;
+	}
+	char commandNFlags[61];
+	strcpyTruncMaxLen(commandNFlags, p_cmdType, 60);
+	strcatTruncMaxLen(commandNFlags, " ", 60);
+	strcatTruncMaxLen(commandNFlags, p_subMo, 60);
+	if (p_cmdType == getCliNameByType(SET_CLI_CMD)) {				//Have the argument syntax registered instead
+		strcatTruncMaxLen(commandNFlags, " {value}", 60);
+	}
+	if (p_cmdType == getCliNameByType(HELP_CLI_CMD))				//Have the argument syntax registered instead
+		strcatTruncMaxLen(commandNFlags, " [{command} [{sub-MO}]]", 60);
+	strcatTruncMaxLen(commandNFlags, " ", 60);
+	strcatTruncMaxLen(commandNFlags, p_flags, 60);
+	char mo[16];
+	strcpyTruncMaxLen(mo, p_mo, 15);
+	if (!strcmp(p_mo, COMMON_MO_NAME) && !p_all) {
+		strcatTruncMaxLen(mo, "-", 15);
+		strcatTruncMaxLen(mo, moType, 15);
+	}
+	if (p_showHelp) {
+		char help[61];
+		strcpyTruncMaxLen(help, p_helpStr, 60);
+		printCli("| %*s | %*s | %*s |", -60, commandNFlags, -15, mo, -60, help);
+	}
+	else
+		printCli("| %*s | %*s |", -60, commandNFlags, -15, mo);
 }
 
 void globalCli::onCliReboot(cmd* p_cmd, cliCore* p_cliContext,
@@ -472,7 +627,7 @@ void globalCli::onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,
 		Log.VERBOSE("globalCli::onCliStartCpu: Bad number of arguments" CR);
 		return;
 	}
-	if ((p_cmdTable->commandFlags->isPresent("stats"))) {
+	if (p_cmdTable->commandFlags->isPresent("stats")) {
 		if (cpu::getPm()) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "CPU statistics collection \
 												is already active");
@@ -533,7 +688,6 @@ void globalCli::onCliStopCpu(cmd* p_cmd, cliCore* p_cliContext,
 void globalCli::onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,
 							cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
-	rc_t rc;
 	bool cmdHandled = false;
 	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -552,8 +706,10 @@ void globalCli::onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	if ((p_cmdTable->commandFlags->isPresent("tasks"))) {
-		char* taskShowHeadingStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM)) char[200];
-		char* taskShowStr = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM)) char[10000];
+		char* taskShowHeadingStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+		char* taskShowStr = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
+		Command cmd(p_cmd);
+		rc_t rc;
 		if (rc = cpu::getTaskInfoAllTxt(taskShowStr, taskShowHeadingStr)) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "Could not provide task information, \
 												return code %i", rc);
@@ -569,8 +725,9 @@ void globalCli::onCliGetCpu(cmd* p_cmd, cliCore* p_cliContext,
 		}
 	}
 	if ((p_cmdTable->commandFlags->isPresent("task"))) {
-		char* taskShowHeadingStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM)) char[200];
-		char* taskShowStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM)) char[200];
+		char* taskShowHeadingStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+		char* taskShowStr = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+		rc_t rc;
 		if (rc = cpu::getTaskInfoAllByTaskTxt(cmd.getArgument(1).getValue().c_str(),
 											  taskShowStr, taskShowHeadingStr)) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "Could not provide task information, \
@@ -625,6 +782,7 @@ void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
 							cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
 	heapInfo_t memInfo;
+	bool internal = false;
 	bool cmdHandled = false;
 	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
@@ -638,26 +796,27 @@ void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
 					p_cmdTable->commandFlags->getParsErrs());
 		return;
 	}
-	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {							//WE NEED TO WORK ON THIS - SHOULD BE THE SAME AS show
-		char* memShowHeadingStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
-		char* memShowStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
-		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
+	if (!p_cmdTable->commandFlags->getAllPresent()->size() ||
+		(p_cmdTable->commandFlags->getAllPresent()->size() == 1 && p_cmdTable->commandFlags->isPresent("internal"))) {							//WE NEED TO WORK ON THIS - SHOULD BE THE SAME AS show
+		char* memShowHeadingStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[300];
+		char* memShowStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[300];
+		if (p_cmdTable->commandFlags->getAllPresent()->size() == 1 && p_cmdTable->commandFlags->isPresent("internal")) {
+			internal = true;
+			printCli("Internal memory statistics");
+		}
+		else
+			printCli("Total memory statistics");
+		cpu::getHeapMemTrendTxt(memShowStr, memShowHeadingStr, internal);
 		printCli("%s\r\n%s", memShowHeadingStr, memShowStr);
 		delete memShowHeadingStr;
 		delete memShowStr;
 		acceptedCliCommand(CLI_TERM_QUIET);
 		return;
 	}
-	if ((p_cmdTable->commandFlags->isPresent("allocation")) &&
-		(p_cmdTable->commandFlags->isPresent("free"))) {
-		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Cannot allocate and \
-							  free memory at the same time");
-		Log.WARN("globalCli::onCliGetMem: Cannot allocate and \
-				  free memory at the same time" CR);
-		return;
-	}
-	cpu::getHeapMemInfoAll(&memInfo);
-	if (p_cmdTable->commandFlags->isPresent("total")){
+	if (p_cmdTable->commandFlags->isPresent("internal"))
+		internal = true;
+	cpu::getHeapMemInfo(&memInfo, internal);
+	if (p_cmdTable->commandFlags->isPresent("total")) {
 		printCli("Total amount of memory: %i", memInfo.totalSize);
 		cmdHandled = true;
 	}
@@ -674,94 +833,69 @@ void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
 		cmdHandled = true;
 	}
 	if (p_cmdTable->commandFlags->isPresent("average")) {
-		if (atoi(p_cmdTable->commandFlags->isPresent("average")->getValue()) >
-			CPU_HISTORY_SIZE){
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, 
-								  "Could not provide average memory usage, given period \
-								   exceeds the maximum %i seconds",
-								  CPU_HISTORY_SIZE);
-			Log.VERBOSE("globalCli::onCliGetMem: Could not provide average memory usage, \
-						 given period exceeds the maximum %i seconds" CR, 
-						CPU_HISTORY_SIZE);
+		if (atoi(p_cmdTable->commandFlags->isPresent("average")->getValue()) >=
+			CPU_HISTORY_SIZE) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Could not provide average memory usage, given period " \
+				"exceeds the maximum of %i seconds",
+				CPU_HISTORY_SIZE - 1);
+			Log.VERBOSE("globalCli::onCliGetMem: Could not provide average memory usage, " \
+						"given period exceeds the maximum of %i seconds" CR,
+						CPU_HISTORY_SIZE - 1);
+			return;
+		}
+		else if (!cpu::getPm()) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Could not provide average memory usage, performance monitoring not active, " \
+				"use \"start cpu -stats\"");
+			Log.VERBOSE("Could not provide average memory usage, performance monitoring not active" CR);
 			return;
 		}
 		else{
-			printCli("Average memory usage over a period of %i seconds: %i", 
-					atoi(p_cmdTable->commandFlags->isPresent("average")->getValue()),
-						memInfo.totalSize - cpu::getAverageMemTime(
-							atoi(p_cmdTable->commandFlags->isPresent("average")->
-								getValue())));
+			printCli("Average memory usage over a period of %i seconds: %i (out of: %i total)",
+				atoi(p_cmdTable->commandFlags->isPresent("average")->getValue()),
+				memInfo.totalSize - cpu::getAverageMemFreeTime(
+					atoi(p_cmdTable->commandFlags->isPresent("average")->
+						getValue()), internal), memInfo.totalSize);
 			cmdHandled = true;
 		}
 	}
 	if (p_cmdTable->commandFlags->isPresent("trend")) {
-		if (atoi(p_cmdTable->commandFlags->isPresent("trend")->getValue()) >
-			CPU_HISTORY_SIZE){
+		if (atoi(p_cmdTable->commandFlags->isPresent("trend")->getValue()) >=
+			CPU_HISTORY_SIZE) {
 			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
-				"Could not provide memory usage trend, given period exceeds \
-				 the maximum  %i seconds", CPU_HISTORY_SIZE);
-			Log.VERBOSE("globalCli::onCliGetMem: Could not provide memory usage trend, \
-						 given period exceeds the maximum %i seconds" CR,
-						CPU_HISTORY_SIZE);
+				"Could not provide memory usage trend, given period exceeds " \
+				"the maximum %i seconds", CPU_HISTORY_SIZE - 1);
+			Log.VERBOSE("globalCli::onCliGetMem: Could not provide memory usage trend, " \
+						"given period exceeds the maximum of %i seconds" CR,
+						CPU_HISTORY_SIZE - 1);
+			return;
+		}
+		else if (!cpu::getPm()) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Could not provide memory trend usage, performance monitoring not active, " \
+				"use \"start cpu -stats\"");
+			Log.VERBOSE("Could not provide memory trend usage, performance monitoring not active" CR);
 			return;
 		}
 		else {
-			printCli("Memory usage trend over period %i seconds: %i",
-				atoi(p_cmdTable->commandFlags->isPresent("trend")->getValue()),
-				cpu::getTrendMemTime(atoi(p_cmdTable->commandFlags->
-					isPresent("trend")->getValue())));
+			printCli("Memory usage trend over a period of %i seconds: %i",
+					atoi(p_cmdTable->commandFlags->isPresent("trend")->getValue()),
+				cpu::getTrendMemFreeTime(0, internal) - cpu::getTrendMemFreeTime(atoi(p_cmdTable->commandFlags->
+					isPresent("trend")->getValue()), internal));
 			cmdHandled = true;
 		}
 	}
 	if (p_cmdTable->commandFlags->isPresent("maxblock")) {
-		printCli("Max allocatable block-size is: %i", cpu::getMaxAllocMemBlockSize());
+		printCli("Max allocatable block-size is: %i", cpu::getMaxAllocMemBlockSize(internal));
 		cmdHandled = true;
-	}
-	if (p_cmdTable->commandFlags->isPresent("allocation")) {
-		if (testBuff) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Test buffer already allocated");
-			Log.VERBOSE("globalCli::onCliGetMem: Test buffer already allocated" CR);
-			return;
-		}
-		else {
-			testBuff = new (heap_caps_malloc(sizeof(char) * atoi(p_cmdTable->commandFlags->isPresent("allocation")->
-				getValue()), MALLOC_CAP_SPIRAM)) char[atoi(p_cmdTable->commandFlags->isPresent("allocation")->
-				getValue())];
-			if (!testBuff) {
-				notAcceptedCliCommand(CLI_GEN_ERR, "Failed to allocate %i bytes",
-					atoi(p_cmdTable->commandFlags->isPresent("allocation")->
-						getValue()));
-				Log.VERBOSE("globalCli::onCliGetMem: Failed to allocate %i bytes" CR,
-					atoi(p_cmdTable->commandFlags->isPresent("allocation")->
-						getValue()));
-				return;
-			}
-			else {
-				printCli("Successfully allocated %i bytes",
-					atoi(p_cmdTable->commandFlags->isPresent("allocation")->
-						getValue()));
-				cmdHandled = true;
-			}
-		}
-	}
-	if (p_cmdTable->commandFlags->isPresent("free")) {
-		if (!testBuff) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Test buffer not allocated");
-			Log.VERBOSE("globalCli::onCliGetMem: Test buffer not allocated" CR);
-			return;
-		}
-		else {
-			delete testBuff;
-			testBuff = NULL;
-			printCli("Successfully freed test buffer");
-			cmdHandled = true;
-		}
 	}
 	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_QUIET);
 	else
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
+
 void globalCli::onCliShowMem(cmd* p_cmd, cliCore* p_cliContext,
 	cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -771,13 +905,123 @@ void globalCli::onCliShowMem(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	else {
-		char* memShowHeadingStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
-		char* memShowStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM)) char[300];
-		cpu::getHeapMemTrendAllTxt(memShowStr, memShowHeadingStr);
+		char* memShowHeadingStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[300];
+		char* memShowStr = new (heap_caps_malloc(sizeof(char[300]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[300];
+		cpu::getHeapMemTrendTxt(memShowStr, memShowHeadingStr);
+		printCli("Total memory statistics");
 		printCli("%s\r\n%s", memShowHeadingStr, memShowStr);
 		delete memShowHeadingStr;
 		delete memShowStr;
 		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+}
+
+void globalCli::onCliStartMem(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool internalAlloc = false;
+	bool externalAlloc = false;
+	bool defaultAlloc = false;
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliAddMem: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliAddMem: Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("allocate")) {
+		if (p_cmdTable->commandFlags->getAllPresent()->size() > 2) {
+			char flags[100];
+			p_cmdTable->commandFlags->getAllPresentStr(flags);
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed, incompatible permutation of flags: %s" CR, flags);
+			Log.WARN("globalCli::onCliAddMem: Flag parsing failed, incompatible permutation of flags: %s" CR, flags);
+			return;
+		}
+		if (testBuff) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Test buffer already allocated");
+			Log.VERBOSE("globalCli::onCliAddMem: Test buffer already allocated" CR);
+			return;
+		}
+		if (p_cmdTable->commandFlags->isPresent("internal"))
+			internalAlloc = true;
+		else if (p_cmdTable->commandFlags->isPresent("external"))
+			externalAlloc = true;
+		else if (p_cmdTable->commandFlags->isPresent("default"))
+			defaultAlloc = true;
+		else
+			defaultAlloc = true;
+		if (internalAlloc)
+			testBuff = (char*)heap_caps_malloc(atoi(p_cmdTable->commandFlags->isPresent("allocate")->getValue()), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+		else if (externalAlloc)
+			testBuff = (char*)heap_caps_malloc(atoi(p_cmdTable->commandFlags->isPresent("allocate")->getValue()), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+		else if(defaultAlloc)
+			testBuff = (char*)heap_caps_malloc(atoi(p_cmdTable->commandFlags->isPresent("allocate")->getValue()), MALLOC_CAP_DEFAULT | MALLOC_CAP_8BIT);
+		if (!testBuff) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Failed to allocate %i bytes",
+				atoi(p_cmdTable->commandFlags->isPresent("allocate")->getValue()));
+			Log.VERBOSE("globalCli::onCliGetMem: Failed to allocate %i bytes" CR,
+				atoi(p_cmdTable->commandFlags->isPresent("allocate")->getValue()));
+			return;
+		}
+		else {
+			printCli("Successfully allocated %i bytes to \"testBuffer\"",
+				atoi(p_cmdTable->commandFlags->isPresent("allocate")->getValue()));
+			cmdHandled = true;
+		}
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+}
+
+void globalCli::onCliStopMem(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		Log.WARN("globalCli::onCliDelMem: Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		Log.VERBOSE("globalCli::onCliAddMem: Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("allocate")) {
+		if (p_cmdTable->commandFlags->getAllPresent()->size() > 1) {
+			char flags[100];
+			p_cmdTable->commandFlags->getAllPresentStr(flags);
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Flag parsing failed, incompatible permutation of flags: %s", flags);
+			Log.WARN("globalCli::onCliDelMem: Flag parsing failed, incompatible permutation of flags: %s" CR, flags);
+			return;
+		}
+		else {
+			if (!testBuff) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "\"testBuffer\" not previously allocated");
+				Log.VERBOSE("globalCli::onCliGetMem: \"testBuffer\" not previously allocated" CR);
+				return;
+			}
+			else {
+				delete testBuff;
+				testBuff = NULL;
+				printCli("Successfully freed allocation of \"testBuffer\"");
+				cmdHandled = true;
+			}
+		}
+		if (cmdHandled)
+			acceptedCliCommand(CLI_TERM_QUIET);
+		else
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 	}
 }
 
@@ -1290,13 +1534,11 @@ void globalCli::onCliGetMqtt(cmd* p_cmd, cliCore* p_cliContext,
 		char topic[100];
 		char cbs[50];
 		uint16_t i = 0;
-		Serial.printf("Starting itteration 0" CR);
 		while (mqtt::getSubs(i++, topic, 100, cbs, 50)) {
 			sprintf(cbInfo, "| %*s | %*s |",
 				-100, topic,
 				-50, cbs);
 			printCli("%s", cbInfo);
-			Serial.printf("Starting itteration %i" CR, i);
 		}
 		cmdHandled = true;
 	}
@@ -2274,19 +2516,18 @@ void globalCli::onCliGetOpState(cmd* p_cmd) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		return;
 	}
-	if (!getOpStateStr(opStateStr)){
-		printCli("OP-state: %s", opStateStr);
-		acceptedCliCommand(CLI_TERM_QUIET);
+	rc_t rc;
+	if (rc = getOpStateStr(opStateStr)) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR? "opStateStr not implemented for context %s-%i" : "Unknown error: could not get Opstate for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
 	}
-	else {
-		notAcceptedCliCommand(CLI_GEN_ERR, "get opstate failed");
-	}
+	printCli("OP-state: %s", opStateStr);
+	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
 rc_t globalCli::getOpStateStr(char* p_opStateStr){
-	notAcceptedCliCommand(CLI_GEN_ERR, "getOpstate not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
-	return NULL;
+	return RC_NOTIMPLEMENTED_ERR;
 }
 
 void globalCli::onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,
@@ -2296,18 +2537,22 @@ void globalCli::onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,
 
 void globalCli::onCliGetSysName(cmd* p_cmd) {
 	Command cmd(p_cmd);
-	if (cmd.getArgument(1))
+	if (cmd.getArgument(1)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		return;
+	}
 	char sysName[50];
-	getSystemName(sysName);
+	rc_t rc;
+	if (rc = getSystemName(sysName)) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR? "getSystemName not implemented for context %s-%i" : rc == RC_NOT_CONFIGURED_ERR? "Could not get Systemname for context %s-%i, MO not configured" : "Unknown error: could not get Systemname for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
+	}
 	printCli("System name: %s", sysName);
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
 rc_t globalCli::getSystemName(char* p_systemName, bool p_force) {
-	notAcceptedCliCommand(CLI_GEN_ERR, 
-						  "getSystemName not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
 	return RC_NOTIMPLEMENTED_ERR;
 }
 
@@ -2321,14 +2566,16 @@ void globalCli::onCliSetSysName(cmd* p_cmd) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		return;
 	}
-	setSystemName(cmd.getArgument(1).getValue().c_str());
+	rc_t rc;
+	if (rc = setSystemName(cmd.getArgument(1).getValue().c_str())) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR? "setSystemName not implemented for context %s-%i" : rc == RC_DEBUG_NOT_SET_ERR? "Systemname could not be set for context %s-%i as debug is not set for this context - enable it by typing \"set debug\"" : "Unknown error: could not set Systemname for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
+	}
 	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
 rc_t globalCli::setSystemName(const char* p_systemName) {
-	notAcceptedCliCommand(CLI_GEN_ERR,
-						  "setSystemName not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
 	return RC_NOTIMPLEMENTED_ERR;
 }
 
@@ -2344,14 +2591,18 @@ void globalCli::onCliGetUsrName(cmd* p_cmd) {
 		return;
 	}
 	char usrName[50];
-	getUsrName(usrName);
+	rc_t rc;
+	if (rc = getUsrName(usrName)) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR ? "getUsrName not implemented for context %s-%i" : rc == RC_NOT_CONFIGURED_ERR ? "Could not get Username for context %s-%i, MO not configured" : "Unknown error: could not get Username for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
+	}
 	printCli("User name: %s", usrName);
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-rc_t globalCli::getUsrName(const char* p_usrName, bool p_force) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "getUsrName not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
+rc_t globalCli::getUsrName(char* p_usrName, bool p_force) {
+	return RC_NOTIMPLEMENTED_ERR;
 }
 
 void globalCli::onCliSetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,
@@ -2365,13 +2616,17 @@ void globalCli::onCliSetUsrName(cmd* p_cmd) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		return;
 	}
-	setUsrName(cmd.getArgument(1).getValue().c_str());
+	rc_t rc;
+	if (rc = setUsrName(cmd.getArgument(1).getValue().c_str())) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR ? "setUsrName not implemented for context %s-%i" : rc == RC_DEBUG_NOT_SET_ERR ? "Username could not be set for context %s-%i as debug is not set for this context - enable it by typing \"set debug\"" : "Unknown error: could not set Username for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
+	}
 	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-rc_t globalCli::setUsrName(const char* p_usrName) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "setUsrName not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
+rc_t globalCli::setUsrName(const char* p_usrName, bool p_force) {
+	return RC_NOTIMPLEMENTED_ERR;
 }
 
 void globalCli::onCliGetDescHelper(cmd* p_cmd, cliCore* p_cliContext,
@@ -2386,14 +2641,18 @@ void globalCli::onCliGetDesc(cmd* p_cmd) {
 		return;
 	}
 	char description[50];
-	getDesc(description);
+	rc_t rc;
+	if (rc = getDesc(description)) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR ? "getDesc not implemented for context %s-%i" : rc == RC_NOT_CONFIGURED_ERR ? "Could not get Description for context %s-%i, MO not configured" : "Unknown error: could not get Description for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
+	}
 	printCli("Description: %s", description);
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
-rc_t globalCli::getDesc(const char* p_description, bool p_force) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "getDesc not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
+rc_t globalCli::getDesc(char* p_description, bool p_force) {
+	return RC_NOTIMPLEMENTED_ERR;
 }
 
 void globalCli::onCliSetDescHelper(cmd* p_cmd, cliCore* p_cliContext,
@@ -2407,13 +2666,17 @@ void globalCli::onCliSetDesc(cmd* p_cmd) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		return;
 	}
-	setDesc(cmd.getArgument(1).getValue().c_str());
+	rc_t rc;
+	if (rc = setDesc(cmd.getArgument(1).getValue().c_str())) {
+		notAcceptedCliCommand(CLI_GEN_ERR, rc == RC_NOTIMPLEMENTED_ERR ? "setDesc not implemented for context %s-%i" : rc == RC_DEBUG_NOT_SET_ERR ? "Description could not be set for context %s-%i as debug is not set for this context - enable it by typing \"set debug\"" : "Unknown error: could not set Description for context %s-%i",
+			getContextName(), getContextIndex());
+		return;
+	}
 	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-rc_t globalCli::setDesc(const char* p_description) {
-	notAcceptedCliCommand(CLI_GEN_ERR, "setDesc not implemented for context %s-%i",
-						  getContextName(), getContextIndex());
+rc_t globalCli::setDesc(const char* p_description, bool p_force) {
+	return RC_NOTIMPLEMENTED_ERR;
 }
 /*==============================================================================================================================================*/
 /* END Class cliCore                                                                                                                            */

@@ -47,6 +47,7 @@
 #include "panic.h"
 #include "rc.h"
 #include "config.h"
+#include "taskWrapper.h"
 class telnetCore;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */

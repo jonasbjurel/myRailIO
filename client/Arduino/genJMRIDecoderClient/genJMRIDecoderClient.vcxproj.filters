@@ -135,6 +135,9 @@
     <ClInclude Include="job.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="taskWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="networking.cpp">
@@ -231,6 +234,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="job.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="taskWrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

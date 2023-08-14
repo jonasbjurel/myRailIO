@@ -41,8 +41,7 @@ actLight::actLight(actBase* p_actBaseHandle, const char* p_type, char* p_subType
     sysName = actBaseHandle->getSystemName(true);
     satLibHandle = NULL;
     Log.INFO("actLight::actLight: Creating light extention object on actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
-    //if (!(actLightLock = xSemaphoreCreateMutex()));
-    if (!(actLightLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if (!(actLightLock = xSemaphoreCreateMutex()));
         panic("actLight::actLight: Could not create Lock objects - rebooting..." CR);
     actLightPos = ACTLIGHT_DEFAULT_FAILSAFE;
     orderedActLightPos = ACTLIGHT_DEFAULT_FAILSAFE;

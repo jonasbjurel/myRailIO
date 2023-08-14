@@ -36,7 +36,7 @@
 /* Methods: see time.h																															*/
 /* Data structures: see time.h																													*/
 /*==============================================================================================================================================*/
-ntpDescriptor_t ntpTime::ntpDescriptor;
+EXT_RAM_ATTR ntpDescriptor_t ntpTime::ntpDescriptor;
 
 void ntpTime::init(void) {
 	Log.TERSE("ntpTime::init: Initializing ntptime" CR);
@@ -120,7 +120,7 @@ rc_t ntpTime::addNtpServer(IPAddress p_ntpServerAddr, uint16_t p_port) {
 	}
 	sntp_setserver(i, &ntpHostAddr);
 	restart();
-	ntpDescriptor.ntpServerHosts->push_back(new ntpServerHost_t);
+	ntpDescriptor.ntpServerHosts->push_back(new (heap_caps_malloc(sizeof(ntpServerHost_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) ntpServerHost_t);
 	ntpDescriptor.ntpServerHosts->back()->index = i;
 	ntpDescriptor.ntpServerHosts->back()->ntpHostAddress = p_ntpServerAddr;
 	ntpDescriptor.ntpServerHosts->back()->ntpPort = p_port;
@@ -150,7 +150,7 @@ rc_t ntpTime::addNtpServer(const char* p_ntpServerName, uint16_t p_port) {
 	}
 	sntp_setservername(i, p_ntpServerName);
 	restart();
-	ntpDescriptor.ntpServerHosts->push_back(new ntpServerHost_t);
+	ntpDescriptor.ntpServerHosts->push_back(new (heap_caps_malloc(sizeof(ntpServerHost_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) ntpServerHost_t);
 	ntpDescriptor.ntpServerHosts->back()->index = i;
 	strcpy(ntpDescriptor.ntpServerHosts->back()->ntpHostName, p_ntpServerName);
 	ntpDescriptor.ntpServerHosts->back()->ntpPort = p_port;
@@ -378,7 +378,6 @@ rc_t ntpTime::setTimeOfDay(tm* p_tm, char* p_resultStr) {
 	Log.TERSE("ntpTime::setTimeOfDay: Setting time of day from tm" CR);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
-	Serial.printf("time OPStatus %x, %x" CR, ntpDescriptor.opState, NTP_CLIENT_DISABLED);
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		Log.WARN("ntpTime::setTimeOfDay: Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;

@@ -43,16 +43,16 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     linkScan = false;
     lgLinkScanDisabled = true;
     debug = false;
-    heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
     failsafeSet = false;
-    //if (!(lgLinkLock = xSemaphoreCreateMutex()))                       //Why do we have this
-    if (!(lgLinkLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    maxLatency = 0;
+    maxRuntime = 0;
+    overRuns = 0;
+    if (!(lgLinkLock = xSemaphoreCreateMutex()))
         panic("lgLink::lgLink: Could not create Lock objects - rebooting..." CR);
-    dirtyPixelLock = xSemaphoreCreateMutex();
-    if (dirtyPixelLock == NULL)
+    if (!(dirtyPixelLock = xSemaphoreCreateMutex()))
         panic("lgLink::satLink: Could not create \"dirtyPixelLock\" object - rebooting..." CR);
     Log.INFO("lgLink::lgLink: Creating stripled objects for lgLink Channel" CR, linkNo);
-    strip = new (heap_caps_malloc(sizeof(Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800)), MALLOC_CAP_SPIRAM)) Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
+    strip = new (heap_caps_malloc(sizeof(Adafruit_NeoPixel), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
     strip->begin();
     stripWritebuff = strip->getPixels();
     Log.INFO("lgLink::lgLink: stripled for lgLink Channel started" CR, linkNo);
@@ -65,10 +65,14 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     xmlconfig[XML_LGLINK_LINK] = NULL;
     xmlconfig[XML_LGLINK_ADMSTATE] = NULL;
     avgSamples = UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS;
-    latencyVect = new (heap_caps_malloc(sizeof(int64_t) * avgSamples, MALLOC_CAP_SPIRAM)) int64_t[avgSamples];
-    runtimeVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM)) uint32_t[avgSamples];
+    latencyVect = new (heap_caps_malloc(sizeof(int32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
+    runtimeVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
     if (latencyVect == NULL || runtimeVect == NULL)
         panic("lgLink::satLink: Could not create PM vectors - rebooting..." CR);
+    for (uint32_t i = 0; i < avgSamples; i++) {
+        latencyVect[i] = 0;
+        runtimeVect[i] = 0;
+    }
 }
 
 lgLink::~lgLink(void) {
@@ -113,7 +117,7 @@ rc_t lgLink::init(void) {
 
     Log.INFO("lgLink::init: Creating lighGrups for link channel %d" CR, linkNo);
     for (uint8_t lgAddress = 0; lgAddress < MAX_LGS; lgAddress++) {
-        lgs[lgAddress] = new (heap_caps_malloc(sizeof(lgBase(lgAddress, this)), MALLOC_CAP_SPIRAM)) lgBase(lgAddress, this);
+        lgs[lgAddress] = new (heap_caps_malloc(sizeof(lgBase), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lgBase(lgAddress, this);
         if (lgs[lgAddress] == NULL)
             panic("lgLink::init: Could not create light-group object - rebooting...");
         addSysStateChild(lgs[lgAddress]);
@@ -123,9 +127,9 @@ rc_t lgLink::init(void) {
     Log.VERBOSE("lgLink::init: lighGrups for link channel %d created" CR, linkNo);
 
     Log.INFO("lgLink::init: Creating flash objects for lgLink Channel" CR, linkNo);
-    FLASHNORMAL = new (heap_caps_malloc(sizeof(flash(FLASH_1_0_HZ, 50)), MALLOC_CAP_SPIRAM)) flash(FLASH_1_0_HZ, 50);
-    FLASHSLOW = new (heap_caps_malloc(sizeof(flash(FLASH_0_5_HZ, 50)), MALLOC_CAP_SPIRAM)) flash(FLASH_0_5_HZ, 50);
-    FLASHFAST = new (heap_caps_malloc(sizeof(flash(FLASH_1_5_HZ, 50)), MALLOC_CAP_SPIRAM)) flash(FLASH_1_5_HZ, 50);
+    FLASHNORMAL = new (heap_caps_malloc(sizeof(flash), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash(FLASH_1_0_HZ, 50);
+    FLASHSLOW = new (heap_caps_malloc(sizeof(flash), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash(FLASH_0_5_HZ, 50);
+    FLASHFAST = new (heap_caps_malloc(sizeof(flash), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash(FLASH_1_5_HZ, 50);
     if (FLASHNORMAL == NULL || FLASHSLOW == NULL || FLASHFAST == NULL) {
         panic("lgLink::init: Could not create flash objects - rebooting..." CR);
     }
@@ -157,13 +161,13 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         panic("lgLink::onConfig: System name was not provided - rebooting..." CR);
     if (!xmlconfig[XML_LGLINK_USRNAME]){
         Log.WARN("lgLink::onConfig: User name was not provided - using \"%s-UserName\"" CR);
-        xmlconfig[XML_LGLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10), MALLOC_CAP_SPIRAM)) char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10];
+        xmlconfig[XML_LGLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10];
         const char* usrName[2] = { xmlconfig[XML_LGLINK_SYSNAME], "-" };
         strcpy(xmlconfig[XML_LGLINK_USRNAME], "-");
     }
     if (!xmlconfig[XML_LGLINK_DESC]){
         Log.WARN("lgLink::onConfig: Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_LGLINK_DESC] = new (heap_caps_malloc(sizeof(char) * 2, MALLOC_CAP_SPIRAM)) char[2];
+        xmlconfig[XML_LGLINK_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[2];
         strcpy(xmlconfig[XML_LGLINK_DESC], "-");
     }
     if (!xmlconfig[XML_LGLINK_LINK])
@@ -194,7 +198,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
 
     //CONFIFIGURING LIGHTGROUP ASPECTS
     Log.INFO("lgLink::onConfig: Creating and configuring signal mast aspect description object" CR);
-    signalMastAspectsObject = new (heap_caps_malloc(sizeof(signalMastAspects(this)), MALLOC_CAP_SPIRAM)) signalMastAspects(this);
+    signalMastAspectsObject = new (heap_caps_malloc(sizeof(signalMastAspects), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) signalMastAspects(this);
     if (signalMastAspectsObject == NULL)
         panic("lgLink:onConfig: Could not start signalMastAspect object - rebooting..." CR);
     if (!(p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc"))
@@ -283,16 +287,14 @@ void lgLink::up(void) {
     char taskName[30];
     sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
     linkScan = true;
-    rc = xTaskCreatePinnedToCore(
-        updateStripHelper,                                  // Task function
-        CPU_UPDATE_STRIP_TASKNAME,                          // Task function name reference
-        CPU_UPDATE_STRIP_STACKSIZE_1K * 1024,               // Stack size
-        this,                                               // Parameter passing
-        CPU_UPDATE_STRIP_PRIO,                              // Priority 0-24, higher is more
-        NULL,                                               // Task handle
-        CPU_UPDATE_STRIP_CORE[linkNo % 2]) ;                 // Core [CORE_0 | CORE_1]
-    if (rc != pdPASS)
-        panic("lgLink::up: Could not start lglink scanning, return code %i- rebooting..." CR, rc);
+    if (!eTaskCreate(
+            updateStripHelper,                                  // Task function
+            CPU_UPDATE_STRIP_TASKNAME,                          // Task function name reference
+            CPU_UPDATE_STRIP_STACKSIZE_1K * 1024,               // Stack size
+            this,                                               // Parameter passing
+            CPU_UPDATE_STRIP_PRIO,                              // Priority 0-24, higher is more
+            CPU_UPDATE_STRIP_SETUP_STACK_ATTR))                 // Task Stack attribute
+        panic("lgLink::up: Could not start lglink scanning - rebooting..." CR);
 }
 
 void lgLink::down(void) {
@@ -516,7 +518,7 @@ rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wanted
         }
         if (!alreadyDirty) {
             if (p_wantedValueBuff[i] != stripWritebuff[p_seqOffset + i]) {
-                dirtyPixel_t* dirtyPixel = new (heap_caps_malloc(sizeof(dirtyPixel_t), MALLOC_CAP_SPIRAM)) dirtyPixel_t;
+                dirtyPixel_t* dirtyPixel = new (heap_caps_malloc(sizeof(dirtyPixel_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) dirtyPixel_t;
                 if (!dirtyPixel)
                     panic("lgLink::updateLg: Could not allocate an dirtyPixel object - rebooting..." CR);
                 dirtyPixel->index = p_seqOffset + i;

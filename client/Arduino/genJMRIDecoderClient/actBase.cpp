@@ -148,15 +148,15 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     //    Log.INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
     if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
             Log.INFO("actBase::onConfig: actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR);
-            extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE])), MALLOC_CAP_SPIRAM)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+            extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
         }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "LIGHT")) {
         Log.INFO("actBase::onConfig: actuator type is light - programing act-stem object by creating an lightAct extention class object" CR);
-        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE])), MALLOC_CAP_SPIRAM)) actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actLight), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "MEMORY")) {
         Log.INFO("actBase::onConfig: actuator type is memory - programing act-stem object by creating an memAct extention class object" CR);
-        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE])), MALLOC_CAP_SPIRAM)) actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actMem), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else
         panic("actBase::onConfig: actuator type not supported");

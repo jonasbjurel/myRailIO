@@ -34,9 +34,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "rc.h"
 #include <QList.h>
 #include <ArduinoLog.h>
+#include "rc.h"
+#include "panic.h"
 #include "config.h"
 #include "logHelpers.h"
 /*==============================================================================================================================================*/
@@ -65,9 +66,9 @@ typedef struct taskPmDesc_t {                                                   
 };
 
 typedef struct heapInfo_t {                                                             //Heap memory statistics 
-    int totalSize;                                                                      //Currently used Heap memort (B)
-    int freeSize;                                                                       //Currently free heap memory(B)
-    int highWatermark;                                                                  //All time lowest free Heap memory (B)
+    uint totalSize;                                                                      //Currently used Heap memort (B)
+    uint freeSize;                                                                       //Currently free heap memory(B)
+    uint highWatermark;                                                                  //All time lowest free Heap memory (B)
 };
 
 /* Methods                                                                                                                                      */
@@ -83,13 +84,14 @@ public:
     static rc_t getTaskInfoAllTxt(char* p_taskInfoTxt, char* p_taskInfoHeadingTxt);     //Get summary status and statistics of all running tasks - NOT YET SUPPORTED
     static rc_t getTaskInfoAllByTaskTxt(const char* p_task, char* p_taskInfoTxt,        //Get statistics for a particular task given by p_task
                                         char* p_taskInfoHeadingTxt);
-    static rc_t getHeapMemInfoAll(heapInfo_t* p_heapInfo);                              //Get Heap memory information
-    static uint getHeapMemTime(uint16_t p_time_s);                                      //Get free Heap memory (B) p_time_s seconds back in time
-    static uint getAverageMemTime(uint16_t p_time_s);                                   //Get average free Heap memory (B) over p_time_s seconds
-    static uint getTrendMemTime(uint16_t p_time_s);                                     //Get Heap memory trend (B) over p_time_s seconds, posetive value (B) indicates 
+    static rc_t getHeapMemInfo(heapInfo_t* p_heapInfo, bool p_internal = false);        //Get Heap memory information
+    static uint getHeapMemFreeTime(uint16_t p_time_s, bool p_internal = false);         //Get free Heap memory (B) p_time_s seconds back in time
+    static uint getAverageMemFreeTime(uint16_t p_time_s, bool p_internal = false);      //Get average free Heap memory (B) over p_time_s seconds
+    static uint getTrendMemFreeTime(uint16_t p_time_s, bool p_internal = false);        //Get Heap memory trend (B) over p_time_s seconds, posetive value (B) indicates 
                                                                                         //   increased mem usage
-    static uint getHeapMemTrendAllTxt(char* p_heapMemTxt, char* p_heapHeadingTxt);      //Get a pre-defined Heap memory trend report
-    static uint getMaxAllocMemBlockSize(void);                                          //Get the maximum memory block size that can be allocated from the Heap
+    static uint getHeapMemTrendTxt(char* p_heapMemTxt, char* p_heapHeadingTxt,          //Get a pre-defined Heap memory trend report
+                                   bool p_internal = false);
+    static uint getMaxAllocMemBlockSize(bool p_internal = false);                       //Get the maximum memory block size that can be allocated from the Heap
 
 
     //Data structures
@@ -103,10 +105,11 @@ private:
     static SemaphoreHandle_t cpuPMLock;                                                 //Performance monitoring lock
     static bool cpuPmEnable;                                                            //Contains performance collection status
     static bool cpuPmLogging;                                                           //Contains actual performance collection task running status
-    static uint8_t secondCount;                                                         //Performance monitoring collection histogram second counter
-    static uint busyTicksHistory[CPU_HISTORY_SIZE];                                     //CPU Busy ticks histogram
-    static uint idleTicksHistory[CPU_HISTORY_SIZE];                                     //CPU Idle ticks histogram
-    static uint heapHistory[CPU_HISTORY_SIZE];                                          //Free Heap memory (B) histogram
+    static uint16_t secondCount;                                                         //Performance monitoring collection histogram second counter
+    static uint* busyTicksHistory;                                                      //CPU Busy ticks histogram
+    static uint* idleTicksHistory;                                                      //CPU Idle ticks histogram
+    static uint* totHeapFreeHistory;                                                    //Free totalHeap memory(B) histogram
+    static uint* intHeapFreeHistory;                                                    //Free internal memory(B) histogram
     static uint maxCpuLoad;                                                             //Maximum overall CPU load (%)
     static QList<const char*> taskNameList;                                             //List of monitored tasks names
     static QList<taskPmDesc_t*> taskPmDescList;                                         //List of task descriptors

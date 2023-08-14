@@ -40,7 +40,7 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
     bool found = false;
     bool foundTags[32] = { false };
     char* tagsStr;
-    tagsStr = new char[1024];
+    tagsStr = new (heap_caps_malloc(sizeof(char[1024]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[1024];
     tagsStr[0] = '\0';
     for (uint8_t j = 0; j < len; j++) {
         if (tags[j]) {
@@ -67,7 +67,7 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
                         foundTags[i] = true;
                         if (xmlTxtBuff[i])
                             delete xmlTxtBuff[i];
-                        xmlTxtBuff[i] = new char[strlen(xmlNode->GetText()) + 1];
+                        xmlTxtBuff[i] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlNode->GetText()) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlNode->GetText()) + 1];
                         strcpy(xmlTxtBuff[i], xmlNode->GetText());
                     }
                     else {

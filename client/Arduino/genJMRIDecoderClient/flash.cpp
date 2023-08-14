@@ -40,7 +40,7 @@ uint8_t flash::flashInstanses = 0;
 
 flash::flash(float p_freq, uint8_t p_duty) {
     flashInstanse = flashInstanses++;
-    flashData = new flash_t;
+    flashData = new (heap_caps_malloc(sizeof(flash_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash_t;
     if (p_duty > 99) {
         p_duty = 99;
     }
@@ -53,17 +53,17 @@ flash::flash(float p_freq, uint8_t p_duty) {
     overRuns = 0;
     maxLatency = 0;
     maxAvgSamples = p_freq * FLASH_LATENCY_AVG_TIME;
-    latencyVect = new uint32_t[maxAvgSamples];
+    latencyVect = new (heap_caps_malloc(sizeof(uint32_t) * maxAvgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[maxAvgSamples];
     char flashTaskName[30];
     sprintf(flashTaskName, CPU_SATLINK_PM_TASKNAME, flashInstanse);
-    xTaskCreatePinnedToCore(
+    if (!eTaskCreate(
         flashLoopStartHelper,                   // Task function
         flashTaskName,                          // Task function name reference
         FLASH_LOOP_STACKSIZE_1K * 1024,         // Stack size
         this,                                   // Parameter passing
         FLASH_LOOP_PRIO,                        // Priority 0-24, higher is more
-        NULL,                                   // Task handle
-        FLASH_LOOP_CORE[flashInstanse % 2]);    // Core [CORE_0 | CORE_1]
+        FLASH_LOOP_STACK_ATTR))                 // Task stack attribute
+        panic("flash::flash: Could not start flash task - rebooting..." CR);
 }
 
 flash::~flash(void) {
@@ -75,7 +75,7 @@ flash::~flash(void) {
 
 rc_t flash::subscribe(flashCallback_t p_callback, void* p_args) {
     Log.INFO("flash::subcribe: Subscribing to flash object %d with callback %d" CR, this, p_callback);
-    callbackSub_t* newCallbackSub = new callbackSub_t;
+    callbackSub_t* newCallbackSub = new (heap_caps_malloc(sizeof(callbackSub_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) callbackSub_t;
     xSemaphoreTake(flashLock, portMAX_DELAY);
     flashData->callbackSubs.push_back(newCallbackSub);
     flashData->callbackSubs.back()->callback = p_callback;
@@ -174,7 +174,7 @@ void flash::clearOverRuns(void) {
 }
 
 uint32_t flash::getMeanLatency(void) {
-    uint32_t* tmpLatencyVect = new uint32_t[maxAvgSamples];
+    uint32_t* tmpLatencyVect = new (heap_caps_malloc(sizeof(uint32_t) * maxAvgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[maxAvgSamples];
     uint32_t accLatency;
     uint32_t meanLatency;
     xSemaphoreTake(flashLock, portMAX_DELAY);

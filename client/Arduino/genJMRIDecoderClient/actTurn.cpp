@@ -54,8 +54,7 @@ actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) 
         turnType = TURN_TYPE_SOLENOID;
         throwtime = TURN_SOLENOID_DEFAULT_THROWTIME_MS;
     }
-    //if(!(actTurnLock = xSemaphoreCreateMutex()))
-    if (!(actTurnLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if(!(actTurnLock = xSemaphoreCreateMutex()))
         panic("actTurn::actTurn: Could not create Lock objects - rebooting...");
     turnOutPos = TURN_DEFAULT_FAILSAFE;
     orderedTurnOutPos = TURN_DEFAULT_FAILSAFE;

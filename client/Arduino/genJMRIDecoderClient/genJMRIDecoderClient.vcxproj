@@ -162,6 +162,7 @@
     <ClInclude Include="fileSys.h" />
     <ClInclude Include="genJMRIDecoderClient.h" />
     <ClInclude Include="globalCli.h" />
+    <ClInclude Include="taskWrapper.h" />
     <ClInclude Include="job.h" />
     <ClInclude Include="lgBase.h" />
     <ClInclude Include="lgLink.h" />
@@ -216,6 +217,7 @@
     <ClCompile Include="signalMastAspects.cpp" />
     <ClCompile Include="strHelpers.cpp" />
     <ClCompile Include="systemState.cpp" />
+    <ClCompile Include="taskWrapper.cpp" />
     <ClCompile Include="telnetCore.cpp" />
     <ClCompile Include="ntpTime.cpp" />
     <ClCompile Include="wdt.cpp" />

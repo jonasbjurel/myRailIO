@@ -50,6 +50,7 @@
 #include "xmlHelpers.h"
 #include "pinout.h"
 #include "esp32SysConfig.h"
+#include "taskWrapper.h"
 
 class decoder;
 class flash;
@@ -157,10 +158,10 @@ private:
     SemaphoreHandle_t dirtyPixelLock;
     wdt* lgLinkWdt;
     uint32_t overRuns;
-    int64_t maxLatency;
+    uint32_t maxLatency;
     uint32_t maxRuntime;
     uint16_t avgSamples;
-    int64_t* latencyVect;
+    uint32_t* latencyVect;
     uint32_t* runtimeVect;
     uint8_t pin;
     QList<dirtyPixel_t*> dirtyPixelList;

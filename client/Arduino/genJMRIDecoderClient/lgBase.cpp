@@ -49,8 +49,7 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLi
     prevSysState = OP_WORKING;
     systemState::setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
-    //if (!(lgBaseLock = xSemaphoreCreateMutex()))
-    if (!(lgBaseLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if (!(lgBaseLock = xSemaphoreCreateMutex()))
             panic("lgBase::lgBase: Could not create Lock objects - rebooting..." CR);
     xmlconfig[XML_LG_SYSNAME] = NULL;
     xmlconfig[XML_LG_USRNAME] = NULL;
@@ -132,13 +131,13 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         panic("lgBase::onConfig: System Name missing for lg-address %d, on lgLink %d - rebooting..." CR, lgAddress, lgLinkNo);
     if (!xmlconfig[XML_LG_USRNAME]){
         Log.WARN("lgBase::onConfig: User name was not provided - using \"%s-UserName\"" CR);
-        xmlconfig[XML_LG_USRNAME] = new (heap_caps_malloc(strlen(xmlconfig[XML_LG_SYSNAME]) + 10, MALLOC_CAP_SPIRAM)) char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
+        xmlconfig[XML_LG_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LG_SYSNAME]) + 10), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
         const char* usrName[2] = { xmlconfig[XML_LG_SYSNAME], "-" };
         strcpy(xmlconfig[XML_LG_USRNAME], "-");
     }
     if (!xmlconfig[XML_LG_DESC]) {
         Log.WARN("lgBase::onConfig: Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_LG_DESC] = new (heap_caps_malloc(2, MALLOC_CAP_SPIRAM)) char[2];
+        xmlconfig[XML_LG_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[2];
         strcpy(xmlconfig[XML_LG_DESC], "-");
     }
     if (!xmlconfig[XML_LG_LINKADDR])
@@ -178,7 +177,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     //CONFIFIGURING STEM OBJECT WITH PROPERTIES
     if (!strcmp((const char*)xmlconfig[XML_LG_TYPE], "SIGNAL MAST")) {
             Log.INFO("lgBase::onConfig: lg-type is Signal mast - programing act-stem object by creating an lgSignalMast extention class object" CR);
-            extentionLgClassObj = (void*) new (heap_caps_malloc(sizeof(lgSignalMast(this)), MALLOC_CAP_SPIRAM)) lgSignalMast(this);
+            extentionLgClassObj = (void*) new (heap_caps_malloc(sizeof(lgSignalMast), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lgSignalMast(this);
         }
     else
         panic("lgBase::onConfig: lg type not supported" CR);
@@ -466,6 +465,7 @@ rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
 rc_t lgBase::getShowing(char* p_showing, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         Log.ERROR("lgBase::getShowing: cannot get showing as lg is not configured" CR);
+        strcpy(p_showing, "-");
         return RC_NOT_CONFIGURED_ERR;
     }
     if(extentionLgClassObj){

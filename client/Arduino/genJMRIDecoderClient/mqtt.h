@@ -45,6 +45,7 @@
 #include "config.h"
 #include "mqttTopics.h"
 #include "wdt.h"
+#include "taskWrapper.h"
 //DEBUG
 #include "cpu.h"
 
@@ -156,7 +157,6 @@ private:
     static char* clientId;
     static uint8_t defaultQoS;
     static uint8_t keepAlive;
-    static TaskHandle_t mqttPingHandle;
     static bool opStateTopicSet;
     static char* opStateTopic;
     static char* upPayload;

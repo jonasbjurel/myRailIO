@@ -47,7 +47,7 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sat-%d", p_satAddr);
     setSysStateObjName(sysStateObjName);
-    if (!(satLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if (!(satLock = xSemaphoreCreateMutex()))
         panic("sat::sat: Could not create Lock objects - rebooting...");
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNDISCOVERED | OP_UNUSED);
@@ -94,7 +94,7 @@ rc_t sat::init(void) {
     Log.INFO("sat::init: CLI methods for satelite %d, on satLink %d registered" CR, satAddr, link);
     Log.INFO("sat::init: Creating actuators for satelite address %d on link %d" CR, satAddr, link);
     for (uint8_t actPort = 0; actPort < MAX_ACT; actPort++) {
-        acts[actPort] = new (heap_caps_malloc(sizeof(actBase(actPort, this)), MALLOC_CAP_SPIRAM)) actBase(actPort, this);
+        acts[actPort] = new (heap_caps_malloc(sizeof(actBase), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actBase(actPort, this);
         if (acts[actPort] == NULL)
             panic("sat::init: Could not create actuator object - rebooting...");
         addSysStateChild(acts[actPort]);
@@ -102,7 +102,7 @@ rc_t sat::init(void) {
     }
     Log.INFO("sat::init: Creating sensors for satelite address %d on link %d" CR, satAddr, link);
     for (uint8_t sensPort = 0; sensPort < MAX_SENS; sensPort++) {
-        senses[sensPort] = new (heap_caps_malloc(sizeof(senseBase(sensPort, this)), MALLOC_CAP_SPIRAM)) senseBase(sensPort, this);
+        senses[sensPort] = new (heap_caps_malloc(sizeof(senseBase), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) senseBase(sensPort, this);
         if (senses[sensPort] == NULL)
             panic("sat::init: Could not create sensor object - rebooting..." CR);
         addSysStateChild(senses[sensPort]);

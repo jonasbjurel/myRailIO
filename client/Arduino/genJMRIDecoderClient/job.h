@@ -36,6 +36,7 @@
 #include "rc.h"
 #include "panic.h"
 #include "config.h"
+#include "taskWrapper.h"
 
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -65,10 +66,9 @@ struct lapseDesc_t {
 };
 
 class job {
-
 public:
     //Public methods
-    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, uint8_t p_coreMap);
+    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio);
     ~job(void);
     void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio);
 
@@ -84,7 +84,6 @@ private:
     QList<lapseDesc_t*>* lapseDescList;
     SemaphoreHandle_t jobLock;
     SemaphoreHandle_t jobSleepSemaphore;
-    static uint16_t jobId;
 };
 
 /*==============================================================================================================================================*/

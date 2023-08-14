@@ -37,7 +37,7 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 
-wdtCbLists_t wdt::wdtCbLists;
+EXT_RAM_ATTR wdtCbLists_t wdt::wdtCbLists;
 
 wdt::wdt(uint16_t p_wdtTimeoutMs, const char* p_wdtDescription, uint8_t p_wdtAction) {
     wdtData = new wdt_t;
@@ -60,7 +60,7 @@ wdt::~wdt(void) {
 }
 
 void wdt::wdtRegLgFailsafe(wdtCb_t* p_wdtLgFailsafeCb, void* p_wdtCbParms) {
-    wdtCbParms_t* cbParms = new wdtCbParms_t;
+    wdtCbParms_t* cbParms = new (heap_caps_malloc(sizeof(wdtCbParms_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdtCbParms_t;
     cbParms->wdtCb = p_wdtLgFailsafeCb;
     cbParms->wdtCbHandle = p_wdtCbParms;
     wdtCbLists.lgsWdtCbs.push_back(cbParms);
@@ -76,7 +76,7 @@ void wdt::wdtUnRegLgFailsafe(wdtCb_t* p_wdtLgFailsafeCb) {
 }
 
 void wdt::wdtRegSensorFailsafe(wdtCb_t* p_wdtSensorFailsafeCb, void* p_wdtCbParms) {
-    wdtCbParms_t* cbParms = new wdtCbParms_t;
+    wdtCbParms_t* cbParms = new (heap_caps_malloc(sizeof(wdtCbParms_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdtCbParms_t;
     cbParms->wdtCb = p_wdtSensorFailsafeCb;
     cbParms->wdtCbHandle = p_wdtCbParms;
     wdtCbLists.sensorsWdtCbs.push_back(cbParms);
@@ -92,7 +92,7 @@ void wdt::wdtUnRegSensorFailsafe(wdtCb_t* p_wdtSensorFailsafeCb) {
 }
 
 void wdt::wdtRegActuatorFailsafe(wdtCb_t* p_wdtActuatorFailsafeCb, void* p_wdtCbParms) {
-    wdtCbParms_t* cbParms = new wdtCbParms_t;
+    wdtCbParms_t* cbParms = new (heap_caps_malloc(sizeof(wdtCbParms_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdtCbParms_t;
     cbParms->wdtCb = p_wdtActuatorFailsafeCb;
     cbParms->wdtCbHandle = p_wdtCbParms;
     wdtCbLists.actuatorsWdtCbs.push_back(cbParms);
@@ -108,7 +108,7 @@ void wdt::wdtUnRegActuatorFailsafe(wdtCb_t* p_wdtActuatorFailsafeCb) {
 }
 
 void wdt::wdtRegMqttDown(wdtCb_t* p_wdtMqttDownCb, void* p_wdtCbParms) {
-    wdtCbParms_t* cbParms = new wdtCbParms_t;
+    wdtCbParms_t* cbParms = new (heap_caps_malloc(sizeof(wdtCbParms_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdtCbParms_t;
     cbParms->wdtCb = p_wdtMqttDownCb;
     cbParms->wdtCbHandle = p_wdtCbParms;
     wdtCbLists.mqttDownWdtCbs.push_back(cbParms);

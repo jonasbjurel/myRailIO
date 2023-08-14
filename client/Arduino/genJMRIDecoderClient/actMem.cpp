@@ -39,8 +39,7 @@ actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     satAddr = actBaseHandle->satHandle->getAddr();
     satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
     sysName = actBaseHandle->getSystemName(true);
-    //if (!(actMemLock = xSemaphoreCreateMutex()))
-    if (!(actMemLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if (!(actMemLock = xSemaphoreCreateMutex()))
         panic("actMem::actMem: Could not create Lock objects - rebooting...");
     satLibHandle = NULL;
     actMemSolenoidPushPort = true;

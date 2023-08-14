@@ -45,8 +45,7 @@ satHandle = p_satHandle;
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sens-%d", p_sensPort);
     setSysStateObjName(sysStateObjName);
-    //if (!(sensLock = xSemaphoreCreateMutex()))
-    if (!(sensLock = xSemaphoreCreateMutexStatic((StaticQueue_t*)heap_caps_malloc(sizeof(StaticQueue_t), MALLOC_CAP_SPIRAM))))
+    if (!(sensLock = xSemaphoreCreateMutex()))
         panic("senseBase::senseBase: Could not create Lock objects - rebooting...");
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
@@ -145,7 +144,7 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
     //CONFIFIGURING SENSORS
     if (!strcmp((const char*)xmlconfig[XML_SENS_TYPE], "DIGITAL")) {
         Log.INFO("senseBase::onConfig: Sensor type is digital - programing sens-stem object by creating a senseDigital extention class object" CR);
-        extentionSensClassObj = (void*) new (heap_caps_malloc(sizeof(senseDigital(this)), MALLOC_CAP_SPIRAM)) senseDigital(this);
+        extentionSensClassObj = (void*) new (heap_caps_malloc(sizeof(senseDigital), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) senseDigital(this);
     }
     // else if (other sensor types) {...}
     else

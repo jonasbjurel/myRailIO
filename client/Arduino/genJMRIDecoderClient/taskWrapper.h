@@ -18,8 +18,8 @@
 /* END License                                                                                                                                  */
 /*==============================================================================================================================================*/
 
-#ifndef STRHLP_H
-#define STRHLP_H
+#ifndef TASKWRP_H
+#define TASKWRP_H
 
 
 
@@ -43,22 +43,12 @@
 
 
 /*==============================================================================================================================================*/
-/* Helper: strHelpers                                                                                                                           */
-/* Purpose: Provides helper functions for string handling                                                                                       */
+/* Helper: taskWrappers                                                                                                                         */
+/* Purpose: Provides helper functions for task handling																							*/
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-char* createNcpystr(const char* src, bool internal = false);
-//char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings);
-bool isUri(const char* p_uri);
-bool isIntNumberStr(const char* p_numberStr);
-bool isFloatNumberStr(const char* p_numberStr);
-char* trimSpace(char* p_s);
-const char* trimNlCr(char* p_str);
-void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen);
-void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen);
-
+TaskHandle_t eTaskCreate(TaskFunction_t pvTaskCode, const char* const pcName, uint32_t ulStackDepth, void* pvParameters, UBaseType_t uxPriority, bool internal = true);
 /*==============================================================================================================================================*/
-/* END strHelpers                                                                                                                               */
+/* END taskWrappers                                                                                                                               */
 /*==============================================================================================================================================*/
-
-#endif /*STRHLP_H*/
+#endif /*TASKWRP_H*/

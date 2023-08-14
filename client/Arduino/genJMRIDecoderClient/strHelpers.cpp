@@ -35,9 +35,13 @@
 /* Purpose: Provides helper functions for string handling                                                                                       */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-char* createNcpystr(const char* src) {
+char* createNcpystr(const char* src, bool internal) {
     int length = strlen(src);
-    char* dst = new char[length + 1];
+    char* dst;
+    if(internal)
+        dst = new(heap_caps_malloc(sizeof(char) * (length + 1), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) char[length + 1];
+    else
+        dst = new(heap_caps_malloc(sizeof(char) * (length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[length + 1];
     if (dst == NULL) {
         Log.ERROR("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
         ESP.restart();
@@ -117,6 +121,14 @@ char* trimSpace(char* p_s) {
     return p_s;
 }
 
+const char* trimNlCr(char* p_str) {
+    for (uint32_t i = 0; i < strlen(p_str); i++) {
+        if (*(p_str + i) == '\n' || *(p_str + i) == '\r')
+            *(p_str + i) = ' ';
+    }
+    return p_str;
+}
+
 void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen) {
     if (strlen(p_src) <= p_maxStrLen) {
         strcpy(p_dest, p_src);
@@ -125,6 +137,7 @@ void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen) {
         memcpy(p_dest, p_src, p_maxStrLen - 3);
         memcpy(p_dest + p_maxStrLen - 3, "...\0", 4);
     }
+    trimNlCr(p_dest);
 }
 
 void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen) {
@@ -146,6 +159,7 @@ void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen) {
             memcpy(p_src + p_maxStrLen - 3, "...\0", 4);
         }
     }
+    trimNlCr(p_src);
 }
 
 /*==============================================================================================================================================*/

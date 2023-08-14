@@ -36,45 +36,44 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-TaskHandle_t* mqtt::supervisionTaskHandle = NULL;
-systemState* mqtt::sysState = NULL;
-SemaphoreHandle_t mqtt::mqttLock = NULL;
-WiFiClient mqtt::espClient;
-PubSubClient* mqtt::mqttClient;
-uint32_t mqtt::overRuns = 0;
-uint32_t mqtt::maxLatency = 0;
-uint16_t mqtt::avgSamples = 0;
-uint32_t* mqtt::latencyVect = NULL;
-char* mqtt::decoderUri = NULL;
-char* mqtt::brokerUri = NULL;
-uint16_t mqtt::brokerPort = 0;
-char* mqtt::brokerUser = NULL;
-char* mqtt::brokerPass = NULL;
-char* mqtt::clientId = NULL;
-uint8_t mqtt::defaultQoS = 0;
-uint8_t mqtt::keepAlive = 0;
-TaskHandle_t mqtt::mqttPingHandle = NULL;
-bool mqtt::opStateTopicSet = false;
-char* mqtt::opStateTopic = NULL;
-char* mqtt::upPayload = NULL;
-char* mqtt::downPayload = NULL;
-char* mqtt::mqttPingUpstreamTopic = NULL;
-uint8_t mqtt::missedPings = 0;
-int mqtt::mqttStatus;
-uint8_t mqtt::qos = 0;
-bool mqtt::defaultRetain = false;
-float mqtt::pingPeriod = 0 ;
-bool mqtt::discovered = false;
-QList<mqttTopic_t*> mqtt::mqttTopics;
-mqttStatusCallback_t mqtt::statusCallback = NULL;
-void* mqtt::statusCallbackArgs = NULL;
-wdt* mqtt::mqttWdt = NULL;
-bool mqtt::supervision = false;
+EXT_RAM_ATTR TaskHandle_t* mqtt::supervisionTaskHandle = NULL;
+EXT_RAM_ATTR systemState* mqtt::sysState = NULL;
+EXT_RAM_ATTR SemaphoreHandle_t mqtt::mqttLock = NULL;
+EXT_RAM_ATTR WiFiClient mqtt::espClient;
+EXT_RAM_ATTR PubSubClient* mqtt::mqttClient;
+EXT_RAM_ATTR uint32_t mqtt::overRuns = 0;
+EXT_RAM_ATTR uint32_t mqtt::maxLatency = 0;
+EXT_RAM_ATTR uint16_t mqtt::avgSamples = 0;
+EXT_RAM_ATTR uint32_t* mqtt::latencyVect = NULL;
+EXT_RAM_ATTR char* mqtt::decoderUri = NULL;
+EXT_RAM_ATTR char* mqtt::brokerUri = NULL;
+EXT_RAM_ATTR uint16_t mqtt::brokerPort = 0;
+EXT_RAM_ATTR char* mqtt::brokerUser = NULL;
+EXT_RAM_ATTR char* mqtt::brokerPass = NULL;
+EXT_RAM_ATTR char* mqtt::clientId = NULL;
+EXT_RAM_ATTR uint8_t mqtt::defaultQoS = 0;
+EXT_RAM_ATTR uint8_t mqtt::keepAlive = 0;
+EXT_RAM_ATTR bool mqtt::opStateTopicSet = false;
+EXT_RAM_ATTR char* mqtt::opStateTopic = NULL;
+EXT_RAM_ATTR char* mqtt::upPayload = NULL;
+EXT_RAM_ATTR char* mqtt::downPayload = NULL;
+EXT_RAM_ATTR char* mqtt::mqttPingUpstreamTopic = NULL;
+EXT_RAM_ATTR uint8_t mqtt::missedPings = 0;
+EXT_RAM_ATTR int mqtt::mqttStatus;
+EXT_RAM_ATTR uint8_t mqtt::qos = 0;
+EXT_RAM_ATTR bool mqtt::defaultRetain = false;
+EXT_RAM_ATTR float mqtt::pingPeriod = 0 ;
+EXT_RAM_ATTR bool mqtt::discovered = false;
+EXT_RAM_ATTR QList<mqttTopic_t*> mqtt::mqttTopics;
+EXT_RAM_ATTR mqttStatusCallback_t mqtt::statusCallback = NULL;
+EXT_RAM_ATTR void* mqtt::statusCallbackArgs = NULL;
+EXT_RAM_ATTR wdt* mqtt::mqttWdt = NULL;
+EXT_RAM_ATTR bool mqtt::supervision = false;
 
 // Public methods
 void mqtt::create(void) {
     Log.INFO("mqtt::create: Creating MQTT client" CR);
-    sysState = new systemState(NULL);
+    sysState = new (heap_caps_malloc(sizeof(systemState), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) systemState(NULL);
     sysState->setSysStateObjName("mqtt");
     sysState->setOpStateByBitmap(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_CLIEUNAVAILABLE);
     mqttLock = xSemaphoreCreateMutex();
@@ -82,7 +81,7 @@ void mqtt::create(void) {
 
 rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
     Log.INFO("mqtt::init: Initializing and starting MQTT client, BrokerURI: %s, BrokerPort: %i, User: %s, Password: %s, ClientId: %s" CR, p_brokerUri, p_brokerPort, p_brokerUser, p_brokerPass, p_clientId);
-    mqttWdt = new wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
+    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
     missedPings = 0;
     opStateTopicSet = false;
     discovered = false;
@@ -98,8 +97,10 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     pingPeriod = p_pingPeriod;
     defaultRetain = p_defaultRetain;
     avgSamples = int(MQTT_POLL_LATENCY_AVG_TIME_MS * 1000 / MQTT_POLL_PERIOD_MS);
-    latencyVect = new uint32_t[avgSamples];
-    mqttClient = new PubSubClient(espClient);
+    latencyVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
+    for (uint16_t i = 0; i < avgSamples; i++)
+        latencyVect[i] = 0;
+    mqttClient = new (heap_caps_malloc(sizeof(PubSubClient) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) PubSubClient(espClient);
     mqttClient->setServer(brokerUri, brokerPort);
     mqttClient->setKeepAlive(keepAlive);
     mqttStatus = mqttClient->state();
@@ -110,13 +111,13 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     }
     mqttClient->setCallback(&onMqttMsg);
     Log.INFO("mqtt::init: Spawning MQTT poll task" CR);
-    xTaskCreatePinnedToCore(poll,                               // Task function
-                            CPU_MQTT_POLL_TASKNAME,             // Task function name reference
-                            CPU_MQTT_POLL_STACKSIZE_1K * 1024,  // Stack size
-                            NULL,                               // Parameter passing
-                            CPU_MQTT_POLL_PRIO,                 // Priority 0-24, higher is more
-                            NULL,                               // Task handle
-                            CPU_MQTT_POLL_CORE);                // Core [CORE_0 | CORE_1]
+    if (!eTaskCreate(poll,                                          // Task function
+        CPU_MQTT_POLL_TASKNAME,                                     // Task function name reference
+        CPU_MQTT_POLL_STACKSIZE_1K * 1024,                          // Stack size
+        NULL,                                                       // Parameter passing
+        CPU_MQTT_POLL_PRIO,                                         // Priority 0-24, higher is more
+        INTERNAL))                                                  // Task stack attribute'
+        panic("mqtt::init: Could not start the MQTT poll task - rebooting..." CR);
 
     Log.INFO("mqtt::init: Waiting for MQTT client to connect (I.e. opState ~OP_DISCONNECTED)..." CR);
     while (true) {
@@ -200,25 +201,25 @@ rc_t mqtt::up(void) {
     Log.INFO("mqtt::up: Starting MQTT ping supervision" CR);
     sysState->unSetOpStateByBitmap(OP_DISABLED);
     sysState->unSetOpStateByBitmap(OP_CLIEUNAVAILABLE);
-    mqttPingUpstreamTopic = new char[strlen(MQTT_PING_UPSTREAM_TOPIC) + strlen("/") + strlen(decoderUri) + 1];
+    mqttPingUpstreamTopic = new (heap_caps_malloc(sizeof(char) * (strlen(MQTT_PING_UPSTREAM_TOPIC) + strlen("/") + strlen(decoderUri) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(MQTT_PING_UPSTREAM_TOPIC) + strlen("/") + strlen(decoderUri) + 1];
     sprintf(mqttPingUpstreamTopic, "%s%s%s", MQTT_PING_UPSTREAM_TOPIC, "/", decoderUri);
     char mqttPingDownstreamTopic[300];
     sprintf(mqttPingDownstreamTopic, "%s%s%s", MQTT_PING_DOWNSTREAM_TOPIC, "/", decoderUri);
     if (subscribeTopic(mqttPingDownstreamTopic, onMqttPing, NULL)) {
-        sysState->setOpStateByBitmap(OP_INTFAIL);
+        sysState->setOpStateByBitmap(OP_INTFAIL); 
         panic("mqtt::up: Failed to to subscribe to MQTT ping topic - rebooting..." CR);
         return RC_GEN_ERR;
     }
     if(!supervision){
         supervision = true;
-        xTaskCreatePinnedToCore(
+        if (!eTaskCreate(
             mqttPingTimer,                      // Task function
             CPU_MQTT_PING_TASKNAME,             // Task function name reference
             CPU_MQTT_PING_STACKSIZE_1K * 1024,  // Stack size
             NULL,                               // Parameter passing
             CPU_MQTT_PING_PRIO,                 // Priority 0-24, higher is more
-            &mqttPingHandle,                    // Task handle
-            CPU_MQTT_PING_CORE);                // Core [CORE_0 | CORE_1]
+            CPU_MQTT_PING_STACK_ATTR))          // Task stack attribute
+            panic("mqtt::up: MQTT supervision task could not be started" CR);
     }
     return RC_OK;
 }
@@ -254,10 +255,10 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
     }
     if (!found) {
         Log.VERBOSE("mqtt::subscribeTopic: Adding new subscription topic %s with related callback" CR, topic);
-        mqttTopics.push_back(new(mqttTopic_t));
+        mqttTopics.push_back(new (heap_caps_malloc(sizeof(mqttTopic_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttTopic_t);
         mqttTopics.back()->topic = topic;
         mqttTopics.back()->topicList = new QList<mqttSub_t*>;
-        mqttTopics.back()->topicList->push_back(new(mqttSub_t));
+        mqttTopics.back()->topicList->push_back(new(heap_caps_malloc(sizeof(mqttSub_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttSub_t);
         mqttTopics.back()->topicList->back()->topic = topic;
         mqttTopics.back()->topicList->back()->mqttSubCallback = p_callback;
         mqttTopics.back()->topicList->back()->mqttCallbackArgs = (void*)p_args;
@@ -284,7 +285,7 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
             }
         }
         Log.VERBOSE("mqtt::subscribeTopic: Adding new callback to existing topic %s" CR, topic);
-        mqttTopics.at(i)->topicList->push_back(new(mqttSub_t));
+        mqttTopics.at(i)->topicList->push_back(new (heap_caps_malloc(sizeof(mqttSub_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttSub_t);
         mqttTopics.at(i)->topicList->back()->topic = topic;
         mqttTopics.at(i)->topicList->back()->mqttSubCallback = p_callback;
         mqttTopics.at(i)->topicList->back()->mqttCallbackArgs = (void*)p_args;
@@ -494,7 +495,7 @@ void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const 
     }
     Log.INFO("mqtt::discover: Got a discover response, parsing and validating it..." CR);
     tinyxml2::XMLDocument* xmlDiscoveryDoc;
-    xmlDiscoveryDoc = new tinyxml2::XMLDocument;
+    xmlDiscoveryDoc = new (heap_caps_malloc(sizeof(tinyxml2::XMLDocument), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) tinyxml2::XMLDocument;
     tinyxml2::XMLElement* xmlDiscoveryElement;
     Log.INFO("mqtt::onDiscoverResponse: Parsing discovery response: %s" CR, p_payload);
     if (xmlDiscoveryDoc->Parse(p_payload) || (xmlDiscoveryElement = xmlDiscoveryDoc->FirstChildElement("DiscoveryResponse")) == NULL) {
@@ -505,7 +506,7 @@ void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const 
     bool found = false;
     while (xmlDiscoveryElement != NULL) {
         if (!strcmp(xmlDiscoveryElement->Value(), "Decoder") && xmlDiscoveryElement->FirstChildElement("MAC") != NULL && xmlDiscoveryElement->FirstChildElement("URI") != NULL && xmlDiscoveryElement->FirstChildElement("URI")->GetText() != NULL && !strcmp(xmlDiscoveryElement->FirstChildElement("MAC")->GetText(), networking::getMac())) {
-            decoderUri = new char[strlen(xmlDiscoveryElement->FirstChildElement("URI")->GetText()) + 1];
+            decoderUri = new (heap_caps_malloc(sizeof(char) * (strlen(xmlDiscoveryElement->FirstChildElement("URI")->GetText()) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlDiscoveryElement->FirstChildElement("URI")->GetText()) + 1];
             strcpy(decoderUri, xmlDiscoveryElement->FirstChildElement("URI")->GetText());
             found = true;
             break;
@@ -535,7 +536,7 @@ rc_t mqtt::reSubscribe(void) {
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
     bool subFound = false;
-    char* payload = new char[p_length + 1];
+    char* payload = new (heap_caps_malloc(sizeof(char) * (p_length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[p_length + 1];
     if (!payload)
         panic("mqtt::onMqttMsg: Failed to allocate a MQTT receive buffer, rebooting...");
     memcpy(payload, p_payload, p_length);
@@ -569,12 +570,14 @@ void mqtt::clearOverRuns(void) {
 uint32_t mqtt::getMeanLatency(void) {
     if (avgSamples == 0)
         return 0;
-    uint32_t* tmpLatencyVect = new uint32_t[avgSamples]; //Wee need to fix all latencies to type int32_t, and all other performance metrics to int....
-    uint32_t accLatency;
-    uint32_t meanLatency;
+    uint32_t* tmpLatencyVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples]; //Wee need to fix all latencies to type int32_t, and all other performance metrics to int....
+    uint32_t accLatency = 0;
+    uint32_t meanLatency = 0;
+    //TAKE A LOCK BLOCKING latencyVect access
     memcpy(tmpLatencyVect, latencyVect, avgSamples);
+    //RELEASE THE LOCK
     for (uint16_t latencyIndex = 0; latencyIndex < avgSamples; latencyIndex++) {
-        accLatency += latencyVect[latencyIndex];
+        accLatency += tmpLatencyVect[latencyIndex];
     }
     meanLatency = accLatency / avgSamples;
     delete tmpLatencyVect;
@@ -591,21 +594,16 @@ void mqtt::clearMaxLatency(void) {
 }
 
 bool mqtt::getSubs(uint16_t p_index, char* p_topic, uint16_t p_topicSize, char* p_cbs, uint16_t p_cbSize) {
-    Serial.printf("retreiving info on Index %i" CR, p_index);
     if (p_index >= mqttTopics.size()) {
-        Serial.printf("Index %i does not exist" CR, p_index);
         return false;
     }
     else {
-        Serial.printf("Index %i does exist" CR, p_index);
         strcpyTruncMaxLen(p_topic, mqttTopics.at(p_index)->topic, p_topicSize);
-        Serial.printf("Index %i topic: %s" CR, p_index, p_topic);
         strcpyTruncMaxLen(p_cbs, itoa((int)(void*)mqttTopics.at(p_index)->topicList->at(0)->mqttSubCallback, p_cbs, 10), p_cbSize);
         for (uint16_t i = 1; i < mqttTopics.at(p_index)->topicList->size(); i++) {
             strcatTruncMaxLen(p_cbs, ", ", p_cbSize);
             strcatTruncMaxLen(p_cbs, itoa((int)(void*)mqttTopics.at(p_index)->topicList->at(0)->mqttSubCallback, p_cbs, 10), p_cbSize);
         }
-        Serial.printf("Index %i topic: %s has following CBs: %s" CR, p_index, p_topic, p_cbs);
     }
     return true;
 }
@@ -616,6 +614,8 @@ void mqtt::poll(void* dummy) {
     uint16_t latencyIndex = 0;
     int32_t latency = 0;
     uint8_t retryCnt = 0;
+    for (uint16_t i = 0; i < avgSamples; i++)
+        latencyVect[i] = 0;
     int stat;
     //esp_task_wdt_init(1, true); //enable panic so ESP32 restarts
     //esp_task_wdt_add(NULL); //add current thread to WDT watch
