@@ -42,12 +42,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <ESPTelnet.h>
-#include <ArduinoLog.h>
 #include "wdt.h"
 #include "panic.h"
 #include "rc.h"
 #include "config.h"
 #include "taskWrapper.h"
+#include "logHelpers.h"
+
 class telnetCore;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */

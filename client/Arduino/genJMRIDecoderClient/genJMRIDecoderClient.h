@@ -28,13 +28,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <dummy.h>
-#include <ArduinoLog.h>
 #include "globalCli.h"
 #include "networking.h"
 #include "systemState.h"
 #include "decoder.h"
 #include "fileSys.h"
 #include "taskWrapper.h"
+#include "logHelpers.h"
+
 class decoder;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */

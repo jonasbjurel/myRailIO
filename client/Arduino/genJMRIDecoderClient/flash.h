@@ -27,12 +27,13 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include "libraries\tinyxml2\tinyxml2.h"
-#include <ArduinoLog.h>
 #include <QList.h>
 #include "rc.h"
 #include "config.h"
 #include "panic.h"
 #include "taskWrapper.h"
+#include "logHelpers.h"
+
 class flash;
 
 /*==============================================================================================================================================*/

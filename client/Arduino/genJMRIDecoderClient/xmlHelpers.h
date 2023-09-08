@@ -29,7 +29,6 @@
 #include <cstddef>
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "logHelpers.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 
 

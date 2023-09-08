@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "globalCli.h"
@@ -44,6 +43,8 @@
 #include "panic.h"
 #include "strHelpers.h"
 #include "xmlHelpers.h"
+#include "logHelpers.h"
+
 class satLink;
 class senseBase;
 class actBase;

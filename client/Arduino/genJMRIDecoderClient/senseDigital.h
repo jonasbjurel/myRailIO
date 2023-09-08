@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "senseBase.h"
@@ -40,6 +39,8 @@
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
+#include "logHelpers.h"
+
 class senseBase;
 
 /*==============================================================================================================================================*/

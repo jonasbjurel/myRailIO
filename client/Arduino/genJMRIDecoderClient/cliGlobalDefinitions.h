@@ -48,9 +48,9 @@
 /*					"satelite", "sensor", "actuator, etc. Specific MOs may implent specific sub-MOs only rellevant for a particular specific MO.*/
 /*					CLI examples for specific MOs sub-MOs: "get lglink -overruns", "get lglink -overruns", "get lightgroup -showing", ...		*/
 /*==============================================================================================================================================*/
-EXT_RAM_ATTR const char ROOT_MO_NAME[] = "root";
+EXT_RAM_ATTR const char	ROOT_MO_NAME[] = "root";
 
-EXT_RAM_ATTR const char GLOBAL_MO_NAME[] = "global";								//Practical usage of MO is vagely defined - other than that all global commands are allways available (no matter context) and served by the globalCli static class
+EXT_RAM_ATTR const char	GLOBAL_MO_NAME[] = "global";								//Practical usage of MO is vagely defined - other than that all global commands are allways available (no matter context) and served by the globalCli static class
 EXT_RAM_ATTR const char		CLIHELP_SUB_MO_NAME[] = "cli";							//Only for help, we need to add a property that this is only for help, and not a real command
 EXT_RAM_ATTR const char		HELP_SUB_MO_NAME[] = "help";							//Print help text, see help text definitions below
 EXT_RAM_ATTR const char		CONTEXT_SUB_MO_NAME[] = "context";						//Global MO instance context sub-MO
@@ -67,7 +67,7 @@ EXT_RAM_ATTR const char		LOG_SUB_MO_NAME[] = "log";								//Global MO log sub-M
 EXT_RAM_ATTR const char		FAILSAFE_SUB_MO_NAME[] = "failsafe";					//Global MO failsafe-MO
 
 
-EXT_RAM_ATTR const char COMMON_MO_NAME[] = "common";								//Common MO
+EXT_RAM_ATTR const char	COMMON_MO_NAME[] = "common";								//Common MO
 EXT_RAM_ATTR const char		OPSTATE_SUB_MO_NAME[] = "opstate";						//Common MO OP-state sub-MO
 EXT_RAM_ATTR const char		SYSNAME_SUB_MO_NAME[] = "systemname";					//Common MO System name sub-MO
 EXT_RAM_ATTR const char		USER_SUB_MO_NAME[] = "username";						//Common MO User ame sub-MO
@@ -76,7 +76,7 @@ EXT_RAM_ATTR const char		DEBUG_SUB_MO_NAME[] = "debug";							//Common MO Debug 
 
 EXT_RAM_ATTR const char	DECODER_MO_NAME[] = "decoder";							// All decoder MOs are mapped to the global and common context
 
-EXT_RAM_ATTR const char LGLINK_MO_NAME[] = "lglink";
+EXT_RAM_ATTR const char	LGLINK_MO_NAME[] = "lglink";
 EXT_RAM_ATTR const char		LGLINKNO_SUB_MO_NAME[] = "link";
 EXT_RAM_ATTR const char		LGLINKOVERRUNS_SUB_MO_NAME[] = "overruns";
 EXT_RAM_ATTR const char		LGLINKMEANLATENCY_SUB_MO_NAME[] = "meanlatency";
@@ -84,7 +84,7 @@ EXT_RAM_ATTR const char		LGLINKMAXLATENCY_SUB_MO_NAME[] = "maxlatency";
 EXT_RAM_ATTR const char		LGLINKMEANRUNTIME_SUB_MO_NAME[] = "meanruntime";
 EXT_RAM_ATTR const char		LGLINKMAXRUNTIME_SUB_MO_NAME[] = "maxruntime";
 
-EXT_RAM_ATTR const char LG_MO_NAME[] = "lightgroup";
+EXT_RAM_ATTR const char	LG_MO_NAME[] = "lightgroup";
 EXT_RAM_ATTR const char		LGADDR_SUB_MO_NAME[] = "address";
 EXT_RAM_ATTR const char		LGLEDCNT_SUB_MO_NAME[] = "ledcnt";
 EXT_RAM_ATTR const char		LGLEDOFFSET_SUB_MO_NAME[] = "ledoffset";
@@ -92,7 +92,7 @@ EXT_RAM_ATTR const char		LGPROPERTY_SUB_MO_NAME[] = "property";
 EXT_RAM_ATTR const char		LGSTATE_SUB_MO_NAME[] = "state";
 EXT_RAM_ATTR const char		LGSHOWING_SUB_MO_NAME[] = "showing";
 
-EXT_RAM_ATTR const char SATLINK_MO_NAME[] = "satelitelink";
+EXT_RAM_ATTR const char	SATLINK_MO_NAME[] = "satelitelink";
 EXT_RAM_ATTR const char		SATLINKNO_SUB_MO_NAME[] = "link";
 EXT_RAM_ATTR const char		SATLINKTXUNDERRUN_SUB_MO_NAME[] = "txunderrun";
 EXT_RAM_ATTR const char		SATLINKRXOVERRUN_SUB_MO_NAME[] = "rxoverrun";
@@ -103,18 +103,18 @@ EXT_RAM_ATTR const char		SATLINKRXSYMERRS_SUB_MO_NAME[] = "rxsymbolerr";
 EXT_RAM_ATTR const char		SATLINKRXSIZEERRS_SUB_MO_NAME[] = "rxsizeerr";
 EXT_RAM_ATTR const char		SATLINKWDERRS_SUB_MO_NAME[] = "wderr";
 
-EXT_RAM_ATTR const char SAT_MO_NAME[] = "satelite";
+EXT_RAM_ATTR const char	SAT_MO_NAME[] = "satelite";
 EXT_RAM_ATTR const char		SATADDR_SUB_MO_NAME[] = "address";
 EXT_RAM_ATTR const char		SATRXCRCERR_SUB_MO_NAME[] = "rxcrcerr";
 EXT_RAM_ATTR const char		SATTXCRCERR_SUB_MO_NAME[] = "txcrcerr";
 EXT_RAM_ATTR const char		SATWDERR_SUB_MO_NAME[] = "wderr";
 
-EXT_RAM_ATTR const char SENSOR_MO_NAME[] = "sensor";
+EXT_RAM_ATTR const char	SENSOR_MO_NAME[] = "sensor";
 EXT_RAM_ATTR const char		SENSPORT_SUB_MO_NAME[] = "port";
 EXT_RAM_ATTR const char		SENSSENSING_SUB_MO_NAME[] = "sensing";
 EXT_RAM_ATTR const char		SENSORPROPERTY_SUB_MO_NAME[] = "property";
 
-EXT_RAM_ATTR const char ACTUATOR_MO_NAME[] = "actuator";
+EXT_RAM_ATTR const char	ACTUATOR_MO_NAME[] = "actuator";
 EXT_RAM_ATTR const char		ACTUATORPORT_SUB_MO_NAME[] = "port";
 EXT_RAM_ATTR const char		ACTUATORSHOWING_SUB_MO_NAME[] = "showing";
 EXT_RAM_ATTR const char		ACTUATORPROPERTY_SUB_MO_NAME[] = "property";
@@ -333,15 +333,23 @@ EXT_RAM_ATTR const char GLOBAL_GET_TIME_HELP_TXT[] =				"Prints the system time.
 
 EXT_RAM_ATTR const char GLOBAL_SHOW_TIME_HELP_TXT[] =				"Shows a summary of the time services. Identical to \"get time\" without flags.\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_SET_LOG_HELP_TXT[] =					"set log [-loglevel {logLevel} [-logmo {logMo}]] [-logdestination {logDestination}]\n\r" \
-																		"set log -loglevel {logLevel}[-logmo {logMo}]: Sets the loglevel \"logLevel\" to \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"\n\r" \
+EXT_RAM_ATTR const char GLOBAL_SET_LOG_HELP_TXT[] =					"Sets the loglevel properties, like global log-level, custom log-levels\"logLevel\" to \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"\n\r" \
 																		"                                              if \"logmo {logMo}\" is provided, the given loglevel is only valid for the provided \"logMo\" (managed object) - NOT YET SUPPORTED\n\r" \
 																		"set log -logdestination {logDestination}: Sets a remote log destination - NOT YET SUPPORTED\n\r";
+
 EXT_RAM_ATTR const char GLOBAL_UNSET_LOG_HELP_TXT[] =				"unset log -logdestination: Terminates logging to the previously provisioned remote log destination - NOT YET SUPPORTED\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_CLEAR_LOG_HELP_TXT[] =				"Need to add  help text";
+
 EXT_RAM_ATTR const char GLOBAL_GET_LOG_HELP_TXT[] =					"get log [-loglevel [-logmo {logMo}]] [-logdestination] [-tail {lines}]\n\r" \
 																		"get log -loglevel [-logmo {logMo}] Prints the current loglevel, if \"logmo {logMo}\" is provided, the loglevel for the provided \"logMo\" (managed object) is given - NOT YET SUPPORTED\n\r" \
 																		"get log - logdestination: Prints the remote loglevel destination - NOT YET SUPPORTED\n\r" \
 																		"get log -tail {lines}: Prints the last \"lines\" of the log - NOT YET SUPPORTED\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_ADD_LOG_HELP_TXT[] =					"Need to add  help text";
+
+EXT_RAM_ATTR const char GLOBAL_DELETE_LOG_HELP_TXT[] =				"Need to add  help text";
+
 EXT_RAM_ATTR const char GLOBAL_SHOW_LOG_HELP_TXT[] =				"show log: Prints a summary of log information\n\r";
 
 EXT_RAM_ATTR const char COMMON_SET_DEBUG_HELP_TXT[] =				"Sets the debug state of the MO, this enables setting of MO/Sub-MO atributes which may lead to system inconsistensy.\n\r";

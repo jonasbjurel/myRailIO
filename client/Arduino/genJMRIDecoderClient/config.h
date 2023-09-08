@@ -25,7 +25,6 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
-#include "logHelpers.h"
 #include "esp32SysConfig.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -45,6 +44,9 @@
 #define NTP_POLL_PERIOD_S							60
 #define NTP_DEFAULT_SYNCMODE						SNTP_SYNC_MODE_SMOOTH //SNTP_SYNC_MODE_SMOOTH | SNTP_SYNC_MODE_IMMED
 #define DEFAULT_LOGLEVEL							GJMRI_DEBUG_INFO
+#define LOG_MSG_SIZE								512
+#define LOG_MSG_HISTORY_SIZE						30
+#define RSYSLOG_DEFAULT_PORT						514
 #define DEFAULT_FAILSAFE							"Yes"
 
 // Flash Configuration
@@ -141,6 +143,14 @@
 //Task stack attributes
 #define INTERNAL									true
 #define EXTERNAL									false
+
+// Log job task
+#define LOGJOBSLOTS									10
+#define LOG_PRIO									5
+#define LOG_STACKSIZE_1K							6
+#define LOG_TASKNAME								"log"
+#define LOG_STACK_ATTR								EXTERNAL
+
 
 // Setup task
 #define SETUP_PRIO									5

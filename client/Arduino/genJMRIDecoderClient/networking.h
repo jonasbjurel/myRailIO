@@ -46,7 +46,6 @@
 #include <esp_wifi_types.h>
 #include <WiFiManager.h>
 #include <QList.h>
-#include <ArduinoLog.h>
 #include "systemState.h"
 #include "strHelpers.h"
 #include "config.h"
@@ -56,6 +55,8 @@
 #include "fileSys.h"
 #include "mqtt.h"
 #include "telnetCore.h"
+#include "logHelpers.h"
+
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/

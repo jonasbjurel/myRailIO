@@ -28,9 +28,12 @@
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
-#include <ArduinoLog.h>
+#include <esp_debug_helpers.h>
 #include "rc.h"
 #include "logHelpers.h"
+#include "mbedtls/base64.h"
+#include "fileSys.h"
+
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
@@ -42,6 +45,7 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 void panic(const char* fmt, ...);
+rc_t esp_backtrace_buff(int depth, char* p_stackBuff);
 void reboot(void* p_args);
 //extern decoder* decoderHandle;
 

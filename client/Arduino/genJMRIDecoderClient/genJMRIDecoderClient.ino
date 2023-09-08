@@ -35,13 +35,15 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
-/*=============================================================================================================================================*/
+/*==============================================================================================================================================*/
 void setup() {
     setupRunning = true;
     Serial.begin(115200);
     Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    Serial.printf("Provisioning network trigger\n");
     networking::provisioningConfigTrigger();
+    Serial.printf("Starting Setup task\n");
     if(!eTaskCreate(                                // Spinning up a temporary setup task as wee need a bigger stack than set-up provides
             setupTask,                              // Task function
             SETUP_TASKNAME,                         // Task function name reference
@@ -49,33 +51,35 @@ void setup() {
             NULL,                                   // Parameter passing
             SETUP_PRIO,                             // Priority 0-24, higher is more
             SETUP_STACK_ATTR))                      // Stack attibute
-        panic("setup::setup: Could not start setup task - rebooting...");
+        panic("Could not start setup task - rebooting...");
     while (setupRunning)
         vTaskDelay(100 / portTICK_PERIOD_MS);
-    Log.INFO("genJMRIDecoderClient::setup: Initial setup has successfully concluded, handing over to \"Arduino loop\"" CR);
+    LOG_INFO("Initial setup has successfully concluded, handing over to \"Arduino loop\"" CR);
 }
 
 void setupTask(void* p_dummy) {
-    Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-    //  Log.setPrefix(printPrefix); // set prefix similar to NLog
-    Log.INFO("genJMRIDecoderClient::setupTask: setupTask started" CR);
-    Log.INFO("genJMRIDecoderClient::setupTask: Logging service started towards Serial" CR);
+    Serial.printf("Started the set-up task\n");
+    Log.setLogLevel(DEFAULT_LOGLEVEL);
+    Serial.printf("First Log comming");
+    LOG_INFO("setupTask started" CR);
+    Serial.printf("First Log ordered");
+    LOG_INFO("Logging service started towards Serial" CR);
     fileSys::start();
-    Log.INFO("genJMRIDecoderClient::setupTask: File system service started" CR);
+    LOG_INFO("File system service started" CR);
     networking::start();
-    Log.INFO("genJMRIDecoderClient::setupTask: WIFI Networking service started" CR);
-    Log.INFO("genJMRIDecoderClient::setupTask: Connecting to WIFI..." CR);
+    LOG_INFO("WIFI Networking service started" CR);
+    LOG_INFO("Connecting to WIFI..." CR);
     char nwOpStateStr[100];
     while (networking::getOpStateBitmap() != OP_WORKING) {
-        Log.INFO("Waiting for WIFI to connect, current Network OP state: %s" CR, networking::getOpStateStr(nwOpStateStr));
+        LOG_INFO("Waiting for WIFI to connect, current Network OP state: %s" CR, networking::getOpStateStr(nwOpStateStr));
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    Log.INFO("setupTask: Connected to WIFI and operational, got IP Address %s" CR, networking::getIpAddr().toString().c_str());
-    Log.INFO("genJMRIDecoderClient::setupTask: Initializing time- and NTP- service" CR);
+    LOG_INFO("Connected to WIFI and operational, got IP Address %s" CR, networking::getIpAddr().toString().c_str());
+    LOG_INFO("Initializing time- and NTP- service" CR);
     esp_timer_init();
     ntpTime::init();
-    Log.INFO("genJMRIDecoderClient::setupTask: Time- and NTP- service initialized" CR);
-    Log.INFO("genJMRIDecoderClient::setupTask: Starting the runtime web-portal service" CR);
+    LOG_INFO("Time- and NTP- service initialized" CR);
+    LOG_INFO("Starting the runtime web-portal service" CR);
     wifiManager = new(heap_caps_malloc(sizeof(WiFiManager), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManager;
     wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
     wifiManager->setShowStaticFields(true);
@@ -83,14 +87,14 @@ void setupTask(void* p_dummy) {
     wifiManager->setShowInfoErase(true);
     wifiManager->setShowInfoUpdate(true);
     wifiManager->startWebPortal();
-    Log.INFO("genJMRIDecoderClient::setupTask: Runtime web-portal service started" CR);
-    Log.INFO("genJMRIDecoderClient::setupTask: Starting the decoder service" CR);
+    LOG_INFO("Runtime web-portal service started" CR);
+    LOG_INFO("Starting the decoder service" CR);
     decoderHandle = new (heap_caps_malloc(sizeof(decoder), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) decoder();
     decoderHandle->init();
     decoderHandle->start();
-    Log.INFO("genJMRIDecoderClient::setupTask: Decoder service started" CR);
+    LOG_INFO("Decoder service started" CR);
     setupRunning = false;
-    Log.INFO("genJMRIDecoderClient::setupTask: Setup finished, killing setup task..." CR);
+    LOG_INFO("Setup finished, killing setup task..." CR);
     vTaskDelete(NULL);
 }
 

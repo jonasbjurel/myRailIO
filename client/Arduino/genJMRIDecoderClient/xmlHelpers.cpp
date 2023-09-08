@@ -52,7 +52,7 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
         tagsStr[strlen(tagsStr) - 1] = '\0';
     else
         strcpy(tagsStr, "-");
-    Log.INFO("getTagTxt: Parsing XML-tags: %s" CR, tagsStr);
+    LOG_INFO("getTagTxt: Parsing XML-tags: %s" CR, tagsStr);
     while (xmlNode != NULL) {
         for (i = 0; i < len; i++) {
             found = false;
@@ -62,7 +62,7 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
             else {
                 if (!strcmp(tags[i], xmlNode->Name())) {
                     if (xmlNode->GetText() != NULL) {
-                        Log.VERBOSE("getTagTxt: XML-tag match: \"%s\", value: \"%s\"" CR, xmlNode->Name(), xmlNode->GetText());
+                        LOG_VERBOSE("getTagTxt: XML-tag match: \"%s\", value: \"%s\"" CR, xmlNode->Name(), xmlNode->GetText());
                         found = true;
                         foundTags[i] = true;
                         if (xmlTxtBuff[i])
@@ -71,21 +71,21 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
                         strcpy(xmlTxtBuff[i], xmlNode->GetText());
                     }
                     else {
-                        Log.WARN("getTagTxt: XML-tag match: \"%s\", but with a NULL value" CR, xmlNode->Name());
+                        LOG_WARN("getTagTxt: XML-tag match: \"%s\", but with a NULL value" CR, xmlNode->Name());
                     }
                     break;
                 }
             }
         }
         if (!found) {
-            Log.VERBOSE("getTagTxt: XML-tag: \"%s\" present, but was not searched for" CR, xmlNode->Name());
+            LOG_VERBOSE("getTagTxt: XML-tag: \"%s\" present, but was not searched for" CR, xmlNode->Name());
         }
         xmlNode = xmlNode->NextSiblingElement();
     }
     tagsStr[0] = '\0';
     for (uint8_t j=0; j < len; j++) {
         if (!foundTags[j])
-            Log.WARN("getTagTxt: XML-tag: \"%s\" was searched for, but not found, or without a corresponding value" CR, tags[j]);
+            LOG_WARN("getTagTxt: XML-tag: \"%s\" was searched for, but not found, or without a corresponding value" CR, tags[j]);
         else if(tags[j]){
             strcat(tagsStr, tags[j]);
             strcat(tagsStr, "|");
@@ -95,7 +95,7 @@ void getTagTxt(const tinyxml2::XMLElement* xmlNode, const char* tags[], char* xm
         tagsStr[strlen(tagsStr) - 1] = '\0';
     else
         strcpy(tagsStr, "-");
-    Log.TERSE("getTagTxt: Found following requested XML-tags with values: %s" CR, tagsStr);
+    LOG_TERSE("getTagTxt: Found following requested XML-tags with values: %s" CR, tagsStr);
     delete tagsStr;
 }
 /*==============================================================================================================================================*/

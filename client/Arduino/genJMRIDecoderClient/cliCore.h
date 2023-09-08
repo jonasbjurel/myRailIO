@@ -44,13 +44,14 @@
 #include <ESPTelnet.h>
 #include <QList.h>
 #include <SimpleCLI.h>
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "telnetCore.h"
 #include "panic.h"
 #include "version.h"
 #include "cliGlobalDefinitions.h"
 #include "strHelpers.h"
+#include "logHelpers.h"
+
 class telnetCore;
 class cliCore;
 /*==============================================================================================================================================*/

@@ -37,7 +37,6 @@
 // Return Codes
 typedef int8_t rc_t;
 #define RC_OK						0														// Do not change, 0 should always be success
-#define RC_GEN_ERR					-127													// Do not change, 255 should always be unspecified error 
 #define RC_OUT_OF_MEM_ERR			-1														// No more memory
 #define RC_PARSE_ERR				-2														// Could not the parse eg XML string
 #define RC_NOT_FOUND_ERR			-3														// Object not found
@@ -52,4 +51,6 @@ typedef int8_t rc_t;
 #define RC_MAX_REACHED_ERR			-12														// Maximum number of objects reached
 #define RC_OPSTATE_ERR				-13														// Object does not have expected operational state
 #define RC_NOTIMPLEMENTED_ERR		-126													// Called method not implemented
+#define RC_GEN_ERR					-127													// Do not change, -127 should always be unspecified error 
+
 #endif /*RC_H*/

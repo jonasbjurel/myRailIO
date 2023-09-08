@@ -24,7 +24,6 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include <QList.h>
-#include <ArduinoLog.h>
 #include <string.h>
 #include "rc.h"
 #include "logHelpers.h"

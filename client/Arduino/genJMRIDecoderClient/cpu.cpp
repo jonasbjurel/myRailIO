@@ -80,8 +80,8 @@ void cpu::startPm(void) {
 				NULL,																			// Task handle
 				CPU_PM_CORE);																	// Core [CORE_0 | CORE_1]
 	if (rc != pdPASS)
-		panic("cpu::startPm: Could not start CPU PM collection task, return code %i, - rebooting..." CR, rc);
-	Log.INFO("cpu::startPm: CPU PM collection started" CR);
+		panic("Could not start CPU PM collection task, return code %i, - rebooting..." CR, rc);
+	LOG_INFO("CPU PM collection started" CR);
 }
 
 void cpu::stopPm(void) {
@@ -90,10 +90,10 @@ void cpu::stopPm(void) {
 	delete idleTicksHistory;
 	delete totHeapFreeHistory;
 	delete intHeapFreeHistory;
-	Log.VERBOSE("cpu::stopPm: Stoping CPU PM collection" CR);
+	LOG_VERBOSE("Stoping CPU PM collection" CR);
 	while (cpuPmLogging)
 		vTaskDelay(100 / portTICK_PERIOD_MS);
-	Log.INFO("cpu::stopPm: CPU PM collection stopped" CR);
+	LOG_INFO("CPU PM collection stopped" CR);
 }
 
 bool cpu::getPm(void) {
@@ -173,14 +173,14 @@ void cpu::cpuPmCollect(void* dummy) {
 			secondCount++;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
-	Log.INFO("cpu::cpuPmCollect: CPU PM ordered to be stopped, killing the pm collection task");
+	LOG_INFO("CPU PM ordered to be stopped, killing the pm collection task");
 	cpuPmLogging = false;
 	vTaskDelete(NULL);
 }
 
 uint cpu::getCpuAvgLoad(const char* p_task, uint8_t p_period_s) {
 	if (p_period_s > CPU_HISTORY_SIZE) {
-		Log.ERROR("cpu::getCpuAvgLoad: averiging period out of bounds");
+		LOG_ERROR("Averiging period out of bounds");
 		return RC_PARAMETERVALUE_ERR;
 	}
 	int8_t startSecond;
@@ -205,7 +205,7 @@ uint cpu::getCpuMaxLoad(const char* p_task) {
 		return maxCpuLoad;
 	else {
 		if (taskNameList.indexOf(p_task) < 0){
-			Log.ERROR("cpu::getCpuMaxLoad: task %s does not exist" CR, p_task);
+			LOG_ERROR("task %s does not exist" CR, p_task);
 			return 0;
 		}
 		return taskPmDescList.at(taskNameList.indexOf(p_task))->maxCpuLoad;
@@ -215,16 +215,16 @@ uint cpu::getCpuMaxLoad(const char* p_task) {
 rc_t cpu::clearCpuMaxLoad(const char* p_task) {
 	if (!p_task) {
 		maxCpuLoad = 0;
-		Log.VERBOSE("cpu::clearCpuMaxLoad: global cpuMaxLoad cleared" CR);
+		LOG_VERBOSE("global cpuMaxLoad cleared" CR);
 		return RC_OK;
 	}
 	else {
 		if (taskNameList.indexOf(p_task) < 0) {
-			Log.ERROR("cpu::clearCpuMaxLoad: task %s does not exist" CR, p_task);
+			LOG_ERROR("task %s does not exist" CR, p_task);
 			return RC_NOT_FOUND_ERR;
 		}
 		taskPmDescList.at(taskNameList.indexOf(p_task))->maxCpuLoad = 0;
-		Log.VERBOSE("cpu::clearCpuMaxLoad: cpuMaxLoad cleared for task %s" CR, p_task);
+		LOG_VERBOSE("cpuMaxLoad cleared for task %s" CR, p_task);
 		return RC_OK;
 	}
 	return RC_OK;
@@ -262,7 +262,7 @@ rc_t cpu::getTaskInfoAllByTaskTxt(const char* p_task, char* p_taskInfoTxt, char*
 	*p_taskInfoTxt = 0x00;
 	*p_taskInfoHeadingTxt = 0x00;
 	if (!(xHandle = xTaskGetHandle(p_task))) {
-		Log.ERROR("cpu::getTaskInfoByTask: Task %s does not exist" CR, p_task);
+		LOG_ERROR("cpu::getTaskInfoByTask: Task %s does not exist" CR, p_task);
 		return RC_NOT_FOUND_ERR;
 	}
 	vTaskGetInfo(										// The handle of the task being queried.

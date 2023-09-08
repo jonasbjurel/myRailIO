@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <IPAddress.h>
-#include <ArduinoLog.h>
+#include "logHelpers.h"
 #include "cliCore.h"
 #include "cliGlobalDefinitions.h"
 #include "panic.h"
@@ -106,6 +106,8 @@ private:
     void printCommand(const char* p_cmdType, const char* p_mo, const char* p_subMo, const char* p_flags, const char* p_helpStr, bool p_heading = false, bool p_all = false, bool p_showHelp = false);
     static void onCliReboot(cmd* p_cmd, cliCore* p_cliContext,                          //Reboot sub-MO command
                             cliCmdTable_t* p_cmdTable);
+    static void onCliGetCoreDump(cmd* p_cmd, cliCore* p_cliContext,                     //Fet Coredump sub-MO command
+            cliCmdTable_t* p_cmdTable);
     static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,                       //Get decoder uptime sub-MO command
                                cliCmdTable_t* p_cmdTable);
     static void onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,                        //Start CPU sub-MO
@@ -159,12 +161,19 @@ private:
     /* Common CLI decoration methods */
     static void onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Set log level helper sub-MO
                                   cliCmdTable_t* p_cmdTable);
+    virtual rc_t setLogLevel(const char* p_logLevel, bool p_force = false);
     static void onCliUnSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                  //Un-set log level helper sub-MO
         cliCmdTable_t* p_cmdTable);
-    virtual rc_t setLogLevel(const char* p_logLevel, bool p_force = false);             //Set log level for context - not yet supported
+    static void onCliAddLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Add log level helper sub-MO
+        cliCmdTable_t* p_cmdTable);
+    static void onCliDeleteLogHelper(cmd* p_cmd, cliCore* p_cliContext,                 //Delete log level helper sub-MO
+        cliCmdTable_t* p_cmdTable);
     static void onCliGetLogHelper(cmd* p_cmd, cliCore* p_cliContext,                    //Get log level helper
                                   cliCmdTable_t* p_cmdTable);
-    virtual const char* getLogLevel(void);                                              //Get log level for context - not yet supported
+    virtual const char* getLogLevel(void);
+    virtual rc_t getRSyslogServer(char* p_uri, uint16_t* p_port, bool p_force = false);
+    static void onCliClearLogHelper(cmd* p_cmd, cliCore* p_cliContext,
+        cliCmdTable_t* p_cmdTable);
     static void onCliShowLogHelper(cmd* p_cmd, cliCore* p_cliContext,
                                    cliCmdTable_t* p_cmdTable);
     static void onCliShowLog(void);                                                     //Show log for context- not supported

@@ -67,7 +67,7 @@ cliCore::cliCore(const char* p_moType, const char* p_moName, uint16_t p_moIndex,
 	cliContextDescriptor.childContexts = new QList<cliCore*>;
 	if (p_root) {
 		cliCmdTable = new QList<cliCmdTable_t*>;
-		Log.INFO("cliCore::cliCore: Creating Root cliCore object: %i, for MO-type %s, " \
+		LOG_INFO("Creating Root cliCore object: %i, for MO-type %s, " \
 				 "CLI context: %s-%i" CR, this, p_moType, p_moName, p_moIndex);
 		rootCliContext = this;
 		currentContext = this;
@@ -91,16 +91,16 @@ cliCore::cliCore(const char* p_moType, const char* p_moName, uint16_t p_moIndex,
 		cliContextObjHandle.setOnError(onCliError);
 	}
 	else
-		Log.INFO("cliCore::cliCore: Creating cliCore object: %i, for MO-type %s, " \
+		LOG_INFO("Creating cliCore object: %i, for MO-type %s, " \
 				 "CLI context: %s-%i" CR, this, p_moType, p_moName, p_moIndex);
 }
 
 cliCore::~cliCore(void) {
-	panic("cliCore::~cliCore: destruction not supported");
+	panic("destruction not supported");
 }
 
 void cliCore::regParentContext(const cliCore* p_parentContext) {
-	Log.INFO("cliCore::regParentContext: Registing parent context: %s-%i " \
+	LOG_INFO("Registing parent context: %s-%i " \
              "to context : %s-%i" CR,
 			 ((cliCore*)p_parentContext)->getCliContextDescriptor()->contextName,
 			 ((cliCore*)p_parentContext)->getCliContextDescriptor()->contextIndex,
@@ -110,7 +110,7 @@ void cliCore::regParentContext(const cliCore* p_parentContext) {
 }
 
 void cliCore::unRegParentContext(const cliCore* p_parentContext) {
-	Log.INFO("cliCore::unRegParentContext: Un-registing parent context " \
+	LOG_INFO("Un-registing parent context " \
 			 "to context: %s-%i" CR,
 			 cliContextDescriptor.contextName,
 			 cliContextDescriptor.contextIndex);
@@ -118,7 +118,7 @@ void cliCore::unRegParentContext(const cliCore* p_parentContext) {
 }
 
 void cliCore::regChildContext(const cliCore* p_childContext) {
-	Log.INFO("cliCore::regChildContext: Registing child context: %s-%i " \
+	LOG_INFO("Registing child context: %s-%i " \
 			 "to context : %s-%i" CR,
 			 ((cliCore*)p_childContext)->getCliContextDescriptor()->contextName,
 			 ((cliCore*)p_childContext)->getCliContextDescriptor()->contextIndex,
@@ -128,7 +128,7 @@ void cliCore::regChildContext(const cliCore* p_childContext) {
 }
 
 void cliCore::unRegChildContext(const cliCore* p_childContext) {
-	Log.INFO("cliCore::unRegChildContext: Un-registing child context: " \
+	LOG_INFO("Un-registing child context: " \
 			 "%s-%i from context : %s-%i" CR,
 			 ((cliCore*)p_childContext)->getCliContextDescriptor()->contextName,
 			 ((cliCore*)p_childContext)->getCliContextDescriptor()->contextIndex,
@@ -146,7 +146,7 @@ QList<cliCore*>* cliCore::getChildContexts(cliCore* p_cliContext) {
 }
 
 void cliCore::setContextType(const char* p_contextType) {
-	Log.INFO("cliCore::setContextType: Setting context type: %s" CR, p_contextType);
+	LOG_INFO("Setting context type: %s" CR, p_contextType);
 	if (cliContextDescriptor.moType)
 		delete cliContextDescriptor.moType;
 	cliContextDescriptor.moType = createNcpystr(p_contextType);
@@ -157,7 +157,7 @@ const char* cliCore::getContextType(void) {
 }
 
 void cliCore::setContextName(const char* p_contextName) {
-	Log.INFO("cliCore::setContextName: Setting context name: %s" CR, p_contextName);
+	LOG_INFO("Setting context name: %s" CR, p_contextName);
 	if (cliContextDescriptor.contextName)
 		delete cliContextDescriptor.contextName;
 	cliContextDescriptor.contextName = createNcpystr(p_contextName);
@@ -168,7 +168,7 @@ const char* cliCore::getContextName(void) {
 }
 
 void cliCore::setContextIndex(uint16_t p_contextIndex) {
-	Log.INFO("cliCore::setContextIndex: Setting context index: %i" CR,
+	LOG_INFO("Setting context index: %i" CR,
 				p_contextIndex);
 	cliContextDescriptor.contextIndex = p_contextIndex;
 }
@@ -178,7 +178,7 @@ uint16_t cliCore::getContextIndex(void) {
 }
 
 void cliCore::setContextSysName(const char* p_contextSysName) {
-	Log.INFO("cliCore::setContextSysName: Setting context sysName: %s" CR,
+	LOG_INFO("Setting context sysName: %s" CR,
 				p_contextSysName);
 	cliContextDescriptor.contextSysName = createNcpystr(p_contextSysName);
 }
@@ -188,18 +188,18 @@ const char* cliCore::getContextSysName(void) {
 }
 
 void cliCore::start(void) {
-	Log.INFO("cliCore::start: Starting Telnet and CLI service" CR);
+	LOG_INFO("Starting Telnet and CLI service" CR);
 	telnetServer.regTelnetConnectCb(onCliConnect, NULL);
 	telnetServer.regTelnetInputCb(onRootIngressCmd, NULL);
 	if (telnetServer.start())
-		Log.ERROR("cliCore::start: Could not start the Telnet server" CR);
-	Log.VERBOSE("cliCore::start: Telnet and CLI service successfully started" CR);
+		LOG_ERROR("Could not start the Telnet server" CR);
+	LOG_VERBOSE("Telnet and CLI service successfully started" CR);
 
 }
 
 void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_metaData) {
 	if (p_connected) {
-		Log.INFO("cliCore::onCliConnect: A new CLI seesion from: %s started" CR,
+		LOG_INFO("A new CLI seesion from: %s started" CR,
 					p_clientIp);
 		if (clientIp)
 			delete clientIp;
@@ -211,7 +211,7 @@ void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_met
 		printCli("Type help for Help\a");
 	}
 	else {
-		Log.INFO("cliCore::onCliConnect: The CLI seesion from: %s was closed" CR,
+		LOG_INFO("The CLI seesion from: %s was closed" CR,
 			p_clientIp);
 		if (clientIp)
 			delete clientIp;
@@ -220,13 +220,13 @@ void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_met
 
 void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {
 	//xSemaphoreTake(cliCoreLock, portMAX_DELAY);
-	Log.INFO("cliCore::onRootIngressCmd: A new CLI command received: \"%s\"" CR,
+	LOG_INFO("A new CLI command received: \"%s\"" CR,
 				p_contextCmd);
 	rc_t rc;
 	rc = currentContext->onContextIngressCmd(p_contextCmd, false);
 	currentParsingContext = currentContext;
 	if (rc) {
-		Log.ERROR("cliCore::onRootIngressCmd: Provided CLI context does not exist" CR);
+		LOG_ERROR("Provided CLI context does not exist" CR);
 		printCli("Provided CLI context does not exist\a");
 	}
 	//xSemaphoreGive(cliCoreLock);
@@ -236,25 +236,25 @@ void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {
 rc_t cliCore::onContextIngressCmd(char* p_contextCmd, bool p_setContext) {
 	currentParsingContext = this;
 	char nextHopContextPathRoute[50];
-	Log.INFO("cliCore::onContextIngressCmd: Processing cli context command: \"%s\" " \
+	LOG_INFO("Processing cli context command: \"%s\" " \
 				"at context: %s-%i" CR,
 		p_contextCmd, cliContextDescriptor.contextName,
 		cliContextDescriptor.contextIndex);
 	if (parseContextPath(p_contextCmd, nextHopContextPathRoute)) {
-		Log.VERBOSE("cliCore::onContextIngressCmd: Routing to next hop: %s" CR,
+		LOG_VERBOSE("Routing to next hop: %s" CR,
 					 nextHopContextPathRoute);
 		return contextRoute(nextHopContextPathRoute, p_contextCmd, p_setContext);
 	}
 	else if (p_setContext) {
 		currentContext = this;
-		Log.VERBOSE("cliCore::onContextIngressCmd: On target context %s-%i, " \
+		LOG_VERBOSE("On target context %s-%i, " \
 					 "no routing needed, setting current context" CR,
 					 cliContextDescriptor.contextName, cliContextDescriptor.contextIndex);
 	}
-	Log.VERBOSE("cliCore::onContextIngressCmd: On target context %s-%i, " \
+	LOG_VERBOSE("On target context %s-%i, " \
 				 "no routing needed" CR, cliContextDescriptor.contextName,
 				 cliContextDescriptor.contextIndex);
-	Log.VERBOSE("cliCore::onContextIngressCmd: Parsing command %s in context: %s-%i" CR,
+	LOG_VERBOSE("Parsing command %s in context: %s-%i" CR,
 				 p_contextCmd, cliContextDescriptor.contextName,
 				 cliContextDescriptor.contextIndex);
 	cliContextObjHandle.parse(p_contextCmd);
@@ -300,7 +300,7 @@ bool cliCore::parseContextPath(char* p_cmd, char* p_nextHopContextPathRoute) {
 
 rc_t cliCore::contextRoute(char* p_nextHop, char* p_contextCmd, bool p_setContext) {
 	char contextInstance[50];
-	Log.INFO("cliCore::contextRoute: Routing CLI command \"%s\" from CLI context: " \
+	LOG_INFO("Routing CLI command \"%s\" from CLI context: " \
 				"%s-%i to next hop CLI context: %s" CR, 
 				p_contextCmd,
 				cliContextDescriptor.contextName,
@@ -362,21 +362,19 @@ cliCore* cliCore::getCliContextHandleByPath(const char* p_path) {
 		bool allowEmptyContext = false;
 		if ((path[0] == '.') && (path[1] == '.') && (path[1] = '/')) {
 			if (!traverseContext->cliContextDescriptor.parentContext) {
-				Log.VERBOSE("cliCore::getCliContextHandleByPath: " \
-							"There is no parent context" CR);
+				LOG_VERBOSE("There is no parent context" CR);
 				return NULL;
 			}
 			else {
 				traverseContext = traverseContext->cliContextDescriptor.parentContext;
-				Log.VERBOSE("cliCore::getCliContextHandleByPath: " \
-							"Ascending to parent context" CR);
+				LOG_VERBOSE("Ascending to parent context" CR);
 				allowEmptyContext = true;
 				path += 3;
 			}
 			continue;
 		}
 		if ((path[0] == '.') && (path[1] == '/')) {
-			Log.VERBOSE("cliCore::getCliContextHandleByPath: Staying on context" CR);
+			LOG_VERBOSE("Staying on context" CR);
 			allowEmptyContext = true;
 			path += 2;
 			continue;
@@ -413,8 +411,7 @@ cliCore* cliCore::getCliContextHandleByPath(const char* p_path) {
 				}
 			}
 			if (!found) {													//TR: HIGH ABSOUTE PATHS NOT WORKING, IE: set context /decoder-0/lglink-0
-				Log.VERBOSE("cliCore::getCliContextHandleByPath: " \
-					"Child contexts not found" CR);
+				LOG_VERBOSE("Child contexts not found" CR);
 				return NULL;
 			}
 		}
@@ -475,7 +472,7 @@ rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
 		strcpy(cmdSubMoArgPrint, "-");
 		strcpy(cmdSubMoArg, "");
 	}
-	Log.VERBOSE("cliCore::regCmdMoArg: Registering command: " \
+	LOG_VERBOSE("Registering command: " \
 			   "%s for MO: %s for subMo: %s for cli context: %s-%i" CR,
 			   getCliNameByType(p_commandType),
 			   p_mo, cmdSubMoArgPrint, getContextName(), getContextIndex());
@@ -485,24 +482,33 @@ rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
 			(!strcmp(cliCmdTable->at(i)->subMo, cmdSubMoArg))) {
 			for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
 				if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle == this) {
-					Log.ERROR("cliCore::regCmdMoArg: Cmd: %s, Mo: %s, sub-MO: " \
+					LOG_ERROR("Cmd: %s, Mo: %s, sub-MO: " \
 							  "%s already exists" CR, getCliNameByType(p_commandType),
 							   p_mo, cmdSubMoArg);
 					return RC_ALREADYEXISTS_ERR;
 				}
 			}
 			cliCmdTable->at(i)->contextMap->push_back(new (heap_caps_malloc(sizeof(contextMap_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) contextMap_t);
+			if (!cliCmdTable->at(i)->contextMap->back())
+				panic("Could not create context list item" CR);
 			cliCmdTable->at(i)->contextMap->back()->contextHandle = this;
 			cliCmdTable->at(i)->contextMap->back()->cb = p_cliCmdCb;
 			return RC_OK;
 		}
 	}
 	cliCmdTable->push_back(new (heap_caps_malloc(sizeof(cliCmdTable_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) cliCmdTable_t);
+	if (!cliCmdTable->back())
+		panic("Could not create command table list item" CR);
 	cliCmdTable->back()->cmdType = p_commandType;
 	strcpy(cliCmdTable->back()->mo, p_mo);
 	strcpy(cliCmdTable->back()->subMo, cmdSubMoArg);
-	cliCmdTable->back()->contextMap = new QList< contextMap_t*>;
+	cliCmdTable->back()->contextMap = new (heap_caps_malloc(sizeof(cliCmdTable_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList< contextMap_t*>;
+	if (!cliCmdTable->back()->contextMap)
+		panic("Could not create context map list" CR);
 	cliCmdTable->back()->contextMap->push_back(new (heap_caps_malloc(sizeof(contextMap_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) contextMap_t);
+	if (!cliCmdTable->back()->contextMap->back())
+		panic("Could not create context map list item" CR);
+
 	cliCmdTable->back()->contextMap->back()->contextHandle = this;
 	cliCmdTable->back()->contextMap->back()->cb = p_cliCmdCb;
 	cliCmdTable->back()->commandFlags = NULL;
@@ -511,18 +517,28 @@ rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
 
 rc_t cliCore::unRegCmdMoArg(cliMainCmd_t p_commandType,
 							const char* p_mo, const char* p_cmdSubMoArg) {
-	Log.TERSE("cliCore::unRegCmdMoArg: Un-registering command: " \
+	char cmdSubMoArgPrint[50];
+	char cmdSubMoArg[50];
+	if (p_cmdSubMoArg) {
+		strcpy(cmdSubMoArgPrint, p_cmdSubMoArg);
+		strcpy(cmdSubMoArg, p_cmdSubMoArg);
+	}
+	else {
+		strcpy(cmdSubMoArgPrint, "-");
+		strcpy(cmdSubMoArg, "");
+	}
+	LOG_TERSE("Un-registering command: " \
 			  "%s for MO:%s, sub-MO: %s - for cli context: %s-%i" CR,
 		getCliNameByType(p_commandType),
 		p_mo,
-		p_cmdSubMoArg,
+		cmdSubMoArgPrint,
 		cliContextDescriptor.contextName,
 		cliContextDescriptor.contextIndex);
 
 	for (uint16_t i = 0; i < cliCmdTable->size(); i++) {
 		if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
 			(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
-			(!strcmp(cliCmdTable->at(i)->subMo, p_cmdSubMoArg))) {
+			(!strcmp(cliCmdTable->at(i)->subMo, cmdSubMoArg))) {
 			for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
 				if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle == this) {
 					delete cliCmdTable->at(i)->contextMap->at(j);
@@ -538,7 +554,7 @@ rc_t cliCore::unRegCmdMoArg(cliMainCmd_t p_commandType,
 			return RC_OK;
 		}
 	}
-	Log.ERROR("cliCore::unRegCmdMoArg: Could not un-register command; %s " \
+	LOG_ERROR("Could not un-register command; %s " \
 			  "for MO: %s, sub-MO: %s - does not exist" CR,
 		getCliNameByType(p_commandType),
 		p_mo,
@@ -550,11 +566,16 @@ rc_t cliCore::regCmdFlagArg(cliMainCmd_t p_commandType, const char* p_mo,
 							const char* p_cmdSubMoArg, const char* p_flag,
 							uint8_t p_firstArgPos, bool p_needsValue) {
 	char cmdSubMoArgPrint[50];
-	if (p_cmdSubMoArg)
+	char cmdSubMoArg[50];
+	if (p_cmdSubMoArg) {
 		strcpy(cmdSubMoArgPrint, p_cmdSubMoArg);
-	else
+		strcpy(cmdSubMoArg, p_cmdSubMoArg);
+	}
+	else {
 		strcpy(cmdSubMoArgPrint, "-");
-	Log.VERBOSE("cliCore::regCmdFlagArg: Registering flag: %s for Command: " \
+		strcpy(cmdSubMoArg, "");
+	}
+	LOG_VERBOSE("Registering flag: %s for Command: " \
 			  "%s for sub-Mo: %s for all CLI contexts" CR,
 		p_flag,
 		getCliNameByType(p_commandType),
@@ -562,18 +583,18 @@ rc_t cliCore::regCmdFlagArg(cliMainCmd_t p_commandType, const char* p_mo,
 	for (uint8_t i = 0; i < cliCmdTable->size(); i++) {
 		if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
 			(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
-			(!strcmp(cliCmdTable->at(i)->subMo, p_cmdSubMoArg))) {
+			(!strcmp(cliCmdTable->at(i)->subMo, cmdSubMoArg))) {
 			if (!cliCmdTable->at(i)->commandFlags) {
 				if ((cliCmdTable->at(i)->commandFlags =
 					new (heap_caps_malloc(sizeof(cmdFlags), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) cmdFlags(p_firstArgPos)) == NULL) {
-					panic("cliCore::regCmdFlagArg: Could not create flags argument " \
+					panic("Could not create flags argument " \
 						  "object, rebooting...");
 					return RC_OUT_OF_MEM_ERR;
 				}
 			}
 			rc_t rc = cliCmdTable->at(i)->commandFlags->add(p_flag, p_needsValue);
 			if (rc)
-				panic("cliCore::regCmdFlagArg: Could not add flag %s to command %s - " \
+				panic("Could not add flag %s to command %s - " \
 					  "return code: %i, rebooting...", p_flag,
 					   getCliNameByType(p_commandType), cmdSubMoArgPrint, rc);
 		}
@@ -584,20 +605,25 @@ rc_t cliCore::regCmdFlagArg(cliMainCmd_t p_commandType, const char* p_mo,
 rc_t cliCore::unRegCmdFlagArg(cliMainCmd_t p_commandType, const char* p_mo, 
 							  const char* p_cmdSubMoArg, const char* p_flag) {
 	char cmdSubMoArgPrint[50];
-	if (p_cmdSubMoArg)
+	char cmdSubMoArg[50];
+	if (p_cmdSubMoArg) {
 		strcpy(cmdSubMoArgPrint, p_cmdSubMoArg);
-	else
+		strcpy(cmdSubMoArg, p_cmdSubMoArg);
+	}
+	else {
 		strcpy(cmdSubMoArgPrint, "-");
-	Log.TERSE("cliCore::unRegCmdFlagArg: Un-registering flag: %s for Command: " \
+		strcpy(cmdSubMoArg, "");
+	}
+	LOG_TERSE("Un-registering flag: %s for Command: " \
 			  " %s %s for all CLI contexts" CR,
 			   p_flag, getCliNameByType(p_commandType), cmdSubMoArgPrint);
 	for (uint16_t i = 0; i < cliCmdTable->size(); i++) {
 		if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
 			(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
-			(!strcmp(cliCmdTable->at(i)->subMo, p_cmdSubMoArg))) {
+			(!strcmp(cliCmdTable->at(i)->subMo, cmdSubMoArg))) {
 			if (cliCmdTable->at(i)->commandFlags) {
-				Log.ERROR("cliCore::unRegCmdFlagArg: No Flags entry found for Command: " \
-						  "%s %s" CR, getCliNameByType(p_commandType), p_cmdSubMoArg);
+				LOG_ERROR("No Flags entry found for Command: " \
+						  "%s %s" CR, getCliNameByType(p_commandType), cmdSubMoArgPrint);
 				return RC_NOT_FOUND_ERR;
 			}
 			cliCmdTable->at(i)->commandFlags->remove(p_flag);
@@ -608,40 +634,35 @@ rc_t cliCore::unRegCmdFlagArg(cliMainCmd_t p_commandType, const char* p_mo,
 			return RC_OK;
 		}
 	}
-	Log.ERROR("cliCore::unRegCmdFlagArg: No Command table entry for Command: " \
-			  "%s %s" CR, getCliNameByType(p_commandType), p_cmdSubMoArg);
+	LOG_ERROR("No Command table entry for Command: " \
+			  "%s %s" CR, getCliNameByType(p_commandType), cmdSubMoArgPrint);
 	return RC_NOT_FOUND_ERR;
 }
 
 rc_t cliCore::regCmdHelp(cliMainCmd_t p_commandType, const char* p_mo, 
 						 const char* p_cmdSubMoArg, const char* p_helpText) {
-	char cmdSubMoArgPrint[20];
-	if (p_cmdSubMoArg)
+	char cmdSubMoArgPrint[50];
+	char cmdSubMoArg[50];
+	if (p_cmdSubMoArg) {
 		strcpy(cmdSubMoArgPrint, p_cmdSubMoArg);
-	else
+		strcpy(cmdSubMoArg, p_cmdSubMoArg);
+	}
+	else {
 		strcpy(cmdSubMoArgPrint, "-");
-	Log.VERBOSE("cliCore::regCmdHelp: Registering help text for Command: %s MO: " \
+		strcpy(cmdSubMoArg, "");
+	}
+	LOG_VERBOSE("Registering help text for Command: %s MO: " \
 			  "%s subMO: %s" CR, getCliNameByType(p_commandType), p_mo,
 			   cmdSubMoArgPrint);
 	for (uint16_t i = 0; i < cliCmdTable->size(); i++) {
-		if (p_cmdSubMoArg) {
-			if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
-				(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
-				(!strcmp(cliCmdTable->at(i)->subMo, p_cmdSubMoArg))) {
-				cliCmdTable->at(i)->help = (char*)p_helpText;
-				return RC_OK;
-			}
-		}
-		else{
-			if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
-				(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
-				(!strcmp(cliCmdTable->at(i)->subMo,""))) {
-				cliCmdTable->at(i)->help = (char*)p_helpText;
-				return RC_OK;
-			}
+		if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
+			(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
+			(!strcmp(cliCmdTable->at(i)->subMo, cmdSubMoArg))) {
+			cliCmdTable->at(i)->help = (char*)p_helpText;
+			return RC_OK;
 		}
 	}
-	Log.ERROR("cliCore::regCmdHelp: Registering help text for command: " \
+	LOG_ERROR("Registering help text for command: " \
 			  "%s MO: %s, sub-MO : %s failed, not found" CR,
 			   getCliNameByType(p_commandType), 
 			   p_mo, cmdSubMoArgPrint);
@@ -713,7 +734,7 @@ const char* cliCore::getHelpStr(char* p_helpStrBuff, cliMainCmd_t p_cmdType, con
 
 void cliCore::onCliError(cmd_error* e) {
 	CommandError cmdError(e); // Create wrapper object
-	Log.ERROR("cliCore::onCliError: CLI error:%s" CR, cmdError.toString().c_str());
+	LOG_ERROR("CLI error:%s" CR, cmdError.toString().c_str());
 	notAcceptedCliCommand(CLI_PARSE_ERR, cmdError.toString().c_str());
 	if (cmdError.hasCommand())
 		printCli("Did you mean \"%s\"?. Use \"help\" to show valid commands\a",
@@ -762,15 +783,27 @@ void cliCore::acceptedCliCommand(successCmdTerm_t p_cmdTermType) {
 }
 
 void cliCore::onCliCmd(cmd* p_cmd) {
+	Serial.printf("Entering onCliCmd" CR);
 	Command cmd(p_cmd);
+	bool requiresSubMo = true;
+	for (uint16_t cmdTableItter = 0; cmdTableItter < cliCmdTable->size(); cmdTableItter++) {
+		if (!strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(cmdTableItter)->cmdType))) {
+			Serial.printf("Itterating command %s, registered sub-mo" CR, getCliNameByType(cliCmdTable->at(cmdTableItter)->cmdType), cliCmdTable->at(cmdTableItter)->subMo);
+			if (!strcmp(cliCmdTable->at(cmdTableItter)->subMo, "")) {
+				requiresSubMo = false;
+			}
+			break;
+		}
+	}
+	Serial.printf("Required subMo is %i" CR, requiresSubMo);
+
 	for (uint16_t i = 0; i < cliCmdTable->size(); i++) {
-		if ((!strcmp(cmd.getName().c_str(), getCliNameByType(HELP_CLI_CMD))) &&
-			(!strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(i)->
-					cmdType)))) {
+		if (!strcmp(cmd.getName().c_str(), getCliNameByType(HELP_CLI_CMD))) {
+			Serial.printf("Help Command" CR);
 			for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
 				if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle ==
 					currentParsingContext) {
-					Log.VERBOSE("cliCore::onCliCmd: CLI context %s-%i received a help " \
+					LOG_VERBOSE("CLI context %s-%i received a help " \
 								"command" CR,
 								cliCmdTable->at(i)->contextMap->at(j)->contextHandle->
 									getCliContextDescriptor()->contextName,
@@ -783,39 +816,46 @@ void cliCore::onCliCmd(cmd* p_cmd) {
 					return;
 				}
 			}
-			Log.INFO("cliCore::onCliCmd: Received a Help command which has not been "\
+			LOG_INFO("Received a Help command which has not been "\
 					 "registered" CR);
 			printCli("Command not recognized for this CLI context\a");
 		}
-		if ((!strcmp(cmd.getName().c_str(),
-					 getCliNameByType(cliCmdTable->at(i)->cmdType))) &&
-			(!strcmp(cmd.getArgument(0).getValue().c_str(), 
-					 cliCmdTable->at(i)->subMo))) {
-			for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
-				if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle == 
-					currentParsingContext) {
-					cliCmdTable->at(i)->contextMap->at(j)->contextHandle->cliCmdTable->
-						at(i)->contextMap->at(j)->
-						cb(p_cmd, cliCmdTable->at(i)->contextMap->at(j)->contextHandle,
-							cliCmdTable->at(i));
-					Log.VERBOSE("cliCore::onCliCmd: CLI context %s-%i received a " \
-								"CLI command %s %s" CR,
-								 cliCmdTable->at(i)->contextMap->at(j)->contextHandle->
-									getCliContextDescriptor()->contextName,
-								 cliCmdTable->at(i)->contextMap->at(j)->contextHandle->
-									getCliContextDescriptor()->contextIndex,
-								 cmd.getName().c_str(),
-								 cmd.getArgument(0).getValue().c_str());
-					return;
-				}
-			}
-			Log.INFO("cliCore::onCliCmd: Received a CLI command which has " \
-					 "not been registered" CR);
-			printCli("Command not recognized for this CLI context\a");
-			return;
+		Serial.printf("Not a Help Command" CR);
+		if (strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(i)->cmdType))){
+			Serial.printf("Not looking for %s - continuing" CR, getCliNameByType(cliCmdTable->at(i)->cmdType));
+			continue;
 		}
+
+		if (requiresSubMo && strcmp(cmd.getArgument(0).getValue().c_str(), cliCmdTable->at(i)->subMo)){
+			Serial.printf("Expected submo %s - found subMo %s continuing" CR, cmd.getArgument(0).getValue().c_str(), cliCmdTable->at(i)->subMo);
+			continue;
+		}
+		Serial.printf("Found command %s subMo %s- continuing" CR, getCliNameByType(cliCmdTable->at(i)->cmdType), cliCmdTable->at(i)->subMo);
+
+		for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
+			if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle == 
+				currentParsingContext) {
+				cliCmdTable->at(i)->contextMap->at(j)->contextHandle->cliCmdTable->
+					at(i)->contextMap->at(j)->
+					cb(p_cmd, cliCmdTable->at(i)->contextMap->at(j)->contextHandle,
+						cliCmdTable->at(i));
+				LOG_VERBOSE("CLI context %s-%i received a " \
+							"CLI command %s %s" CR,
+								cliCmdTable->at(i)->contextMap->at(j)->contextHandle->
+								getCliContextDescriptor()->contextName,
+								cliCmdTable->at(i)->contextMap->at(j)->contextHandle->
+								getCliContextDescriptor()->contextIndex,
+								cmd.getName().c_str(),
+								cmd.getArgument(0).getValue().c_str());
+				return;
+			}
+		}
+		LOG_INFO("Received a CLI command which has " \
+					"not been registered" CR);
+		printCli("Command not recognized for this CLI context\a");
+		return;
 	}
-	Log.INFO("cliCore::onCliCmd: The Received CLI command does not exist" CR);
+	LOG_INFO("The Received CLI command does not exist" CR);
 	printCli("Command does not exist\a");
 }
 
@@ -951,10 +991,10 @@ cli_context_descriptor_t* cliCore::getCliContextDescriptor(void) {
 cmdFlags::cmdFlags(uint8_t p_firstValidPos) {
 	firstValidPos = p_firstValidPos;
 	strcpy(parseErrStr, "");
-	flagList = new QList<cmdFlag*>;
-	foundFlagsList = new QList<cmdFlag*>;
+	flagList = new (heap_caps_malloc(sizeof(cmdFlag), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList<cmdFlag*>;
+	foundFlagsList = new (heap_caps_malloc(sizeof(cmdFlag), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList<cmdFlag*>;
 	if (!flagList || !foundFlagsList)
-		panic("cmdFlags::cmdFlags: Could not create flag lists - rebooting..." CR);
+		panic("Could not create flag lists - rebooting..." CR);
 }
 
 cmdFlags::~cmdFlags(void){

@@ -30,7 +30,6 @@
 #include <string.h>
 #include <QList.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "wdt.h"
@@ -48,6 +47,8 @@
 #include "pinout.h"
 #include "esp32SysConfig.h"
 #include "taskWrapper.h"
+#include "logHelpers.h"
+
 class decoder;
 class sat;
 /*==============================================================================================================================================*/

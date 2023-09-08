@@ -1,9 +1,7 @@
 C:\\Users\\jonas\\AppData\\Local\\Temp\\VMBuilds\\genJMRIDecoderClient\\esp32_esp32wroverkit\\Debug\\job.cpp.o: \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\job.cpp \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\job.h \
- c:\users\jonas\documents\arduino\libraries\arduinolog\arduinolog.h \
- c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\arduino.h \
- c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\esp_arduino_version.h \
+ c:\users\jonas\onedrive\projects\modelrailway\genericjmridecoder\client\arduino\genjmridecoderclient\libraries\qlist\0.6.7\qlist\src\qlist.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\freertos\freertos.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\esp_additions\freertos\freertosconfig.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_common\include\esp_compiler.h \
@@ -66,6 +64,9 @@ C:\\Users\\jonas\\AppData\\Local\\Temp\\VMBuilds\\genJMRIDecoderClient\\esp32_es
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\freertos\task.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\freertos\list.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\esp_additions\freertos\task_snapshot.h \
+ c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\rc.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\arduino.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\esp_arduino_version.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\freertos\semphr.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\freertos\queue.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\freertos\task.h \
@@ -132,10 +133,78 @@ C:\\Users\\jonas\\AppData\\Local\\Temp\\VMBuilds\\genJMRIDecoderClient\\esp32_es
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\spi_flash\include\esp_spi_flash.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\spi_flash\include\esp_spi_flash_counters.h \
  c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_hw_support\include\soc\esp32\spiram.h \
- c:\users\jonas\documents\arduino\libraries\qlist\src\qlist.h \
- c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\rc.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\panic.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_system\include\esp_debug_helpers.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\logHelpers.h \
+ c:\users\jonas\onedrive\projects\modelrailway\genericjmridecoder\client\arduino\genjmridecoderclient\libraries\simplesyslog-0.1.1\0.1.1\simplesyslog-0.1.1\simplesyslog.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\wifi.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\print.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\ipv6address.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiType.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_wifi\include\esp_wifi_types.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_wifi\include\esp_private/esp_wifi_types_private.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_hw_support\include\esp_interface.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_event\include\esp_event_base.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiSTA.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiGeneric.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_event\include\esp_event.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_event\include\esp_event_base.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_event\include\esp_event_legacy.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_netif\include\esp_netif.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_netif\include\esp_netif_ip_addr.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_netif\include\esp_netif_types.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_netif\include\esp_netif_defaults.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_eth\include\esp_eth_netif_glue.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_eth\include\esp_eth.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_eth\include\esp_eth_com.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\hal\include\hal\eth_types.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_eth\include\esp_eth_mac.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_eth\include\esp_eth_phy.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\tcpip_adapter\include\tcpip_adapter.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\tcpip_adapter\include\tcpip_adapter_types.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\ip_addr.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\opt.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\port\esp32\include\lwipopts.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\newlib\platform_include\sys\ioctl.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_system\include\esp_task.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\freertos\include\esp_additions\freertos\freertosconfig.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\port\esp32\include\netif/dhcp_state.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\port\esp32\include\sntp/sntp_get_set_time.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\debug.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\arch.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\port\esp32\include\arch\cc.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\port\esp32\include\arch\sys_arch.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\port\esp32\include\arch\vfs_lwip.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\def.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\ip4_addr.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\ip6_addr.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\def.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\lwip\src\include\lwip\ip6_zone.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\lwip\include\apps\dhcpserver\dhcpserver.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_netif\include\esp_netif_sta_list.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\esp_wifi\include\esp_smartconfig.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\wifi_provisioning\include\wifi_provisioning\manager.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\protocomm\include\common\protocomm.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\protocomm\include\security\protocomm_security.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\wifi_provisioning\include\wifi_provisioning\wifi_config.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiAP.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiScan.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiClient.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\client.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiServer.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\server.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\WiFiUdp.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\udp.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\cbuf.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\libraries\wifi\src\wifiudp.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\config.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\esp32SysConfig.h \
+ c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\strHelpers.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\mbedtls\mbedtls\include\mbedtls\base64.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\mbedtls\port\include\mbedtls\esp_config.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\mbedtls\mbedtls\include\mbedtls\config.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\mbedtls\mbedtls\include\mbedtls\check_config.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\mbedtls\port\include\esp_mem.h \
+ c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\fileSys.h \
+ c:\users\jonas\appdata\local\arduino15\packages\esp32\hardware\esp32\2.0.6\tools\sdk\esp32\include\spiffs\include\esp_spiffs.h \
  c:\users\jonas\appdata\local\temp\vmbuilds\genjmridecoderclient\esp32_esp32wroverkit\debug\taskWrapper.h

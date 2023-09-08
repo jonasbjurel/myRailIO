@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "wdt.h"
@@ -44,6 +43,8 @@
 #include "panic.h"
 #include "strHelpers.h"
 #include "xmlHelpers.h"
+#include "logHelpers.h"
+
 class sat;
 class senseDigital;
 
@@ -80,7 +81,6 @@ class senseDigital;
 			EXT_RC = RC_GEN_ERR;\
 			panic("senseBase::CALL_EXT: Non supported type: %s - rebooting" CR, type);\
 		}
-
 
 class senseBase : public systemState, globalCli {
 public:

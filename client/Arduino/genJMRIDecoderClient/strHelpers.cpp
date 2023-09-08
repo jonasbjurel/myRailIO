@@ -43,7 +43,7 @@ char* createNcpystr(const char* src, bool internal) {
     else
         dst = new(heap_caps_malloc(sizeof(char) * (length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[length + 1];
     if (dst == NULL) {
-        Log.ERROR("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
+        LOG_ERROR("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
         ESP.restart();
     }
     strcpy(dst, src);
@@ -129,7 +129,17 @@ const char* trimNlCr(char* p_str) {
     return p_str;
 }
 
-void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen) {
+const char* strTruncMaxLen(char* p_src, uint p_maxStrLen) {
+    if (strlen(p_src) <= p_maxStrLen) {
+        return p_src;
+    }
+    else {
+        memcpy(p_src + p_maxStrLen - 3, "...\0", 4);
+        return p_src;
+    }
+}
+
+const char* strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen) {
     if (strlen(p_src) <= p_maxStrLen) {
         strcpy(p_dest, p_src);
     }
@@ -138,9 +148,10 @@ void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen) {
         memcpy(p_dest + p_maxStrLen - 3, "...\0", 4);
     }
     trimNlCr(p_dest);
+    return p_dest;
 }
 
-void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen) {
+const char* strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen) {
     if (strlen(p_src) + strlen(p_cat) <= p_maxStrLen) {
         strcat(p_src, p_cat);
     }
@@ -160,6 +171,18 @@ void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen) {
         }
     }
     trimNlCr(p_src);
+    return p_src;
+}
+
+const char* fileBaseName(const char* p_filePath) {
+    char* fileNamePtr = (char*)p_filePath;
+    char* fileBaseNamePtr = fileNamePtr;
+    while (*fileNamePtr != '\0') {
+        if (*fileNamePtr == '/' || *fileNamePtr == '\\')
+            fileBaseNamePtr = fileNamePtr + 1;
+        fileNamePtr++;
+    }
+    return fileBaseNamePtr;
 }
 
 /*==============================================================================================================================================*/

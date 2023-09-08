@@ -47,7 +47,7 @@ EXT_RAM_ATTR char telnetCore::ip[20];
 EXT_RAM_ATTR wdt* telnetCore::telnetWdt;
 
 rc_t telnetCore::start(void) {
-	Log.INFO("telnetCore::start: Starting Telnet" CR);
+	LOG_INFO("Starting Telnet" CR);
 	connections = 0;
 	telnet.onConnect(onTelnetConnect);
 	telnet.onConnectionAttempt(onTelnetConnectionAttempt);
@@ -59,7 +59,7 @@ rc_t telnetCore::start(void) {
 		onTelnetInput(str);
 		});
 	if (telnet.begin()) {
-		Log.INFO("decoderCli::init: CLI started" CR);
+		LOG_INFO("Telnet started" CR);
 		if (!eTaskCreate(
 				poll,																		// Task function
 				CPU_TELNET_TASKNAME,														// Task function name reference
@@ -67,10 +67,10 @@ rc_t telnetCore::start(void) {
 				NULL,																		// Parameter passing
 				CPU_TELNET_PRIO,															// Priority 0-24, higher is more
 				CPU_TELNET_STACK_ATTR))														// Task stack attribute
-			panic("telnetCore::start: Could not start Telnet polling task - rebooting..." CR);
+			panic("Could not start Telnet polling task - rebooting..." CR);
 	}
 	else {
-		Log.ERROR("decoderCli::init: Failed to start CLI" CR);
+		LOG_ERROR("Failed to start Telnet" CR);
 		return RC_GEN_ERR;
 	}
 	return RC_OK;
@@ -88,7 +88,7 @@ void telnetCore::regTelnetConnectCb(telnetConnectCb_t p_telnetConnectCb,
 }
 
 void telnetCore::onTelnetConnect(String p_ip) {
-	Log.INFO("telnetCore::onTelnetConnect: CLI connected from: %s" CR, p_ip);
+	LOG_INFO("CLI connected from: %s" CR, p_ip);
 	connections++;
 	strcpy(ip, p_ip.c_str());
 	if (telnetConnectCb)
@@ -96,7 +96,7 @@ void telnetCore::onTelnetConnect(String p_ip) {
 }
 
 void telnetCore::onTelnetDisconnect(String p_ip) {
-	Log.INFO("decoderCli::onTelnetDisconnect: CLI disconnected from: %s" CR, p_ip);
+	LOG_INFO("CLI disconnected from: %s" CR, p_ip);
 	connections--;
 	strcpy(ip, "");
 	if (telnetConnectCb)
@@ -104,15 +104,14 @@ void telnetCore::onTelnetDisconnect(String p_ip) {
 }
 
 void telnetCore::onTelnetReconnect(String p_ip) {
-	Log.INFO("decoderCli::onTelnetReconnect: CLI reconnected from: %s" CR, p_ip);
+	LOG_INFO("dCLI reconnected from: %s" CR, p_ip);
 	strcpy(ip, p_ip.c_str());
 	if (telnetConnectCb)
 		telnetConnectCb(p_ip.c_str(), true, telnetConnectCbMetaData);
 }
 
 void telnetCore::onTelnetConnectionAttempt(String p_ip) {
-	Log.INFO("decoderCli::onTelnetConnectionAttempt: \
-			    CLI connection failed from: %s" CR, p_ip);
+	LOG_INFO("CLI connection failed from: %s" CR, p_ip);
 }
 
 void telnetCore::regTelnetInputCb(telnetInputCb_t p_telnetInputCb,
@@ -122,8 +121,7 @@ void telnetCore::regTelnetInputCb(telnetInputCb_t p_telnetInputCb,
 }
 
 void telnetCore::onTelnetInput(String p_cmd) {
-	Log.VERBOSE("telnetCore::onTelnetInput:" \
-				"Received input from Telnet client: %s" CR, ip);
+	LOG_VERBOSE("Received input from CLI client: %s" CR, ip);
 	if (telnetInputCb)
 		telnetInputCb((char*)p_cmd.c_str(), telnetInputCbMetaData);
 }
@@ -133,7 +131,7 @@ void telnetCore::print(const char* p_output) {
 }
 
 void telnetCore::poll(void* dummy) {
-	Log.INFO("telnetServer::poll: telnet polling started" CR);
+	LOG_INFO("Telnet polling started" CR);
 	telnetWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(10 * 1000, "Telnet watchdog",
 						FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
 	while (true) {

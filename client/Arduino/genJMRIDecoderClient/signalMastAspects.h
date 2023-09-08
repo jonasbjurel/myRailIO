@@ -31,13 +31,14 @@
 #include <stdint.h>
 #include <QList.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "lgLink.h"
 #include "rc.h"
 #include "config.h"
 #include "panic.h"
 #include "strHelpers.h"
 #include "xmlHelpers.h"
+#include "logHelpers.h"
+
 class lgLink;
 
 

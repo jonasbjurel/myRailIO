@@ -31,7 +31,6 @@
 #include <stdint.h>
 #include "networking.h"
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "logHelpers.h"
 #include "rc.h"
 #include "systemState.h"
@@ -178,13 +177,15 @@ class satLink;
 #define XML_DECODER_TZ_AREA							7
 #define XML_DECODER_TZ_GMTOFFSET					8
 #define XML_DECODER_LOGLEVEL						9
-#define XML_DECODER_FAILSAFE						10
-#define XML_DECODER_SYSNAME							11
-#define XML_DECODER_USRNAME							12
-#define XML_DECODER_DESC							13
-#define XML_DECODER_MAC								14
-#define XML_DECODER_URI								15
-#define XML_DECODER_ADMSTATE						16
+#define XML_DECODER_RSYSLOGSERVER					10
+#define XML_DECODER_RSYSLOGPORT						11
+#define XML_DECODER_FAILSAFE						12
+#define XML_DECODER_SYSNAME							13
+#define XML_DECODER_USRNAME							14
+#define XML_DECODER_DESC							15
+#define XML_DECODER_MAC								16
+#define XML_DECODER_URI								17
+#define XML_DECODER_ADMSTATE						18
 
 
 
@@ -221,6 +222,8 @@ public:
 	rc_t getTz(char* p_tz, bool p_force = false);
 	rc_t setLogLevel(const char* p_logLevel, bool p_force = false);
 	const char* getLogLevel(void);
+	rc_t setRSyslogServer(const char* p_uri, uint16_t p_port = RSYSLOG_DEFAULT_PORT, bool p_force = false);
+	rc_t getRSyslogServer(char* p_uri, uint16_t* p_port, bool p_force = false);
 	rc_t setFailSafe(const bool p_failsafe, bool p_force = false);
 	bool getFailSafe(bool p_force = false);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
@@ -244,7 +247,7 @@ private:
 	//Private methods
 
 	//Private data structures
-	char* xmlconfig[17];
+	char* xmlconfig[19];
 	satLink* satLinks[MAX_SATLINKS];
 	lgLink* lgLinks[MAX_LGLINKS];
 	SemaphoreHandle_t decoderLock;

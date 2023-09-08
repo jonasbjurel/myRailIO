@@ -27,7 +27,6 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "lgBase.h"
 #include "lgLink.h"
@@ -35,6 +34,8 @@
 #include "mqttTopics.h"
 #include "config.h"
 #include "panic.h"
+#include "logHelpers.h"
+
 class lgBase;
 class lgLink;
 

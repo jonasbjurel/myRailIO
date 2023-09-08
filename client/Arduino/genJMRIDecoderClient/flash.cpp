@@ -46,10 +46,10 @@ flash::flash(float p_freq, uint8_t p_duty) {
     }
     flashData->onTime = uint32_t((float)(1 / (float)p_freq) * (float)((float)p_duty / 100) * 1000000);
     flashData->offTime = uint32_t((float)(1 / (float)p_freq) * (float)((100 - (float)p_duty) / 100) * 1000000);
-    Log.INFO("flash::flash: Creating flash object %i with flash frequency %f Hz and dutycycle %i" CR, this, p_freq, p_duty); //DOES NOT PRINT DATA CORRECTLY
+    LOG_INFO("Creating flash object %i with flash frequency %f Hz and dutycycle %i" CR, this, p_freq, p_duty); //DOES NOT PRINT DATA CORRECTLY
     flashData->flashState = true;
     if (!(flashLock = xSemaphoreCreateMutex()))
-        panic("flash::flash: Could not create Lock objects - rebooting...");
+        panic("Could not create Lock objects - rebooting...");
     overRuns = 0;
     maxLatency = 0;
     maxAvgSamples = p_freq * FLASH_LATENCY_AVG_TIME;
@@ -63,7 +63,7 @@ flash::flash(float p_freq, uint8_t p_duty) {
         this,                                   // Parameter passing
         FLASH_LOOP_PRIO,                        // Priority 0-24, higher is more
         FLASH_LOOP_STACK_ATTR))                 // Task stack attribute
-        panic("flash::flash: Could not start flash task - rebooting..." CR);
+        panic("Could not start flash task - rebooting..." CR);
 }
 
 flash::~flash(void) {
@@ -74,7 +74,7 @@ flash::~flash(void) {
 }
 
 rc_t flash::subscribe(flashCallback_t p_callback, void* p_args) {
-    Log.INFO("flash::subcribe: Subscribing to flash object %d with callback %d" CR, this, p_callback);
+    LOG_INFO("Subscribing to flash object %d with callback %d" CR, this, p_callback);
     callbackSub_t* newCallbackSub = new (heap_caps_malloc(sizeof(callbackSub_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) callbackSub_t;
     xSemaphoreTake(flashLock, portMAX_DELAY);
     flashData->callbackSubs.push_back(newCallbackSub);
@@ -85,7 +85,7 @@ rc_t flash::subscribe(flashCallback_t p_callback, void* p_args) {
 }
 
 rc_t flash::unSubscribe(flashCallback_t p_callback) {
-    Log.INFO("flash::unSubcribe: Unsubscribing flash callback %d from flash object %d" CR, p_callback, this);
+    LOG_INFO("Unsubscribing flash callback %d from flash object %d" CR, p_callback, this);
     uint16_t i = 0;
     bool found = false;
     xSemaphoreTake(flashLock, portMAX_DELAY);
@@ -95,7 +95,7 @@ rc_t flash::unSubscribe(flashCallback_t p_callback) {
         }
         if (flashData->callbackSubs.get(i)->callback == p_callback)
             found = true;
-        Log.INFO("flash::unSubcribe: Deleting flash subscription %d from flash object %d" CR, p_callback, this);
+        LOG_INFO("Deleting flash subscription %d from flash object %d" CR, p_callback, this);
         delete flashData->callbackSubs.get(i);
         flashData->callbackSubs.clear(i);
     }
@@ -104,7 +104,7 @@ rc_t flash::unSubscribe(flashCallback_t p_callback) {
         return RC_OK;
     }
     else {
-        Log.ERROR("flash::unSubcribe: Could not find flash subscription %d from flash object %d to delete" CR, p_callback, this);
+        LOG_ERROR("Could not find flash subscription %d from flash object %d to delete" CR, p_callback, this);
         xSemaphoreGive(flashLock);
         return RC_NOT_FOUND_ERR;
     }
@@ -121,7 +121,7 @@ void flash::flashLoop(void) {
     uint16_t latencyIndex = 0;
     uint32_t latency = 0;
     flashData->flashState = false;
-    Log.INFO("flash::flashLoop: Starting flash object %d" CR, this);
+    LOG_INFO("Starting flash object %d" CR, this);
     while (true) {
         thisLoopTime = nextLoopTime;
         if (flashData->flashState) {
@@ -150,7 +150,7 @@ void flash::flashLoop(void) {
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }
         else {
-            Log.VERBOSE("flash::flashLoop: Flash object %d overrun - %i uS" CR, this, - delay);
+            LOG_VERBOSE("Flash object %d overrun - %i uS" CR, this, - delay);
             xSemaphoreTake(flashLock, portMAX_DELAY);
             overRuns++;
             xSemaphoreGive(flashLock);

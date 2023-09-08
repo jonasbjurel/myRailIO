@@ -32,9 +32,7 @@
 #include<ctype.h>
 #include <string.h>
 #include <cstddef>
-#include <ArduinoLog.h>
 #include "rc.h"
-#include "logHelpers.h"
 
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */

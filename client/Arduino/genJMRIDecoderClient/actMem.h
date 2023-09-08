@@ -26,7 +26,6 @@
 /*==============================================================================================================================================*/
 #include <cstddef>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "actBase.h"
@@ -34,6 +33,8 @@
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
+#include "logHelpers.h"
+
 class actBase;
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */

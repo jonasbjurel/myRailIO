@@ -35,7 +35,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <QList.h>
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "panic.h"
 #include "config.h"

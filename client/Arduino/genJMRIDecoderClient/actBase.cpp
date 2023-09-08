@@ -41,7 +41,7 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     actPort = p_actPort;
     satAddr = satHandle->getAddr();
     satLinkNo = satHandle->linkHandle->getLink();
-    Log.INFO("actBase::actBase: Creating actBase stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, p_actPort, satAddr, satLinkNo);
+    LOG_INFO("Creating actBase stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, p_actPort, satAddr, satLinkNo);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "act-%d", p_actPort);
     setSysStateObjName(sysStateObjName);
@@ -49,7 +49,7 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSysStateChangeHelper);
     if (!(actLock = xSemaphoreCreateMutex()))
-        panic("actBase::actBase: Could not create Lock objects - rebooting...");
+        panic("Could not create Lock objects - rebooting...");
     xmlconfig[XML_ACT_SYSNAME] = NULL;
     xmlconfig[XML_ACT_USRNAME] = NULL;
     xmlconfig[XML_ACT_DESC] = NULL;
@@ -64,13 +64,13 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
 }
 
 actBase::~actBase(void) {
-    panic("actBase::~actBase: actBase destructior not supported - rebooting...");
+    panic("actBase destructior not supported - rebooting...");
 }
 
 rc_t actBase::init(void) {
-    Log.INFO("actBase::init: Initializing stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
+    LOG_INFO("Initializing stem-object for actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
     /* CLI decoration methods */
-    Log.INFO("actBase::init: Registering CLI methods for actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
+    LOG_INFO("Registering CLI methods for actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
     //Global and common MO Commands
     regGlobalNCommonCliMOCmds();
     // get/set port
@@ -95,8 +95,8 @@ rc_t actBase::init(void) {
 
 void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-        panic("actBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
-    Log.INFO("actBase::onConfig: actuator port %d, on satelite adress %d, satLink %d received an uverified configuration, parsing and validating it..." CR, actPort, satAddr, satLinkNo);
+        panic("Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
+    LOG_INFO("actuator port %d, on satelite adress %d, satLink %d received an uverified configuration, parsing and validating it..." CR, actPort, satAddr, satLinkNo);
 
     //PARSING CONFIGURATION
     const char* actSearchTags[7];
@@ -111,19 +111,19 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
 
     //VALIDATING AND SETTING OF CONFIGURATION
     if (!xmlconfig[XML_ACT_SYSNAME])
-        panic("actBase::onConfig: SystemNane missing - rebooting...");
+        panic("SystemNane missing - rebooting...");
     if (!xmlconfig[XML_ACT_USRNAME])
-        panic("actBase::onConfig: User name missing - rebooting...");
+        panic("User name missing - rebooting...");
     if (!xmlconfig[XML_ACT_DESC])
-        panic("actBase::onConfig: Description missing - rebooting...");
+        panic("Description missing - rebooting...");
     if (!xmlconfig[XML_ACT_PORT])
-        panic("actBase::onConfig: Port missing - rebooting...");
+        panic("Port missing - rebooting...");
     if (!xmlconfig[XML_ACT_TYPE])
-        panic("actBase::onConfig: Type missing - rebooting...");
+        panic("Type missing - rebooting...");
     if (atoi((const char*)xmlconfig[XML_ACT_PORT]) != actPort)
-        panic("actBase::onConfig: Port No inconsistant - rebooting...");
+        panic("Port No inconsistant - rebooting...");
     if (xmlconfig[XML_ACT_ADMSTATE] == NULL) {
-        Log.WARN("actBase::onConfig: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        LOG_WARN("Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
         xmlconfig[XML_ACT_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_ACT_ADMSTATE], "ENABLE")) {
@@ -133,74 +133,74 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
         setOpStateByBitmap(OP_DISABLED);
     }
     else
-        panic("actBase::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_ACT_ADMSTATE]);
+        panic("Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_ACT_ADMSTATE]);
 
     //SHOW FINAL CONFIGURATION
-    Log.INFO("actBase::onConfig: System name: %s" CR, xmlconfig[XML_ACT_SYSNAME]);
-    Log.INFO("actBase::onConfig: User name: %s" CR, xmlconfig[XML_ACT_USRNAME]);
-    Log.INFO("actBase::onConfig: Description: %s" CR, xmlconfig[XML_ACT_DESC]);
-    Log.INFO("actBase::onConfig: Port: %s" CR, xmlconfig[XML_ACT_PORT]);
-    Log.INFO("actBase::onConfig: Type: %s" CR, xmlconfig[XML_ACT_TYPE]);
-    Log.INFO("actBase::onConfig: act admin state: %s" CR, xmlconfig[XML_ACT_ADMSTATE]);
+    LOG_INFO("System name: %s" CR, xmlconfig[XML_ACT_SYSNAME]);
+    LOG_INFO("User name: %s" CR, xmlconfig[XML_ACT_USRNAME]);
+    LOG_INFO("Description: %s" CR, xmlconfig[XML_ACT_DESC]);
+    LOG_INFO("Port: %s" CR, xmlconfig[XML_ACT_PORT]);
+    LOG_INFO("Type: %s" CR, xmlconfig[XML_ACT_TYPE]);
+    LOG_INFO("act admin state: %s" CR, xmlconfig[XML_ACT_ADMSTATE]);
 
     //CONFIFIGURING ACTUATORS
     //if (xmlconfig[XML_ACT_PROPERTIES])
-    //    Log.INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
+    //    LOG_INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
     if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
-            Log.INFO("actBase::onConfig: actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR);
+            LOG_INFO("actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR);
             extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
         }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "LIGHT")) {
-        Log.INFO("actBase::onConfig: actuator type is light - programing act-stem object by creating an lightAct extention class object" CR);
+        LOG_INFO("actuator type is light - programing act-stem object by creating an lightAct extention class object" CR);
         extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actLight), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "MEMORY")) {
-        Log.INFO("actBase::onConfig: actuator type is memory - programing act-stem object by creating an memAct extention class object" CR);
+        LOG_INFO("actuator type is memory - programing act-stem object by creating an memAct extention class object" CR);
         extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actMem), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actMem(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else
-        panic("actBase::onConfig: actuator type not supported");
+        panic("actuator type not supported");
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], init());
     //if (xmlconfig[XML_ACT_PROPERTIES]) {
-    //    Log.INFO("actBase::onConfig: Configuring the actuator base stem-object with properties" CR);
+    //    LOG_INFO("Configuring the actuator base stem-object with properties" CR);
     //    ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onConfig(p_actXmlElement->FirstChildElement("Properties")));
     //}
     //else
-    //    Log.INFO("actBase::onConfig: No properties provided for base stem-object" CR);
+    //    LOG_INFO("No properties provided for base stem-object" CR);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
-    Log.INFO("actBase::onConfig: Configuration successfully finished" CR);
+    LOG_INFO("Configuration successfully finished" CR);
 }
 
 rc_t actBase::start(void) {
-    Log.INFO("actBase::start: Starting actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
+    LOG_INFO("Starting actuator port %d, on satelite adress %d, satLink %d" CR, actPort, satAddr, satLinkNo);
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, actPort, satAddr, satLinkNo);
+        LOG_INFO("actuator port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, actPort, satAddr, satLinkNo);
         setOpStateByBitmap(OP_UNUSED);
         unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
     unSetOpStateByBitmap(OP_UNUSED);
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED) {
-        Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d not yet discovered - starting it anyway" CR, actPort, satAddr, satLinkNo);
+        LOG_INFO("actuator port %d, on satelite adress %d, satLink %d not yet discovered - starting it anyway" CR, actPort, satAddr, satLinkNo);
     }
-    Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d - starting extention class" CR, actPort, satAddr, satLinkNo);
+    LOG_INFO("actuator port %d, on satelite adress %d, satLink %d - starting extention class" CR, actPort, satAddr, satLinkNo);
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], start());
-    Log.INFO("actBase::start: Subscribing to adm- and op state topics" CR);
+    LOG_INFO("Subscribing to adm- and op state topics" CR);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ACT_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
     if (mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this))
-        panic("actBase::start: Failed to suscribe to admState topic - rebooting...");
+        panic("Failed to suscribe to admState topic - rebooting...");
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
     if (mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this))
-        panic("actBase::start: Failed to suscribe to opState topic - rebooting...");
+        panic("Failed to suscribe to opState topic - rebooting...");
     //wdt::wdtRegActuatorFailsafe(wdtKickedHelper, this);
     unSetOpStateByBitmap(OP_INIT);
-    Log.INFO("actBase::start: actuator port %d, on satelite adress %d, satLink %d has started" CR, actPort, satAddr, satLinkNo);
+    LOG_INFO("actuator port %d, on satelite adress %d, satLink %d has started" CR, actPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
 void actBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
-    Log.INFO("actBase::onDiscovered: actuator port %d, on satelite adress %d, satLink %d discovered" CR, actPort, satAddr, satLinkNo);
+    LOG_INFO("actuator port %d, on satelite adress %d, satLink %d discovered" CR, actPort, satAddr, satLinkNo);
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
         systemState::unSetOpStateByBitmap(OP_UNDISCOVERED);
@@ -212,7 +212,7 @@ void actBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
     if (!(getOpStateBitmap() & OP_UNCONFIGURED))
         ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onDiscovered(p_sateliteLibHandle, p_exists));
     else 
-        Log.WARN("actBase::onDiscovered: actuator port %d, on satelite adress %d, satLink %d discovered, but was not configured" CR, actPort, satAddr, satLinkNo);
+        LOG_WARN("actuator port %d, on satelite adress %d, satLink %d discovered, but was not configured" CR, actPort, satAddr, satLinkNo);
 }
 
 void actBase::onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sysState) {
@@ -221,14 +221,14 @@ void actBase::onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sys
 
 void actBase::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    Log.INFO("sat::onSysStateChange: sat-%d:act-%d has a new OP-state: %s" CR, satAddr, actPort, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    LOG_INFO("sat-%d:act-%d has a new OP-state: %s" CR, satAddr, actPort, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
     newSysState = p_sysState;
     sysState_t sysStateChange = newSysState ^ prevSysState;
     if (!sysStateChange)
         return;
     failsafe(newSysState != OP_WORKING);
-    Log.INFO("actBase::onSysStateChange: ActPort-%d has a new OP-state: %s" CR, actPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    LOG_INFO("ActPort-%d has a new OP-state: %s" CR, actPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -238,7 +238,7 @@ void actBase::onSysStateChange(sysState_t p_sysState) {
     }
     if ((newSysState & OP_INTFAIL)) {
         prevSysState = newSysState;
-        panic("actBase::onSysStateChange: act has experienced an internal error - informing server and rebooting..." CR);
+        panic("act has experienced an internal error - informing server and rebooting..." CR);
         return;
     }
     prevSysState = newSysState;
@@ -256,7 +256,7 @@ void actBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, 
 
 void actBase::onOpStateChange(const char* p_topic, const char* p_payload) {
     sysState_t newServerOpState;
-    Log.INFO("actBase::onOpStateChange: got a new opState from server: %s" CR, p_payload);
+    LOG_INFO("Got a new opState from server: %s" CR, p_payload);
     newServerOpState = getOpStateBitmapByStr(p_payload);
     setOpStateByBitmap(newServerOpState & OP_CBL);
     unSetOpStateByBitmap(~newServerOpState & OP_CBL);
@@ -269,14 +269,14 @@ void actBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload,
 void actBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         unSetOpStateByBitmap(OP_DISABLED);
-        Log.INFO("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got online message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
+        LOG_INFO("actuator port %d, on satelite adress %d, satLink %d got online message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpStateByBitmap(OP_DISABLED);
-        Log.INFO("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
+        LOG_INFO("actuator port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
     }
     else
-        Log.ERROR("actBase::onAdmStateChange: actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
+        LOG_ERROR("actuator port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, actPort, satAddr, satLinkNo, p_payload);
 }
 
 void actBase::wdtKickedHelper(void* p_actuatorBaseHandle) {
@@ -288,13 +288,13 @@ void actBase::wdtKicked(void) {
 }
 
 rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {
-    Log.ERROR("actBase::setSystemName: cannot set System name - not suppoted" CR);
+    LOG_ERROR("Cannot set System name - not suppoted" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* actBase::getSystemName(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        Log.ERROR("actBase::getSystemName: cannot get System name as actuator is not configured" CR);
+        LOG_ERROR("Cannot get System name as actuator is not configured" CR);
         return NULL;
     }
     return (const char*)xmlconfig[XML_ACT_SYSNAME];
@@ -302,15 +302,15 @@ const char* actBase::getSystemName(bool p_force) {
 
 rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {                               //LETS MOVE THESE CHECKS TO GLOBALCLI
-        Log.ERROR("actBase::setUsrName: cannot set User name as debug is inactive" CR);
+        LOG_ERROR("Cannot set User name as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::setUsrName: cannot set System name as actuator is not configured" CR);
+        LOG_ERROR("Cannot set System name as actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.INFO("actBase::setUsrName: Setting User name to %s" CR, p_usrName);
+        LOG_INFO("actBase::setUsrName: Setting User name to %s" CR, p_usrName);
         delete (char*)xmlconfig[XML_ACT_USRNAME];
         xmlconfig[XML_ACT_USRNAME] = createNcpystr(p_usrName);
         return RC_OK;
@@ -319,7 +319,7 @@ rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
 
 const char* actBase::getUsrName(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        Log.ERROR("actBase::getUsrName: cannot get User name as actuator is not configured" CR);
+        LOG_ERROR("Cannot get User name as actuator is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_ACT_USRNAME];
@@ -327,15 +327,15 @@ const char* actBase::getUsrName(bool p_force) {
 
 rc_t actBase::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        Log.ERROR("actBase::setDesc: cannot set Description as debug is inactive" CR);
+        LOG_ERROR("Cannot set Description as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::setDesc: cannot set Description as actuator is not configured" CR);
+        LOG_ERROR("Cannot set Description as actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        Log.INFO("actBase::setDesc: Setting Description to %s" CR, p_description);
+        LOG_INFO("Setting Description to %s" CR, p_description);
         delete xmlconfig[XML_ACT_DESC];
         xmlconfig[XML_ACT_DESC] = createNcpystr(p_description);
         return RC_OK;
@@ -344,20 +344,20 @@ rc_t actBase::setDesc(const char* p_description, bool p_force) {
 
 const char* actBase::getDesc(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        Log.ERROR("actBase::getDesc: cannot get Description as actuator is not configured" CR);
+        LOG_ERROR("Cannot get Description as actuator is not configured" CR);
         return NULL;
     }
     return xmlconfig[XML_ACT_DESC];
 }
 
 rc_t actBase::setPort(uint8_t p_port) {
-    Log.ERROR("actBase::setPort: cannot set port - not supported" CR);
+    LOG_ERROR("Cannot set port - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 int8_t actBase::getPort(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        Log.ERROR("actBase::getPort: cannot get Port as actuator is not configured" CR);
+        LOG_ERROR("Cannot get Port as actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     return actPort;
@@ -365,11 +365,11 @@ int8_t actBase::getPort(bool p_force) {
 
 rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force) {
     if (!debug || !p_force) {
-        Log.ERROR("actBase::setProperty: cannot set Actuator property as debug is inactive" CR);
+        LOG_ERROR("Cannot set Actuator property as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::setProperty: cannot set Actuator property as Actuator is not configured" CR);
+        LOG_ERROR("Cannot set Actuator property as Actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setProperty(p_propertyId, p_propertyVal));
@@ -378,7 +378,7 @@ rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool 
 
 rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::getProperty: cannot get Actuator property as Actuator is not configured" CR);
+        LOG_ERROR("Cannot get Actuator property as Actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getProperty(p_propertyId, p_propertyVal));
@@ -387,7 +387,7 @@ rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
 
 rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::getShowing: cannot get Actuator showing as Actuator is not configured" CR);
+        LOG_ERROR("Cannot get Actuator showing as Actuator is not configured" CR);
         p_showing = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -398,11 +398,11 @@ rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing) {
 
 rc_t actBase::setShowing(const char* p_showing, bool p_force) {
     if (!debug || !p_force) {
-        Log.ERROR("actBase::setShowing: cannot set Actuator showing as debug is inactive" CR);
+        LOG_ERROR("Cannot set Actuator showing as debug is inactive" CR);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        Log.ERROR("actBase::setShowing: cannot set Actuator showing as Actuator is not configured" CR);
+        LOG_ERROR("Cannot set Actuator showing as Actuator is not configured" CR);
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setShowing(p_showing));
@@ -410,12 +410,12 @@ rc_t actBase::setShowing(const char* p_showing, bool p_force) {
 }
 
 const char* actBase::getLogLevel(void) {
-    if (!transformLogLevelInt2XmlStr(Log.getLevel())) {
-        Log.ERROR("actBase::satLink: Could not retrieve a valid Log-level" CR);
+    if (!Log.transformLogLevelInt2XmlStr(Log.getLogLevel())) {
+        LOG_ERROR("Could not retrieve a valid Log-level" CR);
         return NULL;
     }
     else {
-        return transformLogLevelInt2XmlStr(Log.getLevel());
+        return Log.transformLogLevelInt2XmlStr(Log.getLogLevel());
     }
 }
 

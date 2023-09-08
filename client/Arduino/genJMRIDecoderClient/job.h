@@ -24,12 +24,13 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
+class job;
+
 #include <stdlib.h>
 #include <cstddef>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <ArduinoLog.h>
 #include <QList.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -37,6 +38,7 @@
 #include "panic.h"
 #include "config.h"
 #include "taskWrapper.h"
+#include "logHelpers.h"
 
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -50,8 +52,12 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-
+//Call-back prototypes
+typedef void (*jobOverloadCb_t)(bool p_overload);
 typedef void(*jobCb_t)(void* jobCbMetaData);
+
+//Definitions
+#define PURGE_JOB_PRIO                              ESP_TASK_PRIO_MAX - 5
 
 struct jobdesc_t {
     TaskHandle_t taskHandle;
@@ -65,12 +71,20 @@ struct lapseDesc_t {
     QList<jobdesc_t*>* jobDescList;
 };
 
+
+
 class job {
 public:
     //Public methods
     job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio);
     ~job(void);
-    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio);
+    void regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData);
+    void unRegOverloadCb(void);
+    void setjobQueueUnsetOverloadLevel(uint16_t p_unsetOverloadLevel);
+    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio, bool p_purge = false);
+    void purge(void);
+    bool getOverload(void);
+    uint16_t getPendingJobSlots(void);
 
     //Public data structures
     //--
@@ -81,6 +95,15 @@ private:
     void jobProcess(void);
 
     //Private data structures
+    TaskHandle_t jobTaskHandle;
+    uint8_t processTaskPrio;
+    uint16_t jobQueueDepth;
+    jobOverloadCb_t jobOverloadCb;
+    void* jobOverloadCbMetaData;
+    bool overloaded;
+    uint16_t unsetOverloadLevel;
+    uint16_t bumpJobSlotPrio;
+    bool purgeAllJobs;
     QList<lapseDesc_t*>* lapseDescList;
     SemaphoreHandle_t jobLock;
     SemaphoreHandle_t jobSleepSemaphore;

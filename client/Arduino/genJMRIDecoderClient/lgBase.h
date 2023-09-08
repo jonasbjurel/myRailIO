@@ -31,7 +31,6 @@
 #include <string.h>
 #include <stdint.h>
 #include "libraries/tinyxml2/tinyxml2.h"
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "systemState.h"
 #include "wdt.h"
@@ -45,6 +44,8 @@
 #include "xmlHelpers.h"
 #include "lgLink.h"
 #include "lgSignalMast.h"
+#include "logHelpers.h"
+
 class lgLink;
 class lgSignalMast;
 

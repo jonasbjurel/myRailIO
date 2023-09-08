@@ -32,7 +32,6 @@
 #include<ctype.h>
 #include <string.h>
 #include <cstddef>
-#include <ArduinoLog.h>
 #include "rc.h"
 #include "logHelpers.h"
 
@@ -54,8 +53,10 @@ bool isIntNumberStr(const char* p_numberStr);
 bool isFloatNumberStr(const char* p_numberStr);
 char* trimSpace(char* p_s);
 const char* trimNlCr(char* p_str);
-void strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen);
-void strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen);
+const char* strTruncMaxLen(char* p_src, uint p_maxStrLen);
+const char* strcpyTruncMaxLen(char* p_dest, const char* p_src, uint p_maxStrLen);
+const char* strcatTruncMaxLen(char* p_src, const char* p_cat, uint p_maxStrLen);
+const char* fileBaseName(const char* p_filePath);
 
 /*==============================================================================================================================================*/
 /* END strHelpers                                                                                                                               */

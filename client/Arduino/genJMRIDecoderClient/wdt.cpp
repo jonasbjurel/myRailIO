@@ -138,7 +138,7 @@ void wdt::kickHelper(wdt* p_wdtObject) {
 }
 
 void wdt::kick(void) {
-    Log.error("wdt::kick: Watchdog timer: %s expired" CR, wdtData->wdtDescription);
+    LOG_ERROR("wdt::kick: Watchdog timer: %s expired" CR, wdtData->wdtDescription);
     if (wdtData->wdtAction & FAULTACTION_FAILSAFE_ACTUATORS);
         callFailsafeCbs(&(wdtCbLists.actuatorsWdtCbs));
     if (wdtData->wdtAction & FAULTACTION_FAILSAFE_LGS)

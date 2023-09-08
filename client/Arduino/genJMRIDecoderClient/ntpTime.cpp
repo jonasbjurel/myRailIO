@@ -39,7 +39,7 @@
 EXT_RAM_ATTR ntpDescriptor_t ntpTime::ntpDescriptor;
 
 void ntpTime::init(void) {
-	Log.TERSE("ntpTime::init: Initializing ntptime" CR);
+	LOG_TERSE("Initializing ntptime" CR);
 	ntpDescriptor.ntpServerIndexMap = 0;
 	ntpDescriptor.opState = NTP_CLIENT_DISABLED | NTP_CLIENT_NOT_SYNCHRONIZED;
 	ntpDescriptor.dhcp = false;
@@ -55,7 +55,7 @@ void ntpTime::init(void) {
 }
 
 rc_t ntpTime::start(bool p_dhcp) {
-	Log.TERSE("ntpTime::start: Starting ntptime" CR);
+	LOG_TERSE("Starting ntptime" CR);
 	sntp_setoperatingmode(SNTP_OPMODE_POLL);
 	sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
 	sntp_set_sync_interval(ntpDescriptor.pollPeriodMs * 1000);
@@ -76,7 +76,7 @@ rc_t ntpTime::start(bool p_dhcp) {
 }
 
 rc_t ntpTime::stop(void) {
-	Log.TERSE("ntpTime::stop: Stopping ntptime" CR);
+	LOG_TERSE("Stopping ntptime" CR);
 	sntp_stop();
 	setNtpOpState(&ntpDescriptor, NTP_CLIENT_DISABLED);
 	sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
@@ -85,11 +85,11 @@ rc_t ntpTime::stop(void) {
 }
 
 rc_t ntpTime::restart(void) {
-	Log.TERSE("ntpTime::restart: Restarting ntptime" CR);
+	LOG_TERSE("Restarting ntptime" CR);
 	ntpOpState_t opState;
 	getNtpOpState(&opState);
 	if (opState & NTP_CLIENT_DISABLED) {
-		Log.INFO("ntpTime::restart: Cannot restart NTP-client, as it is not running" CR);
+		LOG_INFO("Cannot restart NTP-client, as it is not running" CR);
 		return RC_NOTRUNNING_ERR;
 	}
 	sntp_restart();
@@ -102,9 +102,9 @@ bool ntpTime::getNtpDhcp(void) {
 
 rc_t ntpTime::addNtpServer(IPAddress p_ntpServerAddr, uint16_t p_port) {
 	ip_addr_t ntpHostAddr;
-	Log.TERSE("ntpTime::addNtpServer: Adding NTP server: %s:%i" CR, p_ntpServerAddr.toString().c_str(), p_port);
+	LOG_TERSE("Adding NTP server: %s:%i" CR, p_ntpServerAddr.toString().c_str(), p_port);
 	if (!ipaddr_aton(p_ntpServerAddr.toString().c_str(), &ntpHostAddr)) {
-		Log.WARN("ntpTime::addNtpServer: %s is not a valid IP Address" CR, p_ntpServerAddr.toString().c_str());
+		LOG_WARN("%s is not a valid IP Address" CR, p_ntpServerAddr.toString().c_str());
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
@@ -115,7 +115,7 @@ rc_t ntpTime::addNtpServer(IPAddress p_ntpServerAddr, uint16_t p_port) {
 		}
 	}
 	if (i >= NTP_MAX_NTPSERVERS) {
-		Log.WARN("ntpTime::addNtpServer: Cannot add another NTP server, maximum number (%i) of servers already configured" CR, NTP_MAX_NTPSERVERS);
+		LOG_WARN("Cannot add another NTP server, maximum number (%i) of servers already configured" CR, NTP_MAX_NTPSERVERS);
 		return RC_MAX_REACHED_ERR;
 	}
 	sntp_setserver(i, &ntpHostAddr);
@@ -132,9 +132,9 @@ rc_t ntpTime::addNtpServer(IPAddress p_ntpServerAddr, uint16_t p_port) {
 }
 
 rc_t ntpTime::addNtpServer(const char* p_ntpServerName, uint16_t p_port) {
-	Log.TERSE("ntpTime::addNtpServer: Adding NTP server: %s:%i" CR, p_ntpServerName, p_port);
+	LOG_TERSE("Adding NTP server: %s:%i" CR, p_ntpServerName, p_port);
 	if (!isUri(p_ntpServerName)){
-		Log.WARN("ntpTime::addNtpServer: %s is not a valid URI" CR, p_ntpServerName);
+		LOG_WARN("%s is not a valid URI" CR, p_ntpServerName);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
@@ -145,7 +145,7 @@ rc_t ntpTime::addNtpServer(const char* p_ntpServerName, uint16_t p_port) {
 		}
 	}
 	if (i >= NTP_MAX_NTPSERVERS) {
-		Log.WARN("ntpTime::addNtpServer: Cannot add another NTP server, maximum number (%i) of servers already configured" CR, NTP_MAX_NTPSERVERS);
+		LOG_WARN("Cannot add another NTP server, maximum number (%i) of servers already configured" CR, NTP_MAX_NTPSERVERS);
 		return RC_MAX_REACHED_ERR;
 	}
 	sntp_setservername(i, p_ntpServerName);
@@ -170,7 +170,7 @@ rc_t ntpTime::deleteNtpServer(IPAddress p_ntpServerAddr) {
 		}
 	}
 	if (i >= ntpDescriptor.ntpServerHosts->size()) {
-		Log.WARN("ntpTime::deleteNtpServer: %s not found" CR, p_ntpServerAddr.toString().c_str());
+		LOG_WARN("%s not found" CR, p_ntpServerAddr.toString().c_str());
 		return RC_NOT_FOUND_ERR;
 	}
 	sntp_setservername(i, NULL);
@@ -184,7 +184,7 @@ rc_t ntpTime::deleteNtpServer(IPAddress p_ntpServerAddr) {
 
 rc_t ntpTime::deleteNtpServer(const char* p_ntpServerName) {
 	if (!isUri(p_ntpServerName)){
-		Log.WARN("ntpTime::deleteNtpServer: %s is not a valid URI" CR, p_ntpServerName);
+		LOG_WARN("%s is not a valid URI" CR, p_ntpServerName);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
@@ -195,7 +195,7 @@ rc_t ntpTime::deleteNtpServer(const char* p_ntpServerName) {
 		}
 	}
 	if (i >= ntpDescriptor.ntpServerHosts->size()) {
-		Log.WARN("ntpTime::deleteNtpServer: %s not found" CR, p_ntpServerName);
+		LOG_WARN("%s not found" CR, p_ntpServerName);
 		return RC_NOT_FOUND_ERR;
 	}
 	sntp_setservername(i, NULL);
@@ -221,7 +221,7 @@ rc_t ntpTime::deleteNtpServer(void) {
 rc_t ntpTime::getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_serverStatus) {
 	ip_addr_t ntpHostAddr;
 	if (!ipaddr_aton(p_ntpServerAddr->toString().c_str(), &ntpHostAddr)) {
-		Log.WARN("ntpTime::getNtpServer: %s is not a valid IP Address" CR, p_ntpServerAddr->toString().c_str());
+		LOG_WARN("%s is not a valid IP Address" CR, p_ntpServerAddr->toString().c_str());
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
@@ -230,7 +230,7 @@ rc_t ntpTime::getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_
 			break;
 	}
 	if (i >= ntpDescriptor.ntpServerHosts->size()) {
-		Log.WARN("ntpTime::getNtpServer: %s not found" CR, p_ntpServerAddr->toString().c_str());
+		LOG_WARN("%s not found" CR, p_ntpServerAddr->toString().c_str());
 		return RC_NOT_FOUND_ERR;
 	}
 	p_serverStatus = ntpDescriptor.ntpServerHosts->at(i);
@@ -239,7 +239,7 @@ rc_t ntpTime::getNtpServer(const IPAddress* p_ntpServerAddr, ntpServerHost_t* p_
 
 rc_t ntpTime::getNtpServer(const char* p_ntpServerName, ntpServerHost_t* p_serverStatus) {
 	if (!isUri(p_ntpServerName)) {
-		Log.WARN("ntpTime::getNtpServer: %s is not a valid URI" CR, p_ntpServerName);
+		LOG_WARN("%s is not a valid URI" CR, p_ntpServerName);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	uint8_t i;
@@ -248,7 +248,7 @@ rc_t ntpTime::getNtpServer(const char* p_ntpServerName, ntpServerHost_t* p_serve
 			break;
 	}
 	if (i >= ntpDescriptor.ntpServerHosts->size()) {
-		Log.WARN("ntpTime::getNtpServer: %s not found" CR, p_ntpServerName);
+		LOG_WARN("%s not found" CR, p_ntpServerName);
 		return RC_NOT_FOUND_ERR;
 	}
 	p_serverStatus = ntpDescriptor.ntpServerHosts->at(i);
@@ -281,9 +281,9 @@ rc_t ntpTime::getNtpOpStateStr(char* p_ntpOpStateStr) {
 
 rc_t ntpTime::setSyncMode(const uint8_t p_syncMode){
 	char syncModeStr[50];
-	Log.INFO("ntpTime::setSyncMode: Changing NTP sync mode to %s" CR, syncModeToStr(syncModeStr, p_syncMode));
+	LOG_INFO("Changing NTP sync mode to %s" CR, syncModeToStr(syncModeStr, p_syncMode));
 	if (p_syncMode != SNTP_SYNC_MODE_IMMED && p_syncMode != SNTP_SYNC_MODE_SMOOTH){
-		Log.WARN("ntpTime::setSyncMode: %i is not a valid NTP Sync mode" CR, p_syncMode);
+		LOG_WARN("%i is not a valid NTP Sync mode" CR, p_syncMode);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	sntp_set_sync_mode((sntp_sync_mode_t)p_syncMode);
@@ -294,9 +294,9 @@ rc_t ntpTime::setSyncMode(const uint8_t p_syncMode){
 }
 rc_t ntpTime::setSyncModeStr(const char* p_syncModeStr){
 	uint8_t syncMode;
-	Log.INFO("ntpTime::setSyncMode: Changing NTP sync mode to %s" CR, p_syncModeStr);
+	LOG_INFO("Changing NTP sync mode to %s" CR, p_syncModeStr);
 	if (syncModeToInt(p_syncModeStr, &syncMode)) {
-		Log.WARN("ntpTime::setSyncMode: %s is not a valid NTP Sync mode" CR, p_syncModeStr);
+		LOG_WARN("%s is not a valid NTP Sync mode" CR, p_syncModeStr);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	sntp_set_sync_mode((sntp_sync_mode_t)syncMode);
@@ -330,7 +330,7 @@ rc_t ntpTime::setTimeOfDay(const char* p_timeOfDayStr, char* p_resultStr) {
 	ntpDescriptor_t ntpDescriptor;
 	struct tm t;
 	rc_t rc;
-	Log.TERSE("ntpTime::setTimeOfDay: Setting time of day from string to %s" CR, p_timeOfDayStr);
+	LOG_TERSE("Setting time of day from string to %s" CR, p_timeOfDayStr);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
 	ntpOpState_t opState;
@@ -338,13 +338,13 @@ rc_t ntpTime::setTimeOfDay(const char* p_timeOfDayStr, char* p_resultStr) {
 	if (!(opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time while NTP Client is running");
-		Log.WARN("ntpTime::setTimeOfDay: Cannot set time while NTP Client is running" CR);
+		LOG_WARN("Cannot set time while NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if (!strptime(p_timeOfDayStr, "%Y-%m-%dT%H:%M:%S", &t)){
 		if (p_resultStr)
 			sprintf(p_resultStr, "Not a valid time format %s, expected format \"YYYY-MM-DDTHH:MM:SS\"" CR, p_timeOfDayStr);
-		Log.WARN("ntpTime::setTimeOfDay: Not a valid time format %s, expected format \"YYYY-MM-DDTHH:MM:SS\"" CR, p_timeOfDayStr);
+		LOG_WARN("Not a valid time format %s, expected format \"YYYY-MM-DDTHH:MM:SS\"" CR, p_timeOfDayStr);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	if (rc = setTimeOfDay(&t)) {
@@ -352,40 +352,40 @@ rc_t ntpTime::setTimeOfDay(const char* p_timeOfDayStr, char* p_resultStr) {
 		case RC_PARAMETERVALUE_ERR:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set time of day, % s is not a valid time of day, expected format is YYYY - MM - DDTHH:MM:SS" CR, p_timeOfDayStr);
-			Log.WARN("globalCli::setTimeOfDay: Cannot set time of day, % s is not a valid time of day, expected format is YYYY - MM - DDTHH:MM:SS" CR, p_timeOfDayStr);
+			LOG_WARN("Cannot set time of day, % s is not a valid time of day, expected format is YYYY - MM - DDTHH:MM:SS" CR, p_timeOfDayStr);
 			break;
 		case RC_ALREADYRUNNING_ERR:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set time of day while NTP client is running" CR);
-			Log.WARN("globalCli::setTimeOfDay: Cannot set time of day while NTP client is running" CR);
+			LOG_WARN("Cannot set time of day while NTP client is running" CR);
 			break;
 		case RC_GEN_ERR:
 		default:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time of day - general error" CR);
-			Log.WARN("globalCli::setTimeOfDay: Cannot set time of day - general error" CR);
+			LOG_WARN("Cannot set time of day - general error" CR);
 			break;
 		}
 		return rc;
 	}
-	Log.VERBOSE("ntpTime::setTimeOfDay: Successfully set time of day" CR);
+	LOG_VERBOSE("Successfully set time of day" CR);
 	return RC_OK;
 }
 
 rc_t ntpTime::setTimeOfDay(tm* p_tm, char* p_resultStr) {
 	timeval tv;
 	tv.tv_usec = 0;
-	Log.TERSE("ntpTime::setTimeOfDay: Setting time of day from tm" CR);
+	LOG_TERSE("Setting time of day from tm" CR);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
-		Log.WARN("ntpTime::setTimeOfDay: Cannot set time as NTP Client is running" CR);
+		LOG_WARN("Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if ((tv.tv_sec = mktime(p_tm)) < 0 || settimeofday(&tv, NULL)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time of day, \"tm struct\" is not a valid time of day");
-		Log.WARN("ntpTime::setTimeOfDay: Cannot set time of day, \"tm struct\"is not a valid time of day" CR);
+		LOG_WARN("Cannot set time of day, \"tm struct\"is not a valid time of day" CR);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	return RC_OK;
@@ -417,20 +417,20 @@ rc_t ntpTime::setEpochTime(const char* p_epochTimeStr, char* p_resultStr) {
 	tv.tv_usec = 0;
 	tv.tv_sec = atoi(p_epochTimeStr);
 	rc_t rc;
-	Log.TERSE("ntpTime::setEpochTime: Setting epoch time from string to %s" CR, p_epochTimeStr);
+	LOG_TERSE("Setting epoch time from string to %s" CR, p_epochTimeStr);
 
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time as NTP Client is running");
-		Log.WARN("ntpTime::setEpochTime: Cannot set time as NTP Client is running" CR);
+		LOG_WARN(": Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if (!isIntNumberStr(p_epochTimeStr) || atoi(p_epochTimeStr) <= 0) {
 		if (p_resultStr)
-			sprintf(p_resultStr, "globalCli::onCliSetTime: Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
-		Log.WARN("globalCli::setEpochTime: Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
+			sprintf(p_resultStr, "Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
+		LOG_WARN("Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	if (rc = setEpochTime(&tv, NULL)) {
@@ -438,18 +438,18 @@ rc_t ntpTime::setEpochTime(const char* p_epochTimeStr, char* p_resultStr) {
 		case RC_PARAMETERVALUE_ERR:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
-			Log.WARN("globalCli::setEpochTime: Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
+			LOG_WARN("Cannot set epoch time, %s is not a valid epoch time" CR, p_epochTimeStr);
 			break;
 		case RC_ALREADYRUNNING_ERR:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time while NTP client is running" CR);
-			Log.WARN("globalCli::setEpochTime: Cannot set epoch time while NTP client is running" CR);
+			LOG_WARN("Cannot set epoch time while NTP client is running" CR);
 			break;
 		case RC_GEN_ERR:
 		default:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time - general error" CR);
-			Log.WARN("globalCli::setEpochTime: Cannot set epoch time - general error" CR);
+			LOG_WARN("Cannot set epoch time - general error" CR);
 			break;
 		}
 		return rc;
@@ -458,19 +458,19 @@ rc_t ntpTime::setEpochTime(const char* p_epochTimeStr, char* p_resultStr) {
 }
 
 rc_t ntpTime::setEpochTime(const timeval* p_tv, char* p_resultStr) {
-	Log.TERSE("ntpTime::setEpochTime: Setting epoch time from tv to %i" CR, p_tv->tv_sec);
+	LOG_TERSE("Setting epoch time from tv to %i" CR, p_tv->tv_sec);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time as NTP Client is running");
-		Log.WARN("ntpTime::setEpochTime: Cannot set time as NTP Client is running" CR);
+		LOG_WARN("Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if (settimeofday(p_tv, NULL)){
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set epoch time, \"tv struct\" is not a valid epoch time");
-		Log.WARN("globalCli::setEpochTime: Cannot set epoch time, \"tv struct\" is not a valid epoch time" CR);
+		LOG_WARN("Cannot set epoch time, \"tv struct\" is not a valid epoch time" CR);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	return RC_OK;
@@ -489,7 +489,7 @@ rc_t ntpTime::getEpochTime(timeval* p_tv) {
 }
 
 rc_t ntpTime::setTz(const char* p_tz, char* p_resultStr) {
-	Log.TERSE("ntpTime::setTz: Setting time-zone from string to %s" CR, p_tz);
+	LOG_TERSE("Setting time-zone from string to %s" CR, p_tz);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
 	setenv("TZ", p_tz, 1);
@@ -515,9 +515,9 @@ rc_t ntpTime::setDayLightSaving(bool p_daylightSaving) {
 	timezone tz;
 	tm t;
 	if(p_daylightSaving)
-		Log.TERSE("ntpTime::setDayLightSaving: Setting daylightsaving to \"true\"" CR);
+		LOG_TERSE("Setting daylightsaving to \"true\"" CR);
 	else
-		Log.TERSE("ntpTime::setDayLightSaving: Setting daylightsaving to \"false\"" CR);
+		LOG_TERSE("Setting daylightsaving to \"false\"" CR);
 	gettimeofday(&tv, &tz);
 	
 	t = *localtime(&(tv.tv_sec));
@@ -621,27 +621,27 @@ void ntpTime::sntpCb(timeval* p_tv) {
 	case SNTP_SYNC_STATUS_RESET:
 		ntpDescriptor.opState = ntpDescriptor.opState | NTP_CLIENT_NOT_SYNCHRONIZED;
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_SYNCHRONIZING;
-		Log.WARN("ntpTime::sntpCb: NTP not synchronized and is not synchronizing" CR);
+		LOG_WARN("NTP not synchronized and is not synchronizing" CR);
 		break;
 	case SNTP_SYNC_STATUS_IN_PROGRESS:
 		ntpDescriptor.opState = ntpDescriptor.opState | NTP_CLIENT_SYNCHRONIZING;
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_NOT_SYNCHRONIZED;
-		Log.INFO("ntpTime::sntpCb: NTP is in the process of synchronizing" CR);
+		LOG_INFO("NTP is in the process of synchronizing" CR);
 		break;
 	case SNTP_SYNC_STATUS_COMPLETED:
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_SYNCHRONIZING;
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_NOT_SYNCHRONIZED;
-		Log.INFO("ntpTime::sntpCb: NTP is fully synchronized" CR);
+		LOG_INFO("NTP is fully synchronized" CR);
 		break;
 	default:
-		Log.ERROR("ntpTime::sntpCb: Got an unexpected NTP synchronization state %i - resetting the NTP state-mashine" CR, ntpDescriptor.syncStatus);
+		LOG_ERROR("Got an unexpected NTP synchronization state %i - resetting the NTP state-mashine" CR, ntpDescriptor.syncStatus);
 		sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
 		break;
 	};
 	for(uint8_t i=0; i<ntpDescriptor.ntpServerHosts->size(); i++)
 		ntpDescriptor.ntpServerHosts->at(i)->reachability = sntp_getreachability(ntpDescriptor.ntpServerHosts->at(i)->index);
 	updateNtpDescriptorStr(&ntpDescriptor);
-	Log.VERBOSE("ntpTime::sntpCb: Got an NTP server response with epoch time %i" CR, p_tv->tv_sec);
+	LOG_VERBOSE("Got an NTP server response with epoch time %i" CR, p_tv->tv_sec);
 }
 /*==============================================================================================================================================*/
 /* END class time                                                                                                                               */

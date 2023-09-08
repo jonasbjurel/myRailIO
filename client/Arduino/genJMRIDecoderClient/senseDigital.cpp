@@ -45,59 +45,59 @@ senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     filteredSenseVal = SENSDIGITAL_DEFAULT_FAILSAFE;
     debug = false;
 
-    Log.INFO("senseDigital::senseDigital: Creating senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("Creating senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     senseDigitalLock = xSemaphoreCreateMutex();
     if (senseDigitalLock == NULL)
-        panic("senseDigital::senseDigital: Could not create Lock objects - rebooting...");
+        panic("Could not create Lock objects - rebooting...");
 }
 
 senseDigital::~senseDigital(void) {
-    panic("senseDigital::~senseDigital: senseDigital destructior not supported - rebooting...");
+    panic("SenseDigital destructior not supported - rebooting...");
 }
 
 rc_t senseDigital::init(void) {
-    Log.INFO("senseDigital::init: Initializing senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("Initializing senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
 void senseDigital::onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElement) {
-    panic("senseDigital::onConfig: Did not expect any configuration for senseDigital sensor extention object for sensor port");
+    panic("Did not expect any configuration for senseDigital sensor extention object for sensor port");
     //Potential extention properties: sensor filtering time,...
 }
 
 rc_t senseDigital::start(void) {
-    Log.INFO("senseDigital::start: Starting senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("Starting senseDigital sensor extention object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
 void senseDigital::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
     if (p_exists) {
-        Log.INFO("senseDigital::onDiscovered: sensor discovered, extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+        LOG_INFO("sensor discovered, extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
         satLibHandle = p_sateliteLibHandle;
         satLibHandle->setSenseFilter(DEFAULT_SENS_FILTER_TIME, sensPort);
     }
     else {
-        Log.INFO("senseDigital::onDiscovered: sensor removed, extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+        LOG_INFO("sensor removed, extention class object for digital sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
         satLibHandle = NULL;
     }
 }
 
 void senseDigital::onSysStateChange(uint16_t p_sysState) {
     sysState = p_sysState;
-    Log.INFO("senseDigital::onSystateChange: Got a new systemState %d for senseDigital extention class object %s, on sensor port %d, on satelite adress %d, satLink %d" CR, sysState, sensPort, satAddr, satLinkNo);
+    LOG_INFO("Got a new systemState %d for senseDigital extention class object %s, on sensor port %d, on satelite adress %d, satLink %d" CR, sysState, sensPort, satAddr, satLinkNo);
 
     if (!sysState)
         onSenseChange(filteredSenseVal);
 }
 
 void senseDigital::onSenseChange(bool p_filteredSensorVal) {
-    Log.VERBOSE("senseDigital::onSensChange, sensorvalue have changed to: %i" CR, p_filteredSensorVal);
+    LOG_VERBOSE("sensorvalue have changed to: %i" CR, p_filteredSensorVal);
     filteredSenseVal = p_filteredSensorVal;
     if (!failSafe) {
         char publishTopic[300];
         sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_TOPIC, "/", mqtt::getDecoderUri(), "/", sensSysName);
         if (mqtt::sendMsg(publishTopic, ("%s", filteredSenseVal ? MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD), false))
-            Log.ERROR("senseDigital::onSensChange: Failed to send sensor value" CR);
+            LOG_ERROR("Failed to send sensor value" CR);
     }
 }
 
@@ -107,23 +107,23 @@ void senseDigital::failsafe(bool p_failSafe) {
         char publishTopic[300];
         sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_TOPIC, "/", mqtt::getDecoderUri(), "/", sensSysName);
         if (mqtt::sendMsg(publishTopic, MQTT_SENS_DIGITAL_FAILSAFE_PAYLOAD, false))
-            Log.ERROR("senseDigital::onSensChange: Failed to send sensor value" CR);
+            LOG_ERROR("Failed to send sensor value" CR);
     }
     else {
-        Log.INFO("actLight::setFailSafe: Fail-safe un-set for light actuator %s" CR, sensSysName);
+        LOG_INFO("Fail-safe un-set for light actuator %s" CR, sensSysName);
         failSafe = p_failSafe;
         onSenseChange(filteredSenseVal);
     }
 }
 
 rc_t senseDigital::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
-    Log.INFO("senseDigital::setProperty: Setting Digital sensor property for %s, property Id %d, property value %s" CR, sensSysName, p_propertyId, p_propertyValue);
+    LOG_INFO("Setting Digital sensor property for %s, property Id %d, property value %s" CR, sensSysName, p_propertyId, p_propertyValue);
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }
 
 rc_t senseDigital::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
-    Log.INFO("senseDigital::getProperty: Not supported" CR);
+    LOG_INFO("Not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }
