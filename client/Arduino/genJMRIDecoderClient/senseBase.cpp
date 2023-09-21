@@ -37,20 +37,22 @@
 /*==============================================================================================================================================*/
 
 senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(SENSOR_MO_NAME, SENSOR_MO_NAME, p_sensPort, p_satHandle) {
-satHandle = p_satHandle;
+    asprintf(&logContextName, "%s/%s-%i", p_satHandle->getLogContextName(), "senseBase", p_sensPort);
+    LOG_INFO("%s: Creating senseBase stem-object" CR, logContextName);
+    satHandle = p_satHandle;
     sensPort = p_sensPort;
     satLinkNo = satHandle->linkHandle->getLink();
     satAddr = satHandle->getAddr();
-    LOG_INFO("senseBase::senseBase: Creating senseBase stem-object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sens-%d", p_sensPort);
     setSysStateObjName(sysStateObjName);
-    if (!(sensLock = xSemaphoreCreateMutex()))
-        panic("senseBase::senseBase: Could not create Lock objects - rebooting...");
+    if (!(sensLock = xSemaphoreCreateMutex())){
+        panic("%s: Could not create Lock objects", logContextName);
+        return;
+    }
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSystateChangeHelper);
-
     xmlconfig[XML_SENS_SYSNAME] = NULL;
     xmlconfig[XML_SENS_USRNAME] = NULL;
     xmlconfig[XML_SENS_DESC] = NULL;
@@ -64,14 +66,14 @@ satHandle = p_satHandle;
 }
 
 senseBase::~senseBase(void) {
-    panic("senseBase::~senseBase: senseBase destructior not supported - rebooting...");
+    panic("%s: senseBase destructor not supported", logContextName);
 }
 
 rc_t senseBase::init(void) {
-    LOG_INFO("senseBase::init: Initializing stem-object for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: Initializing senseBase stem-object" CR, logContextName);
 
     /* CLI decoration methods */
-    LOG_INFO("senseBase::init: Registering CLI methods for sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: Registering senseBase specific CLI methods" CR, logContextName);
     //Global and common MO Commands
     regGlobalNCommonCliMOCmds();
     // get/set port
@@ -87,14 +89,16 @@ rc_t senseBase::init(void) {
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_GET_SENSORPROPERTY_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
     regCmdHelp(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_SET_SENSORPROPERTY_HELP_TXT);
-    LOG_INFO("senseBase::init: CLI methods for sensor port %d, on satelite adress %d, satLink %d reistered" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: senseBase specific CLI methods reistered" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
 void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
-    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-        panic("senseBase:onConfig: Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
-    LOG_INFO("senseBase::onConfig: sensor port %d, on satelite adress %d, satLink %d received an uverified configuration, parsing and validating it..." CR, sensPort, satAddr, satLinkNo);
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)){
+        panic("%s: Received a configuration, while the it was already configured, dynamic re-configuration not supported", logContextName);
+        return;
+    }
+    LOG_INFO("%s: Received an uverified configuration, parsing and validating it..." CR, logContextName);
 
     //PARSING CONFIGURATION
     const char* sensSearchTags[6];
@@ -108,20 +112,35 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
     getTagTxt(p_sensXmlElement->FirstChildElement(), sensSearchTags, xmlconfig, sizeof(sensSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
-    if (!xmlconfig[XML_SENS_SYSNAME])
-        panic("senseBase::onConfig: JMRISystemName missing - rebooting...");
-    if (!xmlconfig[XML_SENS_USRNAME])
-        panic("senseBase::onConfig: JMRIUser name missing - rebooting...");
-    if (!xmlconfig[XML_SENS_DESC])
-        panic("senseBase::onConfig: JMRIDescription missing - rebooting...");
-    if (!xmlconfig[XML_SENS_PORT])
-        panic("senseBase::onConfig: Port missing - rebooting...");
-    if (!xmlconfig[XML_SENS_TYPE])
-        panic("senseBase::onConfig: Type missing - rebooting...");
-    if (atoi((const char*)xmlconfig[XML_SENS_PORT]) != sensPort)
-        panic("senseBase::onConfig: Port No inconsistant - rebooting...");
+    if (!xmlconfig[XML_SENS_SYSNAME]){
+        panic("%s: JMRISystemName missing", logContextName);
+        return;
+    }
+    if (!xmlconfig[XML_SENS_USRNAME]){
+        LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_SENS_SYSNAME]);
+        xmlconfig[XML_SENS_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_SENS_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_SENS_SYSNAME]) + 15];
+        sprintf(xmlconfig[XML_SENS_USRNAME], "%s-Username", xmlconfig[XML_SENS_SYSNAME]);
+        return;
+    }
+    if (!xmlconfig[XML_SENS_DESC]){
+        LOG_WARN("%s: Description was not provided - using \"-\"" CR, logContextName);
+        xmlconfig[XML_SENS_DESC] = createNcpystr("-");
+        return;
+    }
+    if (!xmlconfig[XML_SENS_PORT]){
+        panic("%s: Port missing");
+        return;
+    }
+    if (!xmlconfig[XML_SENS_TYPE]){
+        panic("%s: Type missing", logContextName);
+        return;
+    }
+    if (atoi((const char*)xmlconfig[XML_SENS_PORT]) != sensPort){
+        panic("%s:Port No inconsistant", logContextName);
+        return;
+    }
     if (xmlconfig[XML_SENS_ADMSTATE] == NULL) {
-        LOG_WARN("senseBase::onConfig: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        LOG_WARN("%s: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR, logContextName);
         xmlconfig[XML_SENS_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_SENS_ADMSTATE], "ENABLE")) {
@@ -130,25 +149,29 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
     else if (!strcmp(xmlconfig[XML_SENS_ADMSTATE], "DISABLE")) {
         setOpStateByBitmap(OP_DISABLED);
     }
-    else
-        panic("senseBase::onConfig: Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_SENS_ADMSTATE]);
+    else{
+        panic("%s: Admin state: %s is none of \"ENABLE\" or \"DISABLE\"", xmlconfig[XML_SENS_ADMSTATE], logContextName);
+        return;
+    }
 
     //SHOW FINAL CONFIGURATION
-    LOG_INFO("senseBase::onConfig: System name: %s" CR, xmlconfig[XML_SENS_SYSNAME]);
-    LOG_INFO("senseBase::onConfig: User name: %s" CR, xmlconfig[XML_SENS_USRNAME]);
-    LOG_INFO("senseBase::onConfig: Description: %s" CR, xmlconfig[XML_SENS_DESC]);
-    LOG_INFO("senseBase::onConfig: Port: %s" CR, xmlconfig[XML_SENS_PORT]);
-    LOG_INFO("senseBase::onConfig: Type: %s" CR, xmlconfig[XML_SENS_TYPE]);
-    LOG_INFO("senseBase::onConfig: sense admin state: %s" CR, xmlconfig[XML_SENS_ADMSTATE]);
+    LOG_INFO("%s: Sense system name: %s" CR, logContextName, xmlconfig[XML_SENS_SYSNAME]);
+    LOG_INFO("%s: Sense user name: %s" CR, logContextName, xmlconfig[XML_SENS_USRNAME]);
+    LOG_INFO("%s: Sense description: %s" CR, logContextName, xmlconfig[XML_SENS_DESC]);
+    LOG_INFO("%s: Sense port: %s" CR, logContextName, xmlconfig[XML_SENS_PORT]);
+    LOG_INFO("%s: Sense type: %s" CR, logContextName, xmlconfig[XML_SENS_TYPE]);
+    LOG_INFO("%s: Sense admin state: %s" CR, logContextName, xmlconfig[XML_SENS_ADMSTATE]);
 
     //CONFIFIGURING SENSORS
     if (!strcmp((const char*)xmlconfig[XML_SENS_TYPE], "DIGITAL")) {
-        LOG_INFO("senseBase::onConfig: Sensor type is digital - programing sens-stem object by creating a senseDigital extention class object" CR);
+        LOG_INFO("%s: Sensor-type is digital - programing sens-stem object by creating a senseDigital extention class object" CR, logContextName);
         extentionSensClassObj = (void*) new (heap_caps_malloc(sizeof(senseDigital), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) senseDigital(this);
     }
     // else if (other sensor types) {...}
-    else
-        panic("senseBase::onConfig: sensor type not supported");
+    else{
+        panic("Sensor type not supported");
+        return;
+    }
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], init());
     //if (xmlconfig[XML_SENS_PROPERTIES]) {
     //    LOG_INFO("senseBase::onConfig: Configuring the sensor base stem-object with properties" CR);
@@ -157,39 +180,43 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
     //else
     //    LOG_INFO("senseBase::onConfig: No properties provided for base stem-object" CR);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
-    LOG_INFO("senseBase::onConfig: Configuration successfully finished" CR);
+    LOG_INFO("%s: Configuration successfully finished" CR, logContextName);
 }
 
 rc_t senseBase::start(void) {
-    LOG_INFO("senseBase::start: Starting sensor port %d, on satelite adress %d, satLink %d" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: Starting sensor" CR, logContextName);
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_INFO("senseBase::start: sensor port %d, on satelite adress %d, satLink %d not configured - will not start it" CR, sensPort, satAddr, satLinkNo);
+        LOG_INFO("%s: Sensor port not configured - will not start it" CR, logContextName);
         setOpStateByBitmap(OP_UNUSED);
         unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
     unSetOpStateByBitmap(OP_UNUSED);
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED) {
-        LOG_INFO("senseBase::start: sensor port %d, on satelite adress %d, satLink %d not yet discovered - starting it anyway" CR, sensPort, satAddr, satLinkNo);
+        LOG_INFO("%s: Sensor port not yet discovered - starting it anyway" CR, logContextName);
     }
-    LOG_INFO("senseBase::start: sensor port %d, on satelite adress %d, satLink %d - starting extention class" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: Starting extention class" CR, logContextName);
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], start());
-    LOG_INFO("senseBase::start: Subscribing to adm- and op state topics" CR);
+    LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     rc_t rc;
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SENS_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-    if (rc = mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this))
-        panic("senseBase::start: Failed to suscribe to admState topic, return code: %i - rebooting..." CR, rc);
+    if (rc = mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to admState topic \"%s\", return code: %i", logContextName, subscribeTopic, rc);
+        return RC_GEN_ERR;
+    }
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-    if (rc = mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this))
-        panic("senseBase::start: Failed to suscribe to opState topic, return code: %i - rebooting..." CR, rc);
+    if (rc = mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to opState topic \"%s\", return code: %i", logContextName, subscribeTopic, rc);
+        return RC_GEN_ERR;
+    }
     unSetOpStateByBitmap(OP_INIT);
-    LOG_INFO("senseBase::start: sensor port %d, on satelite adress %d, satLink %d has started" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: Sensor port has started" CR, logContextName);
     return RC_OK;
 }
 
 void senseBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
-    LOG_INFO("senseBase::onDiscovered: sensor port %d, on satelite adress %d, satLink %d discovered" CR, sensPort, satAddr, satLinkNo);
+    LOG_INFO("%s: Sensor port discovered" CR, logContextName);
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
         systemState::unSetOpStateByBitmap(OP_UNDISCOVERED);
@@ -201,7 +228,7 @@ void senseBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
     if (!(getOpStateBitmap() & OP_UNCONFIGURED))
         SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], onDiscovered(p_sateliteLibHandle, p_exists));
     else
-        LOG_INFO("senseBase::onDiscovered: sensor port %d, on satelite adress %d, satLink %d discovered, but was not configured" CR, sensPort, satAddr, satLinkNo);
+        LOG_INFO("%s: Sensor port discovered, but was not configured" CR, logContextName);
 }
 
 void senseBase::onSenseChange(bool p_senseVal) {
@@ -210,7 +237,7 @@ void senseBase::onSenseChange(bool p_senseVal) {
     else {
         char opStateStr[100];
         getOpStateStr(opStateStr);
-        LOG_TERSE("senseBase::onSenseChange: Sensor has changed to %i, but senseBase has opState: %s and is not OP_WORKING, doing nothing..." CR, p_senseVal, opStateStr);
+        LOG_TERSE("%s: Sensor has changed to %i, but senseBase has opState: %s and is not OP_WORKING, doing nothing..." CR, logContextName, p_senseVal, opStateStr);
     }
 }
 
@@ -220,7 +247,7 @@ void senseBase::onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t 
 
 void senseBase::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    LOG_INFO("senseBase::onSysStateChange: sat-%d:sens-%d has a new OP-state: %s" CR, satAddr, sensPort, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    LOG_INFO("%s: sensBase has a new OP-state: %s" CR, logContextName, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
     newSysState = p_sysState;
     sysState_t sysStateChange = newSysState ^ prevSysState;
@@ -228,7 +255,7 @@ void senseBase::onSysStateChange(sysState_t p_sysState) {
         return;
     }
     failsafe(newSysState != OP_WORKING);
-    LOG_INFO("sensBase::onSysStateChange: sensPort-%d has a new OP-state: %s" CR, sensPort, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    LOG_INFO("%s: sensBase has a new OP-state: %s" CR, logContextName, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -238,7 +265,7 @@ void senseBase::onSysStateChange(sysState_t p_sysState) {
     }
     if ((newSysState & OP_INTFAIL)) {
         prevSysState = newSysState;
-        panic("senseBase::onSysStateChange: act has experienced an internal error - informing server and rebooting..." CR);
+        panic("%s: sensBase has experienced an internal error - informing server", logContextName);
         return;
     }
     prevSysState = newSysState;
@@ -255,7 +282,7 @@ void senseBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload
 
 void senseBase::onOpStateChange(const char* p_topic, const char* p_payload) {
     sysState_t newServerOpState;
-    LOG_INFO("senseBase::onOpStateChange: got a new opState from server: %s" CR, p_payload);
+    LOG_INFO("%s: Got a new opState from server: %s" CR, logContextName, p_payload);
     newServerOpState = getOpStateBitmapByStr(p_payload);
     setOpStateByBitmap(newServerOpState & OP_CBL);
     unSetOpStateByBitmap(~newServerOpState & OP_CBL);
@@ -268,14 +295,14 @@ void senseBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payloa
 void senseBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         unSetOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got online message from server %s" CR, sensPort, satAddr, satLinkNo, p_payload);
+        LOG_INFO("%s: senseBase got online message from server %s" CR, logContextName, p_payload);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got off-line message from server %s" CR, sensPort, satAddr, satLinkNo, p_payload);
+        LOG_INFO("%s: senseBase got an off-line message from server %s" CR, logContextName, p_payload);
     }
     else
-        LOG_ERROR("senseBase::onAdmStateChange: sensor port %d, on satelite adress %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, sensPort, satAddr, satLinkNo, p_payload);
+        LOG_ERROR("%s: senseBase got an invalid admstate message from server %s - doing nothing" CR, logContextName, p_payload);
 }
 
 void senseBase::wdtKickedHelper(void* senseBaseHandle) {
@@ -292,13 +319,13 @@ rc_t senseBase::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t senseBase::setSystemName(char* p_sysName, bool p_force) {
-    LOG_ERROR("senseBase::setSystemName: cannot set System name - not suppoted" CR);
+    LOG_ERROR("Cannot set System name - not supported" CR);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* senseBase::getSystemName(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("senseBase::getSystemName: cannot get System name as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot get System name as sensor is not configured" CR, logContextName);
         return NULL;
     }
     return xmlconfig[XML_SENS_SYSNAME];
@@ -306,15 +333,15 @@ const char* senseBase::getSystemName(bool p_force) {
 
 rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
-        LOG_ERROR("senseBase::setUsrName: cannot set User name as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("senseBase::setUsrName: cannot set System name as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot set System name as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_INFO("senseBase::setUsrName: Setting User name to %s" CR, p_usrName);
+        LOG_INFO("%s: Setting User name to %s" CR, logContextName, p_usrName);
         delete (char*)xmlconfig[XML_SENS_USRNAME];
         xmlconfig[XML_SENS_USRNAME] = createNcpystr(p_usrName);
         return RC_OK;
@@ -323,7 +350,7 @@ rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
 
 const char* senseBase::getUsrName(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("senseBase::getUsrName: cannot get User name as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot get User name as sensor is not configured" CR, logContextName);
         return NULL;
     }
     return xmlconfig[XML_SENS_USRNAME];
@@ -331,15 +358,15 @@ const char* senseBase::getUsrName(bool p_force) {
 
 rc_t senseBase::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        LOG_ERROR("senseBase::setDesc: cannot set Description as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("senseBase::setDesc: cannot set Description as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot set Description as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_INFO("senseBase::setDesc: Setting Description to %s" CR, p_description);
+        LOG_INFO("%s: Setting Description to %s" CR, logContextName, p_description);
         delete xmlconfig[XML_SENS_DESC];
         xmlconfig[XML_SENS_DESC] = createNcpystr(p_description);
         return RC_OK;
@@ -348,14 +375,14 @@ rc_t senseBase::setDesc(const char* p_description, bool p_force) {
 
 const char* senseBase::getDesc(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("senseBase::getDesc: cannot get Description as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot get Description as sensor is not configured" CR, logContextName);
         return NULL;
     }
     return xmlconfig[XML_SENS_DESC];
 }
 
 rc_t senseBase::setPort(const uint8_t p_port) {
-    LOG_ERROR("senseBase::setPort: cannot set port - not supported" CR);
+    LOG_ERROR("%s: Cannot set port - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
@@ -365,11 +392,11 @@ uint8_t senseBase::getPort(void) {
 
 rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force){
     if (!debug || !p_force) {
-        LOG_ERROR("senseBase::setProperty: cannot set Sensor property as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set Sensor property as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("senseBase::setProperty: cannot set Sensor property as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot set Sensor property as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], setProperty(p_propertyId, p_propertyVal));
@@ -378,7 +405,7 @@ rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, boo
 
 rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("senseBase::getProperty: cannot set Sensor property as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot set Sensor property as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getProperty(p_propertyId, p_propertyVal));
@@ -387,7 +414,7 @@ rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
 
 rc_t senseBase::getSensing(const char* p_sensing) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("senseBase::getSensing: cannot get sensing as sensor is not configured" CR);
+        LOG_ERROR("%s: Cannot get sensing as sensor is not configured" CR, logContextName);
         p_sensing = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -397,7 +424,7 @@ rc_t senseBase::getSensing(const char* p_sensing) {
 
 const char* senseBase::getLogLevel(void) {
     if (!Log.transformLogLevelInt2XmlStr(Log.getLogLevel())) {
-        LOG_ERROR("senseBase::satLink: Could not retrieve a valid Log-level" CR);
+        LOG_ERROR("%s: Could not retrieve a valid Log-level" CR, logContextName);
         return NULL;
     }
     else {
@@ -411,6 +438,10 @@ void senseBase::setDebug(bool p_debug) {
 
 bool senseBase::getDebug(void) {
     return debug;
+}
+
+const char* senseBase::getLogContextName(void) {
+    return logContextName;
 }
 
 /* CLI decoration methods */

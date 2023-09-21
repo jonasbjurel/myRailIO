@@ -261,6 +261,7 @@ public:
     static const char* isFlag(const char* p_arg);                                       //Check if a command fragment is a flag - CAN WE MOVE THIS TO PRIVATE
     static const char* check(const char* p_arg);                                        //Check command flags - CAN WE MOVE THIS TO PRIVATE
 
+
     //Public data structures
     //-
 
@@ -301,6 +302,7 @@ public:
     bool needsValue(void);                                                              //Get "need value" flag property
     void setValue(const char* p_value);                                                 //Set flag value
     const char* getValue(void);                                                         //Get flag value
+
 
     //Public data structures
     //-

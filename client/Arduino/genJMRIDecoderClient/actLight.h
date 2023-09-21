@@ -74,6 +74,7 @@ private:
     void setActLight(void);
 
     //Private data structures
+    char* logContextName;
     actBase* actBaseHandle;
     const char* sysName;
     uint8_t actPort;

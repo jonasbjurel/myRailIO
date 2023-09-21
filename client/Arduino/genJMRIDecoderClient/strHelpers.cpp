@@ -43,7 +43,7 @@ char* createNcpystr(const char* src, bool internal) {
     else
         dst = new(heap_caps_malloc(sizeof(char) * (length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[length + 1];
     if (dst == NULL) {
-        LOG_ERROR("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
+        LOG_ERROR_NOFMT("createNcpystr: Failed to allocate memory from heap - rebooting..." CR);
         ESP.restart();
     }
     strcpy(dst, src);

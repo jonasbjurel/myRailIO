@@ -53,11 +53,11 @@ class job;
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 //Call-back prototypes
-typedef void (*jobOverloadCb_t)(bool p_overload);
+typedef void (*jobOverloadCb_t)(void* jobOverloadCbMetaData, bool p_overload);
 typedef void(*jobCb_t)(void* jobCbMetaData);
 
 //Definitions
-#define PURGE_JOB_PRIO                              ESP_TASK_PRIO_MAX - 5
+#define PURGE_JOB_PRIO                              ESP_TASK_PRIO_MAX - 3
 
 struct jobdesc_t {
     TaskHandle_t taskHandle;
@@ -76,7 +76,7 @@ struct lapseDesc_t {
 class job {
 public:
     //Public methods
-    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio);
+    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting);
     ~job(void);
     void regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData);
     void unRegOverloadCb(void);
@@ -85,6 +85,7 @@ public:
     void purge(void);
     bool getOverload(void);
     uint16_t getPendingJobSlots(void);
+
 
     //Public data structures
     //--
@@ -96,7 +97,9 @@ private:
 
     //Private data structures
     TaskHandle_t jobTaskHandle;
+    const char* processTaskName;
     uint8_t processTaskPrio;
+    bool taskSorting;
     uint16_t jobQueueDepth;
     jobOverloadCb_t jobOverloadCb;
     void* jobOverloadCbMetaData;

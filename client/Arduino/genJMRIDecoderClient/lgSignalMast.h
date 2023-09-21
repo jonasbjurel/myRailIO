@@ -98,6 +98,7 @@ private:
     rc_t parseXmlAppearance(const char* p_aspectXml, char* p_aspect); //Parses a new aspect from *p_aspectXml and provides clear text aspect text in p_aspect, Returns RC_OK if successful
 
     //Private data structures
+    char* logContextName;
     mastDesc_t mastDesc;
     bool failsafeSet;
     char* xmlConfig[5];

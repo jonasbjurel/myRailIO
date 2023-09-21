@@ -37,7 +37,7 @@
 EXT_RAM_ATTR uint16_t systemState::sysStateIndex = 0;
 EXT_RAM_ATTR const char* systemState::OP_STR[14] = OP_ARR;
 //WHY IS NOT THIS WORKING: EXT_RAM_ATTR job* systemState::jobHandler = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, CPU_SYSSTATE_JOB_CORE);
-EXT_RAM_ATTR job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO);
+EXT_RAM_ATTR job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, true);
 
 systemState::systemState(systemState* p_parent) {
     parent = p_parent;
@@ -306,12 +306,16 @@ void systemState::updateObjName(void) {
         }
         if (lastObjNameSeparator >= 0 && strlen(objName) - lastObjNameSeparator < 30)
             strcpy(instanceObjName, objName + lastObjNameSeparator + 1);
-        else
-            panic("Local System state object not found or not well-formatted - rebooting..." CR);
+        else {
+            panic("Local System state object not found or not well-formatted");
+            return;
+        }
         setSysStateObjName(instanceObjName);
     }
-    else
-        panic("Local System state object not set - rebooting..." CR);
+    else {
+        panic("Local System state object not set");
+        return;
+    }
 }
 
 char* systemState::getSysStateObjName(char* p_objName) {
@@ -357,7 +361,7 @@ void systemState::sysCbHelper(void* p_jobCbDesc) {
 
     //DET SMÄLLER HÄR
     ((sysStateJobDesc_t*)p_jobCbDesc)->cb(((sysStateJobDesc_t*)p_jobCbDesc)->miscCbData, ((sysStateJobDesc_t*)p_jobCbDesc)->opState);
-    if (!heap_caps_check_integrity_all(true))
+    //if (!heap_caps_check_integrity_all(true))
     delete (sysStateJobDesc_t*)p_jobCbDesc;
 }
 

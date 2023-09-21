@@ -47,8 +47,10 @@ EXT_RAM_ATTR QList<cliCore*> cliCore::allContexts;
 
 cliCore::cliCore(const char* p_moType, const char* p_moName, uint16_t p_moIndex,
 				 cliCore* p_parentContext, bool p_root) {
-	if (!(cliCoreLock = xSemaphoreCreateMutex()))
-		panic("cliCore::cliCore: Could not create Lock objects - rebooting...");
+	if (!(cliCoreLock = xSemaphoreCreateMutex())){
+		panic("Could not create Lock objects");
+		return;
+	}
 	allContexts.push_back(this);
 	cliContextDescriptor.active = false;
 	cliContextDescriptor.moType = NULL;
@@ -188,12 +190,12 @@ const char* cliCore::getContextSysName(void) {
 }
 
 void cliCore::start(void) {
-	LOG_INFO("Starting Telnet and CLI service" CR);
+	LOG_INFO_NOFMT("Starting Telnet and CLI service" CR);
 	telnetServer.regTelnetConnectCb(onCliConnect, NULL);
 	telnetServer.regTelnetInputCb(onRootIngressCmd, NULL);
 	if (telnetServer.start())
-		LOG_ERROR("Could not start the Telnet server" CR);
-	LOG_VERBOSE("Telnet and CLI service successfully started" CR);
+		LOG_ERROR_NOFMT("Could not start the Telnet server" CR);
+	LOG_VERBOSE_NOFMT("Telnet and CLI service successfully started" CR);
 
 }
 
@@ -226,7 +228,7 @@ void cliCore::onRootIngressCmd(char* p_contextCmd, void* p_metaData) {
 	rc = currentContext->onContextIngressCmd(p_contextCmd, false);
 	currentParsingContext = currentContext;
 	if (rc) {
-		LOG_ERROR("Provided CLI context does not exist" CR);
+		LOG_ERROR_NOFMT("Provided CLI context does not exist" CR);
 		printCli("Provided CLI context does not exist\a");
 	}
 	//xSemaphoreGive(cliCoreLock);
@@ -362,19 +364,19 @@ cliCore* cliCore::getCliContextHandleByPath(const char* p_path) {
 		bool allowEmptyContext = false;
 		if ((path[0] == '.') && (path[1] == '.') && (path[1] = '/')) {
 			if (!traverseContext->cliContextDescriptor.parentContext) {
-				LOG_VERBOSE("There is no parent context" CR);
+				LOG_VERBOSE_NOFMT("There is no parent context" CR);
 				return NULL;
 			}
 			else {
 				traverseContext = traverseContext->cliContextDescriptor.parentContext;
-				LOG_VERBOSE("Ascending to parent context" CR);
+				LOG_VERBOSE_NOFMT("Ascending to parent context" CR);
 				allowEmptyContext = true;
 				path += 3;
 			}
 			continue;
 		}
 		if ((path[0] == '.') && (path[1] == '/')) {
-			LOG_VERBOSE("Staying on context" CR);
+			LOG_VERBOSE_NOFMT("Staying on context" CR);
 			allowEmptyContext = true;
 			path += 2;
 			continue;
@@ -411,7 +413,7 @@ cliCore* cliCore::getCliContextHandleByPath(const char* p_path) {
 				}
 			}
 			if (!found) {													//TR: HIGH ABSOUTE PATHS NOT WORKING, IE: set context /decoder-0/lglink-0
-				LOG_VERBOSE("Child contexts not found" CR);
+				LOG_VERBOSE_NOFMT("Child contexts not found" CR);
 				return NULL;
 			}
 		}
@@ -489,25 +491,33 @@ rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
 				}
 			}
 			cliCmdTable->at(i)->contextMap->push_back(new (heap_caps_malloc(sizeof(contextMap_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) contextMap_t);
-			if (!cliCmdTable->at(i)->contextMap->back())
-				panic("Could not create context list item" CR);
+			if (!cliCmdTable->at(i)->contextMap->back()){
+				panic("Could not create context list item");
+				return RC_OUT_OF_MEM_ERR;
+			}
 			cliCmdTable->at(i)->contextMap->back()->contextHandle = this;
 			cliCmdTable->at(i)->contextMap->back()->cb = p_cliCmdCb;
 			return RC_OK;
 		}
 	}
 	cliCmdTable->push_back(new (heap_caps_malloc(sizeof(cliCmdTable_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) cliCmdTable_t);
-	if (!cliCmdTable->back())
-		panic("Could not create command table list item" CR);
+	if (!cliCmdTable->back()) {
+		panic("Could not create command table list item");
+		return RC_OUT_OF_MEM_ERR;
+	}
 	cliCmdTable->back()->cmdType = p_commandType;
 	strcpy(cliCmdTable->back()->mo, p_mo);
 	strcpy(cliCmdTable->back()->subMo, cmdSubMoArg);
 	cliCmdTable->back()->contextMap = new (heap_caps_malloc(sizeof(cliCmdTable_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList< contextMap_t*>;
-	if (!cliCmdTable->back()->contextMap)
-		panic("Could not create context map list" CR);
+	if (!cliCmdTable->back()->contextMap){
+		panic("Could not create context map list");
+		return RC_OUT_OF_MEM_ERR;
+	}
 	cliCmdTable->back()->contextMap->push_back(new (heap_caps_malloc(sizeof(contextMap_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) contextMap_t);
-	if (!cliCmdTable->back()->contextMap->back())
-		panic("Could not create context map list item" CR);
+	if (!cliCmdTable->back()->contextMap->back()) {
+		panic("Could not create context map list item");
+		return RC_OUT_OF_MEM_ERR;
+	}
 
 	cliCmdTable->back()->contextMap->back()->contextHandle = this;
 	cliCmdTable->back()->contextMap->back()->cb = p_cliCmdCb;
@@ -588,15 +598,17 @@ rc_t cliCore::regCmdFlagArg(cliMainCmd_t p_commandType, const char* p_mo,
 				if ((cliCmdTable->at(i)->commandFlags =
 					new (heap_caps_malloc(sizeof(cmdFlags), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) cmdFlags(p_firstArgPos)) == NULL) {
 					panic("Could not create flags argument " \
-						  "object, rebooting...");
+						  "object");
 					return RC_OUT_OF_MEM_ERR;
 				}
 			}
 			rc_t rc = cliCmdTable->at(i)->commandFlags->add(p_flag, p_needsValue);
-			if (rc)
+			if (rc){
 				panic("Could not add flag %s to command %s - " \
-					  "return code: %i, rebooting...", p_flag,
+					  "return code: %i", p_flag,
 					   getCliNameByType(p_commandType), cmdSubMoArgPrint, rc);
+				return RC_GEN_ERR;
+			}
 		}
 	}
 	return RC_OK;
@@ -783,23 +795,18 @@ void cliCore::acceptedCliCommand(successCmdTerm_t p_cmdTermType) {
 }
 
 void cliCore::onCliCmd(cmd* p_cmd) {
-	Serial.printf("Entering onCliCmd" CR);
 	Command cmd(p_cmd);
 	bool requiresSubMo = true;
 	for (uint16_t cmdTableItter = 0; cmdTableItter < cliCmdTable->size(); cmdTableItter++) {
 		if (!strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(cmdTableItter)->cmdType))) {
-			Serial.printf("Itterating command %s, registered sub-mo" CR, getCliNameByType(cliCmdTable->at(cmdTableItter)->cmdType), cliCmdTable->at(cmdTableItter)->subMo);
 			if (!strcmp(cliCmdTable->at(cmdTableItter)->subMo, "")) {
 				requiresSubMo = false;
 			}
 			break;
 		}
 	}
-	Serial.printf("Required subMo is %i" CR, requiresSubMo);
-
 	for (uint16_t i = 0; i < cliCmdTable->size(); i++) {
 		if (!strcmp(cmd.getName().c_str(), getCliNameByType(HELP_CLI_CMD))) {
-			Serial.printf("Help Command" CR);
 			for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
 				if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle ==
 					currentParsingContext) {
@@ -820,18 +827,13 @@ void cliCore::onCliCmd(cmd* p_cmd) {
 					 "registered" CR);
 			printCli("Command not recognized for this CLI context\a");
 		}
-		Serial.printf("Not a Help Command" CR);
 		if (strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(i)->cmdType))){
-			Serial.printf("Not looking for %s - continuing" CR, getCliNameByType(cliCmdTable->at(i)->cmdType));
 			continue;
 		}
 
 		if (requiresSubMo && strcmp(cmd.getArgument(0).getValue().c_str(), cliCmdTable->at(i)->subMo)){
-			Serial.printf("Expected submo %s - found subMo %s continuing" CR, cmd.getArgument(0).getValue().c_str(), cliCmdTable->at(i)->subMo);
 			continue;
 		}
-		Serial.printf("Found command %s subMo %s- continuing" CR, getCliNameByType(cliCmdTable->at(i)->cmdType), cliCmdTable->at(i)->subMo);
-
 		for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
 			if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle == 
 				currentParsingContext) {
@@ -855,7 +857,7 @@ void cliCore::onCliCmd(cmd* p_cmd) {
 		printCli("Command not recognized for this CLI context\a");
 		return;
 	}
-	LOG_INFO("The Received CLI command does not exist" CR);
+	LOG_INFO_NOFMT("The Received CLI command does not exist" CR);
 	printCli("Command does not exist\a");
 }
 
@@ -993,8 +995,10 @@ cmdFlags::cmdFlags(uint8_t p_firstValidPos) {
 	strcpy(parseErrStr, "");
 	flagList = new (heap_caps_malloc(sizeof(cmdFlag), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList<cmdFlag*>;
 	foundFlagsList = new (heap_caps_malloc(sizeof(cmdFlag), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList<cmdFlag*>;
-	if (!flagList || !foundFlagsList)
-		panic("Could not create flag lists - rebooting..." CR);
+	if (!flagList || !foundFlagsList) {
+		panic("Could not create flag lists");
+		return;
+	}
 }
 
 cmdFlags::~cmdFlags(void){

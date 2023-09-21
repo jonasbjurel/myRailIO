@@ -77,6 +77,7 @@ public:
     void dumpConfig(void);
     rc_t getAppearance(char* p_smType, char* p_aspect, uint8_t** p_appearance);
     rc_t getNoOfHeads(const char* p_smType, uint8_t* p_noOfHeads, bool p_force = false);
+
     //Public data structures
     //--
 

@@ -124,6 +124,9 @@ public:
 	//uint32_t lgLink::getMeanRuntime(void) {}
 	//uint32_t lgLink::getMaxRuntime(void) {}
 	//void lgLink::clearMaxRuntime(void) {}
+	const char* getLogContextName(void);
+
+	/* CLI decoration methods */
 	static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -150,6 +153,7 @@ private:
 	//-
 
 	//Private data structures
+	char* logContextName;
 	uint8_t linkNo;
 	char* xmlconfig[5];
 	bool debug;

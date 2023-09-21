@@ -238,6 +238,8 @@ public:
 	const char* getDecoderUri(bool p_force = false);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
+	const char* getLogContextName(void);
+
 	/* CLI decoration methods */
 	// No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.
 
@@ -247,6 +249,7 @@ private:
 	//Private methods
 
 	//Private data structures
+	char* logContextName;
 	char* xmlconfig[19];
 	satLink* satLinks[MAX_SATLINKS];
 	lgLink* lgLinks[MAX_LGLINKS];

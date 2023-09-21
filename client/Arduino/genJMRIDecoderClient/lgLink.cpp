@@ -35,7 +35,8 @@
 /*==============================================================================================================================================*/
 
 lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decoderHandle), globalCli(LGLINK_MO_NAME, LGLINK_MO_NAME, p_linkNo, p_decoderHandle) {
-    LOG_INFO("Creating Lightgroup link channel %d" CR, p_linkNo);
+    asprintf(&logContextName, "%s/%s-%i", p_decoderHandle->getLogContextName(), "lgLink", p_linkNo);
+    LOG_INFO("%s: Creating lgLink channel" CR, logContextName);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "lgLink-%d", p_linkNo);
     setSysStateObjName(sysStateObjName);
@@ -47,15 +48,19 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     maxLatency = 0;
     maxRuntime = 0;
     overRuns = 0;
-    if (!(lgLinkLock = xSemaphoreCreateMutex()))
-        panic("Could not create Lock objects - rebooting..." CR);
-    if (!(dirtyPixelLock = xSemaphoreCreateMutex()))
-        panic("Could not create \"dirtyPixelLock\" object - rebooting..." CR);
-    LOG_INFO("Creating stripled objects for lgLink Channel" CR, linkNo);
+    if (!(lgLinkLock = xSemaphoreCreateMutex())) {
+        panic("%s: Could not create Lock objects", logContextName);
+        return;
+    }
+    if (!(dirtyPixelLock = xSemaphoreCreateMutex())){
+        panic("%s: Could not create \"dirtyPixelLock\" object", logContextName);
+        return;
+    }
+    LOG_INFO("%s: Creating stripled objects" CR, logContextName);
     strip = new (heap_caps_malloc(sizeof(Adafruit_NeoPixel), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
     strip->begin();
     stripWritebuff = strip->getPixels();
-    LOG_INFO("stripled for lgLink Channel started" CR, linkNo);
+    LOG_INFO("%s: stripled started" CR, logContextName);
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
@@ -67,8 +72,10 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
     avgSamples = UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS;
     latencyVect = new (heap_caps_malloc(sizeof(int32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
     runtimeVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
-    if (latencyVect == NULL || runtimeVect == NULL)
-        panic("Could not create PM vectors - rebooting..." CR);
+    if (latencyVect == NULL || runtimeVect == NULL) {
+        panic("Could not allocate PM vectors");
+        return;
+    }
     for (uint32_t i = 0; i < avgSamples; i++) {
         latencyVect[i] = 0;
         runtimeVect[i] = 0;
@@ -76,14 +83,14 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
 }
 
 lgLink::~lgLink(void) {
-    panic("lgLink destructior not supported - rebooting..." CR);
+    panic("%s: lgLink destructior not supported", logContextName);
 }
 
 rc_t lgLink::init(void) {
-    LOG_INFO("Initializing Lightgroup link channel %d" CR, linkNo);
+    LOG_INFO("%s: Initializing Lightgroup link channel" CR, logContextName);
 
     /* CLI decoration methods */
-    LOG_INFO("Registering CLI methods for Lightgroup link channel %d" CR, linkNo);
+    LOG_INFO("%s: Registering specific lgLink CLI methods" CR, logContextName);
     //Global and common MO Commands
     regGlobalNCommonCliMOCmds();
     // get/set lgLinkNo
@@ -113,38 +120,43 @@ rc_t lgLink::init(void) {
     regCmdHelp(GET_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_GET_LGLINKMAXRUNTIME_HELP_TXT);
     regCmdMoArg(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, onCliClearMaxRuntimeHelper);
     regCmdHelp(CLEAR_CLI_CMD, LGLINK_MO_NAME, LGLINKMAXRUNTIME_SUB_MO_NAME, LGLINKNO_CLEAR_LGLINKMAXRUNTIME_HELP_TXT);
-    LOG_INFO("CLI methods for Lightgroup link channel %d registered" CR, linkNo);
+    LOG_INFO("%s: Specific lgLink CLI methods registered" CR, logContextName);
 
-    LOG_INFO("Creating lighGrups for link channel %d" CR, linkNo);
+    LOG_INFO("%s: Creating lighGroups" CR, logContextName);
     for (uint8_t lgAddress = 0; lgAddress < MAX_LGS; lgAddress++) {
         lgs[lgAddress] = new (heap_caps_malloc(sizeof(lgBase), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lgBase(lgAddress, this);
-        if (lgs[lgAddress] == NULL)
-            panic("Could not create light-group object - rebooting...");
+        if (lgs[lgAddress] == NULL){
+            panic("%s: Could not allocate light-group object", logContextName);
+            return RC_OUT_OF_MEM_ERR;
+        }
         addSysStateChild(lgs[lgAddress]);
         lgs[lgAddress]->init();
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
-    LOG_VERBOSE("lighGroups for link channel %d created" CR, linkNo);
+    LOG_VERBOSE("%s: lighGroups created" CR, logContextName);
 
-    LOG_INFO("Creating flash objects for lgLink Channel" CR, linkNo);
+    LOG_INFO("%s: Creating flash objects" CR, logContextName);
     FLASHNORMAL = new (heap_caps_malloc(sizeof(flash), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash(FLASH_1_0_HZ, 50);
     FLASHSLOW = new (heap_caps_malloc(sizeof(flash), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash(FLASH_0_5_HZ, 50);
     FLASHFAST = new (heap_caps_malloc(sizeof(flash), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) flash(FLASH_1_5_HZ, 50);
     if (FLASHNORMAL == NULL || FLASHSLOW == NULL || FLASHFAST == NULL) {
-        panic("Could not create flash objects - rebooting..." CR);
+        panic("%s: Could not allocate flash objects", logContextName);
+        return RC_OUT_OF_MEM_ERR;
     }
-    LOG_VERBOSE("flash objects for lgLink Channel created" CR, linkNo);
+    LOG_VERBOSE("%s: flash objects created" CR, logContextName);
     //LOG_INFO("Creating stripled objects for lgLink Channel" CR, linkNo);
     //strip = new Adafruit_NeoPixel(MAX_LGSTRIPLEN, (LGLINK_PINS[linkNo]), NEO_RGB + NEO_KHZ800);
-    LOG_VERBOSE("stripled objects for lgLink Channel created" CR, linkNo);
-    LOG_INFO("Starting stripled objects for lgLink Channel" CR, linkNo);
+    LOG_VERBOSE("%s: stripled objects created" CR, logContextName);
+    LOG_INFO("%s: Starting stripled objects" CR, logContextName);
     return RC_OK;
 }
 
 void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
-    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-        panic("lgLink received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
-    LOG_INFO("lgLink channel %d received an unverified configuration, parsing and validating it..." CR, linkNo);
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)) {
+        panic("lgLink received a configuration, while the it was already configured, dynamic re-configuration not supported");
+        return;
+    }
+    LOG_INFO("%s Received an unverified configuration, parsing and validating it..." CR, logContextName);
 
     //PARSING CONFIGURATION
     const char* lgLinkSearchTags[5];
@@ -157,26 +169,30 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
     getTagTxt(p_lightgroupLinkXmlElement->FirstChildElement(), lgLinkSearchTags, xmlconfig, sizeof(lgLinkSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
-    if (!xmlconfig[XML_LGLINK_SYSNAME])
-        panic("System name was not provided - rebooting..." CR);
+    if (!xmlconfig[XML_LGLINK_SYSNAME]) {
+        panic("%s: System name was not provided", logContextName);
+        return;
+    }
     if (!xmlconfig[XML_LGLINK_USRNAME]){
-        LOG_WARN("User name was not provided - using \"%s-UserName\"" CR);
-        xmlconfig[XML_LGLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 10];
-        const char* usrName[2] = { xmlconfig[XML_LGLINK_SYSNAME], "-" };
-        strcpy(xmlconfig[XML_LGLINK_USRNAME], "-");
+        LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName);
+        xmlconfig[XML_LGLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 15];
+        sprintf(xmlconfig[XML_LGLINK_USRNAME], "%s-UserName", xmlconfig[XML_LGLINK_SYSNAME]);
     }
     if (!xmlconfig[XML_LGLINK_DESC]){
-        LOG_WARN("Description was not provided - using \"-\"" CR);
-        xmlconfig[XML_LGLINK_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[2];
-        strcpy(xmlconfig[XML_LGLINK_DESC], "-");
+        LOG_WARN("%s: Description was not provided - using \"-\"" CR, logContextName);
+        xmlconfig[XML_LGLINK_DESC] = createNcpystr("-");
     }
-    if (!xmlconfig[XML_LGLINK_LINK])
-        panic("Link was not provided - rebooting..." CR);
-    if (atoi(xmlconfig[XML_LGLINK_LINK]) != linkNo)
-        panic("Link no inconsistant with what was provided in the object constructor - rebooting..." CR);
+    if (!xmlconfig[XML_LGLINK_LINK]) {
+        panic("%s: Link was not provided", logContextName);
+        return;
+    }
+    if (atoi(xmlconfig[XML_LGLINK_LINK]) != linkNo) {
+        panic("%s: Link number inconsistant with what was provided in the object constructor", logContextName);
+        return;
+    }
 
     if (xmlconfig[XML_LGLINK_ADMSTATE] == NULL) {
-        LOG_WARN("Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        LOG_WARN("%s: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR, logContextName);
         xmlconfig[XML_LGLINK_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_LGLINK_ADMSTATE], "ENABLE")) {
@@ -185,32 +201,41 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
     else if (!strcmp(xmlconfig[XML_LGLINK_ADMSTATE], "DISABLE")) {
         setOpStateByBitmap(OP_DISABLED);
     }
-    else
-        panic("Configuration Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_DECODER_ADMSTATE]);
-
+    else {
+        panic("%s: Configuration Admin state: %s is none of \"ENABLE\" or \"DISABLE\"", logContextName, xmlconfig[XML_DECODER_ADMSTATE]);
+        return;
+    }
     //SHOW FINAL CONFIGURATION
-    LOG_INFO("Successfully set the Lightgroup-link configuration as follows:" CR);
-    LOG_INFO("System name: %s" CR, xmlconfig[XML_LGLINK_SYSNAME]);
-    LOG_INFO("User name: %s" CR, xmlconfig[XML_LGLINK_USRNAME]);
-    LOG_INFO("Description: %s" CR, xmlconfig[XML_LGLINK_DESC]);
-    LOG_INFO("LG-Link #: %s" CR, xmlconfig[XML_LGLINK_LINK]);
-    LOG_INFO("LG-Link admin state: %s" CR, xmlconfig[XML_LGLINK_ADMSTATE]);
+    LOG_INFO("%s: Successfully set the Lightgroup-link configuration as follows:" CR, logContextName);
+    LOG_INFO("%s: System name: %s" CR, logContextName, xmlconfig[XML_LGLINK_SYSNAME]);
+    LOG_INFO("%s: User name: %s" CR, logContextName, xmlconfig[XML_LGLINK_USRNAME]);
+    LOG_INFO("%s: Description: %s" CR, logContextName, xmlconfig[XML_LGLINK_DESC]);
+    LOG_INFO("%s: LG-Link #: %s" CR, logContextName, xmlconfig[XML_LGLINK_LINK]);
+    LOG_INFO("%s: LG-Link admin state: %s" CR, logContextName, xmlconfig[XML_LGLINK_ADMSTATE]);
 
     //CONFIFIGURING LIGHTGROUP ASPECTS
-    LOG_INFO("Creating and configuring signal mast aspect description object" CR);
+    LOG_INFO("%s: Creating and configuring signal mast aspect description object" CR, logContextName);
     signalMastAspectsObject = new (heap_caps_malloc(sizeof(signalMastAspects), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) signalMastAspects(this);
-    if (signalMastAspectsObject == NULL)
-        panic("Could not start signalMastAspect object - rebooting..." CR);
-    if (!(p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc"))
-        panic("Signal mast aspect description missing - rebooting..." CR);
-    else if (signalMastAspectsObject->onConfig(p_lightgroupLinkXmlElement->FirstChildElement("SignalMastDesc")))
-        panic("Could not configure Signal mast aspect description - rebooting..." CR);
-    if (((tinyxml2::XMLElement*) p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc")->NextSiblingElement("SignalMastDesc"))
-        panic("Multiple signal mast aspect descriptions provided - rebooting..." CR);
+    if (signalMastAspectsObject == NULL) {
+        panic("%s: Could not start signalMastAspect object", logContextName);
+        return;
+    }
+    if (!(p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc")) {
+        panic("%s: Signal mast aspect description missing", logContextName);
+        return;
+    }
+    else if (signalMastAspectsObject->onConfig(p_lightgroupLinkXmlElement->FirstChildElement("SignalMastDesc"))) {
+        panic("%s: Could not configure Signal mast aspect description", logContextName);
+        return;
+    }
+    if (((tinyxml2::XMLElement*) p_lightgroupLinkXmlElement)->FirstChildElement("SignalMastDesc")->NextSiblingElement("SignalMastDesc")) {
+        panic("%s: Multiple signal mast aspect descriptions provided", logContextName);
+        return;
+    }
     vTaskDelay(5 / portTICK_PERIOD_MS);
 
     //CONFIFIGURING LIGHTGROUPS
-    LOG_INFO("Configuring Light groups" CR);
+    LOG_INFO("%s: Configuring Light groups" CR, logContextName);
     tinyxml2::XMLElement* lgXmlElement;
     if (lgXmlElement = ((tinyxml2::XMLElement*)p_lightgroupLinkXmlElement)->FirstChildElement("LightGroup")) {
         const char* lgSearchTags[8];
@@ -228,14 +253,18 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
                 break;
             }
             if (lgItter >= MAX_LGS){
-                panic("More than maximum lightgroups provided - not supported, rebooting..." CR);
+                panic("%s More than maximum lightgroups provided - not supported (%i/%i", logContextName, lgItter, MAX_LGS);
                 return;
             }
             getTagTxt(lgXmlElement->FirstChildElement(), lgSearchTags, lgXmlconfig, sizeof(lgSearchTags) / 4); // Need to fix the addressing for portability
-            if (!lgXmlconfig[XML_LG_LINKADDR])
-                panic("lightgroups Linkaddress not provided/missing - rebooting..." CR);
-            if ((atoi(lgXmlconfig[XML_LG_LINKADDR])) < 0 || atoi(lgXmlconfig[XML_LG_LINKADDR]) >= MAX_LGS)
-                panic("Light group link address (%i) out of bounds - rebooting..." CR, atoi(lgXmlconfig[XML_LG_LINKADDR]));
+            if (!lgXmlconfig[XML_LG_LINKADDR]){
+                panic("%s: lgLink address missing", logContextName);
+                return;
+            }
+            if ((atoi(lgXmlconfig[XML_LG_LINKADDR])) < 0 || atoi(lgXmlconfig[XML_LG_LINKADDR]) >= MAX_LGS){
+                panic("%s: lgLink address (%i) out of bounds", logContextName, atoi(lgXmlconfig[XML_LG_LINKADDR]));
+                return;
+            }
             lgs[atoi(lgXmlconfig[XML_LG_LINKADDR])]->onConfig(lgXmlElement);
             lgXmlElement = ((tinyxml2::XMLElement*)lgXmlElement)->NextSiblingElement("LightGroup");
         }
@@ -247,43 +276,49 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
             uint8_t noOfLeds;
             lgs[lgItter]->getNoOffLeds(&noOfLeds, true);
             stripOffset += noOfLeds;
-            if (stripOffset > MAX_LGSTRIPLEN * 3)
-                panic("Number of used strip pixels exceeds MAX_LGSTRIPLEN*3 - rebooting...");
+            if (stripOffset > MAX_LGSTRIPLEN * 3){
+                panic("%s: Number of used strip pixels exceeds MAX_LGSTRIPLEN*3", logContextName);
+                return;
+            }
         }
     }
     else
-        LOG_WARN("No lightgroups provided, no lightgroup will be configured" CR);
+        LOG_WARN("%s: No lightgroups provided, no lightgroup will be configured" CR, logContextName);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
-    LOG_INFO("Configuration successfully finished" CR);
+    LOG_INFO("%s: Configuration successfully finished" CR, logContextName);
 }
 
 rc_t lgLink::start(void) {
-    LOG_INFO("Starting lightgroup link: %d" CR, linkNo);
+    LOG_INFO("%s: Starting lightgroup link" CR, logContextName);
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_INFO("LG Link %d not configured - will not start it" CR, linkNo);
+        LOG_INFO("%s: not configured - will not start it" CR, logContextName);
         setOpStateByBitmap(OP_UNUSED);
         unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
     unSetOpStateByBitmap(OP_UNUSED);
-    LOG_INFO("Subscribing to adm- and op state topics" CR);
+    LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char admopSubscribeTopic[300];
     sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LGLINK_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LGLINK_SYSNAME]);
-    if (mqtt::subscribeTopic(admopSubscribeTopic, &onAdmStateChangeHelper, this))
-        panic("Failed to suscribe to admState topic - rebooting..." CR);
+    if (mqtt::subscribeTopic(admopSubscribeTopic, &onAdmStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to admState topic \"%s\"", logContextName, admopSubscribeTopic);
+        return RC_GEN_ERR;
+    }
     sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LGLINK_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LGLINK_SYSNAME]);
-    if (mqtt::subscribeTopic(admopSubscribeTopic, &onOpStateChangeHelper, this))
-        panic("Failed to suscribe to opState topic - rebooting..." CR);
+    if (mqtt::subscribeTopic(admopSubscribeTopic, &onOpStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to opState topic \"%s\"", logContextName, admopSubscribeTopic);
+        return RC_GEN_ERR;
+    }
     for (uint16_t lgItter = 0; lgItter < MAX_LGS; lgItter++)
         lgs[lgItter]->start();
     unSetOpStateByBitmap(OP_INIT);
-    LOG_INFO("lightgroups link %d and all its lightgroupDecoders have started" CR, linkNo);
+    LOG_INFO("%s: lgLink and all its ligthGroups have started" CR, logContextName);
     return RC_OK;
 }
 
 void lgLink::up(void) {
     BaseType_t rc;
-    LOG_TERSE("Starting link scanning for lgLink %d" CR, linkNo);
+    LOG_TERSE("%s: Starting lglink scanning" CR, logContextName);
     char taskName[30];
     sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
     linkScan = true;
@@ -293,12 +328,14 @@ void lgLink::up(void) {
             CPU_UPDATE_STRIP_STACKSIZE_1K * 1024,               // Stack size
             this,                                               // Parameter passing
             CPU_UPDATE_STRIP_PRIO,                              // Priority 0-24, higher is more
-            CPU_UPDATE_STRIP_SETUP_STACK_ATTR))                 // Task Stack attribute
-        panic("Could not start lglink scanning - rebooting..." CR);
+            CPU_UPDATE_STRIP_SETUP_STACK_ATTR)){                // Task Stack attribute
+        panic("%s: Could not start lglink scanning", logContextName);
+        return;
+    }
 }
 
 void lgLink::down(void) {
-    LOG_TERSE("Stoping link scanning for lgLink %d" CR, linkNo);
+    LOG_TERSE("%s: Stoping lgLink scanning for lgLink %d" CR, logContextName);
     linkScan = false;
 }
 
@@ -308,7 +345,7 @@ void lgLink::onSysStateChangeHelper(const void* p_miscData, sysState_t p_sysStat
 
 void lgLink::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    LOG_INFO("lgLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    LOG_INFO("%s: lgLink has a new OP-state: %s" CR, logContextName, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
     newSysState = p_sysState;
     bool lgLinkDisableScan = false;
@@ -316,7 +353,7 @@ void lgLink::onSysStateChange(sysState_t p_sysState) {
     if (!sysStateChange) {
         return;
     }
-    LOG_INFO("lgLink-%d has a new OP-state: %s" CR, linkNo, systemState::getOpStateStr(opStateStr));
+    LOG_INFO("%s: lgLink has a new OP-state: %s" CR, logContextName, systemState::getOpStateStr(opStateStr));
     failsafe(newSysState != OP_WORKING);
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
@@ -331,43 +368,43 @@ void lgLink::onSysStateChange(sysState_t p_sysState) {
         lgLinkScanDisabled = true;
         prevSysState = newSysState;
         //failsafe
-        panic("lgLink-%d has experienced an internal error - informing server and rebooting..." CR, linkNo);
+        panic("logContextName: lgLink has experienced an internal error - informing server", logContextName);
         return;
     }
     if (newSysState & OP_INIT) {
-        LOG_INFO("lgLink-%d is initializing - informing server if not already done" CR, linkNo);
+        LOG_INFO("%s: lgLink is initializing - informing server if not already done" CR, logContextName);
         lgLinkDisableScan = true;
     }
     if (newSysState & OP_UNUSED) {
-        LOG_INFO("lgLink-%d is unused - informing server if not already done" CR, linkNo);
+        LOG_INFO("%s: lgLink is unused - informing server if not already done" CR, logContextName);
         lgLinkDisableScan = true;
     }
     if (newSysState & OP_DISABLED) {
-        LOG_INFO("lgLink-%d is disabled by server - disabling linkscanning if not already done" CR, linkNo);
+        LOG_INFO("%s: lgLink is disabled by server - disabling linkscanning if not already done" CR, logContextName);
         lgLinkDisableScan = true;
     }
     if (newSysState & OP_CBL) {
-        LOG_INFO("lgLink-%d is control-blocked by decoder - informing server and disabling scan if not already done" CR, linkNo);
+        LOG_INFO("%s: lgLink is control-blocked by decoder - informing server and disabling scan if not already done" CR, logContextName);
         lgLinkDisableScan = true;
     }
     if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
-        LOG_INFO("lgLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, linkNo, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+        LOG_INFO("%s: lgLink has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, logContextName, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
     }
     if (lgLinkDisableScan && !lgLinkScanDisabled) {
-        LOG_INFO("lgLink-%d disabling lgLink scaning" CR, linkNo);
+        LOG_INFO("%s: lgLink disabling lgLink scaning" CR, logContextName);
         down();
         lgLinkScanDisabled = true;
     }
     else if (lgLinkDisableScan && lgLinkScanDisabled) {
-        LOG_INFO("lgLink-%d Link scan already disabled - doing nothing..." CR, linkNo);
+        LOG_INFO("%s: lgLink scaning already disabled - doing nothing..." CR, logContextName);
     }
     else if (!lgLinkDisableScan && lgLinkScanDisabled) {
-        LOG_INFO("lgLink-%d enabling lgLink scaning" CR, linkNo);
+        LOG_INFO("%s: Enabling lgLink scaning" CR, logContextName);
         up();
         lgLinkScanDisabled = false;
     }
     else if (!lgLinkDisableScan && !lgLinkScanDisabled) {
-        LOG_INFO("lgLink-%d Link scan already enabled - doing nothing..." CR, linkNo);
+        LOG_INFO("%s: lgLink scaning already enabled - doing nothing..." CR, logContextName);
     }
     prevSysState = newSysState;
 }
@@ -378,7 +415,7 @@ void lgLink::onOpStateChangeHelper(const char* p_topic, const char* p_payload, c
 
 void lgLink::onOpStateChange(const char* p_topic, const char* p_payload) {
     sysState_t newServerOpState;
-    LOG_INFO("Got a new opState from server: %s" CR, p_payload);
+    LOG_INFO("%s: Got a new opState from server: %s" CR, logContextName, p_payload);
     newServerOpState = getOpStateBitmapByStr(p_payload);
     setOpStateByBitmap(newServerOpState & OP_CBL);
     unSetOpStateByBitmap(~newServerOpState & OP_CBL);
@@ -391,14 +428,14 @@ void lgLink::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, 
 void lgLink::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         unSetOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("Got online message from server" CR);
+        LOG_INFO("%s: Got online message from server" CR, logContextName);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("Got off-line message from server" CR);
+        LOG_INFO("%s: Got off-line message from server" CR, logContextName);
     }
     else
-        LOG_ERROR("Got an invalid admstate message from server - doing nothing" CR);
+        LOG_ERROR("%s: Got an invalid admstate message from server: \"%s\" - doing nothing" CR, logContextName, p_payload);
 }
 
 rc_t lgLink::getOpStateStr(char* p_opStateStr) {
@@ -407,13 +444,13 @@ rc_t lgLink::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t lgLink::setSystemName(const char* p_systemName, bool p_force) {
-    LOG_ERROR("Cannot set System name - not suppoted" CR);
+    LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgLink::getSystemName(char* p_systemName, bool p_force){
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get System name as lgLink is not configured" CR);
+        LOG_ERROR("%s: Cannot get System name as lgLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     p_systemName = xmlconfig[XML_LGLINK_SYSNAME];
@@ -422,15 +459,15 @@ rc_t lgLink::getSystemName(char* p_systemName, bool p_force){
 
 rc_t lgLink::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set User name as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("Cannot set System name as lgLink is not configured" CR);
+        LOG_ERROR("%s: Cannot set System name as lgLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_INFO("Setting User name to %s" CR, p_usrName);
+        LOG_INFO("%s: Setting User name to %s" CR, logContextName, p_usrName);
         delete xmlconfig[XML_LGLINK_USRNAME];
         xmlconfig[XML_LGLINK_USRNAME] = createNcpystr(p_usrName);
         return RC_OK;
@@ -439,7 +476,7 @@ rc_t lgLink::setUsrName(const char* p_usrName, bool p_force) {
 
 rc_t  lgLink::getUsrName(char* p_userName, bool p_force){
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get User name as lgLink is not configured" CR);
+        LOG_ERROR("%s: Cannot get User name as lgLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     p_userName = xmlconfig[XML_LGLINK_USRNAME];
@@ -448,15 +485,15 @@ rc_t  lgLink::getUsrName(char* p_userName, bool p_force){
 
 rc_t lgLink::setDesc(const char* p_description, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set Description as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("Cannot set Description as lgLink is not configured" CR);
+        LOG_ERROR("%s: Cannot set Description as lgLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_INFO("Setting Description to %s" CR, p_description);
+        LOG_INFO("%s: Setting Description to %s" CR, logContextName, p_description);
         delete xmlconfig[XML_LGLINK_DESC];
         xmlconfig[XML_LGLINK_DESC] = createNcpystr(p_description);
         return RC_OK;
@@ -465,7 +502,7 @@ rc_t lgLink::setDesc(const char* p_description, bool p_force) {
 
 rc_t lgLink::getDesc(char* p_desc, bool p_force){
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get Description as lgLink is not configured" CR);
+        LOG_ERROR("%s: Cannot get Description as lgLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     p_desc = xmlconfig[XML_LGLINK_DESC];
@@ -473,7 +510,7 @@ rc_t lgLink::getDesc(char* p_desc, bool p_force){
 }
 
 rc_t lgLink::setLink(uint8_t p_link) {
-    LOG_ERROR("Cannot set Link No - not supported" CR);
+    LOG_ERROR("%s: Cannot set Link No - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
@@ -484,7 +521,7 @@ rc_t lgLink::getLink(uint8_t* p_link) {
 
 const char* lgLink::getLogLevel(void) {
     if (!Log.transformLogLevelInt2XmlStr(Log.getLogLevel())) {
-        LOG_ERROR("Could not retrieve a valid Log-level" CR);
+        LOG_ERROR("%s: Could not retrieve a valid Log-level" CR, logContextName);
         return NULL;
     }
     else {
@@ -503,7 +540,7 @@ bool lgLink::getDebug(void) {
 rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wantedValueBuff, uint8_t p_transitionTime) {
     uint8_t transitionTime = floor((float)(SM_BRIGHNESS_NORMAL / (p_transitionTime / STRIP_UPDATE_MS)));
     if (systemState::getOpStateBitmap()) {
-        LOG_ERROR("Could not update LG as LgLink is not in OP_WORKING State");
+        LOG_ERROR("%s: Could not update lg as LgLink is not in OP_WORKING State" CR, logContextName);
         return RC_OPSTATE_ERR;
     }
     xSemaphoreTake(dirtyPixelLock, portMAX_DELAY);
@@ -519,8 +556,10 @@ rc_t lgLink::updateLg(uint16_t p_seqOffset, uint8_t p_buffLen, uint8_t* p_wanted
         if (!alreadyDirty) {
             if (p_wantedValueBuff[i] != stripWritebuff[p_seqOffset + i]) {
                 dirtyPixel_t* dirtyPixel = new (heap_caps_malloc(sizeof(dirtyPixel_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) dirtyPixel_t;
-                if (!dirtyPixel)
-                    panic("Could not allocate an dirtyPixel object - rebooting..." CR);
+                if (!dirtyPixel){
+                    panic("%s: Could not allocate an dirtyPixel object", logContextName);
+                    return RC_GEN_ERR;
+                }
                 dirtyPixel->index = p_seqOffset + i;
                 dirtyPixel->currentValue = stripWritebuff[p_seqOffset + i];
                 dirtyPixel->wantedValue = p_wantedValueBuff[i];
@@ -552,7 +591,7 @@ void lgLink::updateStrip(void) {
     overRuns = 0;
     uint32_t maxAvgIndex = floor((float)(UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS));
     uint32_t loopTime = STRIP_UPDATE_MS * 1000;
-    LOG_VERBOSE("Starting sriphandler channel %d" CR, linkNo);
+    LOG_VERBOSE("%s: Starting sriphandler channel" CR, logContextName);
     uint32_t wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
     while (linkScan) {
         startTime = esp_timer_get_time();
@@ -573,7 +612,7 @@ void lgLink::updateStrip(void) {
         }
         if (!strip->canShow()) {
             overRuns++;
-            LOG_VERBOSE("Couldnt update strip channel %d, continuing..." CR, linkNo);
+            LOG_VERBOSE("%s: Couldnt update strip channel, continuing..." CR, logContextName);
         }
         else {
             xSemaphoreTake(dirtyPixelLock, portMAX_DELAY);
@@ -675,7 +714,7 @@ void lgLink::clearMaxRuntime(void) {
 
 flash* lgLink::getFlashObj(uint8_t p_flashType) {
     if (systemState::getOpStateBitmap() == OP_INIT) {
-        LOG_ERROR("opState %d does not allow to provide flash objects - returning NULL - and continuing..." CR, systemState::getOpStateBitmap());
+        LOG_ERROR("%s: opState %X does not allow to provide flash objects - returning NULL - and continuing..." CR, logContextName, systemState::getOpStateBitmap());
         return NULL;
     }
     switch (p_flashType) {
@@ -696,13 +735,13 @@ return signalMastAspectsObject;
 
 void lgLink::failsafe(bool p_set) {
     if (!failsafeSet && p_set) {
-        LOG_INFO("Setting failsafe");
+        LOG_INFO("%s: Setting failsafe" CR, logContextName);
         xSemaphoreTake(dirtyPixelLock, portMAX_DELAY);
         uint8_t i = 0;
         while (!strip->canShow()) {
             vTaskDelay(10 / portTICK_PERIOD_MS);
             if (i == 10) {
-                LOG_WARN("Could not set failsafe" CR);
+                LOG_WARN("%s: Could not set failsafe" CR, logContextName);
                 return;
             }
         }
@@ -717,10 +756,14 @@ void lgLink::failsafe(bool p_set) {
         xSemaphoreGive(dirtyPixelLock);
     }
     else if (failsafeSet && !p_set){
-        LOG_INFO("Unsetting failsafe");
+        LOG_INFO("%s: Unsetting failsafe" CR, logContextName);
         failsafeSet = false;
     }
 }
+const char* lgLink::getLogContextName(void) {
+    return logContextName;
+}
+
 
 /* CLI decoration methods */
 void lgLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {

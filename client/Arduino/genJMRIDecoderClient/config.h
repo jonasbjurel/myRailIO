@@ -43,8 +43,7 @@
 #define NTP_MAX_NTPSERVERS							3
 #define NTP_POLL_PERIOD_S							60
 #define NTP_DEFAULT_SYNCMODE						SNTP_SYNC_MODE_SMOOTH //SNTP_SYNC_MODE_SMOOTH | SNTP_SYNC_MODE_IMMED
-#define DEFAULT_LOGLEVEL							GJMRI_DEBUG_INFO
-#define LOG_MSG_SIZE								512
+#define DEFAULT_LOGLEVEL							GJMRI_DEBUG_VERBOSE
 #define LOG_MSG_HISTORY_SIZE						30
 #define RSYSLOG_DEFAULT_PORT						514
 #define DEFAULT_FAILSAFE							"Yes"
@@ -153,7 +152,7 @@
 
 
 // Setup task
-#define SETUP_PRIO									5
+#define SETUP_PRIO									4
 #define SETUP_STACKSIZE_1K							10
 #define SETUP_TASKNAME								"setup"
 #define SETUP_STACK_ATTR							INTERNAL
@@ -166,7 +165,7 @@
 // System state job task
 #define CPU_SYSSTATE_JOB_PRIO						10
 #define CPU_SYSSTATE_JOB_STACKSIZE_1K				6
-#define CPU_SYSSTATE_JOB_TASKNAME					"systateJob"
+#define CPU_SYSSTATE_JOB_TASKNAME					"sysStateJob"
 
 // MQTT message supervision
 #define CPU_MQTT_PING_PRIO							10

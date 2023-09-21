@@ -79,7 +79,7 @@ class actMem;
 		else if(!strcmp(type, "MEMORY"))\
 			((actMem*)ext_p)->method;\
 		else\
-			panic("actBase::CALL_EXT: Non supported type - rebooting")
+			panic("actBase::CALL_EXT: Non supported type")
 
 #define ACT_CALL_EXT_RC(ext_p, type, method)\
 		rc_t EXT_RC;\
@@ -91,7 +91,7 @@ class actMem;
 			EXT_RC = ((actMem*)ext_p)->method;\
 		else{\
 			EXT_RC = RC_GEN_ERR;\
-			panic("actBase::CALL_EXT_RC: Non supported type - rebooting");\
+			panic("actBase::CALL_EXT_RC: Non supported type");\
 		}
 
 class actBase : public systemState, globalCli {
@@ -127,6 +127,8 @@ public:
 	const char* getLogLevel(void);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
+	const char* getLogContextName(void);
+
 	/* CLI decoration methods */
 	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -143,6 +145,7 @@ private:
 	//--
 
 	//Private data structures
+	char* logContextName;
 	uint8_t actPort;
 	uint8_t satAddr;
 	uint8_t satLinkNo;

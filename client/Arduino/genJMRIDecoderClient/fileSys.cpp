@@ -40,7 +40,7 @@
 esp_vfs_spiffs_conf_t fileSys::spiffsPartitionConfig;
 
 void fileSys::start(void) {
-    LOG_INFO("Trying to mount the first and only fs partition" CR);
+    LOG_INFO_NOFMT("Trying to mount the first and only fs partition" CR);
     spiffsPartitionConfig.partition_label = NULL;
     char fsPath[30];
     strcpy(fsPath, FS_PATH);
@@ -51,24 +51,26 @@ void fileSys::start(void) {
            esp_spiffs_check(NULL)) {
         char err[30];
         esp_err_to_name_r(esp_vfs_spiffs_register(&spiffsPartitionConfig), err, 30);
-        LOG_ERROR("Could not mount fs partition: %s, Partition does "
-                  "not exist-, or is corrupted - will (re-)format the partition, "
+        LOG_ERROR("Could not mount fs partition: %s, Partition does " \
+                  "not exist-, or is corrupted - will (re-)format the partition, " \
                   "all configurations will be lost..." CR, err);
-        if (format())
-            panic("Failed to format the filesystem partition, "
-                  "the flash may be weared or otherwise broken, rebooting..." CR);
+        if (format()) {
+            panic("Failed to format the filesystem partition, " \
+                "the flash may be weared or otherwise broken");
+            return;
+        }
     }
-    LOG_INFO("fileSys partition successfully mounted" CR);
+    LOG_INFO_NOFMT("fileSys partition successfully mounted" CR);
 }
 
 rc_t fileSys::format(void) {
-    LOG_INFO("Formatting SPIFFS filesystem" CR);
+    LOG_INFO_NOFMT("Formatting SPIFFS filesystem" CR);
     if (esp_spiffs_format(NULL)) {
-        LOG_ERROR("Failed to format the SPIFS filesystem partition, "
+        LOG_ERROR_NOFMT("Failed to format the SPIFS filesystem partition, " \
                   "the flash may be weared or otherwise broken" CR);
         return RC_GEN_ERR;
     }
-    LOG_VERBOSE("SPIFFS filesystem successfully formatted" CR);
+    LOG_VERBOSE_NOFMT("SPIFFS filesystem successfully formatted" CR);
     return RC_OK;
 }
 
@@ -91,7 +93,7 @@ rc_t fileSys::putFile(const char* p_fileName, const char* p_buff, uint p_buffSiz
     FILE* fp;
     fp = fopen(p_fileName, "w");
     if (fp == NULL) {
-        LOG_ERROR("fileSys:putFile: Could not open or create file %s, %s" CR, p_fileName, strerror(errno));
+        LOG_ERROR("Could not open or create file \"%s\", %s" CR, p_fileName, strerror(errno));
         return RC_GEN_ERR;
     }
     if (p_writeSize)
@@ -142,7 +144,7 @@ rc_t fileSys::listDir(QList<char*>* p_fileList, bool p_printOut) {
     d = opendir(FS_PATH);
     if (d) {
         if (p_printOut)
-            LOG_INFO("Following files exist:\n");
+            LOG_INFO_NOFMT("Following files exist:\n");
         while ((dir = readdir(d)) != NULL) {
             if (p_printOut)
                 LOG_INFO("%s\n", dir->d_name);
@@ -154,7 +156,7 @@ rc_t fileSys::listDir(QList<char*>* p_fileList, bool p_printOut) {
         closedir(d);
     }
     else{
-        LOG_INFO("No files found:\n");
+        LOG_INFO_NOFMT("No files found:\n");
         return RC_NOT_FOUND_ERR;
     }
     return(RC_OK);

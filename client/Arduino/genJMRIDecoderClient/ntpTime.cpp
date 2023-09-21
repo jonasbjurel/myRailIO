@@ -39,7 +39,7 @@
 EXT_RAM_ATTR ntpDescriptor_t ntpTime::ntpDescriptor;
 
 void ntpTime::init(void) {
-	LOG_TERSE("Initializing ntptime" CR);
+	LOG_TERSE_NOFMT("Initializing ntptime" CR);
 	ntpDescriptor.ntpServerIndexMap = 0;
 	ntpDescriptor.opState = NTP_CLIENT_DISABLED | NTP_CLIENT_NOT_SYNCHRONIZED;
 	ntpDescriptor.dhcp = false;
@@ -55,7 +55,7 @@ void ntpTime::init(void) {
 }
 
 rc_t ntpTime::start(bool p_dhcp) {
-	LOG_TERSE("Starting ntptime" CR);
+	LOG_TERSE_NOFMT("Starting ntptime" CR);
 	sntp_setoperatingmode(SNTP_OPMODE_POLL);
 	sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
 	sntp_set_sync_interval(ntpDescriptor.pollPeriodMs * 1000);
@@ -76,7 +76,7 @@ rc_t ntpTime::start(bool p_dhcp) {
 }
 
 rc_t ntpTime::stop(void) {
-	LOG_TERSE("Stopping ntptime" CR);
+	LOG_TERSE_NOFMT("Stopping ntptime" CR);
 	sntp_stop();
 	setNtpOpState(&ntpDescriptor, NTP_CLIENT_DISABLED);
 	sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
@@ -85,11 +85,11 @@ rc_t ntpTime::stop(void) {
 }
 
 rc_t ntpTime::restart(void) {
-	LOG_TERSE("Restarting ntptime" CR);
+	LOG_TERSE_NOFMT("Restarting ntptime" CR);
 	ntpOpState_t opState;
 	getNtpOpState(&opState);
 	if (opState & NTP_CLIENT_DISABLED) {
-		LOG_INFO("Cannot restart NTP-client, as it is not running" CR);
+		LOG_INFO_NOFMT("Cannot restart NTP-client, as it is not running" CR);
 		return RC_NOTRUNNING_ERR;
 	}
 	sntp_restart();
@@ -338,7 +338,7 @@ rc_t ntpTime::setTimeOfDay(const char* p_timeOfDayStr, char* p_resultStr) {
 	if (!(opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time while NTP Client is running");
-		LOG_WARN("Cannot set time while NTP Client is running" CR);
+		LOG_WARN_NOFMT("Cannot set time while NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if (!strptime(p_timeOfDayStr, "%Y-%m-%dT%H:%M:%S", &t)){
@@ -357,35 +357,35 @@ rc_t ntpTime::setTimeOfDay(const char* p_timeOfDayStr, char* p_resultStr) {
 		case RC_ALREADYRUNNING_ERR:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set time of day while NTP client is running" CR);
-			LOG_WARN("Cannot set time of day while NTP client is running" CR);
+			LOG_WARN_NOFMT("Cannot set time of day while NTP client is running" CR);
 			break;
 		case RC_GEN_ERR:
 		default:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time of day - general error" CR);
-			LOG_WARN("Cannot set time of day - general error" CR);
+			LOG_WARN_NOFMT("Cannot set time of day - general error" CR);
 			break;
 		}
 		return rc;
 	}
-	LOG_VERBOSE("Successfully set time of day" CR);
+	LOG_VERBOSE_NOFMT("Successfully set time of day" CR);
 	return RC_OK;
 }
 
 rc_t ntpTime::setTimeOfDay(tm* p_tm, char* p_resultStr) {
 	timeval tv;
 	tv.tv_usec = 0;
-	LOG_TERSE("Setting time of day from tm" CR);
+	LOG_TERSE_NOFMT("Setting time of day from tm" CR);
 	if (p_resultStr)
 		strcpy(p_resultStr, "");
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
-		LOG_WARN("Cannot set time as NTP Client is running" CR);
+		LOG_WARN_NOFMT("Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if ((tv.tv_sec = mktime(p_tm)) < 0 || settimeofday(&tv, NULL)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time of day, \"tm struct\" is not a valid time of day");
-		LOG_WARN("Cannot set time of day, \"tm struct\"is not a valid time of day" CR);
+		LOG_WARN_NOFMT("Cannot set time of day, \"tm struct\"is not a valid time of day" CR);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	return RC_OK;
@@ -424,7 +424,7 @@ rc_t ntpTime::setEpochTime(const char* p_epochTimeStr, char* p_resultStr) {
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time as NTP Client is running");
-		LOG_WARN(": Cannot set time as NTP Client is running" CR);
+		LOG_WARN_NOFMT(": Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if (!isIntNumberStr(p_epochTimeStr) || atoi(p_epochTimeStr) <= 0) {
@@ -443,13 +443,13 @@ rc_t ntpTime::setEpochTime(const char* p_epochTimeStr, char* p_resultStr) {
 		case RC_ALREADYRUNNING_ERR:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time while NTP client is running" CR);
-			LOG_WARN("Cannot set epoch time while NTP client is running" CR);
+			LOG_WARN_NOFMT("Cannot set epoch time while NTP client is running" CR);
 			break;
 		case RC_GEN_ERR:
 		default:
 			if (p_resultStr)
 				sprintf(p_resultStr, "Cannot set epoch time - general error" CR);
-			LOG_WARN("Cannot set epoch time - general error" CR);
+			LOG_WARN_NOFMT("Cannot set epoch time - general error" CR);
 			break;
 		}
 		return rc;
@@ -464,13 +464,13 @@ rc_t ntpTime::setEpochTime(const timeval* p_tv, char* p_resultStr) {
 	if (!(ntpDescriptor.opState & NTP_CLIENT_DISABLED)) {
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set time as NTP Client is running");
-		LOG_WARN("Cannot set time as NTP Client is running" CR);
+		LOG_WARN_NOFMT("Cannot set time as NTP Client is running" CR);
 		return RC_ALREADYRUNNING_ERR;
 	}
 	if (settimeofday(p_tv, NULL)){
 		if (p_resultStr)
 			sprintf(p_resultStr, "Cannot set epoch time, \"tv struct\" is not a valid epoch time");
-		LOG_WARN("Cannot set epoch time, \"tv struct\" is not a valid epoch time" CR);
+		LOG_WARN_NOFMT("Cannot set epoch time, \"tv struct\" is not a valid epoch time" CR);
 		return RC_PARAMETERVALUE_ERR;
 	}
 	return RC_OK;
@@ -515,9 +515,9 @@ rc_t ntpTime::setDayLightSaving(bool p_daylightSaving) {
 	timezone tz;
 	tm t;
 	if(p_daylightSaving)
-		LOG_TERSE("Setting daylightsaving to \"true\"" CR);
+		LOG_TERSE_NOFMT("Setting daylightsaving to \"true\"" CR);
 	else
-		LOG_TERSE("Setting daylightsaving to \"false\"" CR);
+		LOG_TERSE_NOFMT("Setting daylightsaving to \"false\"" CR);
 	gettimeofday(&tv, &tz);
 	
 	t = *localtime(&(tv.tv_sec));
@@ -621,17 +621,17 @@ void ntpTime::sntpCb(timeval* p_tv) {
 	case SNTP_SYNC_STATUS_RESET:
 		ntpDescriptor.opState = ntpDescriptor.opState | NTP_CLIENT_NOT_SYNCHRONIZED;
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_SYNCHRONIZING;
-		LOG_WARN("NTP not synchronized and is not synchronizing" CR);
+		LOG_WARN_NOFMT("NTP not synchronized and is not synchronizing" CR);
 		break;
 	case SNTP_SYNC_STATUS_IN_PROGRESS:
 		ntpDescriptor.opState = ntpDescriptor.opState | NTP_CLIENT_SYNCHRONIZING;
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_NOT_SYNCHRONIZED;
-		LOG_INFO("NTP is in the process of synchronizing" CR);
+		LOG_INFO_NOFMT("NTP is in the process of synchronizing" CR);
 		break;
 	case SNTP_SYNC_STATUS_COMPLETED:
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_SYNCHRONIZING;
 		ntpDescriptor.opState = ntpDescriptor.opState & ~NTP_CLIENT_NOT_SYNCHRONIZED;
-		LOG_INFO("NTP is fully synchronized" CR);
+		LOG_INFO_NOFMT("NTP is fully synchronized" CR);
 		break;
 	default:
 		LOG_ERROR("Got an unexpected NTP synchronization state %i - resetting the NTP state-mashine" CR, ntpDescriptor.syncStatus);

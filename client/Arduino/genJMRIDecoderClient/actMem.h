@@ -74,6 +74,7 @@ public:
     rc_t getShowing(char* p_showing, char* p_orderedShowing);
     void failsafe(bool p_failSafe);
 
+
     //Public data structures
     //--
 
@@ -83,6 +84,7 @@ private:
     void setActMem(void);
 
     //Private data structures
+    char* logContextName;
     actBase* actBaseHandle;
     const char* sysName;
     uint8_t actPort;

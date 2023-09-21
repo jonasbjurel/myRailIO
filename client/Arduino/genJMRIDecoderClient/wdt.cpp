@@ -126,9 +126,9 @@ void wdt::wdtUnRegMqttDown(wdtCb_t* p_wdtMqttDownCb) {
 void wdt::feed(void) {
     /*
     if (esp_timer_stop(wdtData->timerHandle))
-        panic("wdt::feed: Could not stop the %s timer, rebooting..." CR, wdtData->wdtDescription);
+        panic("wdt::feed: Could not stop the %s timer", wdtData->wdtDescription);
     if (esp_timer_start_once(wdtData->timerHandle, wdtData->wdtTimeout))
-        panic("wdt::feed: Could not start the %s timer, rebooting..." CR, wdtData->wdtDescription);
+        panic("wdt::feed: Could not start the %s timer", wdtData->wdtDescription);
     return;
     */
 }
@@ -138,7 +138,7 @@ void wdt::kickHelper(wdt* p_wdtObject) {
 }
 
 void wdt::kick(void) {
-    LOG_ERROR("wdt::kick: Watchdog timer: %s expired" CR, wdtData->wdtDescription);
+    LOG_ERROR("Watchdog timer: %s expired" CR, wdtData->wdtDescription);
     if (wdtData->wdtAction & FAULTACTION_FAILSAFE_ACTUATORS);
         callFailsafeCbs(&(wdtCbLists.actuatorsWdtCbs));
     if (wdtData->wdtAction & FAULTACTION_FAILSAFE_LGS)
@@ -158,7 +158,8 @@ void wdt::kick(void) {
     }
     if (wdtData->wdtAction & FAULTACTION_REBOOT) {
         callFailsafeCbs(&(wdtCbLists.mqttDownWdtCbs));
-        panic("wdt::kick: Watchdog triggered from %s - rebooting..." CR, wdtData->wdtDescription);
+        panic("wdt::kick: Watchdog triggered from %s", wdtData->wdtDescription);
+        return;
     }
 }
 

@@ -106,6 +106,8 @@ public:
 	void clearTxCrcErrs(void);
 	uint32_t getWdErrs(void);
 	void clearWdErrs(void);
+	const char* getLogContextName(void);
+
 	/* CLI decoration methods */
 	static void onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -124,6 +126,7 @@ private:
 	//-
 
 	//Private data structures
+	char* logContextName;
 	uint8_t satAddr;
 	uint8_t satLinkNo;
 	//bool pendingStart;

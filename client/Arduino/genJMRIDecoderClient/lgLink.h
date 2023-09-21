@@ -127,6 +127,7 @@ public:
     uint32_t getMaxRuntime(void);
     void clearMaxRuntime(void);
     void failsafe(bool p_set);
+    const char* getLogContextName(void);
 
     /* CLI decoration methods */
     static void onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -149,6 +150,7 @@ private:
     void updateStrip(void);
 
     //Private data structures
+    char* logContextName;
     uint8_t linkNo;
     bool linkScan;
     sysState_t prevSysState;

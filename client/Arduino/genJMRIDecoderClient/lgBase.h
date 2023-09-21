@@ -75,7 +75,7 @@ class lgSignalMast;
 		if(!strcmp(type, "SIGNAL MAST"))\
 			((lgSignalMast*)ext_p)->method;\
 		else\
-			panic("lgBase::CALL_EXT: Non supported type: \"%s\" - rebooting..." CR, type)
+			panic("lgBase::CALL_EXT: Non supported type: \"%s\"", type)
 
 #define LG_CALL_EXT_RC(ext_p, type, method)\
 		rc_t EXT_RC;\
@@ -84,7 +84,7 @@ class lgSignalMast;
 		}\
 		else{\
 			EXT_RC = RC_GEN_ERR;\
-			panic("lgBase::CALL_EXT_RC: Non supported type: \"%s\" - rebooting..." CR, type);\
+			panic("lgBase::CALL_EXT_RC: Non supported type: \"%s\"", type);\
 		}
 
 class lgBase : public systemState, public globalCli {
@@ -122,6 +122,8 @@ public:
 	bool getDebug(void);
 	void setStripOffset(const uint16_t p_stripOffset);
 	uint16_t getStripOffset(void);
+	const char* getLogContextName(void);
+
 	/* CLI decoration methods */
 	static void onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -142,6 +144,7 @@ private:
 	//--
 
 	//Private data structures
+	char* logContextName;
 	uint8_t lgAddress;
 	uint8_t lgLinkNo;
 	char* xmlconfig[9];

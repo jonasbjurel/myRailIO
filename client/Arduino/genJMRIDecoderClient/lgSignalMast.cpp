@@ -37,17 +37,20 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 lgSignalMast::lgSignalMast(const lgBase* p_lgBaseObjHandle) {
+    asprintf(&logContextName, "%s/%s", ((lgBase*)p_lgBaseObjHandle)->getLogContextName(), "sm");
     failsafeSet = false;
     mastDesc.lgBaseObjHandle = (lgBase*)p_lgBaseObjHandle;
     mastDesc.lgLinkHandle = (lgLink*)mastDesc.lgBaseObjHandle->lgLinkHandle;
     mastDesc.lgLinkHandle->getLink(&mastDesc.lgLinkNo);
     mastDesc.lgBaseObjHandle->getAddress(&mastDesc.lgAddress, true);
     mastDesc.lgBaseObjHandle->getSystemName(mastDesc.lgSysName, true);
-    LOG_INFO("Creating Lg signal mast: %s, with Lg link address: %d, on Lg link %d" CR, mastDesc.lgSysName, mastDesc.lgAddress, mastDesc.lgLinkNo);
+    LOG_INFO("%s: Creating Lg signal mast (sm)" CR, logContextName);
     lgSignalMastLock = xSemaphoreCreateMutex();
     lgSignalMastReentranceLock = xSemaphoreCreateMutex();
-    if (lgSignalMastLock == NULL || lgSignalMastReentranceLock == NULL)
-        panic("Could not create Lock objects - rebooting..." CR);
+    if (lgSignalMastLock == NULL || lgSignalMastReentranceLock == NULL){
+        panic("Could not create Lock objects");
+        return;
+    }
     xmlConfig[SM_TYPE] = NULL;
     xmlConfig[SM_DIMTIME] = createNcpystr("NORMAL");
     xmlConfig[SM_FLASHFREQ] = createNcpystr("NORMAL");
@@ -57,20 +60,24 @@ lgSignalMast::lgSignalMast(const lgBase* p_lgBaseObjHandle) {
 }
 
 lgSignalMast::~lgSignalMast(void) {
-    panic("Destructor not supported - rebooting..." CR);
+    panic("Destructor not supported");
 }
 
 rc_t lgSignalMast::init(void) {
-    LOG_INFO("Initializing mast decoder" CR);
+    LOG_INFO("%s: Initializing sm" CR, logContextName);
     return RC_OK;
 }
 
 rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
-    if (!(mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-        panic("Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting..." CR);
-    if (p_mastDescXmlElement == NULL)
-        panic("No mastDescXml provided - rebooting..." CR);
-    LOG_INFO("%d on lgLink %d received an unverified configuration, parsing and validating it..." CR, mastDesc.lgAddress, mastDesc.lgLinkNo);
+    if (!(mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap() & OP_UNCONFIGURED)){
+        panic("%s: Received a configuration, while the it was already configured, dynamic re-configuration not supported", logContextName);
+        return RC_GEN_ERR;
+    }
+    if (p_mastDescXmlElement == NULL){
+        panic("%s: No mastDescXml provided", logContextName);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: sm received an unverified configuration, parsing and validating it..." CR, logContextName);
     const char* searchMastTags[4];
     searchMastTags[SM_TYPE] = "Property1";
     searchMastTags[SM_DIMTIME] = "Property2";
@@ -82,11 +89,15 @@ rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
         xmlConfig[SM_DIMTIME] == NULL ||
         xmlConfig[SM_FLASHFREQ] == NULL ||
         xmlConfig[SM_BRIGHTNESS] == NULL ||
-        xmlConfig[SM_FLASH_DUTY] == NULL)
-        panic("mastDescXml missformated - rebooting...");
-    if (parseProperties())
-        panic("Could not set lgMast properties - rebooting...");
-    LOG_INFO("Successfully configured lgMast - Mast Type: %s, Dim time: %s, Flash Freq: %s, Flash duty: %s, Brightness: %s" CR, xmlConfig[SM_TYPE], xmlConfig[SM_DIMTIME], xmlConfig[SM_FLASHFREQ], xmlConfig[SM_FLASH_DUTY], xmlConfig[SM_BRIGHTNESS]);
+        xmlConfig[SM_FLASH_DUTY] == NULL){
+        panic("mastDescXml missformated");
+        return RC_GEN_ERR;
+    }
+    if (parseProperties()){
+        panic("%s: Could not set sm properties", logContextName);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Successfully configured sm - Mast Type: %s, Dim time: %s, Flash Freq: %s, Flash duty: %s, Brightness: %s" CR, logContextName, xmlConfig[SM_TYPE], xmlConfig[SM_DIMTIME], xmlConfig[SM_FLASHFREQ], xmlConfig[SM_FLASH_DUTY], xmlConfig[SM_BRIGHTNESS]);
     mastDesc.lgLinkHandle->getSignalMastAspectObj()->getNoOfHeads(mastDesc.lgSmType, &mastDesc.lgNoOfLed, true);
     appearance = new (heap_caps_malloc(sizeof(uint8_t) * mastDesc.lgNoOfLed, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint8_t[mastDesc.lgNoOfLed];
     appearanceWriteBuff = new (heap_caps_malloc(sizeof(uint8_t) * mastDesc.lgNoOfLed, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint8_t[mastDesc.lgNoOfLed];
@@ -94,7 +105,7 @@ rc_t lgSignalMast::onConfig(const tinyxml2::XMLElement* p_mastDescXmlElement) {
 }
 
 rc_t lgSignalMast::start(void) {
-    LOG_INFO("Starting mast decoder %s" CR, mastDesc.lgSysName);
+    LOG_INFO("%s: Starting sm" CR, logContextName);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ASPECT_TOPIC, "/", mqtt::getDecoderUri(), "/", mastDesc.lgSysName);
     mqtt::subscribeTopic(subscribeTopic, &onAspectChangeHelper, this);
@@ -104,15 +115,16 @@ rc_t lgSignalMast::start(void) {
 void lgSignalMast::onSysStateChange(sysState_t p_sysState) {
     if (p_sysState & OP_INTFAIL) {
         failSafe(true);
-        panic("Signal-mast has experienced an internal error - seting fail-safe aspect and rebooting..." CR);
+        panic("%s: sm has experienced an internal error - seting fail-safe aspect" CR, logContextName);
+        return;
     }
     if (p_sysState) {
         failSafe(true);
-        LOG_INFO("Signal-mast %d on lgLink %d has received Opstate %b - seting fail-safe aspect" CR, mastDesc.lgAddress, mastDesc.lgLinkNo, p_sysState);
+        LOG_INFO("%s: sm has received Opstate %X - seting fail-safe aspect" CR, logContextName, p_sysState);
     }
     else {
         failSafe(false);
-        LOG_INFO("Signal-mast %d on lgLink %d has received a WORKING Opstate - Unseting fail-safe aspect and getting current aspect from server" CR, mastDesc.lgLinkNo);
+        LOG_INFO("%s:sm has received a WORKING Opstate - Unseting fail-safe aspect and getting current aspect from server" CR, logContextName);
         char publishTopic[300];
         sprintf(publishTopic, "%s%s%s%s%s", MQTT_ASPECT_REQUEST_TOPIC, "/", mqtt::getDecoderUri(), "/", mastDesc.lgSysName);
         mqtt::sendMsg(publishTopic, MQTT_GETASPECT_PAYLOAD, false);
@@ -120,7 +132,7 @@ void lgSignalMast::onSysStateChange(sysState_t p_sysState) {
 }
 
 rc_t lgSignalMast::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
-    LOG_INFO("Setting light-group property for %s, property Id %d, property value %s" CR, mastDesc.lgSysName, p_propertyId, p_propertyValue);
+    LOG_INFO("%s: Setting light-group property for %s, property Id %d, property value %s" CR, logContextName, mastDesc.lgSysName, p_propertyId, p_propertyValue);
     strcpy(xmlConfig[SM_TYPE + p_propertyId], p_propertyValue);
     parseProperties();
     setProperties();
@@ -152,7 +164,7 @@ rc_t lgSignalMast::parseProperties(void) {
         mastDesc.smDimTime = SM_DIM_SLOW_MS;
     }
     else {
-        LOG_ERROR("property2/smDimTime is none of FAST, NORMAL or SLOW - using NORMAL..." CR);
+        LOG_ERROR("%s: property1/smDimTime is none of FAST, NORMAL or SLOW - using NORMAL..." CR, logContextName);
         mastDesc.smDimTime = SM_DIM_NORMAL_MS;
     }
     if (!strcmp(xmlConfig[SM_FLASHFREQ], "NORMAL")) {
@@ -168,7 +180,7 @@ rc_t lgSignalMast::parseProperties(void) {
         mastDesc.lgLinkHandle->getFlashObj(SM_FLASH_SLOW)->subscribe(&onFlashHelper, this);
     }
     else {
-        LOG_ERROR("property3/smFlashFreq is none of FAST, NORMAL or SLOW - using NORMAL..." CR);
+        LOG_ERROR("%s: property2/smFlashFreq is none of FAST, NORMAL or SLOW - using NORMAL..." CR, logContextName);
         mastDesc.smFlashFreq = SM_FLASH_NORMAL;
         mastDesc.lgLinkHandle->getFlashObj(SM_FLASH_NORMAL)->subscribe(&onFlashHelper, this);
     }
@@ -182,7 +194,7 @@ rc_t lgSignalMast::parseProperties(void) {
         mastDesc.smBrightness = SM_BRIGHNESS_LOW;
     }
     else {
-        LOG_ERROR("smBrighness is non of HIGH, NORMAL or LOW - using NORMAL..." CR);
+        LOG_ERROR("%s: property3/smBrighness is non of HIGH, NORMAL or LOW - using NORMAL..." CR, logContextName);
         mastDesc.smBrightness = SM_BRIGHNESS_NORMAL;
     }
     if (!strcmp(xmlConfig[SM_FLASH_DUTY], "HIGH")) {
@@ -195,7 +207,7 @@ rc_t lgSignalMast::parseProperties(void) {
         mastDesc.smFlashDuty = SM_DUTY_LOW;
     }
     else {
-        LOG_ERROR("smDuty is non of HIGH, NORMAL or LOW - using NORMAL..." CR);
+        LOG_ERROR("%s: property4/smDuty is non of HIGH, NORMAL or LOW - using NORMAL..." CR, logContextName);
         mastDesc.smFlashDuty = SM_DUTY_NORMAL;
     }
     return RC_OK;
@@ -215,7 +227,7 @@ rc_t lgSignalMast::setProperties(void) {
         mastDesc.lgLinkHandle->getFlashObj(SM_FLASH_SLOW)->subscribe(&onFlashHelper, this);
     }
     else {
-        LOG_ERROR("smFlashFreq is non of FAST, NORMAL or SLOW - using NORMAL..." CR);
+        LOG_ERROR("%s: smFlashFreq is non of FAST, NORMAL or SLOW - using NORMAL..." CR, logContextName);
         mastDesc.lgLinkHandle->getFlashObj(SM_FLASH_NORMAL)->subscribe(&onFlashHelper, this);
     }
     return RC_OK;
@@ -231,19 +243,19 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
     if (mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap()) {
         xSemaphoreGive(lgSignalMastLock);
         xSemaphoreGive(lgSignalMastReentranceLock);
-        LOG_WARN("A new aspect received, but mast decoder opState is not OP_WORKING - doing nothing..." CR);
+        LOG_WARN("%s: A new aspect received, but mast decoder opState is not OP_WORKING - doing nothing..." CR, logContextName);
         return;
     }
     xSemaphoreGive(lgSignalMastLock);
     if (parseXmlAppearance(p_payload, aspect)) {
         xSemaphoreGive(lgSignalMastReentranceLock);
-        LOG_ERROR("Failed to parse appearance - continuing..." CR);
+        LOG_ERROR("%s: Failed to parse appearance - continuing..." CR, logContextName);
         return;
     }
-    LOG_VERBOSE("A new aspect: %s received for signal mast %s" CR, aspect, mastDesc.lgSysName);
+    LOG_VERBOSE("%s: A new aspect: %s received for signal mast %s" CR, logContextName, aspect, mastDesc.lgSysName);
     if (mastDesc.lgLinkHandle->getSignalMastAspectObj()->getAppearance(xmlConfig[SM_TYPE], aspect, &appearance)) {
         xSemaphoreGive(lgSignalMastReentranceLock);
-        LOG_ERROR("Failed to get mast aspect" CR);
+        LOG_ERROR("%s: Failed to get mast aspect" CR, logContextName);
         return;
     }
     if (Log.getLogLevel() == GJMRI_DEBUG_VERBOSE) {
@@ -267,7 +279,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
                 strcat(apearanceStr, "<ERROR>");
             }
         }
-    LOG_VERBOSE("LG %s appearance change: %s" CR, mastDesc.lgSysName, apearanceStr);
+    LOG_VERBOSE("%s sm appearance change: %s" CR, logContextName, apearanceStr);
     }
     for (uint8_t i = 0; i < mastDesc.lgNoOfLed; i++) {
         switch (appearance[i]) {
@@ -289,7 +301,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
             }
             break;
         default:
-            LOG_ERROR("The appearance is none of LIT, UNLIT, FLASH or UNUSED - setting mast to SM_BRIGHNESS_FAIL and continuing..." CR);
+            LOG_ERROR("%s: The appearance is none of LIT, UNLIT, FLASH or UNUSED - setting mast to SM_BRIGHNESS_FAIL and continuing..." CR, logContextName);
             appearanceWriteBuff[i] = SM_BRIGHNESS_FAIL; //HERE WE SHOULD SET THE HOLE MAST TO FAIL ASPECT
         }
     }
@@ -329,7 +341,7 @@ void lgSignalMast::onFlashHelper(bool p_flashState, void* p_flashObj) {
 
 void lgSignalMast::onFlash(bool p_flashState) {
     if (mastDesc.lgBaseObjHandle->getOpStateBitmap() != OP_WORKING) {
-        LOG_VERBOSE("Got a flash call while not in a working OP state - doing nothing" CR);
+        LOG_VERBOSE("%s: Got a flash call while not in a working OP state - doing nothing" CR, logContextName);
         return;
     }
     xSemaphoreTake(lgSignalMastReentranceLock, portMAX_DELAY);

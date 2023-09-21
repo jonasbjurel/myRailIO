@@ -241,12 +241,12 @@ EXT_RAM_ATTR const char GLOBAL_STOP_CPUMEM_HELP_TXT[] =				"Stops earlier starte
 EXT_RAM_ATTR const char GLOBAL_SHOW_CPUMEM_HELP_TXT[] =				"Shows a summary of the heap status and statistics, is identical to \"get memory\"";
 
 EXT_RAM_ATTR const char GLOBAL_SET_NETWORK_HELP_TXT[] =				"Sets IP and WIFI networking parameters.\n\r" \
-																		"	-hostname {hostName}: Sets the host name\n\r" \
-																		"	-address {hostIpAddress}: Sets the host IPv4 network address\n\r" \
-																		"	-mask {networkIpMask}: Sets the IPv4 network mask\n\r" \
-																		"	-gw {networkIpAddress}: Sets the IPv4 network default gateway address\n\r" \
-																		"	-dns {dnsIpAddress}: Sets the IPv4 DNS address\n\r" \
-																		"	-persist: Persists the network configuration\n\r";
+																		"	- \"-hostname {hostName}\": Sets the host name\n\r" \
+																		"	- \"-address {hostIpAddress}\": Sets the host IPv4 network address\n\r" \
+																		"	- \"-mask {networkIpMask}\": Sets the IPv4 network mask\n\r" \
+																		"	- \"-gw {networkIpAddress}\": Sets the IPv4 network default gateway address\n\r" \
+																		"	- \"-dns {dnsIpAddress}\": Sets the IPv4 DNS address\n\r" \
+																		"	- \"-persist\": Persists the network configuration\n\r";
 
 EXT_RAM_ATTR const char GLOBAL_GET_NETWORK_HELP_TXT[] =				"Prints IP and WIFI networking parameters and statistics. \"get network\" without flags is identical to \"show network\"\n\r" \
 																		"Available flags:\n\r"
@@ -316,7 +316,7 @@ EXT_RAM_ATTR const char GLOBAL_STOP_TIME_HELP_TXT[] =				"Stops time services.\n
 
 EXT_RAM_ATTR const char GLOBAL_SET_TIME_HELP_TXT[] =				"Sets the system time.\n\r" \
 																		"Available flags:\n\r" \
-																		"	- \"-timeofday | -tod {timeOfDay}\": Sets time of day in UTC, \"timeOfDay\" format: \"YYYY-MM-DDTHH:MM:SS\"\n\r" \
+																		"	- \"-timeofday {timeOfDay}| -tod {timeOfDay}\": Sets time of day in UTC, \"timeOfDay\" format: \"YYYY-MM-DDTHH:MM:SS\"\n\r" \
 																		"	- \"-epochtime {epochTime_s}\": Sets Epoch time, \"epochTime_s\" format: NNNNNN - seconds since Jan 1 1970 UTC\n\r" \
 																		"	- \"-timezone {timeZone_h}\": Sets the timezone, \"timeZone_h\" format (-)NN houres, NN <= 12, E.g. \"CET+1\".\n\r";
 
@@ -333,24 +333,44 @@ EXT_RAM_ATTR const char GLOBAL_GET_TIME_HELP_TXT[] =				"Prints the system time.
 
 EXT_RAM_ATTR const char GLOBAL_SHOW_TIME_HELP_TXT[] =				"Shows a summary of the time services. Identical to \"get time\" without flags.\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_SET_LOG_HELP_TXT[] =					"Sets the loglevel properties, like global log-level, custom log-levels\"logLevel\" to \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"\n\r" \
-																		"                                              if \"logmo {logMo}\" is provided, the given loglevel is only valid for the provided \"logMo\" (managed object) - NOT YET SUPPORTED\n\r" \
-																		"set log -logdestination {logDestination}: Sets a remote log destination - NOT YET SUPPORTED\n\r";
+EXT_RAM_ATTR const char GLOBAL_SET_LOG_HELP_TXT[] =					"Sets logg properties\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-loglevel {value}\" Sets the global log level, the global log level should be one of: \n\r" \
+																		"			should be one of \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"\n\r" \
+																		"	- \"-logdestination {value}\" Sets the RSyslog destination URI and starts logging to it\n\r" \
+																		"	- \"-logconsole\" Enables console logging\r\n";
 
-EXT_RAM_ATTR const char GLOBAL_UNSET_LOG_HELP_TXT[] =				"unset log -logdestination: Terminates logging to the previously provisioned remote log destination - NOT YET SUPPORTED\n\r";
+EXT_RAM_ATTR const char GLOBAL_UNSET_LOG_HELP_TXT[] =				"Unsets logg properties\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-logdestination\" Removes the RSyslog destination(s), and stops logging to it\n\r" \
+																		"	- \"-logconsole\" Stops logging to the console\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_CLEAR_LOG_HELP_TXT[] =				"Need to add  help text";
+EXT_RAM_ATTR const char GLOBAL_CLEAR_LOG_HELP_TXT[] =				"Clears various logg metrics\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-missedlogs\" Clears the missed log entries counter\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_GET_LOG_HELP_TXT[] =					"get log [-loglevel [-logmo {logMo}]] [-logdestination] [-tail {lines}]\n\r" \
-																		"get log -loglevel [-logmo {logMo}] Prints the current loglevel, if \"logmo {logMo}\" is provided, the loglevel for the provided \"logMo\" (managed object) is given - NOT YET SUPPORTED\n\r" \
-																		"get log - logdestination: Prints the remote loglevel destination - NOT YET SUPPORTED\n\r" \
-																		"get log -tail {lines}: Prints the last \"lines\" of the log - NOT YET SUPPORTED\n\r";
+EXT_RAM_ATTR const char GLOBAL_GET_LOG_HELP_TXT[] =					"Prints various logg parameters and metrics, \"get log\" without flags is identical to \"show log\"\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-loglevel\" Prints the current global log level\n\r" \
+																		"	- \"-logdestination\" Prints the current Rsyslog log destination\n\r" \
+																		"	- \"-customlogitems\" Prints custom log items with their respective log levels\n\r" \
+																		"	- \"-missedlogs\" Prints the aggregated sum of missed log entries that have been pruned due to \n\r" \
+																		"			overload or lack of resources, this counter can be reset by \"clear log -missedlogs\"\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_ADD_LOG_HELP_TXT[] =					"Need to add  help text";
+EXT_RAM_ATTR const char GLOBAL_ADD_LOG_HELP_TXT[] =					"Adds logg items\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-customlogitem -customloglevel {value} -customlogfile {value} [-customlogfunc {value}]\"\n\r" \
+																		"			Adds a custom log item for a specific source file name - \n\r" \
+																		"			and an optional function name, with a custom log level, the log level value\n\r" \
+																		"			should be one of \"DEBUG-SILENT\"|\"DEBUG-PANIC\"|\"DEBUG-ERROR\"|\"DEBUG-WARN\"|\"DEBUG-INFO\"|\"DEBUG-TERSE\"|\"DEBUG-VERBOSE\"";
 
-EXT_RAM_ATTR const char GLOBAL_DELETE_LOG_HELP_TXT[] =				"Need to add  help text";
+EXT_RAM_ATTR const char GLOBAL_DELETE_LOG_HELP_TXT[] =				"Deletes logg items\n\r" \
+																		"Available flags:\n\r" \
+																		"	- \"-customlogitem -all\" Deletes all custom log items\n\r" \
+																		"	- \"-customlogitem -customlogfile {value} [-customlogfunc {value}]\"\n\r" \
+																		"			Deletes one or more custom log item for a specific source file name and an optional function name,\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_SHOW_LOG_HELP_TXT[] =				"show log: Prints a summary of log information\n\r";
+EXT_RAM_ATTR const char GLOBAL_SHOW_LOG_HELP_TXT[] =				"Shows a summary of logg information. Identical to \"get log\" without flags\n\r";
 
 EXT_RAM_ATTR const char COMMON_SET_DEBUG_HELP_TXT[] =				"Sets the debug state of the MO, this enables setting of MO/Sub-MO atributes which may lead to system inconsistensy.\n\r";
 

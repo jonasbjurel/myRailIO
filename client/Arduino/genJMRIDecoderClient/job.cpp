@@ -35,24 +35,36 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio) {
+//job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSort = false) {
+
+job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting) {
 	jobQueueDepth = p_jobQueueDepth;
+	processTaskName = p_processTaskName;
 	processTaskPrio = p_processTaskPrio;
-	if (!(jobLock = xSemaphoreCreateMutex()))
-		panic("Could not create Lock objects - rebooting..." CR);
-	if (!(jobSleepSemaphore = xSemaphoreCreateCounting(p_jobQueueDepth, 0)))
-		panic("Could not create jobProcess sleep semaphore  objects - rebooting..." CR);
+	taskSorting = p_taskSorting;
+	if (!(jobLock = xSemaphoreCreateMutex())) {
+		panic("Could not create Lock objects");
+		return;
+	}
+	if (!(jobSleepSemaphore = xSemaphoreCreateCounting(p_jobQueueDepth, 0))){
+		panic("Could not create jobProcess sleep semaphore  objects");
+		return;
+	}
 	//if (!(lapseDescList = new (heap_caps_malloc(sizeof(QList<lapseDesc_t*>), MALLOC_CAP_SPIRAM)) QList<lapseDesc_t*>))
-	if (!(lapseDescList = new QList<lapseDesc_t*>))
-		panic("Could not create lapse list object - rebooting..." CR);
+	if (!(lapseDescList = new QList<lapseDesc_t*>)){
+		panic("Could not create lapse list object");
+		return;
+	}
 	//uint8_t jobProcessCore = ....
 	if (!(jobTaskHandle = eTaskCreate(jobProcessHelper,					// Task function
 						p_processTaskName,								// Task function name reference
 						p_processTaskStackSize,							// Stack size
 						this,											// Parameter passing
 						p_processTaskPrio,								// Priority 0-24, higher is more
-						INTERNAL)))										// Task handle
-		panic("Could not create job task - rebooting..." CR);
+						INTERNAL))){									// Task handle
+		panic("Could not create job task");
+		return;
+	}
 	jobOverloadCb = NULL;
 	jobOverloadCbMetaData = NULL;
 	overloaded = false;
@@ -62,7 +74,7 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 }
 
 job::~job(void) {
-	panic("Destruction not supported - rebooting..." CR);
+	panic("Destruction not supported");
 }
 
 void job::regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData) {
@@ -79,58 +91,65 @@ void job::setjobQueueUnsetOverloadLevel(uint16_t p_unsetOverloadLevel) {
 }
 
 void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio, bool p_purgeAllJobs) {
+	bool found = false;
+	xSemaphoreTake(jobLock, portMAX_DELAY);
 	jobdesc_t* jobDesc = new (heap_caps_malloc(sizeof(jobdesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) jobdesc_t;
-	if (!jobDesc)
-		panic("Failed to create a new jobdescriptor, rebooting..." CR);
+	assert(jobDesc != NULL);
 	jobDesc->jobCb = p_jobCb;
 	jobDesc->jobCbMetaData = p_jobCbMetaData;
 	jobDesc->taskHandle = xTaskGetCurrentTaskHandle();
-	xSemaphoreTake(jobLock, portMAX_DELAY);
 	if (lapseDescList->size() == 0) {
 		lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lapseDesc_t);
-		if (!lapseDescList->back())
-			panic("Could not create lapse descriptor object - rebooting..." CR);
-		if (!(lapseDescList->back()->jobDescList = new QList<jobdesc_t*>))
-			panic("Could not create job descriptor list object - rebooting..." CR);
+		assert(lapseDescList->back() != NULL);
+		lapseDescList->back()->jobDescList = new QList<jobdesc_t*>;
+		assert(lapseDescList->back()->jobDescList != NULL);
 		lapseDescList->back()->jobDescList->push_back(jobDesc);
-		lapseDescList->back()->taskHandle = jobDesc->taskHandle;
+		if(taskSorting)
+			lapseDescList->back()->taskHandle = jobDesc->taskHandle;
+		else
+			lapseDescList->back()->taskHandle = NULL;
+		found = true;
+	}
+	else if (!taskSorting) {
+		lapseDescList->back()->jobDescList->push_back(jobDesc);
+		found = true;
 	}
 	else{
 		for (uint16_t lapseItter = 0; lapseItter < lapseDescList->size(); lapseItter++) {
 			if (lapseDescList->at(lapseItter)->taskHandle == jobDesc->taskHandle) {
 				lapseDescList->at(lapseItter)->jobDescList->push_back(jobDesc);
+				found = true;
 				break;
 			}
 			if (lapseItter + 1 == lapseDescList->size()) {
 				lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lapseDesc_t);
-				if (!lapseDescList->back())
-					panic("Could not create lapse descriptor object - rebooting..." CR);
-				if (!(lapseDescList->back()->jobDescList = new QList<jobdesc_t*>))
-					panic("Could not create job descriptor list object - rebooting..." CR);
+				assert(lapseDescList->back() != NULL);
+				lapseDescList->back()->jobDescList = new QList<jobdesc_t*>;
+				assert(lapseDescList->back()->jobDescList != NULL);
 				lapseDescList->back()->jobDescList->push_back(jobDesc);
 				lapseDescList->back()->taskHandle = jobDesc->taskHandle;
+				found = true;
 				break;
 			}
 		}
 	}
-	xSemaphoreGive(jobLock);
+	assert(found == true);
 	if (p_purgeAllJobs) {
 		purgeAllJobs = p_purgeAllJobs;
 		bumpJobSlotPrio = 0;
 		vTaskPrioritySet(jobTaskHandle, uxTaskPriorityGet(NULL) >= ESP_TASK_PRIO_MAX - 1? ESP_TASK_PRIO_MAX - 1 : (uxTaskPriorityGet(NULL) >= PURGE_JOB_PRIO? uxTaskPriorityGet(NULL) + 1 : PURGE_JOB_PRIO));
 	}
-	else if (uxSemaphoreGetCount(jobSleepSemaphore) >= jobQueueDepth && !purgeAllJobs) {
+	else if (uxSemaphoreGetCount(jobSleepSemaphore) + 1 >= jobQueueDepth && !purgeAllJobs) {
 		bumpJobSlotPrio++;
 		vTaskPrioritySet(jobTaskHandle, uxTaskPriorityGet(NULL) >= ESP_TASK_PRIO_MAX - 1? ESP_TASK_PRIO_MAX - 1 : uxTaskPriorityGet(NULL) + 1);
 	}
-	xSemaphoreGive(jobSleepSemaphore);
-	if (!overloaded && uxSemaphoreGetCount(jobSleepSemaphore) >= jobQueueDepth) {
+	if (!overloaded && uxSemaphoreGetCount(jobSleepSemaphore) + 1 >= jobQueueDepth) {
 		overloaded = true;
 		if (jobOverloadCb)
-			jobOverloadCb(true);
+			jobOverloadCb(jobOverloadCbMetaData, true);
 	}
-	else if(overloaded && uxSemaphoreGetCount(jobSleepSemaphore) <= unsetOverloadLevel)
-		jobOverloadCb(true);
+	xSemaphoreGive(jobLock);
+	xSemaphoreGive(jobSleepSemaphore);
 }
 
 void job::purge(void) {
@@ -162,6 +181,7 @@ void job::jobProcess(void) {
 		lapseDescList->front()->jobDescList->pop_front();
 		if (lapseDescList->front()->jobDescList->size() == 0) {
 			delete lapseDescList->front()->jobDescList;
+			delete lapseDescList->front();
 			lapseDescList->pop_front();
 		}
 		xSemaphoreGive(jobLock);
@@ -173,6 +193,10 @@ void job::jobProcess(void) {
 		else if (bumpJobSlotPrio) {
 			if (!(--bumpJobSlotPrio))
 				vTaskPrioritySet(NULL, processTaskPrio);
+		}
+		if (overloaded && uxSemaphoreGetCount(jobSleepSemaphore) <= unsetOverloadLevel) {
+			overloaded = false;
+			jobOverloadCb(jobOverloadCbMetaData, false);
 		}
 	}
 }

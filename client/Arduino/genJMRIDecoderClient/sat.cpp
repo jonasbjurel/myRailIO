@@ -37,7 +37,8 @@
 /*==============================================================================================================================================*/
 
 sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), globalCli(SAT_MO_NAME, SAT_MO_NAME, p_satAddr, p_linkHandle) {
-    LOG_INFO("Creating Satelite adress %d" CR, p_satAddr);
+    asprintf(&logContextName, "%s/%s-%i", p_linkHandle->getLogContextName(), "sat", p_satAddr);
+    LOG_INFO("%s: Creating Satelite (sat)" CR, logContextName);
     linkHandle = p_linkHandle;
     satLinkNo = linkHandle->getLink();
     satAddr = p_satAddr;
@@ -47,8 +48,10 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sat-%d", p_satAddr);
     setSysStateObjName(sysStateObjName);
-    if (!(satLock = xSemaphoreCreateMutex()))
-        panic("Could not create Lock objects - rebooting...");
+    if (!(satLock = xSemaphoreCreateMutex())){
+        panic("%s: Could not create Lock objects", logContextName);
+        return;
+    }
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNDISCOVERED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
@@ -60,15 +63,15 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
 }
 
 sat::~sat(void) {
-    panic("sat destructior not supported - rebooting..." CR);
+    panic("%s: sat destructior not supported" CR, logContextName);
 }
 
 rc_t sat::init(void) {
     uint8_t link;
     link = linkHandle->getLink();
-    LOG_INFO("Initializing Satelite address %d" CR, satAddr);
+    LOG_INFO("%s: Initializing sat" CR, logContextName);
     /* CLI decoration methods */
-    LOG_INFO("Registering CLI methods for satelite %d, on satLink %d" CR, satAddr, link);
+    LOG_INFO("%s: Registering sat specific CLI methods" CR, logContextName);
     //Global and common MO Commands
     regGlobalNCommonCliMOCmds();
     // get/set address
@@ -91,20 +94,24 @@ rc_t sat::init(void) {
     regCmdHelp(GET_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, SAT_GET_SATWDERR_HELP_TXT);
     regCmdMoArg(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, onCliClearWdErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SAT_MO_NAME, SATWDERR_SUB_MO_NAME, SAT_CLEAR_SATWDERR_HELP_TXT);
-    LOG_INFO("CLI methods for satelite %d, on satLink %d registered" CR, satAddr, link);
-    LOG_INFO("Creating actuators for satelite address %d on link %d" CR, satAddr, link);
+    LOG_INFO("%s: specific sat CLI methods registered" CR, logContextName);
+    LOG_INFO("%s: Creating actuators for sat" CR, logContextName);
     for (uint8_t actPort = 0; actPort < MAX_ACT; actPort++) {
         acts[actPort] = new (heap_caps_malloc(sizeof(actBase), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actBase(actPort, this);
-        if (acts[actPort] == NULL)
-            panic("Could not create actuator object - rebooting...");
+        if (acts[actPort] == NULL){
+            panic("%s Could not create actuator object", logContextName);
+            return RC_OUT_OF_MEM_ERR;
+        }
         addSysStateChild(acts[actPort]);
         acts[actPort]->init();
     }
-    LOG_INFO("Creating sensors for satelite address %d on link %d" CR, satAddr, link);
+    LOG_INFO("%s: Creating sensors for sat" CR, logContextName);
     for (uint8_t sensPort = 0; sensPort < MAX_SENS; sensPort++) {
         senses[sensPort] = new (heap_caps_malloc(sizeof(senseBase), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) senseBase(sensPort, this);
-        if (senses[sensPort] == NULL)
-            panic("Could not create sensor object - rebooting..." CR);
+        if (senses[sensPort] == NULL){
+            panic("%s: Could not create sensor object", logContextName);
+            return RC_OUT_OF_MEM_ERR;
+        }
         addSysStateChild(senses[sensPort]);
         senses[sensPort]->init();
     }
@@ -120,11 +127,13 @@ rc_t sat::init(void) {
 }
 
 void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
-    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-        panic("Received a configuration, while the it was already configured, dynamic re-configuration not supported - rebooting...");
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)){
+        panic("%s: Received a configuration, while the it was already configured, dynamic re-configuration not supported", logContextName);
+        return;
+    }
     uint8_t link;
     link = linkHandle->getLink();
-    LOG_INFO("satAddress %d on link %d received an uverified configuration, parsing and validating it..." CR, satAddr, link);
+    LOG_INFO("%s: Received an uverified configuration, parsing and validating it..." CR, logContextName);
 
     //PARSING CONFIGURATION
     const char* satSearchTags[5];
@@ -136,18 +145,29 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
     getTagTxt(p_satXmlElement->FirstChildElement(), satSearchTags, xmlconfig, sizeof(satSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
-    if (!xmlconfig[XML_SAT_SYSNAME])
-        panic("SystemNane missing - rebooting...");
-    if (!xmlconfig[XML_SAT_USRNAME])
-        panic("User name missing - rebooting...");
-    if (!xmlconfig[XML_SAT_DESC])
-        panic("Description missing - rebooting...");
-    if (!xmlconfig[XML_SAT_ADDR])
-        panic("Adrress missing - rebooting...");
-    if (atoi(xmlconfig[XML_SAT_ADDR]) != satAddr)
-        panic("Address no inconsistant - rebooting...");
+    if (!xmlconfig[XML_SAT_SYSNAME]) {
+        panic("%s: SystemNane missing", logContextName);
+        return;
+    }
+    if (!xmlconfig[XML_SAT_USRNAME]) {
+        LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_SAT_SYSNAME]);
+        xmlconfig[XML_SAT_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_SAT_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_SAT_SYSNAME]) + 15];
+        sprintf(xmlconfig[XML_SAT_USRNAME], "%s-Username", xmlconfig[XML_SAT_SYSNAME]);
+    }
+    if (!xmlconfig[XML_SAT_DESC]) {
+        LOG_WARN("%s: Description was not provided - using \"-\"" CR, logContextName);
+        xmlconfig[XML_SAT_DESC] = createNcpystr("-");
+    }
+    if (!xmlconfig[XML_SAT_ADDR]) {
+        panic("%s: Adrress missing", logContextName);
+        return;
+    }
+    if (atoi(xmlconfig[XML_SAT_ADDR]) != satAddr) {
+        panic("%s: sat Address inconsistant with what was provided in the object constructor", logContextName);
+        return;
+    }
     if (xmlconfig[XML_SAT_ADMSTATE] == NULL) {
-        LOG_WARN("Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        LOG_WARN("%s: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR, logContextName);
         xmlconfig[XML_SAT_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_SAT_ADMSTATE], "ENABLE")) {
@@ -156,18 +176,20 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
     else if (!strcmp(xmlconfig[XML_SAT_ADMSTATE], "DISABLE")) {
         setOpStateByBitmap(OP_DISABLED);
     }
-    else
-        panic("Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_SAT_ADMSTATE]);
+    else{
+        panic("%s: Admin state: %s is none of \"ENABLE\" or \"DISABLE\"", logContextName, xmlconfig[XML_SAT_ADMSTATE]);
+        return;
+    }
 
     //SHOW FINAL CONFIGURATION
-    LOG_INFO("System name: %s" CR, xmlconfig[XML_SAT_SYSNAME]);
-    LOG_INFO("User name: %s" CR, xmlconfig[XML_SAT_USRNAME]);
-    LOG_INFO("Description: %s" CR, xmlconfig[XML_SAT_DESC]);
-    LOG_INFO("Address: %s" CR, xmlconfig[XML_SAT_ADDR]);
-    LOG_INFO("sat admin state: %s" CR, xmlconfig[XML_SAT_ADMSTATE]);
+    LOG_INFO("%s: System name: %s" CR, logContextName, xmlconfig[XML_SAT_SYSNAME]);
+    LOG_INFO("%s: User name: %s" CR, logContextName, xmlconfig[XML_SAT_USRNAME]);
+    LOG_INFO("%s: Description: %s" CR, logContextName, xmlconfig[XML_SAT_DESC]);
+    LOG_INFO("%s: Address: %s" CR, logContextName, xmlconfig[XML_SAT_ADDR]);
+    LOG_INFO("%s: sat admin state: %s" CR, logContextName, xmlconfig[XML_SAT_ADMSTATE]);
 
     //CONFIFIGURING ACTUATORS
-    LOG_INFO("Configuring actuators" CR);
+    LOG_INFO("%s: Configuring actuators" CR, logContextName);
     tinyxml2::XMLElement* actXmlElement;
     if (actXmlElement = ((tinyxml2::XMLElement*)p_satXmlElement)->FirstChildElement("Actuator")) {
         const char* actSearchTags[6];
@@ -181,27 +203,32 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
         for (uint8_t actItter = 0; true; actItter++) {
             char* actXmlConfig[6] = { NULL };
             if (actXmlElement == NULL){
-                LOG_TERSE("No more Actuators to configure" CR);
                 break;
             }
             actXmlConfig[XML_ACT_PORT] = NULL;
-            if (actItter >= MAX_ACT)
-                panic("> than max actuators provided - not supported, rebooting..." CR);
+            if (actItter >= MAX_ACT){
+                panic("%s: More than max actuators provided (%i/%i)", logContextName, actItter, MAX_ACT);
+                return;
+            }
             getTagTxt(actXmlElement->FirstChildElement(), actSearchTags, actXmlConfig, sizeof(actSearchTags) / 4); // Need to fix the addressing for portability
-            if (!actXmlConfig[XML_ACT_PORT])
-                panic("Actuator port missing - rebooting...");
-            if ((atoi(actXmlConfig[XML_ACT_PORT])) < 0 || atoi(actXmlConfig[XML_ACT_PORT]) >= MAX_ACT)
-                panic("Actuator port out of bounds - rebooting..." CR);
-            LOG_TERSE("Configuring Actuator %i" CR, atoi(actXmlConfig[XML_ACT_PORT]));
+            if (!actXmlConfig[XML_ACT_PORT]){
+                panic("%s: Actuator port missing", logContextName);
+                return;
+            }
+            if ((atoi(actXmlConfig[XML_ACT_PORT])) < 0 || atoi(actXmlConfig[XML_ACT_PORT]) >= MAX_ACT){
+                panic("%s: Actuator port out of bounds: %i", logContextName, atoi(actXmlConfig[XML_ACT_PORT]));
+                return;
+            }
+            LOG_TERSE("%s: Configuring Actuator %i" CR, logContextName, atoi(actXmlConfig[XML_ACT_PORT]));
             acts[atoi(actXmlConfig[XML_ACT_PORT])]->onConfig(actXmlElement);
             actXmlElement = ((tinyxml2::XMLElement*)actXmlElement)->NextSiblingElement("Actuator");
         }
     }
     else
-        LOG_WARN("No Actuators provided, no Actuator will be configured" CR);
+        LOG_WARN("%s: No Actuators provided, no Actuator will be configured" CR, logContextName);
 
     //CONFIFIGURING SENSORS
-    LOG_INFO("Configuring sensors" CR);
+    LOG_INFO("%s: Configuring sensors" CR, logContextName);
     tinyxml2::XMLElement* sensXmlElement;
     if (sensXmlElement = ((tinyxml2::XMLElement*)p_satXmlElement)->FirstChildElement("Sensor")) {
         const char* sensSearchTags[5];
@@ -213,47 +240,56 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
         for (uint8_t sensItter = 0; true; sensItter++) {
             char* sensXmlConfig[5] = { NULL };
             if (sensXmlElement == NULL){
-                LOG_TERSE("No more Sensors to configure" CR);
                 break;
             }
-            if (sensItter >= MAX_SENS)
-                panic("> than max sensors provided - not supported, rebooting..." CR);
+            if (sensItter >= MAX_SENS){
+                panic("%s: More than max sensors provided (%i/%i)", logContextName, sensItter, MAX_SENS);
+                return;
+            }
             sensSearchTags[XML_SENS_PORT] = "Port";
             getTagTxt(sensXmlElement->FirstChildElement(), sensSearchTags, sensXmlConfig, sizeof(sensSearchTags) / 4); // Need to fix the addressing for portability
-            if (!sensXmlConfig[XML_SENS_PORT])
-                panic("Sensor port missing - rebooting..." CR);
-            if ((atoi(sensXmlConfig[XML_SENS_PORT])) < 0 || atoi(sensSearchTags[XML_SENS_PORT]) >= MAX_SENS)
-                panic("Sensor port out of bounds - rebooting...");
-            LOG_TERSE("Configuring Sensor %i" CR, atoi(sensXmlConfig[XML_SENS_PORT]));
+            if (!sensXmlConfig[XML_SENS_PORT]){
+                panic("%s: Sensor port missing", logContextName);
+                return;
+            }
+            if ((atoi(sensXmlConfig[XML_SENS_PORT])) < 0 || atoi(sensSearchTags[XML_SENS_PORT]) >= MAX_SENS){
+                panic("%s: Sensor port out of bounds: %i", logContextName, atoi(sensXmlConfig[XML_SENS_PORT]));
+                return;
+            }
+            LOG_TERSE("%s: Configuring Sensor %i" CR, logContextName, atoi(sensXmlConfig[XML_SENS_PORT]));
             senses[atoi(sensXmlConfig[XML_SENS_PORT])]->onConfig(sensXmlElement);
             sensXmlElement = ((tinyxml2::XMLElement*)sensXmlElement)->NextSiblingElement("Sensor");
         }
     }
     else
-        LOG_WARN("No Sensors provided, no Sensor will be configured" CR);
+        LOG_WARN("%s: No Sensors provided, no Sensor will be configured" CR, logContextName);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
-    LOG_INFO("Configuration successfully finished" CR);
+    LOG_INFO("%s: Configuration successfully finished" CR, logContextName);
 }
 
 rc_t sat::start(void) {
     uint8_t link;
     link = linkHandle->getLink();
-    LOG_INFO("Starting Satelite address: %d on satlink %d" CR, satAddr, link);
+    LOG_INFO("%s: Starting sat" CR, logContextName);
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_INFO("Satelite address %d on satlink %d not configured - will not start it" CR, satAddr, link);
+        LOG_INFO("%s: sat not configured - will not start it" CR, logContextName);
         setOpStateByBitmap(OP_UNUSED);
         unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
     unSetOpStateByBitmap(OP_UNUSED);
-    LOG_INFO("Subscribing to adm- and op state topics" CR);
+    LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SAT_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-    if (mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this))
-        panic("Failed to suscribe to admState topic - rebooting..." CR);
+    if (mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to admState topic:\"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
-    if (mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this))
-        panic("Failed to suscribe to opState topic - rebooting..." CR);
+    if (mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to opState topic: \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
     for (uint16_t actItter = 0; actItter < MAX_ACT; actItter++) {
         acts[actItter]->start();
     }
@@ -261,31 +297,35 @@ rc_t sat::start(void) {
         senses[sensItter]->start();
     }
     unSetOpStateByBitmap(OP_INIT);
-    LOG_INFO("Satelite address: %d on satlink %d have started" CR, satAddr, link);
+    LOG_INFO("%s: sat has started" CR, logContextName);
     return RC_OK;
 }
 
 void sat::up(void) {
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED){
-        LOG_INFO("Could not enable sat-%d as it has not been discovered" CR, satAddr);
+        LOG_WARN("%s: Could not enable satas it has not been discovered" CR, logContextName);
         return;
     }
-    LOG_INFO("Enabling sat-%d" CR, satAddr);
+    LOG_INFO("%s: Enabling sat" CR, logContextName);
     rc_t rc = satLibHandle->enableSat();
-    if (rc)
-        panic("Could not enable Satelite, return code: %i - rebooting..." CR, rc);
+    if (rc){
+        panic("%s: Could not enable sat, return code: %i", logContextName, rc);
+        return;
+    }
     satLibHandle->satRegSenseCb(onSenseChangeHelper, this);
 }
 
 void sat::down(void) {
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED) {
-        LOG_INFO("Could not disable sat-%d as it has not been discovered" CR, satAddr);
+        LOG_INFO("%s: Could not disable sat as it has not been discovered" CR, logContextName);
         return;
     }
-    LOG_INFO("Disabling sat-%d" CR, satAddr);
+    LOG_INFO("%s: Disabling sat" CR, logContextName);
     rc_t rc = satLibHandle->disableSat();
-    if (rc)
-        panic("Could not disable Satelite - rebooting..." CR);
+    if (rc){
+        panic("%s: Could not disable Satelite - return code %X", logContextName, rc);
+        return;
+    }
     satLibHandle->satUnRegSenseCb();
 }
 
@@ -303,9 +343,11 @@ void sat::failsafe(bool p_failsafe) {
 void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists) {
     uint8_t link;
     link = linkHandle->getLink();
-    LOG_INFO("Satelite address %d on satlink %d discovered" CR, satAddr, link);
-    if (p_satAddr != satAddr)
-        panic("Inconsistant satelite address provided - rebooting..." CR);
+    LOG_INFO("%s: sat discovered" CR, logContextName);
+    if (p_satAddr != satAddr){
+        panic("%s: Inconsistent satelite address provided", logContextName);
+        return;
+    }
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
         satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
@@ -343,7 +385,7 @@ void sat::onPmPoll(void) {
         pmData.rxCrcErr,
         pmData.wdErr);
     if (mqtt::sendMsg(pmPublishTopic, pmPublishPayload, false))
-        LOG_ERROR("Failed to send PM report" CR);
+        LOG_ERROR("%s: Failed to send PM report" CR, logContextName);
 }
 
 void sat::onSenseChangeHelper(satelite* p_satelite, uint8_t p_LinkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata) {
@@ -354,7 +396,7 @@ void sat::onSenseChange(uint8_t p_senseAddr, bool p_senseVal) {
     if (!getOpStateBitmap() && p_senseAddr >= 0 && p_senseAddr < MAX_SENS)
         senses[p_senseAddr]->onSenseChange(p_senseVal);
     else
-        LOG_TERSE("Sensor has changed to %i, but satelite is not OP_WORKING, doing nothing..." CR, p_senseVal);
+        LOG_TERSE("%s: sat: Sensor has changed value to %i, but satelite is not OP_WORKING, doing nothing..." CR, logContextName, p_senseVal);
 }
 
 void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
@@ -378,7 +420,7 @@ void sat::onSysStateChangeHelper(const void* p_satHandle, sysState_t p_sysState)
 
 void sat::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    LOG_INFO("sat-%d has a new OP-state: %s" CR, satAddr, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    LOG_INFO("%s: sat has a new OP-state: %s" CR, logContextName, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
     newSysState = p_sysState;
     bool satDisableScan = false;
@@ -386,7 +428,7 @@ void sat::onSysStateChange(sysState_t p_sysState) {
     if (!sysStateChange)
         return;
     failsafe(newSysState != OP_WORKING);
-    LOG_INFO("sat-%d has a new OP-state: %s, Setting failsafe" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
+    LOG_INFO("%s sat has a new OP-state: %s, Setting failsafe" CR, logContextName, systemState::getOpStateStrByBitmap(newSysState, opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -399,49 +441,49 @@ void sat::onSysStateChange(sysState_t p_sysState) {
         down();
         satScanDisabled = true;
         prevSysState = newSysState;
-        panic("sat-%d has experienced an internal error - informing server and rebooting..." CR, satAddr);
+        panic("%s: sat has experienced an internal error - informing server", logContextName);
         return;
     }
     if (newSysState & OP_INIT) {
-        LOG_INFO("sat-%d is initializing - informing server if not already done" CR, satAddr);
+        LOG_INFO("%s: sat is initializing - informing server if not already done" CR, logContextName);
         satDisableScan = true;
     }
     if (newSysState & OP_UNUSED) {
-        LOG_INFO("sat-%d is unused - informing server if not already done" CR, satAddr);
+        LOG_INFO("%s: sat is unused - informing server if not already done" CR, logContextName);
         satDisableScan = true;
     }
     if (newSysState & OP_ERRSEC) {
-        LOG_INFO("sat-%d has experienced excessive PM errors - informing server if not already done" CR, satAddr);
+        LOG_INFO("%s: sat has experienced excessive PM errors - informing server if not already done" CR, logContextName);
     }
     if (newSysState & OP_GENERR) {
-        LOG_INFO("sat-%d has experienced an error - informing server if not already done" CR, satAddr);
+        LOG_INFO("%s: sat has experienced an error - informing server if not already done" CR, logContextName);
     }
     if (newSysState & OP_DISABLED) {
-        LOG_INFO("sat-%d is disabled by server - disabling satscanning if not already done" CR, satAddr);
+        LOG_INFO("%s: sat is disabled by server - disabling sat scanning if not already done" CR, logContextName);
         satDisableScan = true;
     }
     if (newSysState & OP_CBL) {
-        LOG_INFO("sat-%d is control-blocked by decoder - informing server and disabling satscanning if not already done" CR, satAddr);
+        LOG_INFO("%s: sat is control-blocked by decoder - informing server and disabling satscanning if not already done" CR, logContextName);
         satDisableScan = true;
     }
     if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_ERRSEC | OP_GENERR | OP_DISABLED | OP_CBL)) {
-        LOG_INFO("satLink-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, satAddr, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+        LOG_INFO("%s: sat has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, logContextName, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
     }
     if (satDisableScan && !satScanDisabled) {
-        LOG_INFO("satLink-%d disabling sat scanning" CR, satAddr);
+        LOG_INFO("%s: Disabling sat scanning" CR, satAddr);
         down();
         satScanDisabled = true;
     }
     else if (satDisableScan && satScanDisabled) {
-        LOG_INFO("sat-%d scaning already disabled - doing nothing..." CR, satAddr);
+        LOG_INFO("%s: sat scaning already disabled - doing nothing..." CR, logContextName);
     }
     else if (!satDisableScan && satScanDisabled) {
-        LOG_INFO("sat-%d enabling sat scaning" CR, satAddr);
+        LOG_INFO("%s: Enabling sat scaning" CR, logContextName);
         up();
         satScanDisabled = false;
     }
     else if (!satDisableScan && !satScanDisabled) {
-        LOG_INFO("sat-%d sat scan already enabled - doing nothing..." CR, satAddr);
+        LOG_INFO("%s: sat scaning already enabled - doing nothing..." CR, logContextName);
     }
     prevSysState = newSysState;
 }
@@ -452,7 +494,7 @@ void sat::onOpStateChangeHelper(const char* p_topic, const char* p_payload, cons
 
 void sat::onOpStateChange(const char* p_topic, const char* p_payload) {
     sysState_t newServerOpState;
-    LOG_INFO("Got a new opState from server: %s" CR, p_payload);
+    LOG_INFO("%s: sat got a new opState from server: %s" CR, logContextName);
     newServerOpState = getOpStateBitmapByStr(p_payload);
     setOpStateByBitmap(newServerOpState & OP_CBL);
     unSetOpStateByBitmap(~newServerOpState & OP_CBL);
@@ -467,14 +509,14 @@ void sat::onAdmStateChange(const char* p_topic, const char* p_payload) {
     link = linkHandle->getLink();
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         unSetOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("satelite address %d on satlink %d got online message from server" CR, satAddr, link);
+        LOG_INFO("%s: sat got online message from server" CR, logContextName);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("satelite address %d on satlink %d got off-line message from server" CR, satAddr, link);
+        LOG_INFO("%s: sat got off-line message from server" CR, logContextName);
     }
     else
-        LOG_ERROR("satelite address %d on satlink %d got an invalid admstate message from server - doing nothing" CR, satAddr, link);
+        LOG_ERROR("%s sat got an invalid admstate message from server: \"%s\" - doing nothing" CR, logContextName, p_payload);
 }
 
 rc_t sat::getOpStateStr(char* p_opStateStr) {
@@ -483,13 +525,13 @@ rc_t sat::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t sat::setSystemName(const char* p_systemName, bool p_force) {
-    LOG_ERROR("Cannot set System name - not suppoted" CR);
+    LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 const char* sat::getSystemName(bool  p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get System name as satelite is not configured" CR);
+        LOG_ERROR("%s: Cannot get System name as sat is not configured" CR, logContextName);
         return NULL;
     }
     return xmlconfig[XML_SAT_SYSNAME];
@@ -497,15 +539,15 @@ const char* sat::getSystemName(bool  p_force) {
 
 rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug || !p_force) {
-        LOG_ERROR("Cannot set User name as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("Cannot set System name as satelite is not configured" CR);
+        LOG_ERROR("%s: Cannot set System name as satelite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_INFO("Setting User name to %s" CR, p_usrName);
+        LOG_INFO("%s: Setting User name to %s" CR, logContextName, p_usrName);
         delete xmlconfig[XML_SAT_USRNAME];
         xmlconfig[XML_SATLINK_USRNAME] = createNcpystr(p_usrName);
         return RC_OK;
@@ -514,7 +556,7 @@ rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
 
 const char* sat::getUsrName(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get User name as satelite is not configured" CR);
+        LOG_ERROR("%s: Cannot get User name as satelite is not configured" CR, logContextName);
         return NULL;
     }
     return xmlconfig[XML_SAT_USRNAME];;
@@ -522,15 +564,15 @@ const char* sat::getUsrName(bool p_force) {
 
 rc_t sat::setDesc(const char* p_description, bool p_force) {
     if (!debug || !p_force) {
-        LOG_ERROR("Cannot set Description as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("Cannot set Description as satelite is not configured" CR);
+        LOG_ERROR("%s: Cannot set Description as satelite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_INFO("Setting Description to %s" CR, p_description);
+        LOG_INFO("%s: Setting Description to %s" CR, logContextName, p_description);
         delete xmlconfig[XML_SAT_DESC];
         xmlconfig[XML_SAT_DESC] = createNcpystr(p_description);
         return RC_OK;
@@ -539,14 +581,14 @@ rc_t sat::setDesc(const char* p_description, bool p_force) {
 
 const char* sat::getDesc(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get Description as satelite is not configured" CR);
+        LOG_ERROR("%s: Cannot get Description as satelite is not configured" CR, logContextName);
         return NULL;
     }
     return xmlconfig[XML_SAT_DESC];
 }
 
 rc_t sat::setAddr(uint8_t p_addr) {
-    LOG_ERROR("Cannot set Address - not supported" CR);
+    LOG_ERROR("%s: Cannot set Address - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
@@ -556,7 +598,7 @@ uint8_t sat::getAddr(void) {
 
 const char* sat::getLogLevel(void) {
     if (!Log.transformLogLevelInt2XmlStr(Log.getLogLevel())) {
-        LOG_ERROR("Could not retrieve a valid Log-level" CR);
+        LOG_ERROR("%s: Could not retrieve a valid Log-level" CR, logContextName);
         return NULL;
     }
     else {
@@ -594,6 +636,10 @@ uint32_t sat::getWdErrs(void) {
 
 void sat::clearWdErrs(void) {
     wdErr = 0;
+}
+
+const char* sat::getLogContextName(void) {
+    return logContextName;
 }
 
 /* CLI decoration methods */

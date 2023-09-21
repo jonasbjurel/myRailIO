@@ -38,19 +38,22 @@
 
 
 lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLinkHandle), globalCli(LG_MO_NAME, LG_MO_NAME, p_lgAddress, p_lgLinkHandle) {
+    asprintf(&logContextName, "%s/%s-%i", p_lgLinkHandle->getLogContextName(), "lgBase", p_lgAddress);
+    LOG_INFO("%s: Creating lgBase stem-object" CR, logContextName);
     lgLinkHandle = (lgLink*)p_lgLinkHandle;
     lgAddress = p_lgAddress;
     lgLinkHandle->getLink(&lgLinkNo);
     extentionLgClassObj = NULL;
-    LOG_INFO("Creating lgBase stem-object for lgAddress %d, on lgLink %d" CR, p_lgAddress, lgLinkNo);
     char sysStateObjName[20];
     sprintf(sysStateObjName, "lg-%d", lgAddress);
     setSysStateObjName(sysStateObjName);
     prevSysState = OP_WORKING;
     systemState::setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb((void*)this, &onSysStateChangeHelper);
-    if (!(lgBaseLock = xSemaphoreCreateMutex()))
-            panic("Could not create Lock objects - rebooting..." CR);
+    if (!(lgBaseLock = xSemaphoreCreateMutex())){
+            panic("Could not create Lock objects");
+            return;
+    }
     xmlconfig[XML_LG_SYSNAME] = NULL;
     xmlconfig[XML_LG_USRNAME] = NULL;
     xmlconfig[XML_LG_DESC] = NULL;
@@ -65,13 +68,13 @@ lgBase::lgBase(uint8_t p_lgAddress, lgLink* p_lgLinkHandle) : systemState(p_lgLi
 }
 
 lgBase::~lgBase(void) {
-    panic("lgBase destructior not supported - rebooting..." CR);
+    panic("%s: lgBase destructior not supported", logContextName);
 }
 
 rc_t lgBase::init(void) {
-    LOG_INFO("Initializing stem-object for lg-address %d, on lgLink %d" CR, lgAddress, lgLinkNo);
+    LOG_INFO("%s: Initializing lgBase stem-object" CR, logContextName);
     //CLI decoration definitions
-    LOG_INFO("Registering CLI methods for lg-address %d, on lgLink %d" CR, lgAddress, lgLinkNo);
+    LOG_INFO("%s: Registering lg specific CLI methods" CR, logContextName);
     //Global and common MO Commands
     regGlobalNCommonCliMOCmds();
     // get/set address
@@ -103,14 +106,16 @@ rc_t lgBase::init(void) {
         regCmdHelp(GET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_GET_LGSHOWING_HELP_TXT);
         regCmdMoArg(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, onCliSetShowingHelper);
         regCmdHelp(SET_CLI_CMD, LG_MO_NAME, LGSHOWING_SUB_MO_NAME, LG_SET_LGSHOWING_HELP_TXT);
-    LOG_INFO("CLI methods for lg-address %d, on lgLink %d registered" CR, lgAddress, lgLinkNo);
+    LOG_INFO("%s: specific lg CLI methods registered" CR, logContextName);
     return RC_OK;
 }
 
 void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
-    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
-        panic("Received a configuration, while the it was already configured, dynamic re-configuration not supported rebooting..." CR);
-    LOG_INFO("lg-address %d, on lgLink %d received an unverified configuration, parsing and validating it..." CR, lgAddress, lgLinkNo);
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)){
+        panic("%s Received a configuration, while the it was already configured, dynamic re-configuration not supported", logContextName);
+        return;
+    }
+    LOG_INFO("%s: Received an unverified configuration, parsing and validating it..." CR, logContextName);
 
     //PARSING CONFIGURATION
     const char* lgSearchTags[9];
@@ -127,28 +132,35 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     getTagTxt(p_lgXmlElement->FirstChildElement(), lgSearchTags, xmlconfig, sizeof(lgSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
-    if (!xmlconfig[XML_LG_SYSNAME])
-        panic("System Name missing for lg-address %d, on lgLink %d - rebooting..." CR, lgAddress, lgLinkNo);
+    if (!xmlconfig[XML_LG_SYSNAME]){
+        panic("%s: System Name missing", logContextName);
+        return;
+    }
     if (!xmlconfig[XML_LG_USRNAME]){
-        LOG_WARN("User name was not provided - using \"%s-UserName\"" CR);
-        xmlconfig[XML_LG_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LG_SYSNAME]) + 10), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LG_SYSNAME]) + 10];
-        const char* usrName[2] = { xmlconfig[XML_LG_SYSNAME], "-" };
-        strcpy(xmlconfig[XML_LG_USRNAME], "-");
+        LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_LG_SYSNAME]);
+        xmlconfig[XML_LG_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LG_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LG_SYSNAME]) + 15];
+        sprintf(xmlconfig[XML_LG_USRNAME], "%s-Username", xmlconfig[XML_LG_SYSNAME]);
     }
     if (!xmlconfig[XML_LG_DESC]) {
-        LOG_WARN("Description was not provided - using \"-\"" CR);
+        LOG_WARN("%s: Description was not provided - using \"-\"" CR, logContextName);
         xmlconfig[XML_LG_DESC] = new (heap_caps_malloc(sizeof(char[2]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[2];
         strcpy(xmlconfig[XML_LG_DESC], "-");
     }
-    if (!xmlconfig[XML_LG_LINKADDR])
-        panic("Link address missing for lg-Systemname: %, lg-address %d, on lgLink %d - rebooting..." CR, xmlconfig[XML_LG_SYSNAME], lgAddress, lgLinkNo);
-    if (atoi((const char*)xmlconfig[XML_LG_LINKADDR]) != lgAddress)
-        panic("Provided lgLinkAddress inconsistant with the constructor provided address - rebooting..." CR);
-    if (!xmlconfig[XML_LG_TYPE])
-        panic("lgType missing for lg-Systemname: %, lg-address %d, on lgLink %d - rebooting..." CR, xmlconfig[XML_LG_SYSNAME], lgAddress, lgLinkNo);
+    if (!xmlconfig[XML_LG_LINKADDR]){
+        panic("%s lgLinkAddress missing", logContextName);
+        return;
+    }
+    if (atoi((const char*)xmlconfig[XML_LG_LINKADDR]) != lgAddress){
+        panic("%s: Provided lgLinkAddress inconsistant with the constructor provided address", logContextName);
+        return;
+    }
+    if (!xmlconfig[XML_LG_TYPE]){
+        panic("%s: lgType missing", logContextName);
+        return;
+    }
 
     if (xmlconfig[XML_LG_ADMSTATE] == NULL) {
-        LOG_WARN("Admin state not provided in the configuration, setting it to \"DISABLE\"" CR);
+        LOG_WARN("%s: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR, logContextName);
         xmlconfig[XML_LG_ADMSTATE] = createNcpystr("DISABLE");
     }
     if (!strcmp(xmlconfig[XML_LG_ADMSTATE], "ENABLE")) {
@@ -157,33 +169,39 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     else if (!strcmp(xmlconfig[XML_LG_ADMSTATE], "DISABLE")) {
         systemState::setOpStateByBitmap(OP_DISABLED);
     }
-    else
-        panic("Admin state: %s is none of \"ENABLE\" or \"DISABLE\" - rebooting..." CR, xmlconfig[XML_DECODER_ADMSTATE]);
+    else{
+        panic("%s: Admin state: %s is none of \"ENABLE\" or \"DISABLE\"", logContextName, xmlconfig[XML_DECODER_ADMSTATE]);
+        return;
+    }
 
     //SHOW FINAL CONFIGURATION
-    LOG_INFO("Configuring lg %s with the follwing configuration" CR, xmlconfig[XML_LG_SYSNAME]);
-    LOG_INFO("System name: %s" CR, xmlconfig[XML_LG_SYSNAME]);
-    LOG_INFO("User name %s:" CR, xmlconfig[XML_LG_USRNAME]);
-    LOG_INFO("Description: %s" CR, xmlconfig[XML_LG_DESC]);
-    LOG_INFO("Type: %s" CR, xmlconfig[XML_LG_TYPE]);
+    LOG_INFO("%s: Configuring lg %s with the follwing configuration" CR, logContextName, xmlconfig[XML_LG_SYSNAME]);
+    LOG_INFO("%s: System name: %s" CR, logContextName, xmlconfig[XML_LG_SYSNAME]);
+    LOG_INFO("%s: User name %s:" CR, logContextName, xmlconfig[XML_LG_USRNAME]);
+    LOG_INFO("%s: Description: %s" CR, logContextName, xmlconfig[XML_LG_DESC]);
+    LOG_INFO("%s: Type: %s" CR, logContextName, xmlconfig[XML_LG_TYPE]);
      if (xmlconfig[XML_LG_PROPERTY1])
-        LOG_INFO("lg type specific \"property1\" provided with value %s, will be passed to the LG extention class object" CR, xmlconfig[XML_LG_PROPERTY1]);
+        LOG_INFO("%s: lg-type specific \"property1\" provided with value %s, will be passed to the LG extention class object" CR, logContextName, xmlconfig[XML_LG_PROPERTY1]);
     if (xmlconfig[XML_LG_PROPERTY2])
-        LOG_INFO("lg type specific \"property2\" provided with value %s, will be passed to the LG extention class object" CR, xmlconfig[XML_LG_PROPERTY2]);
+        LOG_INFO("%s: lg-type specific \"property2\" provided with value %s, will be passed to the LG extention class object" CR, logContextName, xmlconfig[XML_LG_PROPERTY2]);
     if (xmlconfig[XML_LG_PROPERTY3])
-        LOG_INFO("lg type specific \"property3\" provided with value %s, will be passed to the LG extention class object" CR, xmlconfig[XML_LG_PROPERTY3]);
-    LOG_INFO("lg admin state: %s" CR, xmlconfig[XML_LG_ADMSTATE]);
+        LOG_INFO("%s: lg-type specific \"property3\" provided with value %s, will be passed to the LG extention class object" CR, logContextName, xmlconfig[XML_LG_PROPERTY3]);
+    LOG_INFO("%s: lg admin state: %s" CR, logContextName, xmlconfig[XML_LG_ADMSTATE]);
 
     //CONFIFIGURING STEM OBJECT WITH PROPERTIES
     if (!strcmp((const char*)xmlconfig[XML_LG_TYPE], "SIGNAL MAST")) {
-            LOG_INFO("lg-type is Signal mast - programing act-stem object by creating an lgSignalMast extention class object" CR);
+            LOG_INFO("%s: lg-type is Signal mast (sm)- programing act-stem object by creating an lgSignalMast extention class object" CR, logContextName);
             extentionLgClassObj = (void*) new (heap_caps_malloc(sizeof(lgSignalMast), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lgSignalMast(this);
         }
-    else
+    else{
         panic("lg-type not supported" CR);
+        return;
+    }
     LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], init());
-    if (EXT_RC)
-        panic("Failed to initialize Lg extention object - Rebooting..." CR);
+    if (EXT_RC){
+        panic("%s: Failed to initialize lg extention object", logContextName);
+        return;
+    }
     if (xmlconfig[XML_LG_PROPERTY1] || xmlconfig[XML_LG_PROPERTY2] || xmlconfig[XML_LG_PROPERTY3]) {
         tinyxml2::XMLDocument propertiesXmlDoc;                 //TEMPORARY FIX, the XML API shall eventually be fixed
         tinyxml2::XMLElement* propertiesRoot = propertiesXmlDoc.NewElement("Properties");
@@ -196,40 +214,46 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         tinyxml2::XMLElement* property3 = propertiesXmlDoc.NewElement("Property3");
         property3->SetText(xmlconfig[XML_LG_PROPERTY3]);
         propertiesRoot->InsertEndChild(property3);
-        LOG_INFO("Configuring the lgBase stem-object - Lg Adress: %d, Lg Link %d, Lg System Name %s: with properties" CR, lgAddress, lgLinkNo, xmlconfig[XML_LG_SYSNAME]);
+        LOG_INFO("%s: Configuring the lgBase stem-object - Lg Adress: %d, Lg Link %d, Lg System Name %s: with properties" CR, logContextName, lgAddress, lgLinkNo, xmlconfig[XML_LG_SYSNAME]);
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onConfig(propertiesRoot));
     }
-    else
-        panic("No properties provided for base stem-object - rebooting..." CR);
+    else{
+        panic("%s: No properties provided for base stem-object", logContextName);
+        return;
+    }
     systemState::unSetOpStateByBitmap(OP_UNCONFIGURED);
     LOG_INFO("Configuration successfully finished" CR);
 }
 
 rc_t lgBase::start(void) {
-    LOG_INFO("Starting lg address %d on lgLink %d" CR, lgAddress, lgLinkNo);
+    LOG_INFO("%s Starting lg" CR, logContextName);
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_INFO("lg address %d on lgLink %d not configured - will not start it" CR, lgAddress, lgLinkNo);
+        LOG_INFO("%s: lg not configured - will not start it" CR, logContextName);
         systemState::setOpStateByBitmap(OP_UNUSED);
         systemState::unSetOpStateByBitmap(OP_INIT);
         return RC_NOT_CONFIGURED_ERR;
     }
     systemState::unSetOpStateByBitmap(OP_UNUSED);
-    LOG_INFO("lg address %d on lgLink %d  - starting extention class" CR, lgAddress, lgLinkNo);
+    LOG_INFO("%s: - starting lg extention object" CR, logContextName);
     if (extentionLgClassObj) {
         LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], start());
         if (EXT_RC) {
-            panic("Failed to start Light group" CR);
+            panic("%s Failed to start lg extention object" CR, logContextName);
             return EXT_RC;
         }
     }
-    LOG_INFO("Subscribing to adm- and op state topics" CR);
+    LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char admopSubscribeTopic[300];
     sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
-    if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this))
-        panic("Failed to suscribe to admState topic - rebooting..." CR);
+    if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this)){
+        panic("%s: Failed to suscribe to admState topic: \"%s\"", logContextName, admopSubscribeTopic);
+        return RC_GEN_ERR;
+    }
     sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
-    if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this))
-        panic("Failed to suscribe to opState topic - rebooting..." CR);
+    if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this)) {
+        panic("%s: Failed to suscribe to opState topic: \"%s\"", logContextName, admopSubscribeTopic);
+        return RC_GEN_ERR;
+    }
     wdt::wdtRegLgFailsafe(wdtKickedHelper, this);
     systemState::unSetOpStateByBitmap(OP_INIT);
     return RC_OK;
@@ -241,13 +265,13 @@ void lgBase::onSysStateChangeHelper(const void* p_lgBaseHandle, sysState_t p_sys
 
 void lgBase::onSysStateChange(sysState_t p_sysState) {
     char opStateStr[100];
-    LOG_INFO("lg has a new OP-state: %s, Queueing it for processing" CR, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
+    LOG_INFO("%s: lg has a new OP-state: %s, Queueing it for processing" CR, logContextName, systemState::getOpStateStrByBitmap(p_sysState, opStateStr));
     sysState_t newSysState;
     newSysState = p_sysState;
     sysState_t sysStateChange = newSysState ^ prevSysState;
     if (!sysStateChange)
         return;
-    LOG_INFO("lgLink-%d:lg-%d has a new OP-state: %s" CR, lgLinkNo, lgAddress, systemState::systemState::getOpStateStr(opStateStr));
+    LOG_INFO("%s: lg has a new OP-state: %s" CR, logContextName, systemState::systemState::getOpStateStr(opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -258,24 +282,24 @@ void lgBase::onSysStateChange(sysState_t p_sysState) {
     if (newSysState & OP_INTFAIL) {
         if (extentionLgClassObj)
             LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
-        panic("lgBase::onSysStateChange: lgLink-%d:lg-%d has experienced an internal error - rebooting..." CR, lgLinkNo, lgAddress);
+        panic("%s: lg has experienced an internal error", logContextName);
         prevSysState = newSysState;
         return;
     }
     if (newSysState & OP_INIT) {
-        LOG_TERSE("lgLink-%d:lg-%d is initializing - informing server if not already done" CR, lgLinkNo, lgAddress);
+        LOG_TERSE("%s: lg is initializing - informing server if not already done" CR, logContextName);
     }
     if (newSysState & OP_UNUSED) {
-        LOG_TERSE("lgLink-%d:lg-%d is unused - informing server if not already done" CR, lgLinkNo, lgAddress);
+        LOG_TERSE("%s: lg is unused - informing server if not already done" CR, logContextName);
     }
     if (newSysState & OP_DISABLED) {
-        LOG_TERSE("lgLink-%d:lg-%d is disabled by server - doing nothing" CR, lgLinkNo, lgAddress);
+        LOG_TERSE("%s: lg is disabled by server - doing nothing" CR, logContextName);
     }
     if (newSysState & OP_CBL) {
-        LOG_TERSE("lgLink-%d:lg-%d is control blocked by decoder - doing nothing" CR, lgLinkNo, lgAddress);
+        LOG_TERSE("%s: lg is control blocked by decoder - doing nothing" CR, logContextName);
     }
     if (newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL)) {
-        LOG_INFO("lgLink-%d:lg-%d has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, lgLinkNo, lgAddress, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
+        LOG_INFO("%s: lg has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, logContextName, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
     }
     if (extentionLgClassObj && !(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], onSysStateChange(newSysState));
@@ -288,7 +312,7 @@ void lgBase::onOpStateChangeHelper(const char* p_topic, const char* p_payload, c
 
 void lgBase::onOpStateChange(const char* p_topic, const char* p_payload) {
     sysState_t newServerOpState;
-    LOG_INFO("Got a new opState from server: %s" CR, p_payload);
+    LOG_INFO("%s: lg got a new opState from server: %s" CR, logContextName, p_payload);
     newServerOpState = getOpStateBitmapByStr(p_payload);
     setOpStateByBitmap(newServerOpState & OP_CBL);
     unSetOpStateByBitmap(~newServerOpState & OP_CBL);
@@ -301,14 +325,14 @@ void lgBase::onAdmStateChangeHelper(const char* p_topic, const char* p_payload, 
 void lgBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     if (!strcmp(p_payload, MQTT_ADM_ON_LINE_PAYLOAD)) {
         systemState::unSetOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("lg address %d on lgLink %d got online message from server %s" CR, lgAddress, lgLinkNo, p_payload);
+        LOG_INFO("%s: lg got online message from server %s" CR, logContextName, p_payload);
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         systemState::setOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("lg address %d on lgLink %d got off-line message from server %s" CR, lgAddress, lgLinkNo, p_payload);
+        LOG_INFO("%s: lg got off-line message from server %s" CR, logContextName, p_payload);
     }
     else
-        LOG_ERROR("lg address %d on lgLink %d, satLink %d got an invalid admstate message from server %s - doing nothing" CR, lgAddress, lgLinkNo, p_payload);
+        LOG_ERROR("%s: lf got an invalid admstate message from server %s - doing nothing" CR, logContextName, p_payload);
 }
 
 void lgBase::wdtKickedHelper(void* lgBaseHandle) {
@@ -321,16 +345,16 @@ void lgBase::wdtKicked(void) {
 
 rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set System name as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set System name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_ERROR("Cannot set System name - not suppoted" CR);
+    LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgBase::getSystemName(char* p_systemName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get System name as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot get System name as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     strcpy(p_systemName, xmlconfig[XML_LG_SYSNAME]);
@@ -339,10 +363,10 @@ rc_t lgBase::getSystemName(char* p_systemName, bool p_force) {
 
 rc_t lgBase::setUsrName(const char* p_usrName, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set User name as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_INFO("Setting User name to %s" CR, p_usrName);
+    LOG_INFO("%s: Setting User name to %s" CR, logContextName, p_usrName);
     delete (char*)xmlconfig[XML_LG_USRNAME];
     xmlconfig[XML_LG_USRNAME] = createNcpystr(p_usrName);
     return RC_OK;
@@ -350,7 +374,7 @@ rc_t lgBase::setUsrName(const char* p_usrName, bool p_force) {
 
 rc_t lgBase::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get User name as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot get User name as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     strcpy(p_userName, xmlconfig[XML_LG_USRNAME]);
@@ -359,7 +383,7 @@ rc_t lgBase::getUsrName(char* p_userName, bool p_force) {
 
 rc_t lgBase::setDesc(const char* p_description, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set Description as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
         LOG_INFO("Setting Description to %s" CR, p_description);
@@ -370,7 +394,7 @@ rc_t lgBase::setDesc(const char* p_description, bool p_force) {
 
 rc_t lgBase::getDesc(char* p_desc, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get Description as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot get Description as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     strcpy(p_desc, xmlconfig[XML_LG_DESC]);
@@ -379,16 +403,16 @@ rc_t lgBase::getDesc(char* p_desc, bool p_force) {
 
 rc_t lgBase::setAddress(uint8_t p_address, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set Address as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set Address as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_ERROR("Cannot set Address - not supported" CR);
+    LOG_ERROR("%s: Cannot set Address - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgBase::getAddress(uint8_t* p_address, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get Description as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot get Address as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     *p_address = lgAddress;
@@ -397,16 +421,16 @@ rc_t lgBase::getAddress(uint8_t* p_address, bool p_force) {
 
 rc_t lgBase::setNoOffLeds(uint8_t p_noOfLeds, bool p_force){
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set number of leds as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set number of leds as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_ERROR("Cannot set number of leds - not supported" CR);
+    LOG_ERROR("%s: Cannot set number of leds - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get lg number of Leds as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot get lg number of Leds as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     if (extentionLgClassObj) {
@@ -419,11 +443,11 @@ rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
 
 rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set lg property as debug is inactive" CR);
+        LOG_ERROR("%s Cannot set lg property as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("Cannot set lg property as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot set lg property as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     if (extentionLgClassObj) {
@@ -441,7 +465,7 @@ rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool
 
 rc_t lgBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get port as lg is not configured" CR);
+        LOG_ERROR("%s Cannot get port as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     strcpy(p_propertyValue, xmlconfig[XML_LG_PROPERTY1 + p_propertyId - 1]);
@@ -450,7 +474,7 @@ rc_t lgBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_for
 
 rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("Cannot set showing as debug is inactive" CR);
+        LOG_ERROR("%s: Cannot set showing as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if(extentionLgClassObj){
@@ -464,7 +488,7 @@ rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
 
 rc_t lgBase::getShowing(char* p_showing, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("Cannot get showing as lg is not configured" CR);
+        LOG_ERROR("%s: Cannot get showing as lg is not configured" CR, logContextName);
         strcpy(p_showing, "-");
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -477,7 +501,7 @@ rc_t lgBase::getShowing(char* p_showing, bool p_force) {
 
 const char* lgBase::getLogLevel(void) {
     if (!Log.transformLogLevelInt2XmlStr(Log.getLogLevel())) {
-        LOG_ERROR("Could not retrieve a valid Log-level" CR);
+        LOG_ERROR("%s: Could not retrieve a valid Log-level" CR, logContextName);
         return NULL;
     }
     else {
@@ -500,6 +524,10 @@ void lgBase::setStripOffset(uint16_t p_stripOffset) {
 
 uint16_t lgBase::getStripOffset(void) {
     return stripOffset;
+}
+
+const char* lgBase::getLogContextName(void) {
+    return logContextName;
 }
 
 /* CLI decoration methods*/

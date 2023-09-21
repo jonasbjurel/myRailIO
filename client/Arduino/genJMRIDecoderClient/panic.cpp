@@ -25,24 +25,28 @@
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
-
-
 EXT_RAM_ATTR char stackTraceBuff[4096];
+EXT_RAM_ATTR char panicLogMsg[512];
+EXT_RAM_ATTR bool ongoingPanic = false;
 
 void panic(const char* p_panicFmt, ...) {
+    if (ongoingPanic) {
+        LOG_FATAL_NOFMT("A secondary panic occured, will not be handled..." CR);
+        return; 
+    }
+    ongoingPanic = true;
     esp_backtrace_buff(20, stackTraceBuff);
     va_list args;
     va_start(args, p_panicFmt);
     int len = vsnprintf(NULL, 0, p_panicFmt, args);
     // format message
-    char* msg = new char[512];
-    vsnprintf(msg, len + 1, p_panicFmt, args);
-    LOG_FATAL("%s" CR, msg);
+    vsnprintf(panicLogMsg, len + 1, p_panicFmt, args);
+    LOG_FATAL("%s - rebooting..." CR, panicLogMsg);
     va_end(args);
 //    decoderHandle->setOpStateByBitmap(OP_INTFAIL);
-    LOG_FATAL("Waiting 5 seconds before restarting - enabling spool-out of syslog, fail-safe settings, etc" CR);
-    LOG_FATAL_NOFORMAT(stackTraceBuff);
-    fileSys::putFile("panic", stackTraceBuff, strlen(stackTraceBuff) + 1, NULL);
+    LOG_FATAL("%s" CR, stackTraceBuff);
+    LOG_FATAL_NOFMT("Waiting 5 seconds before restarting - enabling spool-out of syslog, fail-safe settings, etc" CR);
+    fileSys::putFile(FS_PATH "/" "panic", stackTraceBuff, strlen(stackTraceBuff) + 1, NULL);
     TimerHandle_t rebootTimer;
     rebootTimer = xTimerCreate("rebootTimer",                       // Just a text name, not used by the kernel.
         (5000 / portTICK_PERIOD_MS),                                // The timer period in ticks.
@@ -51,15 +55,13 @@ void panic(const char* p_panicFmt, ...) {
         reboot                                                      // Each timer calls the same callback when it expires.
     );
     if (rebootTimer == NULL) {
-        LOG_FATAL("panic: Could not create reboot timer - rebooting immediatly..." CR);
-        ESP.restart();
+        Serial.printf("panic: Could not create reboot timer - rebooting immediatly..." CR);
+        reboot(NULL);
     }
     if (xTimerStart(rebootTimer, 0) != pdPASS) {
-        LOG_FATAL("panic: Could not start reboot timer - rebooting immediatly..." CR);
-        ESP.restart();
+        Serial.printf("panic: Could not start reboot timer - rebooting immediatly..." CR);
+        reboot(NULL);
     }
-    while(true)
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
 rc_t IRAM_ATTR esp_backtrace_buff(int depth, char* p_stackBuff){
@@ -68,7 +70,6 @@ rc_t IRAM_ATTR esp_backtrace_buff(int depth, char* p_stackBuff){
     //Initialize stk_frame with first frame of stack
     esp_backtrace_frame_t stk_frame;
     esp_backtrace_get_start(&(stk_frame.pc), &(stk_frame.sp), &(stk_frame.next_pc));
-    //esp_cpu_get_backtrace_start(&stk_frame);
     buffPtr += sprintf(p_stackBuff + buffPtr, "Backtrace:0x%08X:0x%08X ", esp_cpu_process_stack_pc(stk_frame.pc), stk_frame.sp);
     //Check if first frame is valid
     bool corrupted = (esp_stack_ptr_is_sane(stk_frame.sp) &&
@@ -81,7 +82,6 @@ rc_t IRAM_ATTR esp_backtrace_buff(int depth, char* p_stackBuff){
         }
         buffPtr += sprintf(p_stackBuff + buffPtr, "0x%08X:0x%08X ", esp_cpu_process_stack_pc(stk_frame.pc), stk_frame.sp);
     }
-
     //Print backtrace termination marker
     rc_t ret = RC_OK;
     if (corrupted) {
@@ -94,7 +94,7 @@ rc_t IRAM_ATTR esp_backtrace_buff(int depth, char* p_stackBuff){
     return ret;
 }
 
-void reboot(void* p_args){
-    LOG_FATAL("Ordered reboot..." CR);
+void reboot(void* p_dummy){
+    Serial.printf("Ordered reboot..." CR);
     ESP.restart();
 }

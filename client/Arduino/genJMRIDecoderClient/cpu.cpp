@@ -57,8 +57,10 @@ void cpu::startPm(void) {
 	idleTicksHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
 	totHeapFreeHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
 	intHeapFreeHistory = new (heap_caps_malloc(sizeof(uint[CPU_HISTORY_SIZE]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint[CPU_HISTORY_SIZE];
-	if (!busyTicksHistory || !idleTicksHistory || !totHeapFreeHistory || !intHeapFreeHistory)
-		panic("cpu::startPm: Could not allocate PM history vectors, rebooting..." CR);
+	if (!busyTicksHistory || !idleTicksHistory || !totHeapFreeHistory || !intHeapFreeHistory){
+		panic("cpu::startPm: Could not allocate PM history vectors");
+		return;
+	}
 	for (uint i = 0; i < CPU_HISTORY_SIZE; i++){
 		*(busyTicksHistory + i) = 0;
 		*(idleTicksHistory + i) = 0; //FILL IT WITH MAX TICKS FOR THE PERIOD
@@ -79,9 +81,11 @@ void cpu::startPm(void) {
 				CPU_PM_PRIO,																	// Priority 0-24, higher is more
 				NULL,																			// Task handle
 				CPU_PM_CORE);																	// Core [CORE_0 | CORE_1]
-	if (rc != pdPASS)
-		panic("Could not start CPU PM collection task, return code %i, - rebooting..." CR, rc);
-	LOG_INFO("CPU PM collection started" CR);
+	if (rc != pdPASS){
+		panic("Could not start CPU PM collection task, return code %i", rc);
+		return;
+	}
+	LOG_INFO_NOFMT("CPU PM collection started" CR);
 }
 
 void cpu::stopPm(void) {
@@ -90,7 +94,7 @@ void cpu::stopPm(void) {
 	delete idleTicksHistory;
 	delete totHeapFreeHistory;
 	delete intHeapFreeHistory;
-	LOG_VERBOSE("Stoping CPU PM collection" CR);
+	LOG_VERBOSE_NOFMT("Stoping CPU PM collection" CR);
 	while (cpuPmLogging)
 		vTaskDelay(100 / portTICK_PERIOD_MS);
 	LOG_INFO("CPU PM collection stopped" CR);
@@ -173,14 +177,14 @@ void cpu::cpuPmCollect(void* dummy) {
 			secondCount++;
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
-	LOG_INFO("CPU PM ordered to be stopped, killing the pm collection task");
+	LOG_INFO_NOFMT("CPU PM ordered to be stopped, killing the pm collection task");
 	cpuPmLogging = false;
 	vTaskDelete(NULL);
 }
 
 uint cpu::getCpuAvgLoad(const char* p_task, uint8_t p_period_s) {
 	if (p_period_s > CPU_HISTORY_SIZE) {
-		LOG_ERROR("Averiging period out of bounds");
+		LOG_ERROR_NOFMT("Averiging period out of bounds");
 		return RC_PARAMETERVALUE_ERR;
 	}
 	int8_t startSecond;
@@ -215,7 +219,7 @@ uint cpu::getCpuMaxLoad(const char* p_task) {
 rc_t cpu::clearCpuMaxLoad(const char* p_task) {
 	if (!p_task) {
 		maxCpuLoad = 0;
-		LOG_VERBOSE("global cpuMaxLoad cleared" CR);
+		LOG_VERBOSE_NOFMT("global cpuMaxLoad cleared" CR);
 		return RC_OK;
 	}
 	else {

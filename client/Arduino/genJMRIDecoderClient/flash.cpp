@@ -48,8 +48,10 @@ flash::flash(float p_freq, uint8_t p_duty) {
     flashData->offTime = uint32_t((float)(1 / (float)p_freq) * (float)((100 - (float)p_duty) / 100) * 1000000);
     LOG_INFO("Creating flash object %i with flash frequency %f Hz and dutycycle %i" CR, this, p_freq, p_duty); //DOES NOT PRINT DATA CORRECTLY
     flashData->flashState = true;
-    if (!(flashLock = xSemaphoreCreateMutex()))
-        panic("Could not create Lock objects - rebooting...");
+    if (!(flashLock = xSemaphoreCreateMutex())){
+        panic("Could not create Lock objects");
+        return;
+    }
     overRuns = 0;
     maxLatency = 0;
     maxAvgSamples = p_freq * FLASH_LATENCY_AVG_TIME;
@@ -62,8 +64,10 @@ flash::flash(float p_freq, uint8_t p_duty) {
         FLASH_LOOP_STACKSIZE_1K * 1024,         // Stack size
         this,                                   // Parameter passing
         FLASH_LOOP_PRIO,                        // Priority 0-24, higher is more
-        FLASH_LOOP_STACK_ATTR))                 // Task stack attribute
-        panic("Could not start flash task - rebooting..." CR);
+        FLASH_LOOP_STACK_ATTR)) {                // Task stack attribute
+        panic("Could not start flash task");
+        return;
+    }
 }
 
 flash::~flash(void) {

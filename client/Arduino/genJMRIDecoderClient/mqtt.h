@@ -127,6 +127,7 @@ public:
     static void clearMaxLatency(void);
     static bool getSubs(uint16_t p_index, char* p_topic, uint16_t p_topicSize, char* p_cbs, uint16_t p_cbSize);
 
+
     //Public data structures
     //--
 

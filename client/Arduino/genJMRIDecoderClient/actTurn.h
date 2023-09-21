@@ -79,6 +79,7 @@ public:
     rc_t getShowing(char* p_showing, char* p_orderedShowing);
     void failsafe(bool p_failSafe);
 
+
     //Public data structures
     //--
 
@@ -89,6 +90,7 @@ private:
     void turnServoMove(void);
 
     //Private data structures
+    char* logContextName;
     actBase* actBaseHandle;
     esp_timer_handle_t turnServoPwmIncrementTimerHandle;
     esp_timer_create_args_t turnServoPwmTimerArgs;

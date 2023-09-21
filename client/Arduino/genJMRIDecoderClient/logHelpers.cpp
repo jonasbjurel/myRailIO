@@ -41,24 +41,28 @@ EXT_RAM_ATTR const char* LOG_LEVEL_STR[NO_OF_LOG_LEVELS] = { "SILENT", "FATAL", 
 EXT_RAM_ATTR uint8_t logg::instances = 0;
 EXT_RAM_ATTR logg* logg::logInstance;
 EXT_RAM_ATTR SemaphoreHandle_t logg::logLock = NULL;
+EXT_RAM_ATTR SemaphoreHandle_t logg::logDestinationLock = NULL;
+EXT_RAM_ATTR SemaphoreHandle_t logg::logCustomLock = NULL;
 EXT_RAM_ATTR logSeverity_t logg::logLevel = GJMRI_DEBUG_INFO;
 EXT_RAM_ATTR job* logg::logJobHandle = NULL;
 EXT_RAM_ATTR QList<rSyslog_t*>* logg::sysLogServers = NULL;
 EXT_RAM_ATTR QList<customLogDesc_t*>* logg::customLogDescList = NULL;
 EXT_RAM_ATTR QList<customLogDesc_t*>* logg::logLevelList[NO_OF_LOG_LEVELS] = { NULL };
-EXT_RAM_ATTR char logg::logMsgHistory[LOG_MSG_HISTORY_SIZE][LOG_MSG_SIZE] = { '\0' };
-EXT_RAM_ATTR char logg::nonformatedMsg[4096];
-EXT_RAM_ATTR uint16_t logg::logHistoryIndex = 0;
+EXT_RAM_ATTR char* logg::logMsgOutput;
 EXT_RAM_ATTR timeval logg::tv;
 EXT_RAM_ATTR timezone logg::tz;
 EXT_RAM_ATTR char logg::timeStamp[35] = { '\0' };
 EXT_RAM_ATTR char logg::microSecTimeStamp[10] = { '\0' };
+EXT_RAM_ATTR tm* logg::tmTod;
 EXT_RAM_ATTR const char* logg::fileBaseNameStr = NULL;
-EXT_RAM_ATTR logJobDesc_t logg::logJobDesc[LOGJOBSLOTS];
+EXT_RAM_ATTR logJobDesc_t logg::logJobDesc[LOGJOBSLOTS + 1];
 EXT_RAM_ATTR uint16_t logg::logJobDescIndex = 0;
 EXT_RAM_ATTR bool logg::overload = false;
+EXT_RAM_ATTR bool logg::overloadCeased = false;
 EXT_RAM_ATTR uint32_t logg::missedLogs = 0;
 EXT_RAM_ATTR uint32_t logg::totalMissedLogs = 0;
+EXT_RAM_ATTR bool logg::consoleLog = true;
+
 
 
 logg::logg(void){
@@ -68,10 +72,16 @@ logg::logg(void){
     }
     logInstance = this;
     logLock = xSemaphoreCreateMutex();
+    logDestinationLock = xSemaphoreCreateMutex();
+    logCustomLock = xSemaphoreCreateMutex();
     tz.tz_minuteswest = 0;
     tz.tz_dsttime = 0;
     logLevel = GJMRI_DEBUG_INFO;
-    logJobHandle = new job(LOGJOBSLOTS, LOG_TASKNAME, LOG_STACKSIZE_1K * 1024, LOG_PRIO);
+    logJobHandle = new job(LOGJOBSLOTS, LOG_TASKNAME, LOG_STACKSIZE_1K * 1024, LOG_PRIO, false);
+    if (!logJobHandle){
+        panic("Could not reate the log job task" CR);
+        return;
+    }
 //    logJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(LOGJOBSLOTS, LOG_TASKNAME, LOG_STACKSIZE_1K * 1024, LOG_PRIO);
     logJobHandle->setjobQueueUnsetOverloadLevel(LOGJOBSLOTS / 4);
     logJobHandle->regOverloadCb(onOverload, this);
@@ -79,14 +89,7 @@ logg::logg(void){
 }
 
 logg::~logg(void) {
-    panic("Destructing logg object" CR);
-    deleteAllLogServers();
-    if (sysLogServers)
-        delete sysLogServers;
-    deleteAllCustomLogItems();
-    if (customLogDescList)
-        delete customLogDescList;
-    delete logJobHandle;
+    panic("Destructing logg object not supported" CR);
 }
 
 rc_t logg::setLogLevel(logSeverity_t p_loglevel) {
@@ -102,7 +105,17 @@ logSeverity_t logg::getLogLevel(void) {
         return logLevel;
 }
 
+void logg::setConsoleLog(bool p_consoleLog) {
+    consoleLog = p_consoleLog;
+    return;
+}
+
+bool logg::getConsoleLog(void) {
+    return consoleLog;
+}
+
 rc_t logg::addLogServer(const char* p_server, uint16_t p_port) {
+    xSemaphoreTake(logDestinationLock, portMAX_DELAY);
     if (!isUri(p_server) || p_port < 0 || p_port > 65535) {
         LOG_ERROR("Provided Rsyslog server URI:%s, Port: %i is not valid, will not start rSyslog" CR, p_server, RSYSLOG_DEFAULT_PORT);
             return RC_PARAMETERVALUE_ERR;
@@ -114,7 +127,8 @@ rc_t logg::addLogServer(const char* p_server, uint16_t p_port) {
     for (uint8_t sysLogServersItter = 0; sysLogServersItter < sysLogServers->size(); sysLogServersItter++) {
         if ((!strcmp(sysLogServers->at(sysLogServersItter)->server, p_server) && (sysLogServers->at(sysLogServersItter)->port == p_port))) {
             LOG_ERROR("RSyslog server %s already exists" CR, p_server);
-            break;
+            xSemaphoreGive(logDestinationLock);
+            return RC_ALREADYEXISTS_ERR;
         }
     }
     sysLogServers->push_back(new (heap_caps_malloc(sizeof(rSyslog_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) rSyslog_t);
@@ -122,12 +136,14 @@ rc_t logg::addLogServer(const char* p_server, uint16_t p_port) {
     sysLogServers->back()->port = p_port;
     sysLogServers->back()->syslogDest = new SimpleSyslog("MyHost", "MyApp", p_server, p_port); //FIX HOSTNAME AND APP, AND MAKE SURE IT GETS UPDATED
     if (!sysLogServers->back()->syslogDest) {
-        LOG_ERROR("Failed to create a syslog destination" CR);
-        delete sysLogServers->back();
+        LOG_ERROR_NOFMT("Failed to create a syslog destination" CR);
         sysLogServers->pop_back();
+        xSemaphoreGive(logDestinationLock);
+        return RC_OUT_OF_MEM_ERR;
     }
     else
         LOG_INFO("Syslog destination %s created" CR, sysLogServers->back()->server);
+    xSemaphoreGive(logDestinationLock);
     return RC_OK;
 }
 
@@ -135,33 +151,38 @@ rc_t logg::deleteLogServer(const char* p_server, uint16_t p_port) {
     if (!sysLogServers) {
         return RC_NOT_FOUND_ERR;
     }
-    for (uint8_t sysLogServersItter = 0; sysLogServersItter < sysLogServers->size(); sysLogServersItter++) {
+    xSemaphoreTake(logDestinationLock, portMAX_DELAY);
+    uint8_t sysLogServersItter = 0;
+    while (sysLogServers && sysLogServers->size() && sysLogServersItter < sysLogServers->size()) {
         if ((!strcmp(sysLogServers->at(sysLogServersItter)->server, p_server) && (sysLogServers->at(sysLogServersItter)->port == p_port))) {
             delete sysLogServers->at(sysLogServersItter)->syslogDest;
             delete sysLogServers->at(sysLogServersItter);
             sysLogServers->clear(sysLogServersItter);
+            if (!sysLogServers->size()) {
+                delete sysLogServers;
+                sysLogServers = NULL;
+            }
+            xSemaphoreGive(logDestinationLock);
+            return RC_OK;
         }
+        sysLogServersItter++;
     }
-    for (uint8_t sysLogServersItter = 0; sysLogServersItter < sysLogServers->size(); sysLogServersItter++) {
-        if (!sysLogServers->back()) {
-            sysLogServers->pop_back();
-        }
-        else {
-            sysLogServers->push_front(sysLogServers->back());
-            sysLogServers->pop_back();
-        }
-    }
-    return RC_OK;
+    xSemaphoreGive(logDestinationLock);
+    return RC_NOT_FOUND_ERR;
 }
 
 void logg::deleteAllLogServers(void) {
     if (!sysLogServers)
         return;
-    for (uint8_t sysLogServersItter = 0; sysLogServersItter < sysLogServers->size(); sysLogServersItter++) {
+    xSemaphoreTake(logDestinationLock, portMAX_DELAY);
+    while (sysLogServers->size()) {
         delete sysLogServers->back()->syslogDest;
         delete sysLogServers->back();
         sysLogServers->pop_back();
-    } 
+    }
+    delete sysLogServers;
+    sysLogServers = NULL;
+    xSemaphoreGive(logDestinationLock);
 }
 
 rc_t logg::getLogServer(uint8_t p_index, char* p_server, uint16_t* p_port) {
@@ -170,117 +191,192 @@ rc_t logg::getLogServer(uint8_t p_index, char* p_server, uint16_t* p_port) {
         p_port = NULL;
         return RC_NOT_FOUND_ERR;
     }
+    xSemaphoreTake(logDestinationLock, portMAX_DELAY);
     if (p_server != NULL)
         strcpy(p_server, sysLogServers->at(p_index)->server);
     if (p_port != NULL)
         *p_port = sysLogServers->at(p_index)->port;
+    xSemaphoreGive(logDestinationLock);
     return RC_OK;
 }
 
-rc_t logg::addCustomLogItem(const char* p_classNfunc, logSeverity_t p_logLevel) {
-    if (p_logLevel < 0 || p_logLevel >= NO_OF_LOG_LEVELS)
+rc_t logg::addCustomLogItem(const char* p_file, const char* p_classNfunc, logSeverity_t p_logLevel) {
+    if (!p_file || p_logLevel < 0 || p_logLevel >= NO_OF_LOG_LEVELS)
         return RC_PARAMETERVALUE_ERR;
-    if (customLogDescList){
-        for (uint16_t customLogDesItter = 0; customLogDesItter < customLogDescList->size(); customLogDesItter++) {
-            if (customLogDescList->at(customLogDesItter)->classNfunc == p_classNfunc) {
-                LOG_WARN("Custom log level descriptor already exists" CR);
+    xSemaphoreTake(logCustomLock, portMAX_DELAY);
+    if (!customLogDescList) {
+        if(!(customLogDescList = new (heap_caps_malloc(sizeof(QList<customLogDesc_t*>), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList<customLogDesc_t*>)){
+            panic("Could not allocate a custom log list");
+            xSemaphoreGive(logCustomLock);
+            return RC_OUT_OF_MEM_ERR;
+        }
+    }
+    for (uint16_t customLogDescItter = 0; customLogDescItter < customLogDescList->size(); customLogDescItter++) {
+        if (!strcmp(customLogDescList->at(customLogDescItter)->file, p_file)){
+            if ((!customLogDescList->at(customLogDescItter)->classNfunc && !p_classNfunc) ||
+                (customLogDescList->at(customLogDescItter)->classNfunc && p_classNfunc) ?
+                !strcmp(customLogDescList->at(customLogDescItter)->classNfunc, p_classNfunc) :
+                false) {
+                LOG_WARN_NOFMT("Custom log level descriptor already exists" CR);
+                xSemaphoreGive(logCustomLock);
                 return RC_ALREADYEXISTS_ERR;
             }
         }
     }
-    else {
-        customLogDescList = new (heap_caps_malloc(sizeof(QList<customLogDesc_t*>), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) QList<customLogDesc_t*>;
-        if (!customLogDescList) {
-            LOG_ERROR("Could not allocate custom log level descriptor List" CR);
+    customLogDescList->push_back(new (heap_caps_malloc(sizeof(customLogDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) customLogDesc_t);
+    if (!customLogDescList->back()) {
+        panic("Could not allocate a custom log descriptor");
+        xSemaphoreGive(logCustomLock);
+        return RC_OUT_OF_MEM_ERR;
+    }
+    if (!customLogDescList->back()) {
+        customLogDescList->pop_back();
+        LOG_ERROR_NOFMT("Could not allocate custom log level descriptor" CR);
+        xSemaphoreGive(logCustomLock);
+        return RC_OUT_OF_MEM_ERR;
+    }
+    customLogDescList->back()->file = p_file;
+    customLogDescList->back()->classNfunc = p_classNfunc;
+    customLogDescList->back()->customLogLevel = p_logLevel;
+    if (!logLevelList[p_logLevel]) {
+        logLevelList[p_logLevel] = new QList<customLogDesc_t*>; //SHOUL BE IN SPIRAM INSTEAD
+        if (!logLevelList[p_logLevel]) {
+            panic("Could not allocate a custom loglevel list");
+            xSemaphoreGive(logCustomLock);
             return RC_OUT_OF_MEM_ERR;
         }
     }
-    customLogDescList->push_back(new (heap_caps_malloc(sizeof(customLogDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) customLogDesc_t);
-    if (!customLogDescList->back()) {
-        delete customLogDescList;
-        customLogDescList = NULL;
-        LOG_ERROR("Could not allocate custom log level descriptor" CR);
-        return RC_OUT_OF_MEM_ERR;
-    }
-    customLogDescList->back()->classNfunc = createNcpystr(p_classNfunc);
-    customLogDescList->back()->customLogLevel = p_logLevel;
     logLevelList[p_logLevel]->push_back(customLogDescList->back());
+    xSemaphoreGive(logCustomLock);
     return RC_OK;
 }
 
-rc_t logg::getCustomLogItem(uint16_t p_index, char* p_classNfunc, logSeverity_t* p_logLevel) {
-    if (p_index < customLogDescList->size()){
+rc_t logg::getCustomLogItem(uint16_t p_index, const char** p_file, const char** p_classNfunc, logSeverity_t* p_logLevel) {
+    xSemaphoreTake(logCustomLock, portMAX_DELAY);
+    if (p_index >= customLogDescList->size()){
         LOG_INFO("A customer log item index: %i has been requested - but it does not exist..." CR, p_index);
+        xSemaphoreGive(logCustomLock);
         return RC_NOT_FOUND_ERR;
     }
-    strcpy(p_classNfunc, customLogDescList->at(p_index)->classNfunc);
+    *p_file = customLogDescList->at(p_index)->file;
+    *p_classNfunc = customLogDescList->at(p_index)->classNfunc;
     *p_logLevel = customLogDescList->at(p_index)->customLogLevel;
+    xSemaphoreGive(logCustomLock);
     return RC_OK;
 }
 
 uint16_t logg::getNoOffCustomLogItem(void) {
-    if (!customLogDescList)
+    xSemaphoreTake(logCustomLock, portMAX_DELAY);
+    if (!customLogDescList) {
+        xSemaphoreGive(logCustomLock);
         return 0;
-    else
+    }
+    else {
+        xSemaphoreGive(logCustomLock);
         return customLogDescList->size();
+    }
 }
 
-rc_t logg::deleteCustomLogItem(const char* p_classNfunc) {
+rc_t logg::deleteCustomLogItem(const char* p_file, const char* p_classNfunc) {
+    xSemaphoreTake(logCustomLock, portMAX_DELAY);
     if (!customLogDescList) {
-        LOG_WARN("Custom log level descriptor list does not exist - no custom loglevel entries exists" CR);
+        LOG_WARN_NOFMT("Custom log level descriptor list does not exist - no custom loglevel entries exists" CR);
+        xSemaphoreGive(logCustomLock);
         return RC_NOT_FOUND_ERR;
     }
     bool found = false;
-    for (uint16_t customLogDescItter = 0; customLogDescItter < customLogDescList->size(); customLogDescItter++) {
-        if (!strcmp(customLogDescList->at(customLogDescItter)->classNfunc, p_classNfunc)) {
-            for (uint16_t customLogLevelItter = 0; customLogLevelItter < logLevelList[customLogDescList->at(customLogDescItter)->customLogLevel]->size(); customLogLevelItter++) {
-                if (logLevelList[customLogDescList->at(customLogDescItter)->customLogLevel]->at(customLogLevelItter) == customLogDescList->at(customLogDescItter)) {
-                    logLevelList[customLogDescList->at(customLogDescItter)->customLogLevel]->clear(customLogLevelItter);
-                    delete customLogDescList->at(customLogDescItter)->classNfunc;
-                    delete customLogDescList->at(customLogDescItter);
-                    customLogDescList->clear(customLogDescItter);
-                    return RC_OK;
-                }
+    uint16_t customLogDescItter = 0;
+    while(customLogDescList->size() && customLogDescItter < customLogDescList->size()){
+        if (strcmp(customLogDescList->at(customLogDescItter)->file, p_file)) {
+            customLogDescItter++;
+            continue;
+        }
+        if (p_classNfunc) {
+            if (!customLogDescList->at(customLogDescItter)->classNfunc || strcmp(customLogDescList->at(customLogDescItter)->classNfunc, p_classNfunc)) {
+                customLogDescItter++;
+                continue;
             }
         }
+        uint16_t customLogLevelItter = 0;
+        while (logLevelList[customLogDescList->at(customLogDescItter)->customLogLevel]->size()){
+            if (logLevelList[customLogDescList->at(customLogDescItter)->customLogLevel]->at(customLogLevelItter) == customLogDescList->at(customLogDescItter)) {
+                logLevelList[customLogDescList->at(customLogDescItter)->customLogLevel]->clear(customLogLevelItter);
+                delete customLogDescList->at(customLogDescItter);
+                customLogDescList->clear(customLogDescItter);
+                customLogDescItter--;
+                found = true;
+                if (p_classNfunc) {
+                    xSemaphoreGive(logCustomLock);
+                    return RC_OK;
+                }
+                else
+                    break;
+            }
+            customLogLevelItter++;
+        }
+        customLogDescItter++;
     }
-    return RC_NOT_FOUND_ERR;
+    xSemaphoreGive(logCustomLock);
+    if (found)
+        return RC_OK;
+    else
+        return RC_NOT_FOUND_ERR;
 }
 
 void logg::deleteAllCustomLogItems(void) {
+    xSemaphoreTake(logCustomLock, portMAX_DELAY);
     for (uint16_t customLogDesItter = 0; customLogDesItter < customLogDescList->size(); customLogDesItter++) {
-        delete customLogDescList->at(customLogDesItter)->classNfunc;
         delete customLogDescList->at(customLogDesItter);
     }
     customLogDescList->clear();
     delete customLogDescList;
     customLogDescList = NULL;
     for (uint8_t logLevelItter = 0; logLevelItter < NO_OF_LOG_LEVELS; logLevelItter++) {
-        logLevelList[logLevelItter]->clear();
+        if (!logLevelList[logLevelItter]){
+            continue;
+        }
+        else{
+            logLevelList[logLevelItter]->clear();
+            delete logLevelList[logLevelItter];
+            logLevelList[logLevelItter] = NULL;
+        }
     }
+    xSemaphoreGive(logCustomLock);
 }
 
-bool logg::shouldLog(logSeverity_t p_logLevel, const char* p_classNFunction) {
+bool logg::shouldLog(logSeverity_t p_logLevel, const char* p_file, const char* p_classNfunc) {
     if (p_logLevel > GJMRI_DEBUG_VERBOSE || p_logLevel < GJMRI_DEBUG_SILENT)
         return false;
     if (p_logLevel <= logLevel)
         return true;
-    if (customLogDescList)
-        for (uint8_t customLogLevelItter = logLevel + 1; customLogLevelItter <= 7; customLogLevelItter++) {
+    if (xSemaphoreTake(logCustomLock, 0) == pdFALSE)
+        return false;
+    if (customLogDescList){
+        for (uint8_t customLogLevelItter = logLevel + 1; customLogLevelItter <= NO_OF_LOG_LEVELS; customLogLevelItter++) {
+            if (!logLevelList[customLogLevelItter])
+                continue;
             for (uint16_t customLogLevelQueueItter = 0; customLogLevelQueueItter < logLevelList[customLogLevelItter]->size(); customLogLevelQueueItter++) {
-                if (!strcmp(logLevelList[customLogLevelItter]->at(customLogLevelQueueItter)->classNfunc, p_classNFunction)){
-                    return true;
-                    break;
+                if (!strcmp(logLevelList[customLogLevelItter]->at(customLogLevelQueueItter)->file, fileBaseName(p_file))){
+                    if (!logLevelList[customLogLevelItter]->at(customLogLevelQueueItter)->classNfunc) {
+                        xSemaphoreGive(logCustomLock);
+                        return true;
+                    }
+                    else if (!strcmp(logLevelList[customLogLevelItter]->at(customLogLevelQueueItter)->classNfunc, p_classNfunc)) {
+                        xSemaphoreGive(logCustomLock);
+                        return true;
+                    }
                 }
             }
         }
+    }
+    xSemaphoreGive(logCustomLock);
     return false;
 }
 
 uint8_t logg::mapSeverityToSyslog(logSeverity_t p_logLevel) {
     switch (p_logLevel) {
     case GJMRI_DEBUG_SILENT:
-    case GJMRI_DEBUG_PANIC:
+    case GJMRI_DEBUG_FATAL:
         return PRI_EMERGENCY;
         break;
     case GJMRI_DEBUG_ERROR:
@@ -303,163 +399,100 @@ uint8_t logg::mapSeverityToSyslog(logSeverity_t p_logLevel) {
     }
 }
 
-void logg::verbose(const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, ...) {
+void logg::enqueueLog(logSeverity_t p_logLevel, const char* p_file, const char* p_classNFunction, size_t p_line, bool p_purge, bool p_format, const char* p_logMsgFmt, ...) {
+    if (overload) {
+        if(shouldLog(p_logLevel, p_file, p_classNFunction)){
+            missedLogs++;
+            totalMissedLogs++;
+        }
+        if (overloadCeased) {
+            overloadCeased = false;
+            overload = false;
+            LOG_WARN("Logging overloaded, missed %u log-entries" CR, missedLogs + 1);
+            missedLogs = 0;
+            totalMissedLogs++;
+        }
+        return;
+    }
     xSemaphoreTake(logLock, portMAX_DELAY);
-    if (!shouldLog(GJMRI_DEBUG_VERBOSE, p_classNFunction)){
+    gettimeofday(&logJobDesc[logJobDescIndex].tv, &logJobDesc[logJobDescIndex].tz);
+    if (!shouldLog(p_logLevel, p_file, p_classNFunction)) {
         xSemaphoreGive(logLock);
         return;
     }
-    va_list args;
-    va_start(args, p_logMsgFmt);
-    enqueueLog(GJMRI_DEBUG_VERBOSE, p_file, p_classNFunction, p_line, p_format, p_logMsgFmt, args);
-    va_end(args);
-    xSemaphoreGive(logLock);
-}
-
-void logg::terse(const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, ...) {
-    xSemaphoreTake(logLock, portMAX_DELAY);
-    if (!shouldLog(GJMRI_DEBUG_TERSE, p_classNFunction)) {
-        xSemaphoreGive(logLock);
-        return;
-    }
-    va_list args;
-    va_start(args, p_logMsgFmt);
-    enqueueLog(GJMRI_DEBUG_TERSE, p_file, p_classNFunction, p_line, p_format, p_logMsgFmt, args);
-    va_end(args);
-    xSemaphoreGive(logLock);
-}
-
-void logg::info(const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, ...) {
-    xSemaphoreTake(logLock, portMAX_DELAY);
-    if (!shouldLog(GJMRI_DEBUG_INFO, p_classNFunction)) {
-        xSemaphoreGive(logLock);
-        return;
-    }
-    va_list args;
-    va_start(args, p_logMsgFmt);
-    enqueueLog(GJMRI_DEBUG_INFO, p_file, p_classNFunction, p_line, p_format, p_logMsgFmt, args);
-    va_end(args);
-    xSemaphoreGive(logLock);
-}
-
-void logg::warn(const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, ...) {
-    xSemaphoreTake(logLock, portMAX_DELAY);
-    if (!shouldLog(GJMRI_DEBUG_WARN, p_classNFunction)) {
-        xSemaphoreGive(logLock);
-        return;
-    }
-    va_list args;
-    va_start(args, p_logMsgFmt);
-    enqueueLog(GJMRI_DEBUG_WARN, p_file, p_classNFunction, p_line, p_format, p_logMsgFmt, args);
-    va_end(args);
-    xSemaphoreGive(logLock);
-}
-
-void logg::error(const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, ...) {
-    xSemaphoreTake(logLock, portMAX_DELAY);
-    if (!shouldLog(GJMRI_DEBUG_ERROR, p_classNFunction)) {
-        xSemaphoreGive(logLock);
-        return;
-    }
-    va_list args;
-    va_start(args, p_logMsgFmt);
-    enqueueLog(GJMRI_DEBUG_ERROR, p_file, p_classNFunction, p_line, p_format, p_logMsgFmt, args);
-    va_end(args);
-    xSemaphoreGive(logLock);
-}
-
-void logg::fatal(const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, ...) {
-    xSemaphoreTake(logLock, portMAX_DELAY);
-    if (!shouldLog(GJMRI_DEBUG_PANIC, p_classNFunction)) {
-        xSemaphoreGive(logLock);
-        return;
-    }
-    va_list args;
-    va_start(args, p_logMsgFmt);
-    enqueueLog(GJMRI_DEBUG_PANIC, p_file, p_classNFunction, p_line, p_format, p_logMsgFmt, args, true);
-    va_end(args);
-    xSemaphoreGive(logLock);
-}
-
-void logg::enqueueLog(logSeverity_t p_logLevel, const char* p_file, const char* p_classNFunction, size_t p_line, bool p_format, const char* p_logMsgFmt, va_list p_args, bool p_purge) {
-    //Serial.printf(">>>>>>>>>>>>>>> Start Enqueue, pending Jobs: %i" CR, logJobHandle->getPendingJobSlots());
-    if (overload){
+    if (overload) {
         missedLogs++;
-        totalMissedLogs++;
+        xSemaphoreGive(logLock);
+        return;
     }
+    assert(!logJobDesc[logJobDescIndex].busy);
     logJobDesc[logJobDescIndex].logJobIndex = logJobDescIndex;
     logJobDesc[logJobDescIndex].logLevel = p_logLevel;
     logJobDesc[logJobDescIndex].filePath = p_file;
     logJobDesc[logJobDescIndex].classNFunction = p_classNFunction;
     logJobDesc[logJobDescIndex].line = p_line;
-    int msgSize;
-    if (p_format){
-        //Serial.printf("&&&&&&&&&&&&&&&&&&&Enqueueing formated message %s: to jobIndex %i" CR, logJobDesc[logJobDescIndex].formatedLogMsg, logJobDescIndex);
-        msgSize = vsnprintf(NULL, 0, p_logMsgFmt, p_args);
-        //Serial.printf("Enqueue setting formatted Log msg" CR);
-        vsnprintf(logJobDesc[logJobDescIndex].formatedLogMsg, msgSize + 1, p_logMsgFmt, p_args);
-        logJobDesc[logJobDescIndex].nonFormatedLogMsg = NULL;
-    }
-    else{
-        //Serial.printf("Enqueue setting non-formatted Log msg" CR);
-        logJobDesc[logJobDescIndex].nonFormatedLogMsg = p_logMsgFmt;
-        //Serial.printf("&&&&&&&&&&&&&&&&&&&Enqueueing non-formated message %s: to jobIndex %i" CR, logJobDesc[logJobDescIndex].nonFormatedLogMsg, logJobDescIndex);
-
-    }
-    gettimeofday(&logJobDesc[logJobDescIndex].tv, &logJobDesc[logJobDescIndex].tz);
-    logJobHandle->enqueue(onPrintLog, &logJobDesc[logJobDescIndex], 0, p_purge);
-    //if (!logJobDesc[logJobDescIndex].nonFormatedLogMsg)
-        //Serial.printf("&&&&&&&&&&&&&&&&&&&Enqueued formatted message %s: to jobIndex %i (%i), jobDescriptor %i" CR, logJobDesc[logJobDescIndex].formatedLogMsg, logJobDescIndex, logJobDesc[logJobDescIndex].logJobIndex, &logJobDesc[logJobDescIndex]);
-    //else
-        //Serial.printf("&&&&&&&&&&&&&&&&&&&Enqueued non-formatted message %s: to jobIndex %i (%i), jobDescriptor %i" CR, logJobDesc[logJobDescIndex].nonFormatedLogMsg, logJobDescIndex, logJobDesc[logJobDescIndex].logJobIndex, &logJobDesc[logJobDescIndex]);
-    if (++logJobDescIndex >= LOGJOBSLOTS)
-        logJobDescIndex = 0;
-    //Serial.printf("<<<<<<<<<<<<<<<<< End Enqueue" CR);
-}
-
-void logg::onPrintLog(void* p_jobCbMetaData){
-    //Serial.printf(">>>>>>>>>>>>>>>>> Start PrintLog LoghistoryIndex: %i" CR, logHistoryIndex);
-
-    fileBaseNameStr = fileBaseName(((logJobDesc_t*)p_jobCbMetaData)->filePath);
-    tm* tmTod = gmtime(&((logJobDesc_t*)p_jobCbMetaData)->tv.tv_sec);
-    strftime(timeStamp, 25, "UTC:%H:%M:%S", tmTod);
-    strcat(timeStamp, ":"); 
-    strcat(timeStamp, itoa(((logJobDesc_t*)p_jobCbMetaData)->tv.tv_usec, microSecTimeStamp, 10));
-    if (!((logJobDesc_t*)p_jobCbMetaData)->nonFormatedLogMsg) {
-        //Serial.printf("&&&&&&&&&&&&&&&&&&&Print formatted message %s: from jobIndex %i, jobDescriptor %i" CR, ((logJobDesc_t*)p_jobCbMetaData)->formatedLogMsg, ((logJobDesc_t*)p_jobCbMetaData)->logJobIndex, p_jobCbMetaData);
-        sprintf(logMsgHistory[logHistoryIndex], "%s: %s: %s: %s-%i: %s", timeStamp, LOG_LEVEL_STR[((logJobDesc_t*)p_jobCbMetaData)->logLevel], ((logJobDesc_t*)p_jobCbMetaData)->classNFunction, fileBaseName(((logJobDesc_t*)p_jobCbMetaData)->filePath), ((logJobDesc_t*)p_jobCbMetaData)->line, ((logJobDesc_t*)p_jobCbMetaData)->formatedLogMsg);
-        Serial.print(logMsgHistory[logHistoryIndex]);
-        printRSyslog(mapSeverityToSyslog(((logJobDesc_t*)p_jobCbMetaData)->logLevel), logMsgHistory[logHistoryIndex]);
+    if (p_format) {
+        va_list args;
+        va_start(args, p_logMsgFmt);
+        if(vasprintf(&logJobDesc[logJobDescIndex].logMsgFmt, p_logMsgFmt, args) == -1) {
+            Serial.printf("LOG ERROR: Failed to allocate log FMT buffer, skipping log entry" CR);
+            xSemaphoreGive(logLock);
+            return;
+        }
+        logJobDesc[logJobDescIndex].format = true;
+        va_end(args);
     }
     else {
-        //Serial.printf("&&&&&&&&&&&&&&&&&&&Print non-formatted message %s: from jobIndex %i, jobDescriptor %i" CR, ((logJobDesc_t*)p_jobCbMetaData)->nonFormatedLogMsg, ((logJobDesc_t*)p_jobCbMetaData)->logJobIndex, p_jobCbMetaData);
-        sprintf(nonformatedMsg, "%s: %s: %s: %s-%i: %s", timeStamp, LOG_LEVEL_STR[((logJobDesc_t*)p_jobCbMetaData)->logLevel], ((logJobDesc_t*)p_jobCbMetaData)->classNFunction, fileBaseName(((logJobDesc_t*)p_jobCbMetaData)->filePath), ((logJobDesc_t*)p_jobCbMetaData)->line, ((logJobDesc_t*)p_jobCbMetaData)->nonFormatedLogMsg);
-        Serial.print(nonformatedMsg);
-        printRSyslog(mapSeverityToSyslog(((logJobDesc_t*)p_jobCbMetaData)->logLevel), nonformatedMsg );
-        strcpyTruncMaxLen(logMsgHistory[logHistoryIndex], nonformatedMsg, LOG_MSG_SIZE);
+        logJobDesc[logJobDescIndex].logMsgFmt = (char*)p_logMsgFmt;
+        logJobDesc[logJobDescIndex].format = false;
     }
-    if (++logHistoryIndex == LOG_MSG_HISTORY_SIZE)
-        logHistoryIndex = 0;
-    //Serial.printf("<<<<<<<<<<<<<<<<<< End PrintLog LoghistoryIndex: %i" CR, logHistoryIndex);
+    logJobDesc[logJobDescIndex].busy = true;
+    logJobHandle->enqueue(dequeueLog, &logJobDesc[logJobDescIndex], 0, p_purge);
+    if (++logJobDescIndex >= LOGJOBSLOTS + 1)
+        logJobDescIndex = 0;
+    xSemaphoreGive(logLock);
+}
 
+void logg::dequeueLog(void* p_jobCbMetaData){
+    xSemaphoreTake(logLock, portMAX_DELAY);
+    assert(((logJobDesc_t*)p_jobCbMetaData)->busy);
+    fileBaseNameStr = fileBaseName(((logJobDesc_t*)p_jobCbMetaData)->filePath);
+    tmTod = gmtime(&((logJobDesc_t*)p_jobCbMetaData)->tv.tv_sec);
+    strftime(timeStamp, 25, "UTC:%H:%M:%S", tmTod);
+    strcat(timeStamp, ":");
+    strcat(timeStamp, itoa(((logJobDesc_t*)p_jobCbMetaData)->tv.tv_usec, microSecTimeStamp, 10));
+    int buffIndex = 0;
+    if (asprintf(&logMsgOutput, "%s: %s: %s: %s-%i: %s", timeStamp, LOG_LEVEL_STR[((logJobDesc_t*)p_jobCbMetaData)->logLevel], ((logJobDesc_t*)p_jobCbMetaData)->classNFunction, fileBaseName(((logJobDesc_t*)p_jobCbMetaData)->filePath), ((logJobDesc_t*)p_jobCbMetaData)->line, ((logJobDesc_t*)p_jobCbMetaData)->logMsgFmt) == -1) {
+        Serial.printf("LOG ERROR: Failed to allocate log FMT buffer, skipping log entry" CR);
+        if (((logJobDesc_t*)p_jobCbMetaData)->format)
+            delete ((logJobDesc_t*)p_jobCbMetaData)->logMsgFmt;
+        xSemaphoreGive(logLock);
+        return;
+    }
+    if (((logJobDesc_t*)p_jobCbMetaData)->format)
+        delete ((logJobDesc_t*)p_jobCbMetaData)->logMsgFmt;
+    ((logJobDesc_t*)p_jobCbMetaData)->busy = false;
+    xSemaphoreGive(logLock);
+    if (consoleLog) {
+        Serial.print(logMsgOutput);
+    }
+    printRSyslog(mapSeverityToSyslog(((logJobDesc_t*)p_jobCbMetaData)->logLevel), logMsgOutput);
+    delete logMsgOutput;
 }
 
 void logg::printRSyslog(uint8_t p_rSysLogLevel, const char* p_logMsg) {
-    if (!sysLogServers)
+    if (xSemaphoreTake(logDestinationLock, 0) == pdFALSE)
         return;
+    if (!sysLogServers) {
+        xSemaphoreGive(logDestinationLock);
+        return;
+    }
     for (uint8_t sysLogServerItter = 0; sysLogServerItter < sysLogServers->size(); sysLogServerItter++) {
         if (sysLogServers->at(sysLogServerItter)){
-            Serial.printf("Printing to Syslog server %s\n", sysLogServers->at(sysLogServerItter)->server);
             sysLogServers->at(sysLogServerItter)->syslogDest->printf(FAC_USER, p_rSysLogLevel, (char*)p_logMsg);
         }
     }
-}
-
-const char* logg::getLogHistory(uint16_t p_logIndex){
-    if (logHistoryIndex >= p_logIndex)
-        return logMsgHistory[logHistoryIndex];
-    else
-        return logMsgHistory[LOG_MSG_HISTORY_SIZE - (p_logIndex - logHistoryIndex)];
+    xSemaphoreGive(logDestinationLock);
 }
 
 uint32_t logg::getMissedLogs(void) {
@@ -482,7 +515,7 @@ logSeverity_t logg::transformLogLevelXmlStr2Int(const char* p_loglevelXmlTxt) {
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-ERROR"))
         return GJMRI_DEBUG_ERROR;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-PANIC"))
-        return GJMRI_DEBUG_PANIC;
+        return GJMRI_DEBUG_FATAL;
     else if (!strcmp(p_loglevelXmlTxt, "DEBUG-SILENT"))
         return GJMRI_DEBUG_SILENT;
     else
@@ -500,7 +533,7 @@ const char* logg::transformLogLevelInt2XmlStr(logSeverity_t p_loglevelInt) {
         return "DEBUG-WARN\0";
     else if (p_loglevelInt == GJMRI_DEBUG_ERROR)
         return "DEBUG-ERROR\0";
-    else if (p_loglevelInt ==  GJMRI_DEBUG_PANIC)
+    else if (p_loglevelInt ==  GJMRI_DEBUG_FATAL)
         return "DEBUG-PANIC\0";
     else if (p_loglevelInt == GJMRI_DEBUG_SILENT)
         return "DEBUG-SILENT\0";
@@ -508,12 +541,11 @@ const char* logg::transformLogLevelInt2XmlStr(logSeverity_t p_loglevelInt) {
         return NULL;
 }
 
-void logg::onOverload(bool p_overload) {
-    if (p_overload)
+void logg::onOverload(void* p_metadata, bool p_overload) {
+    if (p_overload) {
         overload = true;
-    else{
-        LOG_WARN("Log system overloaded - missed %i logs" CR, missedLogs);
-        missedLogs = 0;
-        overload = false;
+    }
+    else{ 
+        overloadCeased = true;
     }
 }

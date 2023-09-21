@@ -77,6 +77,7 @@ public:
 
     void regGlobalNCommonCliMOCmds(void);                                               //Register global and common MOs and sub-MOs
 
+
     //Public data structures
     // -
 
@@ -176,7 +177,9 @@ private:
         cliCmdTable_t* p_cmdTable);
     static void onCliShowLogHelper(cmd* p_cmd, cliCore* p_cliContext,
                                    cliCmdTable_t* p_cmdTable);
-    static void onCliShowLog(void);                                                     //Show log for context- not supported
+    static void onCliShowLog(void);                                                     //Show extensive log provisioning information
+    static void printLogInfo(void);                                                     //Prints log provisioning to CLI output
+    static void printCustomLogItems(void);                                              //Prints provisioned custom log items to CLI output
     static void onCliSetFailsafeHelper(cmd* p_cmd, cliCore* p_cliContext,               //Set failsafe helper
                                        cliCmdTable_t* p_cmdTable);
     virtual rc_t setFailSafe(const bool p_failsafe, bool p_force = false);              //Set failsafe for context - not supported

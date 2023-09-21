@@ -71,7 +71,7 @@ class senseDigital;
 		if(!strcmp(type, "DIGITAL"))\
 			((senseDigital*)ext_p)->method;\
 		else\
-			panic("senseBase::CALL_EXT: Non supported type %s: - rebooting" CR, type)
+			panic("senseBase::CALL_EXT: Non supported type %s", type)
 
 #define SENSE_CALL_EXT_RC(ext_p, type, method)\
 		rc_t EXT_RC;\
@@ -79,7 +79,7 @@ class senseDigital;
 			EXT_RC = ((senseDigital*)ext_p)->method;\
 		else{\
 			EXT_RC = RC_GEN_ERR;\
-			panic("senseBase::CALL_EXT: Non supported type: %s - rebooting" CR, type);\
+			panic("senseBase::CALL_EXT: Non supported type: %s", type);\
 		}
 
 class senseBase : public systemState, globalCli {
@@ -116,6 +116,7 @@ public:
 	const char* getLogLevel(void);
 	void setDebug(bool p_debug);
 	bool getDebug(void);
+	const char* getLogContextName(void);
 	/* CLI decoration methods */
 	static void onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 	static void onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
@@ -132,6 +133,7 @@ private:
 	//--
 
 	//Private data structures
+	char* logContextName;
 	uint8_t sensPort;
 	uint8_t satAddr;
 	uint8_t satLinkNo;

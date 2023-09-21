@@ -72,6 +72,7 @@ public:
     uint32_t getMaxLatency(void);
     void clearMaxLatency(void);
 
+
     //Public data structures
 
 private:

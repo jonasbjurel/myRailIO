@@ -83,6 +83,7 @@ private:
     //--
 
     //Private data structures
+    char* logContextName;
     senseBase* senseBaseHandle;
     uint8_t sensPort;
     uint8_t satAddr;

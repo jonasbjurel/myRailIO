@@ -46,7 +46,8 @@
 /*==============================================================================================================================================*/
 void panic(const char* fmt, ...);
 rc_t esp_backtrace_buff(int depth, char* p_stackBuff);
-void reboot(void* p_args);
+void reboot(void* p_dummy);
+
 //extern decoder* decoderHandle;
 
 #endif /*PANIC_H*/
