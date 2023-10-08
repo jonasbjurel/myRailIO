@@ -199,7 +199,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_TZ_GMTOFFSET] = "TimeZoneGmtOffset";
     decoderSearchTags[XML_DECODER_LOGLEVEL] = "LogLevel";
     decoderSearchTags[XML_DECODER_RSYSLOGSERVER] = "RSyslogServer";
-    decoderSearchTags[XML_DECODER_RSYSLOGSERVER] = "RSyslogPort";
+    decoderSearchTags[XML_DECODER_RSYSLOGPORT] = "RSyslogPort";
     decoderSearchTags[XML_DECODER_FAILSAFE] = "DecodersFailSafe";
     decoderSearchTags[XML_DECODER_SYSNAME] = NULL;
     decoderSearchTags[XML_DECODER_USRNAME] = NULL;
@@ -221,7 +221,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_TZ_GMTOFFSET] = NULL;
     decoderSearchTags[XML_DECODER_LOGLEVEL] = NULL;
     decoderSearchTags[XML_DECODER_RSYSLOGSERVER] = NULL;
-    decoderSearchTags[XML_DECODER_RSYSLOGSERVER] = NULL;
+    decoderSearchTags[XML_DECODER_RSYSLOGPORT] = NULL;
     decoderSearchTags[XML_DECODER_FAILSAFE] = NULL;
     decoderSearchTags[XML_DECODER_SYSNAME] = "SystemName";
     decoderSearchTags[XML_DECODER_USRNAME] = "UserName";
@@ -862,7 +862,7 @@ rc_t decoder::setRSyslogServer(const char* p_uri, uint16_t p_port, bool p_force)
         return RC_DEBUG_NOT_SET_ERR;
     if (Log.getLogServer(0, NULL, NULL) == RC_ALREADYEXISTS_ERR)
         return RC_ALREADYEXISTS_ERR;
-    return Log.addLogServer(p_uri, p_port);
+    return Log.addLogServer(xmlconfig[XML_DECODER_SYSNAME], p_uri, p_port);
 }
 
 rc_t decoder::getRSyslogServer(char* p_uri, uint16_t* p_port, bool p_force) {

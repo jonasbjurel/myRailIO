@@ -244,13 +244,14 @@ public:
 	// No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.
 
 	//Public data structures
+	char* xmlconfig[19];
+
 
 private:
 	//Private methods
 
 	//Private data structures
 	char* logContextName;
-	char* xmlconfig[19];
 	satLink* satLinks[MAX_SATLINKS];
 	lgLink* lgLinks[MAX_LGLINKS];
 	SemaphoreHandle_t decoderLock;

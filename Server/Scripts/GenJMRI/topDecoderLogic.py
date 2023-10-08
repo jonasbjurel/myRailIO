@@ -22,6 +22,7 @@
 #################################################################################################################################################
 import os
 import sys
+from socket import *
 import time
 from datetime import datetime
 import pytz
@@ -38,6 +39,8 @@ imp.load_source('sysState', '..\\sysState\\sysState.py')
 from sysState import *
 imp.load_source('myTrace', '..\\trace\\trace.py')
 from myTrace import trace
+imp.load_source('syslog', '..\\trace\\syslog.py')
+from syslog import rSyslog
 imp.load_source('mqtt', '..\\mqtt\\mqtt.py')
 from mqtt import mqtt
 imp.load_source('jmriMqttTopicsNPayloads', '..\\mqtt\\jmriMqttTopicsNPayloads.py')
@@ -49,6 +52,7 @@ from rc import rc
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
+
 
 
 
@@ -66,10 +70,6 @@ from config import *
 #################################################################################################################################################
 # End Local internal constants
 #------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
 
 
 
@@ -111,8 +111,8 @@ class topDecoder(systemState, schema):
         self.setAdmState(ADM_DISABLE[STATE_STR])
         self.topItem = self.win.registerMoMObj(self, 0, "topDecoder", TOP_DECODER, displayIcon=SERVER_ICON)
         self.nameKey.value = "topDecoder"
-        self.gitBranch.value = DEFAULT_GIT_BRANCH
         self.gitUrl.value = "my.git.com"
+        self.gitBranch.value = DEFAULT_GIT_BRANCH
         self.gitTag.value = DEFAULT_GIT_TAG
         self.gitBranch.value = DEFAULT_GIT_BRANCH
         self.author.value = "-"
@@ -128,13 +128,27 @@ class topDecoder(systemState, schema):
         self.jmriRpcURI.value = DEFAULT_JMRI_RPC_URI
         self.jmriRpcPortBase.value = DEFAULT_JMRI_RPC_PORT_BASE
         self.JMRIRpcKeepAlivePeriod.value = DEFAULT_JMRI_RPC_KEEPALIVE_PERIOD
+        #Time/NTP
         self.ntpUri.value = DEFAULT_NTP_SERVER
         self.ntpPort.value = DEFAULT_NTP_PORT
         self.tz.value = 0
-        self.rsyslogUri.value = DEFAULT_RSYSLOG_SERVER
+        #RSyslog
+        probeSocket = socket(AF_INET, SOCK_DGRAM)                                                       # Get local host IP address to use as default
+        probeSocket.settimeout(0)
+        try:
+            probeSocket.connect(('10.0.0.0', 0))                                                       # doesn't even have to be reachable
+            self.rsyslogUrl.value = probeSocket.getsockname()[0]
+        except Exception:
+            self.rsyslogUrl.value = DEFAULT_RSYSLOG_SERVER
+        finally:
+            probeSocket.close()
         self.rsyslogPort.value = DEFAULT_RSYSLOG_PORT
         self.rsyslogProtocol.value = DEFAULT_RSYSLOG_PROTOCOL
         self.logVerbosity.value = DEFAULT_LOG_VERBOSITY
+        self.logFile.value = DEFAULT_LOG_FILE
+        self.logRotateNoFiles.value = DEFAULT_LOG_ROTATION_NO_FILES
+        self.logFileSize.value = DEFAULT_LOG_FILE_SIZE_KB
+        #SNMP
         self.snmpUri.value = DEFAULT_SNMP_SERVER
         self.snmpPort.value = DEFAULT_SNMP_PORT
         self.snmpProtocol.value = DEFAULT_SNMP_PROTOCOL
@@ -209,6 +223,9 @@ class topDecoder(systemState, schema):
                                                     "RSyslogPort" : OPTINT,
                                                     "RSyslogProtocol" : OPTSTR,
                                                     "LogLevel": OPTSTR,
+                                                    "RSyslogFile" : OPTSTR,
+                                                    "RSyslogRotateNoFiles" : OPTINT,
+                                                    "RSyslogFileSize" : OPTINT,
                                                     "SNMPServer": OPTSTR,
                                                     "SNMPPort": OPTINT,
                                                     "SNMPProtocol": OPTSTR,
@@ -235,16 +252,20 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = topDecoderXmlConfig.get("NTPServer")
             if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
             if topDecoderXmlConfig.get("TimeZoneGmtOffset") != None: self.tz.value = int(topDecoderXmlConfig.get("TimeZoneGmtOffset"))
-            if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsyslogUri.value = topDecoderXmlConfig.get("RSyslogServer")
+            if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsyslogUrl.value = topDecoderXmlConfig.get("RSyslogServer")
             if topDecoderXmlConfig.get("RSyslogPort") != None: self.rsyslogPort.value = topDecoderXmlConfig.get("RSyslogPort")
             if topDecoderXmlConfig.get("RSyslogProtocol") != None: self.rsyslogProtocol.value = topDecoderXmlConfig.get("RSyslogProtocol")
-            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
-            if topDecoderXmlConfig.get("SNMPPort") != None: self.snmpPort.value = int(topDecoderXmlConfig.get("SNMPPort"))
-            if topDecoderXmlConfig.get("SNMPProtocol") != None: self.snmpProtocol.value = topDecoderXmlConfig.get("SNMPProtocol")
             if topDecoderXmlConfig.get("LogLevel") != None:
                 self.logVerbosity.value = topDecoderXmlConfig.get("LogLevel")
                 if trace.getSeverityFromSeverityStr(self.logVerbosity.candidateValue) == None:
                     trace.notify(DEBUG_ERROR, "Specified debug-level is not valid, will use default debug-level")
+            if topDecoderXmlConfig.get("RSyslogFile") != None: self.logFile.value = topDecoderXmlConfig.get("RSyslogFile")
+            if topDecoderXmlConfig.get("RSyslogRotateNoFiles") != None: self.logRotateNoFiles.value = topDecoderXmlConfig.get("RSyslogRotateNoFiles")
+            if topDecoderXmlConfig.get("RSyslogFileSize") != None: self.logFileSize.value = topDecoderXmlConfig.get("RSyslogFileSize")
+            if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
+            if topDecoderXmlConfig.get("SNMPPort") != None: self.snmpPort.value = int(topDecoderXmlConfig.get("SNMPPort"))
+            if topDecoderXmlConfig.get("SNMPProtocol") != None: self.snmpProtocol.value = topDecoderXmlConfig.get("SNMPProtocol")
+
             if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("TracksFailSafe") != None: 
                 if topDecoderXmlConfig.get("TracksFailSafe") == "Yes": 
@@ -422,6 +443,8 @@ class topDecoder(systemState, schema):
                 res = self.__setConfig()
             except:
                 trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
+                traceback.print_exc() 
+
             if res != rc.OK:
                 trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
                 return res
@@ -512,15 +535,21 @@ class topDecoder(systemState, schema):
             if self.ntpPort.value: childXml.text = str(self.ntpPort.value)
             childXml = ET.SubElement(topXml, "TimeZoneGmtOffset")
             if self.tz.value: childXml.text = "%+d" % (self.tz.value)
+            childXml = ET.SubElement(topXml, "RSyslogServer")
+            if self.rsyslogUrl.value: childXml.text = self.rsyslogUrl.value
+            childXml = ET.SubElement(topXml, "RSyslogPort")
+            if self.rsyslogPort.value: childXml.text = str(self.rsyslogPort.value)
+            childXml = ET.SubElement(topXml, "RSyslogProtocol")
+            if self.rsyslogProtocol.value: childXml.text = self.rsyslogProtocol.value
             if not decoder:
-                childXml = ET.SubElement(topXml, "RSyslogServer")
-                if self.rsyslogUri.value: childXml.text = self.rsyslogUri.value
-                childXml = ET.SubElement(topXml, "RSyslogPort")
-                if self.rsyslogPort.value: childXml.text = str(self.rsyslogPort.value)
-                childXml = ET.SubElement(topXml, "RSyslogProtocol")
-                if self.rsyslogProtocol.value: childXml.text = self.rsyslogProtocol.value
+                childXml = ET.SubElement(topXml, "RSyslogFile")
+                if self.logFile.value: childXml.text = self.logFile.value
+                childXml = ET.SubElement(topXml, "RSyslogRotateNoFiles")
+                if self.logRotateNoFiles.value: childXml.text = str(self.logRotateNoFiles.value)
+                childXml = ET.SubElement(topXml, "RSyslogFileSize")
+                if self.logFileSize.value: childXml.text = str(self.logFileSize.value)
             childXml = ET.SubElement(topXml, "LogLevel")
-            childXml.text = self.logVerbosity.value
+            if self.logVerbosity.value: childXml.text = self.logVerbosity.value
             if not decoder:
                 childXml = ET.SubElement(topXml, "SNMPServer")
                 if self.snmpUri.value: childXml.text = self.snmpUri.value
@@ -620,6 +649,9 @@ class topDecoder(systemState, schema):
     def gitCi(self):
         print("Checking in tag: " + self.gitTag)
 
+    def gitCo(self):
+        print("Checking out tag: " + self.gitTag)
+
     def accepted(self):
         if self.version.value != self.version.candidateValue:
             self.__setVersion(self.version.value)
@@ -639,20 +671,25 @@ class topDecoder(systemState, schema):
         return rc.OK # Place holder for object config validation
 
     def __setConfig(self):
+        print(">>>>>>>>>>>> Setting configuration")
         #if self.rpcConfigChanged:
         #self.rpcClient.stop() NEEDS FIX RESTARING RPC CLIENT DOES NOT WORK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         #self.rpcClient.start(uri = self.jmriRpcURI, portBase=self.jmriRpcPortBase, errCb=self.__onRpcErr) NEEDS FIX
         self.rpcClient.setKeepaliveInterval(self.JMRIRpcKeepAlivePeriod.value)
         self.rpcClient.setRpcServerDebugLevel(self.logVerbosity.value)
+        # Set Syslog parameters
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(self.logVerbosity.value))
         self.rpcClient.setRpcServerDebugLevel(self.logVerbosity.value)
+        trace.notify(DEBUG_VERBOSE, "Starting/Restarting RSyslog server")
+        rSyslog.start(self.rsyslogUrl.value, self.rsyslogPort.value, self.logFile.value, self.logRotateNoFiles.value, self.logFileSize.value * 1000)
+        trace.notify(DEBUG_INFO, "Starting/re-starting local RSyslog producer")
+        trace.startSyslog(self.rsyslogUrl.value, self.rsyslogPort.value)
         if self.mqttConfigChanged:
             trace.notify(DEBUG_INFO, "Connecting/re-connecting MQTT client genJMRIServer to MQTT brooker: " + self.decoderMqttURI.value + ":" + str(self.decoderMqttPort.value))
             self.mqttClient.restart(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId="genJMRIServer")
             self.mqttClient.setTopicPrefix(self.decoderMqttTopicPrefix.value)
         self.setLogVerbosity(self.logVerbosity.value)
         # Set NTP server
-        # Set RSYSLOG server
         self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]
         self.topDecoderOpUpStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM)[:-1]
         self.topDecoderAdmDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM)[:-1]

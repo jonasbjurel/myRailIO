@@ -133,6 +133,7 @@ import time
 from datetime import datetime
 import threading
 import traceback
+from socket import *
 
 
 
@@ -174,6 +175,7 @@ class trace:
         trace.terminatingLevel = DEBUG_PANIC
         trace.funDebugLevel = {}
         trace.notifyCb = []
+        trace.RSyslog = False
 
     @staticmethod
     def setGlobalDebugLevel(globalDebugLevel):
@@ -259,8 +261,29 @@ class trace:
             pass
 
     @staticmethod
+    def startSyslog(p_rSyslogAddr, p_rSyslogPort):
+        trace.rSysLogSocket = socket(AF_INET, SOCK_DGRAM)
+        trace.rSysLogSocket.settimeout(1)
+        trace.rSysLogAddr = (p_rSyslogAddr, p_rSyslogPort)
+        try:
+            trace.rSysLogSocket.connect(('10.0.0.0', 0))
+            if trace.rSysLogSocket.getsockname()[0] == p_rSyslogAddr:
+                trace.localRSyslog = True
+            else:
+                trace.localRSyslog = False
+            trace.RSyslog = True 
+        except:
+            trace.localRSyslog = False
+            trace.RSyslog = False
+            return
+
+    @staticmethod
+    def stopSyslog():
+        trace.RSyslog = False
+
+    @staticmethod
     def notify(severity, notificationStr, guiPopUp=False):
-        unifiedTime = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        unifiedTime = datetime.utcnow().strftime('UTC: %Y-%m-%d %H:%M:%S.%f')
         callerFunFrame = sys._getframe(1)
 
         if severity == DEBUG_VERBOSE:
@@ -290,21 +313,66 @@ class trace:
 
     @staticmethod
     def __deliverNotification(unifiedTime, callerFunFrame, severity, notification):
-        trace.lock.acquire()
-        defaultFormatNotification = str(unifiedTime) + " - " + str(trace.getSeverityStr(severity)) + " - from function " + callerFunFrame.f_code.co_name + ((" , @file: " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1]) if severity >= trace.getFileDebugLevel() else "") + ((" , @line: " + str(callerFunFrame.f_lineno)) if severity >= trace.getLineDebugLevel() else "") + ": " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
-        for cb in trace.notifyCb:
-            cb(unifiedTime, callerFunFrame, severity, notification, defaultFormatNotification, (True if severity >= trace.getTerminatingLevel() else False))
-        print(defaultFormatNotification)
-        if severity >= trace.getCallStackDebugLevel():
-            print("Traceback, last call last: ")
-            stackTrace = []
-            for stack in trace.__getCallStack():
-                stackTrace.append(stack)
-            for stackLevel in range(len(stackTrace) - 3):
-                print(stackTrace[stackLevel])
-        if severity >= trace.getTerminatingLevel():
-            trace.__terminate(unifiedTime)
-        trace.lock.release()
+        with trace.lock:
+            defaultSysLogFormatNotification = "<" + str(trace.getSyslogPrio(severity)) + ">" + "TopDecoder genJMRIServer: " + str(unifiedTime) + ": " + str(trace.getSeverityStr(severity)).split("-")[1] + ": " + callerFunFrame.f_code.co_name + ": " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1] + "-" + str(callerFunFrame.f_lineno) + ": " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
+            defaultConsoleFormatNotification = str(unifiedTime) + ": TopDecoder:genJMRIServer " + str(trace.getSeverityStr(severity)).split("-")[1] + ": " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1] + "-" + str(callerFunFrame.f_lineno) + " in " + callerFunFrame.f_code.co_name + "(): " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
+            for cb in trace.notifyCb:
+                cb(unifiedTime, callerFunFrame, severity, notification, defaultFormatNotification, (True if severity >= trace.getTerminatingLevel() else False))
+            if trace.RSyslog and trace.localRSyslog:
+                try:
+                    trace.rSysLogSocket.sendto(defaultSysLogFormatNotification.encode(), trace.rSysLogAddr)
+                except:
+                    print("Could not send log entry to Local RSyslog server")
+                    traceback.print_exc()
+            elif trace.RSyslog:
+                print(defaultConsoleFormatNotification)
+                try:
+                    trace.rSysLogSocket.sendto(defaultSysLogFormatNotification.encode(), trace.rSysLogAddr)
+                except:
+                    print("Could not send log entry to Remote RSyslog server")
+            else:
+                print(defaultConsoleFormatNotification)
+            if severity >= trace.getCallStackDebugLevel():
+                print("Traceback, last call last: ")
+                stackTrace = []
+                for stack in trace.__getCallStack():
+                    stackTrace.append(stack)
+                for stackLevel in range(len(stackTrace) - 3):
+                    print(stackTrace[stackLevel])
+            if severity >= trace.getTerminatingLevel():
+                trace.__terminate(unifiedTime)
+
+    @staticmethod
+    def getSyslogPrio(severity):
+        PRI_EMERGENCY = 0
+        PRI_ALERT =     1
+        PRI_CRITICAL =  2
+        PRI_ERROR =     3
+        PRI_WARNING =   4
+        PRI_NOTICE =    5
+        PRI_INFO =      6
+        PRI_DEBUG =     7
+        FAC_USER =      1
+        FAC_LOCAL0 =    16
+        FAC_LOCAL1 =    17
+        FAC_LOCAL2 =    18
+        FAC_LOCAL3 =    19
+        FAC_LOCAL4 =    20
+        FAC_LOCAL5 =    21
+        FAC_LOCAL6 =    22
+        FAC_LOCAL7 =    23
+        if severity == DEBUG_VERBOSE:
+            return (8 * FAC_USER) + PRI_DEBUG
+        elif severity == DEBUG_TERSE:
+            return (8 * FAC_USER) + PRI_INFO
+        elif severity == DEBUG_INFO:
+            return (8 * FAC_USER) + PRI_NOTICE
+        elif severity == DEBUG_ERROR:
+            return (8 * FAC_USER) + PRI_ERROR
+        elif severity == DEBUG_PANIC:
+            return (8 * FAC_USER) + PRI_EMERGENCY
+        else:
+            assert False, "Non existant Log severity provided"
 
     @staticmethod
     def __getCallStack():

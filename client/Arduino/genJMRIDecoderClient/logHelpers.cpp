@@ -114,7 +114,7 @@ bool logg::getConsoleLog(void) {
     return consoleLog;
 }
 
-rc_t logg::addLogServer(const char* p_server, uint16_t p_port) {
+rc_t logg::addLogServer(const char* p_host, const char* p_server, uint16_t p_port) {
     xSemaphoreTake(logDestinationLock, portMAX_DELAY);
     if (!isUri(p_server) || p_port < 0 || p_port > 65535) {
         LOG_ERROR("Provided Rsyslog server URI:%s, Port: %i is not valid, will not start rSyslog" CR, p_server, RSYSLOG_DEFAULT_PORT);
@@ -134,7 +134,7 @@ rc_t logg::addLogServer(const char* p_server, uint16_t p_port) {
     sysLogServers->push_back(new (heap_caps_malloc(sizeof(rSyslog_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) rSyslog_t);
     strcpy(sysLogServers->back()->server, p_server);
     sysLogServers->back()->port = p_port;
-    sysLogServers->back()->syslogDest = new SimpleSyslog("MyHost", "MyApp", p_server, p_port); //FIX HOSTNAME AND APP, AND MAKE SURE IT GETS UPDATED
+    sysLogServers->back()->syslogDest = new SimpleSyslog(p_host, "genJMRIDecoder", p_server, p_port);
     if (!sysLogServers->back()->syslogDest) {
         LOG_ERROR_NOFMT("Failed to create a syslog destination" CR);
         sysLogServers->pop_back();
@@ -458,7 +458,7 @@ void logg::dequeueLog(void* p_jobCbMetaData){
     assert(((logJobDesc_t*)p_jobCbMetaData)->busy);
     fileBaseNameStr = fileBaseName(((logJobDesc_t*)p_jobCbMetaData)->filePath);
     tmTod = gmtime(&((logJobDesc_t*)p_jobCbMetaData)->tv.tv_sec);
-    strftime(timeStamp, 25, "UTC:%H:%M:%S", tmTod);
+    strftime(timeStamp, 25, "UTC: %Y-%m-%d %H:%M:%S", tmTod);
     strcat(timeStamp, ":");
     strcat(timeStamp, itoa(((logJobDesc_t*)p_jobCbMetaData)->tv.tv_usec, microSecTimeStamp, 10));
     int buffIndex = 0;

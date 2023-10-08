@@ -31,6 +31,7 @@
     <Compile Include="GenJMRI\sateliteLogic.py" />
     <Compile Include="GenJMRI\satLinkLogic.py" />
     <Compile Include="GenJMRI\sensorLogic.py" />
+    <Compile Include="GenJMRI\syslog.py" />
     <Compile Include="GenJMRI\topDecoderLogic.py" />
     <Compile Include="GenJMRI\ui.py" />
     <Compile Include="GenJMRI\__init__.py" />
@@ -56,6 +57,7 @@
     <Compile Include="schema\moTypes.py" />
     <Compile Include="schema\schema.py" />
     <Compile Include="schema\schemaTestBench.py" />
+    <Compile Include="trace\syslog.py" />
     <Compile Include="sysState\sysState.py" />
     <Compile Include="test\decoderSim.py" />
     <Compile Include="trace\trace.py" />

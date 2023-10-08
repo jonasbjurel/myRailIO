@@ -34,7 +34,7 @@ class mqtt(pahomqtt.Client):
         self.active = True
         self.subscriptions = {}
         self.onConnectCb = onConnectCb
-        self.onDisconnectCb = onDisconnectCb
+        self.onDisconnectCb = onDisconnectCb 
         self.clientId = clientId
         self.URL = URL
         self.port = port

@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <IPAddress.h>
+//#include "decoder.h"
 #include "logHelpers.h"
 #include "cliCore.h"
 #include "cliGlobalDefinitions.h"
@@ -204,7 +205,7 @@ private:
     static void onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get System name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliGetSysName(cmd* p_cmd);                                                   //Get System name for context parser
-    virtual rc_t getSystemName(char* p_systemName, bool p_force = false);                               //Get System name for context
+    virtual rc_t getSystemName(char* p_systemName, bool p_force = false);               //Get System name for context
     static void onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set System name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliSetSysName(cmd* p_cmd);                                                   //Set System name for context parser
@@ -227,6 +228,7 @@ private:
     virtual rc_t setDesc(const char* p_description, bool p_force = false);              //Set Description for context
 
     //Private data structures
+    static char decoderSysName[50];
     static globalCli* rootHandle;                                                       //root context handle
     const char* moType;
     const char* moName;

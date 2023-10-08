@@ -9,9 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>801</width>
-    <height>1030</height>
+    <width>870</width>
+    <height>1310</height>
    </rect>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::StrongFocus</enum>
   </property>
   <property name="windowTitle">
    <string>GenJMRI server</string>
@@ -24,7 +27,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>209</y>
+     <y>19</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -47,7 +50,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>270</y>
+     <y>80</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -70,7 +73,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>329</y>
+     <y>139</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -93,7 +96,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>389</y>
+     <y>739</y>
      <width>171</width>
      <height>41</height>
     </rect>
@@ -115,9 +118,9 @@
   <widget class="QLabel" name="label_6">
    <property name="geometry">
     <rect>
-     <x>580</x>
-     <y>390</y>
-     <width>161</width>
+     <x>490</x>
+     <y>740</y>
+     <width>141</width>
      <height>41</height>
     </rect>
    </property>
@@ -134,12 +137,15 @@
    <property name="text">
     <string>Time Zone:</string>
    </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_7">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>450</y>
+     <y>819</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -155,14 +161,14 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>RSyslogServer:</string>
+    <string>RSyslog URL:</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_10">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>509</y>
+     <y>659</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -178,15 +184,15 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI Supervision period (supervision of decoders and satelites)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Dec. Pingperiod (s):</string>
+    <string>Pingperiod (s):</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_13">
    <property name="geometry">
     <rect>
-     <x>380</x>
-     <y>330</y>
-     <width>141</width>
+     <x>370</x>
+     <y>140</y>
+     <width>261</width>
      <height>41</height>
     </rect>
    </property>
@@ -203,87 +209,16 @@
    <property name="text">
     <string>Version date:</string>
    </property>
-  </widget>
-  <widget class="QComboBox" name="gitTagComboBox">
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>70</y>
-     <width>541</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git check-out/check-in tag&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-   <property name="editable">
-    <bool>true</bool>
-   </property>
-   <item>
-    <property name="text">
-     <string>v.0.0.1</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>v.0.0.2</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>v.0.1.0</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>v.0.1.1</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>v.1.0.0</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Latest</string>
-    </property>
-   </item>
-  </widget>
-  <widget class="QLabel" name="label_8">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>70</y>
-     <width>211</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in tag&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-   <property name="text">
-    <string>git tag/id:</string>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
   <widget class="QLineEdit" name="authorLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>210</y>
-     <width>541</width>
+     <x>250</x>
+     <y>20</y>
+     <width>601</width>
      <height>41</height>
     </rect>
    </property>
@@ -292,16 +227,25 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration author - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI configuration author&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration author - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>Me</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="descriptionLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>270</y>
-     <width>541</width>
+     <x>250</x>
+     <y>80</y>
+     <width>601</width>
      <height>41</height>
     </rect>
    </property>
@@ -310,15 +254,24 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration description - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI configuration description&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration description - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>myConfigDescription</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="versionLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>330</y>
+     <x>250</x>
+     <y>140</y>
      <width>111</width>
      <height>41</height>
     </rect>
@@ -328,16 +281,25 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration version - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI configuration version&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration version - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>myConfigVersion</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="dateLineEdit">
    <property name="geometry">
     <rect>
-     <x>539</x>
-     <y>330</y>
-     <width>221</width>
+     <x>649</x>
+     <y>140</y>
+     <width>201</width>
      <height>41</height>
     </rect>
    </property>
@@ -346,15 +308,24 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration date - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI configuration version date&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration date - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>myConfigVersionDate</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="ntpLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>390</y>
+     <x>250</x>
+     <y>740</y>
      <width>231</width>
      <height>41</height>
     </rect>
@@ -364,16 +335,25 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>NTP server URL</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI NTP server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>NTP server URL</string>
+   </property>
+   <property name="text">
+    <string>myNtpServerUrl.org</string>
    </property>
   </widget>
   <widget class="QSpinBox" name="timeZoneSpinBox">
    <property name="geometry">
     <rect>
-     <x>700</x>
-     <y>390</y>
-     <width>61</width>
+     <x>650</x>
+     <y>740</y>
+     <width>201</width>
      <height>41</height>
     </rect>
    </property>
@@ -382,8 +362,14 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>TimeZone setting</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI Time Zone&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>TimeZone setting</string>
    </property>
    <property name="minimum">
     <number>-12</number>
@@ -392,11 +378,11 @@
     <number>12</number>
    </property>
   </widget>
-  <widget class="QLineEdit" name="rsyslogLineEdit">
+  <widget class="QLineEdit" name="rsyslogUrlLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>450</y>
+     <x>250</x>
+     <y>819</y>
      <width>231</width>
      <height>41</height>
     </rect>
@@ -406,15 +392,24 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>RSyslog setting (default is to the local Rsyslog collector - this host)</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI RSYSLOG server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>RSyslog setting (default is to the local Rsyslog collector - this host)</string>
+   </property>
+   <property name="text">
+    <string>myRsyslogServerUrl.org</string>
    </property>
   </widget>
   <widget class="QCheckBox" name="decoderFailSafeCheckBox">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>560</y>
+     <x>250</x>
+     <y>1004</y>
      <width>251</width>
      <height>41</height>
     </rect>
@@ -426,18 +421,24 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Set all decoders- and decoder's objects in in fail-safe if an error exist - no matter where in the object hierarchy the error resides</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Decoder failsafe - decides if in case of detected genJMRI failure - decoders goes into failsafe mode - setting all of their signal masts, sensors and actuators to failsafe mode.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Set all decoders- and decoder's objects in in fail-safe if an error exist - no matter where in the object hierarchy the error resides</string>
    </property>
    <property name="text">
-    <string>Decoders failsafe</string>
+    <string>Decoder failsafe</string>
    </property>
   </widget>
   <widget class="QCheckBox" name="trackFailSafeCheckBox">
    <property name="geometry">
     <rect>
-     <x>580</x>
-     <y>560</y>
+     <x>670</x>
+     <y>1004</y>
      <width>191</width>
      <height>41</height>
     </rect>
@@ -449,8 +450,14 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Turnoff track power if an error exist - no matter where in the object hierarchy the error resides</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Tracks failsafe - decides if in case of detected genJMRI failure - tracks are unpowered&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Turnoff track power if an error exist - no matter where in the object hierarchy the error resides</string>
    </property>
    <property name="text">
     <string>Tracks failsafe</string>
@@ -459,8 +466,8 @@
   <widget class="QComboBox" name="logVerbosityComboBox">
    <property name="geometry">
     <rect>
-     <x>640</x>
-     <y>450</y>
+     <x>730</x>
+     <y>819</y>
      <width>121</width>
      <height>41</height>
     </rect>
@@ -470,8 +477,14 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Log-level/-verbosity of the log producers</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI Log verbosity&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Log-level/-verbosity of the log producers</string>
    </property>
    <item>
     <property name="text">
@@ -502,9 +515,9 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>490</x>
-     <y>449</y>
-     <width>141</width>
+     <x>550</x>
+     <y>818</y>
+     <width>161</width>
      <height>41</height>
     </rect>
    </property>
@@ -521,13 +534,16 @@
    <property name="text">
     <string>Log verbosity:</string>
    </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
   </widget>
   <widget class="QPushButton" name="gitCiPushButton">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>130</y>
-     <width>261</width>
+     <x>250</x>
+     <y>320</y>
+     <width>291</width>
      <height>41</height>
     </rect>
    </property>
@@ -538,15 +554,24 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Commit the configuration changes to git</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>Commit the configuration changes to git</string>
+   </property>
    <property name="text">
-    <string>git Check-in</string>
+    <string>git Commit</string>
    </property>
   </widget>
   <widget class="QDialogButtonBox" name="confirmButtonBox">
    <property name="geometry">
     <rect>
-     <x>601</x>
-     <y>991</y>
+     <x>680</x>
+     <y>1269</y>
      <width>171</width>
      <height>31</height>
     </rect>
@@ -558,6 +583,18 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Accept and deploy configuration changes / or reject them</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="statusTip">
+    <string/>
+   </property>
+   <property name="whatsThis">
+    <string>Accept and deploy configuration changes / or reject them</string>
+   </property>
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
@@ -565,9 +602,9 @@
   <widget class="QLabel" name="label_9">
    <property name="geometry">
     <rect>
-     <x>330</x>
-     <y>924</y>
-     <width>151</width>
+     <x>10</x>
+     <y>1050</y>
+     <width>231</width>
      <height>41</height>
     </rect>
    </property>
@@ -584,6 +621,9 @@
    <property name="text">
     <string>Admin. state:</string>
    </property>
+   <property name="alignment">
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+   </property>
    <property name="wordWrap">
     <bool>true</bool>
    </property>
@@ -591,8 +631,8 @@
   <widget class="QComboBox" name="adminStateComboBox">
    <property name="geometry">
     <rect>
-     <x>490</x>
-     <y>924</y>
+     <x>249</x>
+     <y>1050</y>
      <width>111</width>
      <height>41</height>
     </rect>
@@ -602,8 +642,14 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>System administrative state</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI server administrative state [ENABLE | DISABLE]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>System administrative state</string>
    </property>
    <item>
     <property name="text">
@@ -619,8 +665,8 @@
   <widget class="QCheckBox" name="adminStateForceCheckBox">
    <property name="geometry">
     <rect>
-     <x>670</x>
-     <y>924</y>
+     <x>398</x>
+     <y>1050</y>
      <width>91</width>
      <height>41</height>
     </rect>
@@ -632,8 +678,14 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Force subsequent needed changes of child administrative state when changing this level's adninistrative state</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI server Force Admin state change - recursively changes admin state of childs&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Force subsequent needed changes of child administrative state when changing this level's adninistrative state</string>
    </property>
    <property name="text">
     <string>Force</string>
@@ -642,9 +694,9 @@
   <widget class="QLabel" name="label_11">
    <property name="geometry">
     <rect>
-     <x>390</x>
-     <y>860</y>
-     <width>91</width>
+     <x>350</x>
+     <y>1109</y>
+     <width>121</width>
      <height>41</height>
     </rect>
    </property>
@@ -661,13 +713,16 @@
    <property name="text">
     <string>Details:</string>
    </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_12">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>860</y>
-     <width>211</width>
+     <y>1109</y>
+     <width>231</width>
      <height>41</height>
     </rect>
    </property>
@@ -691,8 +746,8 @@
   <widget class="QLineEdit" name="opStateSummaryLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>861</y>
+     <x>250</x>
+     <y>1110</y>
      <width>91</width>
      <height>41</height>
     </rect>
@@ -702,8 +757,14 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Summary of the top-level operational state</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;GenJMRI server operational state [AVAIL | UNAVAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Summary of the top-level operational state</string>
    </property>
    <property name="text">
     <string/>
@@ -716,8 +777,8 @@
    <property name="geometry">
     <rect>
      <x>490</x>
-     <y>860</y>
-     <width>271</width>
+     <y>1109</y>
+     <width>361</width>
      <height>41</height>
     </rect>
    </property>
@@ -726,8 +787,14 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Top level operational state details</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI server detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Top level operational state details</string>
    </property>
    <property name="text">
     <string/>
@@ -739,9 +806,9 @@
   <widget class="QPushButton" name="gitCoPushButton">
    <property name="geometry">
     <rect>
-     <x>500</x>
-     <y>130</y>
-     <width>261</width>
+     <x>560</x>
+     <y>320</y>
+     <width>291</width>
      <height>41</height>
     </rect>
    </property>
@@ -751,6 +818,15 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="toolTip">
+    <string>Check-out a configuration from git</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>-10</number>
+   </property>
+   <property name="whatsThis">
+    <string>Check-out a configuration from git</string>
    </property>
    <property name="text">
     <string>git Check-out</string>
@@ -760,8 +836,8 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>180</y>
-     <width>751</width>
+     <y>370</y>
+     <width>841</width>
      <height>20</height>
     </rect>
    </property>
@@ -769,66 +845,12 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="QComboBox" name="gitBranchComboBox">
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>10</y>
-     <width>541</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git check-out/check-in branch&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-   <property name="editable">
-    <bool>false</bool>
-   </property>
-   <item>
-    <property name="text">
-     <string>Main</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>v2.0</string>
-    </property>
-   </item>
-  </widget>
-  <widget class="QLabel" name="label_16">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>211</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-   <property name="text">
-    <string>git branch:</string>
-   </property>
-  </widget>
   <widget class="Line" name="line_3">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>600</y>
-     <width>751</width>
+     <y>790</y>
+     <width>841</width>
      <height>20</height>
     </rect>
    </property>
@@ -839,8 +861,8 @@
   <widget class="QLineEdit" name="upTimeLineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>924</y>
+     <x>250</x>
+     <y>1170</y>
      <width>91</width>
      <height>41</height>
     </rect>
@@ -850,8 +872,14 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>System uptime</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI server uptime - time sinse previous server start&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>System uptime</string>
    </property>
    <property name="text">
     <string/>
@@ -864,8 +892,8 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>924</y>
-     <width>211</width>
+     <y>1170</y>
+     <width>241</width>
      <height>41</height>
     </rect>
    </property>
@@ -886,9 +914,9 @@
   <widget class="QLabel" name="label_14">
    <property name="geometry">
     <rect>
-     <x>440</x>
-     <y>510</y>
-     <width>251</width>
+     <x>10</x>
+     <y>460</y>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -906,26 +934,13 @@
     <string>JMRI RPC keep-alive (s):</string>
    </property>
   </widget>
-  <widget class="Line" name="line_4">
+  <widget class="QPushButton" name="genConfigPushButton">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>831</y>
-     <width>751</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_17">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>717</y>
-     <width>171</width>
-     <height>41</height>
+     <x>250</x>
+     <y>1267</y>
+     <width>371</width>
+     <height>34</height>
     </rect>
    </property>
    <property name="font">
@@ -935,18 +950,84 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="focusPolicy">
+    <enum>Qt::StrongFocus</enum>
+   </property>
+   <property name="toolTip">
+    <string>Re generate the current configuration to XML for viewing c</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Re generate the current configuration to XML for viewing c</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
    </property>
    <property name="text">
-    <string>MQTT URI:</string>
+    <string>View XML configuration</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="MQTT_URI_LineEdit">
+  <widget class="QDoubleSpinBox" name="DecoderPingPeriodDoubleSpinBox">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>718</y>
+     <x>250</x>
+     <y>660</y>
+     <width>71</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>MQTT application supervision ping period.</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>MQTT application supervision ping period.</string>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="JMRIRpcKeepalivePeriodDoubleSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>459</y>
+     <width>71</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>Keep alive period for the JMRI RPC supervision</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>Keep alive period for the JMRI RPC supervision</string>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="MQTT_TOPIC_PREFIX_LineEdit">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>600</y>
      <width>231</width>
      <height>41</height>
     </rect>
@@ -956,16 +1037,61 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>MQTT topic prefix</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="statusTip">
+    <string/>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI NTP server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>MQTT topic prefix</string>
+   </property>
+   <property name="text">
+    <string>/trains/</string>
+   </property>
+   <property name="maxLength">
+    <number>500</number>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="RPC_URI_LineEdit">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>400</y>
+     <width>201</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>JMRI RPC URI</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>JMRI RPC URI</string>
+   </property>
+   <property name="text">
+    <string>myJMRIRpcUrl.org</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_18">
    <property name="geometry">
     <rect>
-     <x>560</x>
-     <y>718</y>
-     <width>111</width>
+     <x>490</x>
+     <y>540</y>
+     <width>261</width>
      <height>41</height>
     </rect>
    </property>
@@ -982,12 +1108,15 @@
    <property name="text">
     <string>MQTT Port:</string>
    </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
   </widget>
-  <widget class="QLineEdit" name="MQTT_Port_LineEdit">
+  <widget class="QLineEdit" name="RPC_Port_LineEdit">
    <property name="geometry">
     <rect>
-     <x>680</x>
-     <y>718</y>
+     <x>770</x>
+     <y>400</y>
      <width>81</width>
      <height>41</height>
     </rect>
@@ -997,11 +1126,17 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>JMRI RPC port base - several ports will be used following this one</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI NTP server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>JMRI RPC port base - several ports will be used following this one</string>
    </property>
    <property name="text">
-    <string/>
+    <string>8000</string>
    </property>
    <property name="maxLength">
     <number>5</number>
@@ -1010,11 +1145,116 @@
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QLineEdit" name="MQTT_TOPIC_PREFIX_LineEdit">
+  <widget class="QLineEdit" name="MQTT_Port_LineEdit">
    <property name="geometry">
     <rect>
-     <x>220</x>
-     <y>778</y>
+     <x>770</x>
+     <y>540</y>
+     <width>81</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>MQTT broker port</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>MQTT broker port</string>
+   </property>
+   <property name="text">
+    <string>1883</string>
+   </property>
+   <property name="maxLength">
+    <number>5</number>
+   </property>
+   <property name="clearButtonEnabled">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_17">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>539</y>
+     <width>211</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>MQTT URL:</string>
+   </property>
+  </widget>
+  <widget class="Line" name="line_4">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>710</y>
+     <width>841</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_20">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>400</y>
+     <width>211</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>JMRI RPC URL:</string>
+   </property>
+  </widget>
+  <widget class="Line" name="line_5">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>510</y>
+     <width>841</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="MQTT_URI_LineEdit">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>540</y>
      <width>231</width>
      <height>41</height>
     </rect>
@@ -1024,22 +1264,25 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>MQTT Broker URI</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI NTP server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>MQTT Broker URI</string>
    </property>
-   <property name="maxLength">
-    <number>500</number>
-   </property>
-   <property name="clearButtonEnabled">
-    <bool>false</bool>
+   <property name="text">
+    <string>myMqttBrokerUrl.org</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_19">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>778</y>
-     <width>171</width>
+     <y>600</y>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -1057,72 +1300,232 @@
     <string>Topic pre-fix:</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="genConfigPushButton">
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>988</y>
-     <width>271</width>
-     <height>35</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Generate configuration</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_20">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>630</y>
-     <width>191</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-   <property name="text">
-    <string>JMRI RPC URI:</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="RPC_URI_LineEdit">
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>630</y>
-     <width>231</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI NTP server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_21">
    <property name="geometry">
     <rect>
-     <x>460</x>
-     <y>630</y>
+     <x>470</x>
+     <y>399</y>
+     <width>281</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string/>
+   </property>
+   <property name="text">
+    <string>JMRI RPC port base:</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="DecoderPingPeriodDoubleSpinBox_2">
+   <property name="geometry">
+    <rect>
+     <x>781</x>
+     <y>661</y>
+     <width>71</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>MQTT supervision keep-alive period</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>MQTT supervision keep-alive period</string>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_23">
+   <property name="geometry">
+    <rect>
+     <x>540</x>
+     <y>660</y>
+     <width>221</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string/>
+   </property>
+   <property name="text">
+    <string>Keep-alive (s):</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="Line" name="line_6">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>990</y>
+     <width>841</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="rsyslogFileLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>249</x>
+     <y>879</y>
+     <width>541</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>RSyslog file path/name</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>RSyslog file path/name</string>
+   </property>
+   <property name="text">
+    <string>/var/log/jmri/genJmri.log</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_8">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>878</y>
+     <width>211</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>RSyslog file used by the collector of this host</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>RSyslog File:</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="rsysLogFileBrowsePushButton">
+   <property name="geometry">
+    <rect>
+     <x>800</x>
+     <y>869</y>
+     <width>51</width>
+     <height>61</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <kerning>true</kerning>
+    </font>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::StrongFocus</enum>
+   </property>
+   <property name="contextMenuPolicy">
+    <enum>Qt::DefaultContextMenu</enum>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/directory.png</normaloff>../icons/directory.png</iconset>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>150</width>
+     <height>35</height>
+    </size>
+   </property>
+   <property name="autoDefault">
+    <bool>false</bool>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QSpinBox" name="logRotateNoFilesSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>940</y>
+     <width>61</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>Number of RSyslog files used for log-rotation) </string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>Number of RSyslog files used for log-rotation) </string>
+   </property>
+   <property name="minimum">
+    <number>1</number>
+   </property>
+   <property name="maximum">
+    <number>20</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_25">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>941</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -1135,18 +1538,18 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>JMRI RPC port base:</string>
+    <string>Logrotate # files:</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="RPC_Port_LineEdit">
+  <widget class="QLineEdit" name="logRotateFileSizeLineEdit">
    <property name="geometry">
     <rect>
-     <x>679</x>
-     <y>630</y>
-     <width>81</width>
+     <x>732</x>
+     <y>940</y>
+     <width>121</width>
      <height>41</height>
     </rect>
    </property>
@@ -1155,66 +1558,219 @@
      <pointsize>10</pointsize>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximum RSyslog file size before log-rotation happens</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GenJMRI NTP server&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>Maximum RSyslog file size before log-rotation happens</string>
    </property>
    <property name="text">
-    <string/>
-   </property>
-   <property name="maxLength">
-    <number>5</number>
-   </property>
-   <property name="clearButtonEnabled">
-    <bool>false</bool>
+    <string>500</string>
    </property>
   </widget>
-  <widget class="Line" name="line_5">
+  <widget class="QLabel" name="label_26">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>940</y>
+     <width>391</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;GenJMRI RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>Logrotate file size (KB):</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_22">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>690</y>
-     <width>751</width>
+     <y>200</y>
+     <width>211</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>git URI:</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="gitBranchComboBox">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>260</y>
+     <width>201</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git branch name-, tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git branch name-, tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="editable">
+    <bool>false</bool>
+   </property>
+   <item>
+    <property name="text">
+     <string>Main</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QComboBox" name="gitTagComboBox">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>260</y>
+     <width>201</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="editable">
+    <bool>false</bool>
+   </property>
+   <item>
+    <property name="text">
+     <string>Tip</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QLabel" name="label_24">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>259</y>
+     <width>171</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>git tag:</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_16">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>260</y>
+     <width>211</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>git branch:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="gitUrlLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>250</x>
+     <y>200</y>
+     <width>601</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git repository URL or local Git path: Eg. &amp;quot;https://github.com/jonasbjurel/myConfig&amp;quot; or &amp;quot;local://myConfig&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git repository URL or local Git path: Eg. &amp;quot;https://github.com/jonasbjurel/myConfig&amp;quot; or &amp;quot;local://myConfig&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>myGit.github.com</string>
+   </property>
+  </widget>
+  <widget class="Line" name="line_7">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>1220</y>
+     <width>841</width>
      <height>20</height>
     </rect>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="DecoderPingPeriodDoubleSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>510</y>
-     <width>62</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="JMRIKeepalivePeriodDoubleSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>700</x>
-     <y>510</y>
-     <width>62</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="decimals">
-    <number>1</number>
    </property>
   </widget>
  </widget>

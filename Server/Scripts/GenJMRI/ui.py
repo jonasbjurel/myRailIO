@@ -701,6 +701,7 @@ class UI_topDialog(QDialog):
 
     def setEditable(self):
         # Git configuration/operation section
+        self.gitUrlLineEdit.setEnabled(False) #Missing functionality
         self.gitBranchComboBox.setEnabled(False) #Missing functionality
         self.gitTagComboBox.setEnabled(False) #Missing functionality
         self.gitCiPushButton.setEnabled(False) #Missing functionality
@@ -713,12 +714,16 @@ class UI_topDialog(QDialog):
         # General genJMRI services configuration
         self.ntpLineEdit.setEnabled(True)
         self.timeZoneSpinBox.setEnabled(True)
-        self.rsyslogLineEdit.setEnabled(True)
+        self.rsyslogUrlLineEdit.setEnabled(True)
         self.logVerbosityComboBox.setEnabled(True)
+        self.rsyslogFileLineEdit.setEnabled(True)
+        self.rsysLogFileBrowsePushButton.setEnabled(True)
+        self.logRotateNoFilesSpinBox.setEnabled(True)
+        self.logRotateFileSizeLineEdit.setEnabled(True)
         # JMRI RPC Northbound Configuration
         self.RPC_URI_LineEdit.setEnabled(True)
         self.RPC_Port_LineEdit.setEnabled(True)
-        self.JMRIKeepalivePeriodDoubleSpinBox.setEnabled(True)
+        self.JMRIRpcKeepalivePeriodDoubleSpinBox.setEnabled(True)
         # MQTT Southbound API Configuration
         self.DecoderPingPeriodDoubleSpinBox.setEnabled(True)
         self.decoderFailSafeCheckBox.setEnabled(True)
@@ -737,6 +742,7 @@ class UI_topDialog(QDialog):
 
     def unSetEditable(self):
         # Git configuration/operation section
+        self.gitUrlLineEdit.setEnabled(False) #Missing functionality
         self.gitBranchComboBox.setEnabled(False) #Missing functionality
         self.gitTagComboBox.setEnabled(False) #Missing functionality
         self.gitCiPushButton.setEnabled(False) #Missing functionality
@@ -749,8 +755,12 @@ class UI_topDialog(QDialog):
         # General genJMRI services configuration
         self.ntpLineEdit.setEnabled(False)
         self.timeZoneSpinBox.setEnabled(False)
-        self.rsyslogLineEdit.setEnabled(False)
+        self.rsyslogUrlLineEdit.setEnabled(False)
         self.logVerbosityComboBox.setEnabled(False)
+        self.rsyslogFileLineEdit.setEnabled(False)
+        self.rsysLogFileBrowsePushButton.setEnabled(False)
+        self.logRotateNoFilesSpinBox.setEnabled(False)
+        self.logRotateFileSizeLineEdit.setEnabled(False)
         # MQTT Southbound API Configuration
         self.DecoderPingPeriodDoubleSpinBox.setEnabled(False)
         self.decoderFailSafeCheckBox.setEnabled(False)
@@ -761,7 +771,7 @@ class UI_topDialog(QDialog):
         # JMRI RPC Northbound Configuration
         self.RPC_URI_LineEdit.setEnabled(False)
         self.RPC_Port_LineEdit.setEnabled(False)
-        self.JMRIKeepalivePeriodDoubleSpinBox.setEnabled(False)
+        self.JMRIRpcKeepalivePeriodDoubleSpinBox.setEnabled(False)
         # General genJMRI states
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
@@ -774,6 +784,7 @@ class UI_topDialog(QDialog):
 
     def displayValues(self):
         # Git configuration/operation section
+        self.gitUrlLineEdit.setText(str(self.parentObjHandle.gitUrl.value))
         self.gitBranchComboBox.setCurrentText(str(self.parentObjHandle.gitBranch.value))
         self.gitTagComboBox.setCurrentText(str(self.parentObjHandle.gitTag.value))
         # General genJMRI Meta-data
@@ -784,8 +795,11 @@ class UI_topDialog(QDialog):
         # General genJMRI services configuration
         self.ntpLineEdit.setText(str(self.parentObjHandle.ntpUri.value))
         self.timeZoneSpinBox.setValue(self.parentObjHandle.tz.value)
-        self.rsyslogLineEdit.setText(str(self.parentObjHandle.rsyslogUri.value))
+        self.rsyslogUrlLineEdit.setText(self.parentObjHandle.rsyslogUrl.value)
         self.logVerbosityComboBox.setCurrentText(str(long2shortVerbosity(self.parentObjHandle.logVerbosity.value)))
+        self.rsyslogFileLineEdit.setText(self.parentObjHandle.logFile.value)
+        self.logRotateNoFilesSpinBox.setValue(self.parentObjHandle.logRotateNoFiles.value)
+        self.logRotateFileSizeLineEdit.setText(str(self.parentObjHandle.logFileSize.value))
         # MQTT Southbound API Configuration
         self.DecoderPingPeriodDoubleSpinBox.setValue(self.parentObjHandle.decoderMqttKeepalivePeriod.value)
         self.decoderFailSafeCheckBox.setChecked(self.parentObjHandle.decoderFailSafe.value)
@@ -796,7 +810,7 @@ class UI_topDialog(QDialog):
         # JMRI RPC Northbound Configuration
         self.RPC_URI_LineEdit.setText(self.parentObjHandle.jmriRpcURI.value)
         self.RPC_Port_LineEdit.setText(str(self.parentObjHandle.jmriRpcPortBase.value))
-        self.JMRIKeepalivePeriodDoubleSpinBox.setValue(self.parentObjHandle.JMRIRpcKeepAlivePeriod.value)
+        self.JMRIRpcKeepalivePeriodDoubleSpinBox.setValue(self.parentObjHandle.JMRIRpcKeepAlivePeriod.value)
         # General genJMRI states
         self.opStateSummaryLineEdit.setText(str(self.parentObjHandle.getOpStateSummary()[STATE_STR]))
         self.opStateDetailLineEdit.setText(str(self.parentObjHandle.getOpStateDetailStr()))
@@ -806,6 +820,7 @@ class UI_topDialog(QDialog):
 
     def setValues(self):
         # Git configuration/operation section
+        self.parentObjHandle.gitUrl.value = self.gitUrlLineEdit.displayText()
         self.parentObjHandle.gitBranch.value = self.gitBranchComboBox.currentText()
         self.parentObjHandle.gitTag.value = self.gitTagComboBox.currentText()
         # General genJMRI Meta-data
@@ -816,8 +831,11 @@ class UI_topDialog(QDialog):
         # General genJMRI services configuration
         self.parentObjHandle.ntpUri.value = self.ntpLineEdit.displayText()
         self.parentObjHandle.tz.value = self.timeZoneSpinBox.value()
-        self.parentObjHandle.rsyslogUri.value = self.rsyslogLineEdit.displayText()
+        self.parentObjHandle.rsyslogUrl.value = self.rsyslogUrlLineEdit.displayText()
         self.parentObjHandle.logVerbosity.value = short2longVerbosity(self.logVerbosityComboBox.currentText())
+        self.parentObjHandle.logFile.value = self.rsyslogFileLineEdit.displayText()
+        self.parentObjHandle.logRotateNoFiles.value = self.logRotateNoFilesSpinBox.value()
+        self.parentObjHandle.logFileSize.value = int(self.logRotateFileSizeLineEdit.displayText())
         # MQTT Southbound API Configuration
         self.parentObjHandle.decoderMqttKeepalivePeriod.value = self.DecoderPingPeriodDoubleSpinBox.value()
         self.parentObjHandle.decoderFailSafe.value = self.decoderFailSafeCheckBox.isChecked()
@@ -828,7 +846,7 @@ class UI_topDialog(QDialog):
         # MQTT Southbound API Configuration
         self.parentObjHandle.jmriRpcURI.value = self.RPC_URI_LineEdit.displayText()
         self.parentObjHandle.jmriRpcPortBase.value = int(self.RPC_Port_LineEdit.displayText())
-        self.parentObjHandle.JMRIRpcKeepAlivePeriod.value = self.JMRIKeepalivePeriodDoubleSpinBox.value()
+        self.parentObjHandle.JMRIRpcKeepAlivePeriod.value = self.JMRIRpcKeepalivePeriodDoubleSpinBox.value()
         # General genJMRI states
         if self.adminStateForceCheckBox.isChecked():
             self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
@@ -845,10 +863,27 @@ class UI_topDialog(QDialog):
         return rc.OK
 
     def connectWidgetSignalsSlots(self):
+        self.gitCiPushButton.clicked.connect(self.parentObjHandle.gitCi)
+        self.gitCoPushButton.clicked.connect(self.parentObjHandle.gitCo)
+        self.genConfigPushButton.clicked.connect(self.genConfig)
+        self.rsysLogFileBrowsePushButton.clicked.connect(self.rsysLogFileDialog)
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
-        self.gitCiPushButton.clicked.connect(self.parentObjHandle.gitCi)
-        self.genConfigPushButton.clicked.connect(self.genConfig)
+
+    def rsysLogFileDialog(self):
+        options = QFileDialog.Options()
+        #options |= QFileDialog.DontUseNativeDialog
+        try:
+            fileName, ext = QFileDialog.getSaveFileName(self,"Select a base path-/file- name for RSyslog files", self.path,"log Files (*.log);;All Files (*)", options=options)
+        except:
+            fileName, ext = QFileDialog.getSaveFileName(self,"Select a base path-/file- name for RSyslog files", "","log Files (*.log);;All Files (*)", options=options)
+        if fileName:
+            try:
+                ext = extTxt.split("(")[1].split(")")[0].split(".")[1]
+                fileName = fileName + "." + ext
+            except:
+                pass
+            self.rsyslogFileLineEdit.setText(fileName)
 
     def genConfig(self):
         self.configOutputDialog = UI_getConfig(self, self.parentObjHandle.getXmlConfigTree(text=True))

@@ -119,7 +119,7 @@ public:
 	static logSeverity_t getLogLevel(void);
 	static void setConsoleLog(bool p_consoleLog);
 	static bool getConsoleLog(void);
-	static rc_t addLogServer(const char* p_server, uint16_t p_port = 514);
+	static rc_t addLogServer(const char* p_host, const char* p_server, uint16_t p_port = 514);
 	static rc_t deleteLogServer(const char* p_server, uint16_t p_port = 514);
 	static void deleteAllLogServers(void);
 	static rc_t getLogServer(uint8_t p_index, char* p_server, uint16_t* p_port);

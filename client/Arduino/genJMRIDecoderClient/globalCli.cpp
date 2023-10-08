@@ -36,6 +36,8 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 EXT_RAM_ATTR globalCli* globalCli::rootHandle;
+EXT_RAM_ATTR char globalCli::decoderSysName[50];
+
 
 char* globalCli::testBuff = NULL;
 
@@ -2314,8 +2316,8 @@ void globalCli::onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,
 	}
 	else if (p_cmdTable->commandFlags->isPresent("logdestination")) {
 		if (!Log.getLogServer(0, NULL, NULL)) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Cannot set log destination, log destination has already configured, use \"unset log -logdestination\" to remove current log destination first");
-			LOG_WARN_NOFMT("Cannot set log destination, log destination has already configured" CR);
+			notAcceptedCliCommand(CLI_GEN_ERR, "Cannot set log destination, log destination is already configured, use \"unset log -logdestination\" to remove current log destination first");
+			LOG_WARN_NOFMT("Cannot set log destination, log destination is already configured" CR);
 			return;
 		}
 		if (!isUri(p_cmdTable->commandFlags->get("logdestination")->getValue())) {
@@ -2325,7 +2327,8 @@ void globalCli::onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,
 				"is not a valid URI" CR, p_cmdTable->commandFlags->get("logdestination")->getValue());
 			return;
 		}
-		Log.addLogServer(p_cmdTable->commandFlags->get("logdestination")->getValue());
+		rootHandle->getSystemName(decoderSysName, true);
+		Log.addLogServer(decoderSysName, p_cmdTable->commandFlags->get("logdestination")->getValue());
 		cmdHandled = true;
 	}
 	else if (p_cmdTable->commandFlags->isPresent("logconsole")) {
