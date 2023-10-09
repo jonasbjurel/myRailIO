@@ -842,7 +842,10 @@ rc_t decoder::setLogLevel(const char* p_logLevel, bool p_force) {
         if(xmlconfig[XML_DECODER_LOGLEVEL])
             delete xmlconfig[XML_DECODER_LOGLEVEL];
         xmlconfig[XML_DECODER_LOGLEVEL] = createNcpystr(p_logLevel);
-        Log.setLogLevel(Log.transformLogLevelXmlStr2Int(xmlconfig[XML_DECODER_LOGLEVEL]));
+        if (Log.setLogLevel(Log.transformLogLevelXmlStr2Int(xmlconfig[XML_DECODER_LOGLEVEL]))) {
+            LOG_ERROR("%s: Cannot set Log-level %s, log-level not supported, using current log-level: %s" CR, logContextName, p_logLevel, Log.transformLogLevelInt2XmlStr(Log.getLogLevel()));
+            return RC_PARAMETERVALUE_ERR;
+        }
         return RC_OK;
     }
 }
