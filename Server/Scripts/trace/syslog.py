@@ -30,7 +30,6 @@ class RSyslogUDPHandler(socketserver.BaseRequestHandler):
 	def handle(self):
 		data = bytes.decode(self.request[0].strip())
 		socket = self.request[1]
-		#print( "%s : " % self.client_address[0], str(data))
 		rSyslog.log(str(data))
 
 class rSyslog(socketserver.BaseRequestHandler):
@@ -109,7 +108,6 @@ class rSyslog(socketserver.BaseRequestHandler):
 		try:
 			rSyslog.logFileHandle = open(rSyslog.fileBaseName, 'a')
 		except (IOError, SystemExit):
-			print(">>>>>>>>>>>>Could not open file")
 			raise
 		if not p_dontTakeLock:
 			rSyslog.logLock.release()

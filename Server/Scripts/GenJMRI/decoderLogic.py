@@ -103,7 +103,6 @@ class decoder(systemState, schema):
         self.mac.value = "00:00:00:00:00:00"
         self.description.value = "New decoder"
         self.item = self.win.registerMoMObj(self, self.parentItem, self.nameKey.candidateValue, DECODER, displayIcon=DECODER_ICON)
-        self.decoderPendingRestart = False
         self.missedPingReq = 0
         self.supervisionActive = False
         self.restart = True
@@ -167,7 +166,6 @@ class decoder(systemState, schema):
         return rc.OK
 
     def updateReq(self):
-        self.decoderPendingRestart = True
         return self.parent.updateReq()
 
     def validate(self):
@@ -399,9 +397,7 @@ class decoder(systemState, schema):
         return self.decoderMqttURI.value
 
     def decoderRestart(self):
-        if self.decoderPendingRestart:
-            self.decoderPendingRestart = False
-            self.__decoderRestart()
+        self.__decoderRestart()
 
     def __validateConfig(self):
         res = self.parent.checkSysName(self.decoderSystemName.candidateValue)
