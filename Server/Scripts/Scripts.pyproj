@@ -22,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="GenJMRI\actuatorLogic.py" />
+    <Compile Include="GenJMRI\alarmHandler\alarmHandler.py" />
     <Compile Include="GenJMRI\config.py" />
     <Compile Include="GenJMRI\decoderLogic.py" />
     <Compile Include="GenJMRI\genJMRId.py" />
@@ -31,7 +32,6 @@
     <Compile Include="GenJMRI\sateliteLogic.py" />
     <Compile Include="GenJMRI\satLinkLogic.py" />
     <Compile Include="GenJMRI\sensorLogic.py" />
-    <Compile Include="GenJMRI\syslog.py" />
     <Compile Include="GenJMRI\topDecoderLogic.py" />
     <Compile Include="GenJMRI\ui.py" />
     <Compile Include="GenJMRI\__init__.py" />
@@ -96,6 +96,7 @@
   <ItemGroup>
     <Folder Include="GenJMRI" />
     <Folder Include="GenJMRI\icons" />
+    <Folder Include="GenJMRI\alarmHandler\" />
     <Folder Include="GenJMRI\ui" />
     <Folder Include="lib" />
     <Folder Include="lib\dict2XML" />
