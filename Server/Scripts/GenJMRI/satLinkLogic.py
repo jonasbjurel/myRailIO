@@ -84,7 +84,10 @@ class satLink(systemState, schema):
         self.parent = parentItem.getObj()
         self.satelites.value = []
         self.childs.value = self.satelites.candidateValue
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE_LINK, displayIcon=LINK_ICON)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.satLinkSystemName.value = name
@@ -95,7 +98,6 @@ class satLink(systemState, schema):
         self.satLinkNo.value = 0
         self.description.value = "New Satelite link"
         trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE_LINK, displayIcon=LINK_ICON)
         self.commitAll()
         self.clearStats()
         if self.demo:
@@ -401,7 +403,16 @@ class satLink(systemState, schema):
                 self.mqttClient.publish(self.satLinkAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-        # UPDATE GUI LIVE IF POSSIBLE
+        #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        opStateDetail = self.getOpStateDetail()
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.win.inactivateMoMObj(self.item)
+        elif opStateDetail & OP_CBL[STATE]:
+            self.win.controlBlockMarkMoMObj(self.item)
+        elif opStateDetail:
+            self.win.faultBlockMarkMoMObj(self.item, True)
+        else:
+            self.win.faultBlockMarkMoMObj(self.item, False)
         # ADD TO ALARM LIST - LATER
         return
 

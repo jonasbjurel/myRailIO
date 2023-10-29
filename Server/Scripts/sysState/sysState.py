@@ -56,7 +56,7 @@ STATE_DESC =                2                       # The op/admState descriptio
 
 class systemState():
     def __init__(self):
-        self.parent = None
+        #self.parent = None
         self.opStateCbs = []
         self.admState = ADM_ENABLE
         self.opStateSummary = OP_SUMMARY_AVAIL
@@ -94,7 +94,6 @@ class systemState():
             return self.disableRecurse()
 
     def enable(self):
-
         try:
             self.parent
             assert self.parent != None
@@ -172,18 +171,20 @@ class systemState():
             normOpState = opState[STATE]
         else:
             normOpState = opState
-
         prevOpStateDetail = self.opStateDetail
         self.opStateDetail = self.opStateDetail | normOpState
         changedOpStateDetail = self.opStateDetail ^ prevOpStateDetail
         if not changedOpStateDetail:
+            print(">>>>>>>>>> OP-State not changed >>>>>>>")
             return rc.OK
         self.opStateSummary = OP_SUMMARY_UNAVAIL
         try:
             self.childs.value
+            print(self.childs.value)
             assert self.childs.value != None
         except:
             if publish:
+                print(">>>>> NO CHILDS, OP-State changed")
                 self.callOpStateCbs(changedOpStateDetail)
             return rc.OK
         for child in self.childs.value:
@@ -299,4 +300,5 @@ class systemState():
     def callOpStateCbs(self, changedOpStateDetail):
         for cbItter in self.opStateCbs:
             if cbItter[1] & changedOpStateDetail:
+                print(cbItter[0])
                 cbItter[0](cbItter[1] & changedOpStateDetail)

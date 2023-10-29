@@ -78,24 +78,24 @@ class lightGroup(systemState, schema):
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
         self.schemaDirty = False
-
         systemState.__init__(self)
         schema.__init__(self)
-
         self.setSchema(schema.BASE_SCHEMA)
         self.appendSchema(schema.LG_SCHEMA)
         self.appendSchema(schema.ADM_STATE_SCHEMA)
         self.appendSchema(schema.CHILDS_SCHEMA)
-
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP, displayIcon=TRAFFICLIGHT_ICON)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.jmriLgSystemName.value = name
         else:
-            self.jmriLgSystemName.value = "IF$vsm:NewLightGroupSysName($001)"
-        self.nameKey.value = "LightGroup-" + self.jmriLgSystemName.candidateValue
+            self.jmriLgSystemName.value = "IF$vsm:Sweden-3HMS:SL-5HL($001)"
+        self.nameKey.value = "GJLG-NewLightGroup-" + self.jmriLgSystemName.candidateValue
         self.userName.value = "GJLG-NewLightGroupUsrName"
         self.description.value = "GJLG-NewLightGroupUsrDescription"
         self.lgLinkAddr.value = 0
@@ -103,8 +103,7 @@ class lightGroup(systemState, schema):
         self.lgProperty1.value = ""
         self.lgProperty2.value = "NORMAL"
         self.lgProperty3.value = "NORMAL"
-        trace.notify(DEBUG_INFO,"New Light group: " + self.nameKey.candidateValue + " created - awaiting configuration")
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP, displayIcon=TRAFFICLIGHT_ICON)
+        trace.notify(DEBUG_INFO,"Light group: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.lgShowing = "UNKOWN" #NEED TO FIX BUSINESS LOGIC
         self.commitAll()
 
@@ -349,8 +348,16 @@ class lightGroup(systemState, schema):
                 self.mqttClient.publish(self.lgAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-        # UPDATE GUI LIVE IF POSSIBLE
-        # ADD TO ALARM LIST - LATER
+        opStateDetail = self.getOpStateDetail()
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.win.inactivateMoMObj(self.item)
+        elif opStateDetail & OP_CBL[STATE]:
+            self.win.controlBlockMarkMoMObj(self.item)
+        elif opStateDetail:
+            self.win.faultBlockMarkMoMObj(self.item, True)
+        else:
+            self.win.faultBlockMarkMoMObj(self.item, False)
+    # ADD TO ALARM LIST - LATER
         return
 
     def __onDecoderOpStateChange(self, topic, value):
@@ -364,9 +371,5 @@ class lightGroup(systemState, schema):
             self.mqttClient.publish(self.mqttLgTopic, self.lgShowing)
         else:
             trace.notify(DEBUG_VERBOSE, "Light group " + self.nameKey.value + " got an MQTT request with an unknown payload/value: " + payload + "expected: " + GET_LG_ASPECT)
-
-
-
-
 # End Lightgroups
 #------------------------------------------------------------------------------------------------------------------------------------------------

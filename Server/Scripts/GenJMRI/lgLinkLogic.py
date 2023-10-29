@@ -77,7 +77,10 @@ class lgLink(systemState, schema):
         self.parent = parentItem.getObj()
         self.lightGroups.value = []
         self.childs.value = self.lightGroups.candidateValue
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.lgLinkSystemName.value = name
@@ -88,7 +91,6 @@ class lgLink(systemState, schema):
         self.description.value = "New Light group link"
         self.lgLinkNo.value = 0
         self.mastDefinitionPath.value = "C:\\Program Files (x86)\\JMRI\\xml\\signals\\Sweden-3HMS"
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
         self.mastTypes = []
         trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.commitAll()
@@ -400,7 +402,16 @@ class lgLink(systemState, schema):
                 self.mqttClient.publish(self.lgLinkAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-        # UPDATE GUI LIVE IF POSSIBLE
+#        trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        opStateDetail = self.getOpStateDetail()
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.win.inactivateMoMObj(self.item)
+        elif opStateDetail & OP_CBL[STATE]:
+            self.win.controlBlockMarkMoMObj(self.item)
+        elif opStateDetail:
+            self.win.faultBlockMarkMoMObj(self.item, True)
+        else:
+            self.win.faultBlockMarkMoMObj(self.item, False)
         # ADD TO ALARM LIST - LATER
         return
 

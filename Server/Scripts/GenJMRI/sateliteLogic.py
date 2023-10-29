@@ -85,7 +85,10 @@ class satelite(systemState, schema):
         self.sensors.value = []
         self.actuators.value = []
         self.childs.value = self.sensors.candidateValue + self.actuators.candidateValue
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE, displayIcon=SATELITE_ICON)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.satSystemName.value = name
@@ -96,7 +99,6 @@ class satelite(systemState, schema):
         self.satLinkAddr.value = 0
         self.description.value = "New Satelite"
         trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE, displayIcon=SATELITE_ICON)
         self.commitAll()
         self.rxCrcErr = 0
         self.txCrcErr = 0
@@ -425,7 +427,16 @@ class satelite(systemState, schema):
                 self.mqttClient.publish(self.satAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-        # UPDATE GUI LIVE IF POSSIBLE
+        #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        opStateDetail = self.getOpStateDetail()
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.win.inactivateMoMObj(self.item)
+        elif opStateDetail & OP_CBL[STATE]:
+            self.win.controlBlockMarkMoMObj(self.item)
+        elif opStateDetail:
+            self.win.faultBlockMarkMoMObj(self.item, True)
+        else:
+            self.win.faultBlockMarkMoMObj(self.item, False)
         # ADD TO ALARM LIST - LATER
         return
 

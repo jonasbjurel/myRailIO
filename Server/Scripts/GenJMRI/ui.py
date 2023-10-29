@@ -1,16 +1,22 @@
+import dataclasses
 import os
 import sys
 from PyQt5.QtWidgets import QApplication, QDialog, QWidget, QMainWindow, QMessageBox, QMenu, QFileDialog, QComboBox, QLineEdit
 from PyQt5.uic import loadUi
 from PyQt5.Qt import QStandardItemModel, QStandardItem
-from PyQt5.QtGui import QFont, QColor, QTextCursor, QIcon
+from PyQt5.QtGui import QPalette, QFont, QColor, QTextCursor, QIcon
 from PyQt5 import QtCore
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 import time
+from datetime import datetime, timedelta
+import re
 import threading
 import traceback
 from momResources import *
+import imp
+imp.load_source('alarmHandler', '..\\alarmHandler\\alarmHandler.py')
+from alarmHandler import *
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"\\..\\trace\\")
 import trace
 import imp
@@ -20,7 +26,6 @@ imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
-
 
 
 
@@ -54,8 +59,10 @@ SENSOR_DIALOG_UI = "ui/Sensor_Dialog.ui"
 ACTUATOR_DIALOG_UI = "ui/Actuator_Dialog.ui"
 LOGOUTPUT_DIALOG_UI = "ui/Log_Output_Dialog.ui"
 LOGSETTING_DIALOG_UI = "ui/Log_Setting_Dialog.ui"
+SHOWALARMS_DIALOG_UI = "ui/Alarms_Show_Dialog.ui"
+SHOWS_SELECTED_ALARM_DIALOG_UI = "ui/Individual_Alarm_Show_Dialog.ui"
 CONFIGOUTPUT_DIALOG_UI = "ui/Config_Output_Dialog.ui"
-AUTOLOAD_PREF_DIALOG_UI = "ui/autoLoad_Pref_Dialog.ui"
+AUTOLOAD_PREF_DIALOG_UI = "ui/AutoLoad_Pref_Dialog.ui"
 
 # UI Icon resources
 SERVER_ICON = "icons/server.png"
@@ -65,6 +72,10 @@ SATELITE_ICON = "icons/satelite.png"
 TRAFFICLIGHT_ICON = "icons/traffic-light.png"
 SENSOR_ICON = "icons/sensor.png"
 ACTUATOR_ICON = "icons/servo.png"
+ALARM_A_ICON = "icons/redBell.jpg"
+ALARM_B_ICON = "icons/orangeBell.jpg"
+ALARM_C_ICON = "icons/orangeBell.jpg"
+NO_ALARM_ICON = "icons/greyBell.jpg"
 
 def short2longVerbosity(shortVerbosity):
     return "DEBUG-" + shortVerbosity
@@ -78,18 +89,22 @@ def long2shortVerbosity(longVerbosity):
 class StandardItem(QStandardItem):
     def __init__(self, obj, txt='', font_size=12, set_bold=False, color=QColor(0, 0, 0), icon = None, methods=0):
         super().__init__()
-        fnt = QFont('Open Sans', font_size)
-        fnt.setBold(set_bold)
+        self.fnt = QFont('Open Sans', font_size)
+        self.fnt.setBold(set_bold)
         self.setEditable(False)
         self.setForeground(color)
         self.obj = obj
-        self.setFont(fnt)
+        self.setFont(self.fnt)
         self.setText(txt)
         if icon != None:
             self.setIcon(QIcon(icon))
 
     def getObj(self):
         return self.obj
+
+    def setColor(self, color):
+        self.setForeground(color)
+        self.setFont(self.fnt)
 
     def __delete__(self):
         super().__delete__()
@@ -115,6 +130,9 @@ class UI_mainWindow(QMainWindow):
     def setParentObjHandle(self, parentObjHandle):
         self.parentObjHandle = parentObjHandle
         self.configFileDialog.regFileOpenCb(self.parentObjHandle.onXmlConfig)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_A, self._onAlarm, p_metaData = self)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_B, self._onAlarm, p_metaData = self)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_C, self._onAlarm, p_metaData = self)
 
     def registerMoMObj(self, objHandle, parentItem, string, type, displayIcon=None):
         if type == TOP_DECODER:
@@ -154,7 +172,6 @@ class UI_mainWindow(QMainWindow):
             color = QColor(0, 0, 0)
         else:
             return None
-
         try:
             item = StandardItem(objHandle, txt=string, font_size=fontSize, set_bold=setBold, color=color, icon=displayIcon)
             parentItem.appendRow(item)
@@ -170,13 +187,28 @@ class UI_mainWindow(QMainWindow):
         self.MoMTreeModel.removeRow(item.row(), parent=self.MoMTreeModel.indexFromItem(item).parent())
 
     def faultBlockMarkMoMObj(self, item, faultState):
-        pass
+        if faultState:
+            item.setColor(QColor(255, 0, 0))
+        else:
+            item.setColor(QColor(119,150,56))
 
     def inactivateMoMObj(self, item):
-        pass
+        item.setColor(QColor(200, 200, 200))
 
-    def controlBlockMarkMoMObj(Index):
-        pass
+    def controlBlockMarkMoMObj(self, item):
+        item.setColor(QColor(255, 200, 0))
+
+    def _onAlarm(self, p_criticality, p_noOfAlarms, p_object):
+        if alarmHandler.getNoOfActiveAlarms(ALARM_CRITICALITY_A):
+            self.alarmPushButton.setIcon(QIcon(ALARM_A_ICON))
+            return
+        if alarmHandler.getNoOfActiveAlarms(ALARM_CRITICALITY_B):
+            self.alarmPushButton.setIcon(QIcon(ALARM_B_ICON))
+            return
+        if alarmHandler.getNoOfActiveAlarms(ALARM_CRITICALITY_C):
+            self.alarmPushButton.setIcon(QIcon(ALARM_C_ICON))
+            return
+        self.alarmPushButton.setIcon(QIcon(NO_ALARM_ICON))
 
     def MoMMenuContextTree(self, point):
         try:
@@ -188,7 +220,6 @@ class UI_mainWindow(QMainWindow):
         menu = QMenu()
         menu.setTitle(MoMName + " - actions")
         menu.toolTipsVisible()
-
         viewAction = menu.addAction("View") if stdItemObj.getObj().getMethods() & METHOD_VIEW else None
         if viewAction != None: viewAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else viewAction.setEnabled(False)
         editAction = menu.addAction("Edit") if stdItemObj.getObj().getMethods() & METHOD_EDIT else None
@@ -252,7 +283,12 @@ class UI_mainWindow(QMainWindow):
         self.autoLoadPreferences.triggered.connect(self.setAutoLoadPreferences)
 
         # Edit actions
+        # ------------
         self.actiongenJMRI_preferences.triggered.connect(self.editGenJMRIPreferences)
+
+        # View actions
+        # ------------
+        self.actionAlarms.triggered.connect(self.showAlarms)
 
         # Help actions
         # ------------
@@ -276,6 +312,9 @@ class UI_mainWindow(QMainWindow):
         # Restart widget
         self.restartPushButton.clicked.connect(self.restart)
 
+        # Alarm widget
+        self.alarmPushButton.clicked.connect(self.showAlarms)
+
     def openConfigFile(self):
         self.configFileDialog.openFileDialog()
 
@@ -285,20 +324,15 @@ class UI_mainWindow(QMainWindow):
     def saveConfigFileAs(self):
         self.configFileDialog.saveFileAsDialog(self.parentObjHandle.getXmlConfigTree(text=True))
 
-    def saveConfigFileA(self):
-        self.configFileDialog.saveFileAsDialog(self.parentObjHandle.getXmlConfigTree(text=True))
-
     def haveGoodConfiguration(self, haveIt):
         if haveIt:
             self.actionSaveConfig.setEnabled(True)
             self.actionSaveConfigAs.setEnabled(True)
             self.autoLoadPreferences.setEnabled(True)
-
         else:
             self.actionSaveConfig.setEnabled(False)
             self.actionSaveConfigAs.setEnabled(False)
             self.autoLoadPreferences.setEnabled(False)
-
 
     def setAutoLoadPreferences(self):
         print("Setting Autoload prefs")
@@ -318,6 +352,10 @@ class UI_mainWindow(QMainWindow):
 
     def restart(self):
         self.parentObjHandle.restart()
+
+    def showAlarms(self):
+        self.alarmWidget = UI_alarmShowDialog(self.parentObjHandle)
+        self.alarmWidget.show()
 
     def about(self):
         QMessageBox.about(
@@ -608,6 +646,218 @@ class UI_logSettingDialog(QDialog):
         self.close()
 
 
+
+class UI_alarmShowDialog(QDialog):
+    def __init__(self, parentObjHandle, parent=None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(SHOWALARMS_DIALOG_UI, self)
+        self.alarmHistoryComboBox.setCurrentText("Active")
+        self.severityFilterComboBox.setCurrentText("*")
+        self.freeSearchTextEdit.setText("*")
+        self.proxymodel = QtCore.QSortFilterProxyModel()
+        self.alarmTableModel = alarmTableModel(self)
+        self.proxymodel.setSourceModel(self.alarmTableModel)
+        self.alarmsTableView.setModel(self.proxymodel)
+        self.alarmsTableView.setSortingEnabled(True)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_A , self._onAlarm)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_B , self._onAlarm)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_A , self._onAlarm)
+        self._rePopulateSrcFilters()
+        self.connectWidgetSignalsSlots()
+         
+    def connectWidgetSignalsSlots(self):
+        self.alarmHistoryComboBox.currentTextChanged.connect(self.alarmHistoryHandler)
+        self.severityFilterComboBox.currentTextChanged.connect(self.severityFilterHandler)
+        self.sourceFilterComboBox.currentTextChanged.connect(self.sourceFilterHandler)
+        self.freeSearchTextEdit.textChanged.connect(self.freeSearchHandler)
+        self.alarmExportSelectedPushButton.clicked.connect(self.saveSelectedAlarms)
+        self.alarmExportAllPushButton.clicked.connect(self.saveAllAlarms)
+        self.alarmsTableView.clicked.connect(self.showSelectedAlarm)
+
+    def alarmHistoryHandler(self):
+        if self.alarmHistoryComboBox.currentText() == "Active":
+            self.alarmTableModel.setAlarmHistory(False)
+        elif self.alarmHistoryComboBox.currentText() == "History":
+            self.alarmTableModel.setAlarmHistory(True)
+        self._rePopulateSrcFilters()
+
+    def severityFilterHandler(self):
+        if self.severityFilterComboBox.currentText() == "*":
+            self.alarmTableModel.setAlarmCriticality(ALARM_ALL_CRITICALITY)
+        elif self.severityFilterComboBox.currentText() == "A-Level":
+            self.alarmTableModel.setAlarmCriticality(ALARM_CRITICALITY_A)
+        elif self.severityFilterComboBox.currentText() == "B-Level":
+            self.alarmTableModel.setAlarmCriticality(ALARM_CRITICALITY_B)
+        elif self.severityFilterComboBox.currentText() == "C-Level":
+            self.alarmTableModel.setAlarmCriticality(ALARM_CRITICALITY_C)
+
+    def sourceFilterHandler(self):
+        self.alarmTableModel.setSrcFilter(self.sourceFilterComboBox.currentText())
+
+    def freeSearchHandler(self):
+        palette = self.freeSearchTextEdit.palette()
+        try:
+            self.filterString.setPattern("")
+            self.proxymodel.setFilterRegExp(self.filterString)
+        except:
+            pass
+        if self.freeSearchTextEdit.toPlainText() == "" or self.freeSearchTextEdit.toPlainText() == "*":
+            palette.setColor(QPalette.Text, QColor("black"))
+            self.freeSearchTextEdit.setPalette(palette)
+            return
+        columnMatch = re.search("(?<=\@)(.*)(?=\@)", self.freeSearchTextEdit.toPlainText())
+        if columnMatch == None:
+            palette.setColor(QPalette.Text, QColor("red"))
+            self.freeSearchTextEdit.setPalette(palette)
+            return
+        try:
+            regex = re.split("@" + columnMatch.group() + "@", self.freeSearchTextEdit.toPlainText(), maxsplit=0, flags=0)[1]
+        except:
+            palette.setColor(QPalette.Text, QColor("red"))
+            self.freeSearchTextEdit.setPalette(palette)
+            return
+        column = None
+        for headingColumnItter in range(self.proxymodel.columnCount()):
+            if self.proxymodel.headerData(headingColumnItter, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == columnMatch.group():
+                column = headingColumnItter
+                break
+        if column == None:
+            palette.setColor(QPalette.Text, QColor("red"))
+            self.freeSearchTextEdit.setPalette(palette)
+            return
+        self.filterString = QtCore.QRegExp(  regex,
+                                            QtCore.Qt.CaseInsensitive,
+                                            QtCore.QRegExp.RegExp
+                                            )
+        if not self.filterString.isValid():
+            palette.setColor(QPalette.Text, QColor("red"))
+            self.freeSearchTextEdit.setPalette(palette)
+        else:
+            palette.setColor(QPalette.Text, QColor("black"))
+            self.freeSearchTextEdit.setPalette(palette)
+        self.proxymodel.setFilterRegExp(self.filterString)
+        self.proxymodel.setFilterKeyColumn(column)
+
+    def _rePopulateSrcFilters(self):
+        self.sourceFilterComboBox.clear()
+        if self.alarmHistoryComboBox.currentText() == "Active":
+            srcFilterList = ["*"]
+            srcFilterList.extend(alarmHandler.getSrcs())
+            self.sourceFilterComboBox.addItems(srcFilterList)
+        else:
+            srcFilterList = ["*"]
+            srcFilterList.extend(alarmHandler.getSrcs(True))
+            self.sourceFilterComboBox.addItems(srcFilterList)
+        self.sourceFilterComboBox.setCurrentText("*")
+
+    def showSelectedAlarm(self, p_clickedIndex):
+        self.individualAlarmWidget = UI_individualAlarmShowDialog(p_clickedIndex, self.parentObjHandle, parent = self)
+        self.individualAlarmWidget.show()
+
+    def saveAllAlarms(self):
+        self.saveAlarms(self.alarmTableModel.formatAllAlarmsCsv())
+
+    def saveSelectedAlarms(self):
+        self.saveAlarms(self.alarmTableModel.formatSelectedAlarmsCsv())
+
+    def saveAlarms(self, p_alarmsCsv):
+        options = QFileDialog.Options()
+        #options |= QFileDialog.DontUseNativeDialog
+        try:
+            fileName, ext = QFileDialog.getSaveFileName(self,"Select a file name for saving", self.path,"CSV Files (*.csv);;All Files (*)", options=options)
+        except:
+            fileName, ext = QFileDialog.getSaveFileName(self,"Select a file name for saving", "","CSV Files (*.csv);;All Files (*)", options=options)
+        if fileName:
+            try:
+                ext = extTxt.split("(")[1].split(")")[0].split(".")[1]
+                fileName = fileName + "." + ext
+            except:
+                pass
+            f = open(fileName, "w")
+            f.write(p_alarmsCsv)
+            f.close()
+            self.path = fileName.rsplit("/", 1)[0]
+            self.fileName = fileName
+
+    def _onAlarm(self, p_criticality, p_noOfAlarms, p_metaData):
+        self._rePopulateSrcFilters()
+
+
+
+class UI_individualAlarmShowDialog(QDialog):
+    def __init__(self, p_clickedIndex, parentObjHandle, parent=None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        self.parent = parent
+        self.clickedIndex = p_clickedIndex
+        loadUi(SHOWS_SELECTED_ALARM_DIALOG_UI, self)
+        self._populate()
+
+    def _populate(self):
+        alarmInstanceId = self.parent.alarmsTableView.model().index(self.clickedIndex.row(), 0).data()
+        alarm = None
+        activeAlarmTable = self.parent.alarmTableModel.formatAlarmTable(False, ALARM_ALL_CRITICALITY, "*", "*", p_verbosity = True)
+        for alarmItter in activeAlarmTable:
+            if alarmItter[0] == alarmInstanceId:
+                alarm = alarmItter
+                break
+        if alarm == None:
+            historyAlarmTable = self.parent.alarmTableModel.formatAlarmTable(True, ALARM_ALL_CRITICALITY, "*", "*", p_verbosity = True)
+            for alarmItter in historyAlarmTable:
+                if alarmItter[0] == alarmInstanceId:
+                    alarm = alarmItter
+                    break
+        self.sloganTextEdit.setText(alarm[self.parent.alarmTableModel.sloganCol(True)])
+        self.severityTextEdit.setText(alarm[self.parent.alarmTableModel.severityCol(True)])
+        self.activeTextEdit.setText(alarm[self.parent.alarmTableModel.activeCol(True)])
+        self.durationTextEdit.setText(alarm[self.parent.alarmTableModel.durationCol(True)])
+        self.occuranceTextEdit.setText("-")
+        self.durationSTextEdit.setText(alarm[self.parent.alarmTableModel.durationSCol(True)])
+        self.prevOccuranceTextEdit.setText("-")
+        self.intencityTextEdit.setText("-")
+        self.typeTextEdit.setText(alarm[self.parent.alarmTableModel.typeCol(True)])
+        self.objIdTextEdit.setText(alarm[self.parent.alarmTableModel.objIdCol(True)])
+        self.instanceIdTextEdit.setText(alarm[self.parent.alarmTableModel.instanceIdCol(True)])
+        self.sourceTextEdit.setText(alarm[self.parent.alarmTableModel.sourceCol(True)])
+        self.raiseTimeTextEdit.setText(alarm[self.parent.alarmTableModel.raiseTimeUtcCol(True)])
+        self.raiseTimeEpochTextEdit.setText(alarm[self.parent.alarmTableModel.raiseTimeEpochCol(True)])
+        self.raiseReasonTextEdit.setText(alarm[self.parent.alarmTableModel.raiseReasonCol(True)])
+        self.ceaseTimeTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseTimeUtcCol(True)])
+        self.ceaseTimeEpochTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseTimeEpochCol(True)])
+        self.ceaseReasonTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseReasonCol(True)])
+        self.occuranceTextEdit.setText(str(len(alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)])])))
+
+
+        index = 0
+        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[14])]:
+            if alarmItter.getGlobalAlarmInstanceUid() == int(alarm[0]):
+                break
+            index += 1
+        if index > 0:
+            self.prevOccuranceTextEdit.setText(alarmHandler.getAlarmObjHistory()[int(alarm[14])][index - 1].getRaiseUtcTime())
+        else:
+            self.prevOccuranceTextEdit.setText("-")
+        oneHBack = (datetime.utcnow() - timedelta(hours = 1)).strftime('UTC: %Y-%m-%d %H:%M:%S.%f')
+        occurances = 0
+        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[14])]:
+            if alarmItter.getRaiseUtcTime() < oneHBack:
+                break
+            occurances += 1
+        self.intencityTextEdit.setText(str(occurances))
+
+        if alarm[2] == "False":
+            self.alarmPushButton.setIcon(QIcon(NO_ALARM_ICON))
+            return
+        if alarm[1] == "A":
+            self.alarmPushButton.setIcon(QIcon(ALARM_A_ICON))
+            return
+        if alarm[1] == "B":
+            self.alarmPushButton.setIcon(QIcon(ALARM_B_ICON))
+            return
+        if alarm[1] == "C":
+            self.alarmPushButton.setIcon(QIcon(ALARM_C_ICON))
+            return
 
 class UI_getConfig(QDialog):
     def __init__(self, parentObjHandle, configuration, parent=None):

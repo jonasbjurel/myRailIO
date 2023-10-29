@@ -31,6 +31,9 @@
    <iconset>
     <normaloff>../icons/genJMRI.png</normaloff>../icons/genJMRI.png</iconset>
   </property>
+  <property name="whatsThis">
+   <string>Main JMRI navigation dialog</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label">
     <property name="geometry">
@@ -47,7 +50,7 @@
      </font>
     </property>
     <property name="text">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Object navigation:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:16pt; font-weight:600;&quot;&gt;Object navigation:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
    <widget class="QPushButton" name="restartPushButton">
@@ -177,6 +180,22 @@
      <bool>false</bool>
     </attribute>
    </widget>
+   <widget class="QPushButton" name="alarmPushButton">
+    <property name="geometry">
+     <rect>
+      <x>908</x>
+      <y>2</y>
+      <width>56</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="whatsThis">
+     <string>Color of alarm bell represents the currently most severe active alarm: Red: A-level alarm, Orange: B-Level alarm, Yellow: C-Level alarm, Grey: No active alarm</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -184,7 +203,7 @@
      <x>0</x>
      <y>0</y>
      <width>980</width>
-     <height>28</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -244,6 +263,7 @@
     </property>
     <addaction name="actionConfiguration"/>
     <addaction name="actionVersions"/>
+    <addaction name="actionAlarms"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -498,6 +518,11 @@
   <action name="actionVersions">
    <property name="text">
     <string>Versions</string>
+   </property>
+  </action>
+  <action name="actionAlarms">
+   <property name="text">
+    <string>Alarms</string>
    </property>
   </action>
  </widget>

@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Alarmlist</class>
+ <widget class="QDialog" name="Alarmlist">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>2006</width>
+    <height>1000</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Alarm dialog</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../icons/greyBell.jpg</normaloff>../icons/greyBell.jpg</iconset>
+  </property>
+  <property name="toolTip">
+   <string/>
+  </property>
+  <property name="toolTipDuration">
+   <number>-1</number>
+  </property>
+  <property name="whatsThis">
+   <string>My test What is this</string>
+  </property>
+  <property name="accessibleDescription">
+   <string>My Description</string>
+  </property>
+  <widget class="QLabel" name="alarmListLabel">
+   <property name="geometry">
+    <rect>
+     <x>11</x>
+     <y>10</y>
+     <width>311</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Alarm list</string>
+   </property>
+  </widget>
+  <widget class="QTableView" name="alarmsTableView">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>120</y>
+     <width>1981</width>
+     <height>821</height>
+    </rect>
+   </property>
+   <property name="whatsThis">
+    <string>Table of system alarms</string>
+   </property>
+   <property name="locale">
+    <locale language="English" country="Sweden"/>
+   </property>
+   <property name="alternatingRowColors">
+    <bool>true</bool>
+   </property>
+   <property name="sortingEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="wordWrap">
+    <bool>true</bool>
+   </property>
+   <attribute name="horizontalHeaderHighlightSections">
+    <bool>true</bool>
+   </attribute>
+   <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+    <bool>true</bool>
+   </attribute>
+   <attribute name="verticalHeaderVisible">
+    <bool>false</bool>
+   </attribute>
+   <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+    <bool>true</bool>
+   </attribute>
+  </widget>
+  <widget class="QLabel" name="sourceFilterLabel">
+   <property name="geometry">
+    <rect>
+     <x>620</x>
+     <y>60</y>
+     <width>181</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Source filter:</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="severityFilterComboBox">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>59</y>
+     <width>111</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>Filter on alarm severity</string>
+   </property>
+   <item>
+    <property name="text">
+     <string>*</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>A-Level</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>B-Level</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>C-Level</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QLabel" name="freeSearchLabel">
+   <property name="geometry">
+    <rect>
+     <x>1200</x>
+     <y>61</y>
+     <width>221</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Free search filter:</string>
+   </property>
+  </widget>
+  <widget class="QTextEdit" name="freeSearchTextEdit">
+   <property name="geometry">
+    <rect>
+     <x>1430</x>
+     <y>59</y>
+     <width>561</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>Free search filter: @&lt;column heading&gt;@&lt;regex&gt;</string>
+   </property>
+   <property name="html">
+    <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:12pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;*&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="severityFilterLabel">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>60</y>
+     <width>181</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Severity filter:</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="sourceFilterComboBox">
+   <property name="geometry">
+    <rect>
+     <x>790</x>
+     <y>59</y>
+     <width>351</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>Filter on alarm source</string>
+   </property>
+   <item>
+    <property name="text">
+     <string>*</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QPushButton" name="alarmExportAllPushButton">
+   <property name="geometry">
+    <rect>
+     <x>1760</x>
+     <y>950</y>
+     <width>231</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>Export all alarms to a .csv file</string>
+   </property>
+   <property name="text">
+    <string>Export all</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="alarmHistoryLabel">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>60</y>
+     <width>101</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>History:</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="alarmHistoryComboBox">
+   <property name="geometry">
+    <rect>
+     <x>120</x>
+     <y>59</y>
+     <width>111</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>Select active- or history alarms </string>
+   </property>
+   <item>
+    <property name="text">
+     <string>Active</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>History</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QPushButton" name="alarmExportSelectedPushButton">
+   <property name="geometry">
+    <rect>
+     <x>1480</x>
+     <y>950</y>
+     <width>231</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>Export selected alarms to a .csv file</string>
+   </property>
+   <property name="text">
+    <string>Export selection</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

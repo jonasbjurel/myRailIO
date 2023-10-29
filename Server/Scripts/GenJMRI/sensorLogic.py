@@ -86,7 +86,10 @@ class sensor(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SENSOR, displayIcon=SENSOR_ICON)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.jmriSensSystemName.value = name
@@ -99,7 +102,6 @@ class sensor(systemState, schema):
         self.sensState = "INACTIVE"
         self.description.value = "MS-NewSensDescription"
         trace.notify(DEBUG_INFO,"New Sensor: " + self.nameKey.candidateValue + " created - awaiting configuration")
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SENSOR, displayIcon=SENSOR_ICON)
         self.commitAll()
         self.sensTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
 
@@ -310,8 +312,16 @@ class sensor(systemState, schema):
                 self.mqttClient.publish(self.sensAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-        # UPDATE GUI LIVE IF POSSIBLE
-        # ADD TO ALARM LIST - LATER
+#        trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        opStateDetail = self.getOpStateDetail()
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.win.inactivateMoMObj(self.item)
+        elif opStateDetail & OP_CBL[STATE]:
+            self.win.controlBlockMarkMoMObj(self.item)
+        elif opStateDetail:
+            self.win.faultBlockMarkMoMObj(self.item, True)
+        else:
+            self.win.faultBlockMarkMoMObj(self.item, False)        # ADD TO ALARM LIST - LATER
         return
 
     def __onDecoderOpStateChange(self, topic, value):

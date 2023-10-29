@@ -21,8 +21,9 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="alarmHandler.py" />
+    <Compile Include="alarmHandler\alarmHandler.py" />
     <Compile Include="GenJMRI\actuatorLogic.py" />
-    <Compile Include="GenJMRI\alarmHandler\alarmHandler.py" />
     <Compile Include="GenJMRI\config.py" />
     <Compile Include="GenJMRI\decoderLogic.py" />
     <Compile Include="GenJMRI\genJMRId.py" />
@@ -96,14 +97,13 @@
   <ItemGroup>
     <Folder Include="GenJMRI" />
     <Folder Include="GenJMRI\icons" />
-    <Folder Include="GenJMRI\alarmHandler\" />
     <Folder Include="GenJMRI\ui" />
     <Folder Include="lib" />
     <Folder Include="lib\dict2XML" />
     <Folder Include="lib\dict2XML\tests" />
     <Folder Include="lib\xml2dict" />
     <Folder Include="mqtt" />
-    <Folder Include="oldReference" />
+    <Folder Include="alarmHandler\" />
     <Folder Include="rc" />
     <Folder Include="rpc" />
     <Folder Include="schema" />
