@@ -105,6 +105,7 @@ class systemState():
             return rc.PARENT_NOT_ENABLE
         self.admState = ADM_ENABLE
         self.unSetOpStateDetail(OP_DISABLED)
+        self.parent.reEvalOpState()
         return rc.OK
 
     def enableRecurse(self):
@@ -167,15 +168,18 @@ class systemState():
         return self.opStateDetail
 
     def setOpStateDetail(self, opState, publish=True):
+        print("!!!!!!!!!!!!!!!!!Received a new OP-STATE!!!!!!!!!!!!!!!!!!!")
         if isinstance(opState, list):
             normOpState = opState[STATE]
         else:
             normOpState = opState
+        if normOpState & OP_CBL[STATE]:
+            print("!!!!!!!!!!!!!!!!!Received a CBL!!!!!!!!!!!!!!!!!!!!!!!!")
         prevOpStateDetail = self.opStateDetail
         self.opStateDetail = self.opStateDetail | normOpState
         changedOpStateDetail = self.opStateDetail ^ prevOpStateDetail
         if not changedOpStateDetail:
-            print(">>>>>>>>>> OP-State not changed >>>>>>>")
+            print("!!!!!!!!!!!!! OP-State not changed !!!!!!!!!!!")
             return rc.OK
         self.opStateSummary = OP_SUMMARY_UNAVAIL
         try:
@@ -184,12 +188,14 @@ class systemState():
             assert self.childs.value != None
         except:
             if publish:
-                print(">>>>> NO CHILDS, OP-State changed")
+                print("!!!!!!!!! NO CHILDS, OP-State changed!!!!!!!!!!!!")
                 self.callOpStateCbs(changedOpStateDetail)
             return rc.OK
         for child in self.childs.value:
+            print("!!!!!!!!! Sending CBL to Childs !!!!!!!!!!!!")
             child.setOpStateDetail(OP_CBL, publish)
         if publish:
+            print("!!!!!!!!! Sending CB to Childs !!!!!!!!!!!!")
             self.callOpStateCbs(changedOpStateDetail)
         return rc.OK
 
@@ -226,7 +232,6 @@ class systemState():
             assert self.childs.value != None
         except:
             return rc.OK
-
         if self.opStateDetail:
             for child in self.childs.value:
                 child.setOpStateDetail(OP_CBL)

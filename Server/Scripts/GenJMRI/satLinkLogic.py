@@ -25,7 +25,6 @@ import time
 import threading
 import traceback
 import xml.etree.ElementTree as ET
-import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
 from ui import *
@@ -70,41 +69,61 @@ from config import *
 class satLink(systemState, schema):
     def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
         self.win = win
+        self.parentItem = parentItem
+        self.parent = parentItem.getObj()
         self.demo = demo
-        self.rpcClient = rpcClient
-        self.mqttClient = mqttClient
         self.schemaDirty = False
-        systemState.__init__(self)
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
         self.appendSchema(schema.SAT_LINK_SCHEMA)
         self.appendSchema(schema.ADM_STATE_SCHEMA)
         self.appendSchema(schema.CHILDS_SCHEMA)
-        self.parentItem = parentItem
-        self.parent = parentItem.getObj()
+        self.rpcClient = rpcClient
+        self.mqttClient = mqttClient
         self.satelites.value = []
         self.childs.value = self.satelites.candidateValue
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE_LINK, displayIcon=LINK_ICON)
-        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
-        self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.win.inactivateMoMObj(self.item)
-        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.satLinkSystemName.value = name
         else:
             self.satLinkSystemName.value = "GJSL-NewSatLinkSysName"
         self.nameKey.value = "SatLink-" + self.satLinkSystemName.candidateValue
         self.userName.value = "GJSL-NewSatLinkUsrName"
-        self.satLinkNo.value = 0
         self.description.value = "New Satelite link"
-        trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
+        self.satLinkNo.value = 0
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE_LINK, displayIcon=LINK_ICON)
+        self.NOT_CONNECTEDalarm = alarm()
+        self.NOT_CONNECTEDalarm.type = "CONNECTION STATUS"
+        self.NOT_CONNECTEDalarm.src = self.nameKey.value
+        self.NOT_CONNECTEDalarm.criticality = ALARM_CRITICALITY_A
+        self.NOT_CONNECTEDalarm.sloganDescription = "Satelite link reported disconnected"
+        self.NOT_CONFIGUREDalarm = alarm()
+        self.NOT_CONFIGUREDalarm.type = "CONFIGURATION STATUS"
+        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
+        self.NOT_CONFIGUREDalarm.criticality = ALARM_CRITICALITY_A
+        self.NOT_CONFIGUREDalarm.sloganDescription = "Satelite link has not received a valid configuration"
+        self.INT_FAILalarm = alarm()
+        self.INT_FAILalarm.type = "INTERNAL FAILURE"
+        self.INT_FAILalarm.src = self.nameKey.value
+        self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
+        self.INT_FAILalarm.sloganDescription = "Satelite link has experienced an internal error"
+        self.CBLalarm = alarm()
+        self.CBLalarm.type = "CONTROL-BLOCK STATUS"
+        self.CBLalarm.src = self.nameKey.value
+        self.CBLalarm.criticality = ALARM_CRITICALITY_C
+        self.CBLalarm.sloganDescription = "Parent object blocked resulting in a control-block of this object"
+        systemState.__init__(self)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         self.commitAll()
         self.clearStats()
         if self.demo:
             self.logStatsProducer = threading.Thread(target=self.__demoStatsProducer)
             self.logStatsProducer.start()
-            for i in range(SATLINK_MAX_SATS):
+            for i in range(0, MAX_SATS):
                 self.addChild(SATELITE, name="GJS-" + str(i), config=False, demo=True)
+        trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -392,6 +411,14 @@ class satLink(systemState, schema):
         #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value, self.__onStats)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value, self.__onStats)
         self.mqttClient.subscribeTopic(self.satLinkOpUpStreamTopic, self.__onDecoderOpStateChange)
+        self.NOT_CONNECTEDalarm.src = self.nameKey.value
+        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
+        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
+        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
+        self.INT_FAILalarm.src = self.nameKey.value
+        self.INT_FAILalarm.updateAlarmMetaData()
+        self.CBLalarm.src = self.nameKey.value
+        self.CBLalarm.updateAlarmMetaData()
         return rc.OK
 
     def __sysStateRespondListener(self, changedOpStateDetail):
@@ -403,7 +430,7 @@ class satLink(systemState, schema):
                 self.mqttClient.publish(self.satLinkAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-        #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP State - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
             self.win.inactivateMoMObj(self.item)
@@ -413,7 +440,28 @@ class satLink(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
-        # ADD TO ALARM LIST - LATER
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.NOT_CONNECTEDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            return
+        if opStateDetail & OP_INIT[STATE]:
+            self.NOT_CONNECTEDalarm.raiseAlarm("Satelite link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
+        else:
+            self.NOT_CONNECTEDalarm.ceaseAlarm("Satelite link has now successfully connected")
+        if (opStateDetail & OP_UNCONFIGURED[STATE]):
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Satelite link has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
+        else:
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("Satelite link is now successfully configured")
+        if (opStateDetail & OP_INTFAIL[STATE]):
+            self.INT_FAILalarm.raiseAlarm("Satelite link is experiencing an internal error")
+        else:
+            self.INT_FAILalarm.ceaseAlarm("Satelite link is no longer experiencing any internal errors")
+        if (opStateDetail & OP_CBL[STATE]):
+            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
+        else:
+            self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
         return
 
     def __onDecoderOpStateChange(self, topic, value):

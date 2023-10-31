@@ -20,10 +20,10 @@
 #################################################################################################################################################
 # Dependencies
 #################################################################################################################################################
-from ast import Try
+#from ast import Try
 import os
 import sys
-from this import s
+#from this import s
 import time
 import threading
 import traceback
@@ -100,8 +100,8 @@ class decoder(systemState, schema):
             self.decoderSystemName.value = name
         else:
             self.decoderSystemName.value = "GJD-NewDecoderSysName"
-        self.userName.value = "GJD-NewDecoderUsrName"
         self.nameKey.value = "Decoder-" + self.decoderSystemName.candidateValue
+        self.userName.value = "GJD-NewDecoderUsrName"
         self.decoderMqttURI.value = "no.valid.uri"
         self.mac.value = "00:00:00:00:00:00"
         self.description.value = "New decoder"
@@ -130,7 +130,7 @@ class decoder(systemState, schema):
         self.INT_FAILalarm.type = "INTERNAL FAILURE"
         self.INT_FAILalarm.src = self.nameKey.value
         self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
-        self.INT_FAILalarm.sloganDescription = "Client-side has reported missing keep-live messages from server"
+        self.INT_FAILalarm.sloganDescription = "Decoder has experienced an internal error"
         self.CBLalarm = alarm()
         self.CBLalarm.type = "CONTROL-BLOCK STATUS"
         self.CBLalarm.src = self.nameKey.value
@@ -144,13 +144,13 @@ class decoder(systemState, schema):
         self.missedPingReq = 0
         self.supervisionActive = False
         self.restart = True
-        trace.notify(DEBUG_INFO,"New decoder: " + self.nameKey.candidateValue + " created - awaiting configuration")
         self.commitAll()
         if self.demo:
             for i in range(DECODER_MAX_LG_LINKS):
                 self.addChild(LIGHT_GROUP_LINK, name="GJLL-" + str(i), config=False, demo=True)
             for i in range(DECODER_MAX_SAT_LINKS):
                 self.addChild(SATELITE_LINK, name=i, config=False, demo=True)
+        trace.notify(DEBUG_INFO,"New decoder: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -477,17 +477,17 @@ class decoder(systemState, schema):
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIGREQ_TOPIC + self.decoderMqttURI.value, self.__onDecoderConfigReq)
         self.mqttClient.subscribeTopic(self.decoderOpUpStreamTopic, self.__onDecoderOpStateChange)
         self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        alarm.updateAlarmMetaData(self.NOT_CONNECTEDalarm)
+        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
         self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        alarm.updateAlarmMetaData(self.NOT_CONFIGUREDalarm)
+        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
         self.SERVER_UNAVAILalarm.src = self.nameKey.value
-        alarm.updateAlarmMetaData(self.SERVER_UNAVAILalarm)
+        self.SERVER_UNAVAILalarm.updateAlarmMetaData()
         self.CLIENT_UNAVAILalarm.src = self.nameKey.value
-        alarm.updateAlarmMetaData(self.CLIENT_UNAVAILalarm)
+        self.CLIENT_UNAVAILalarm.updateAlarmMetaData()
         self.INT_FAILalarm.src = self.nameKey.value
-        alarm.updateAlarmMetaData(self.INT_FAILalarm)
+        self.INT_FAILalarm.updateAlarmMetaData()
         self.CBLalarm.src = self.nameKey.value
-        alarm.updateAlarmMetaData(self.CBLalarm)
+        self.CBLalarm.updateAlarmMetaData()
         if self.getAdmState() == ADM_ENABLE:
             self.__startSupervision()
         return rc.OK
@@ -524,14 +524,14 @@ class decoder(systemState, schema):
             self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
             self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
             return
-        if (opStateDetail & OP_INIT[STATE]) or (opStateDetail & OP_DISCONNECTED[STATE]) or (opStateDetail & OP_NOIP[STATE]) or (opStateDetail & OP_NOIP[STATE]) or (opStateDetail & OP_UNDISCOVERED[STATE]):
-            self.NOT_CONNECTEDalarm.raiseAlarm("The object has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
+        if (opStateDetail & OP_INIT[STATE]) or (opStateDetail & OP_DISCONNECTED[STATE]) or (opStateDetail & OP_NOIP[STATE]) or (opStateDetail & OP_UNDISCOVERED[STATE]):
+            self.NOT_CONNECTEDalarm.raiseAlarm("Decoder has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
         else:
-            self.NOT_CONNECTEDalarm.ceaseAlarm("The object has now successfully connected")
+            self.NOT_CONNECTEDalarm.ceaseAlarm("Decoder has now successfully connected")
         if (opStateDetail & OP_UNCONFIGURED[STATE]):
-            self.NOT_CONFIGUREDalarm.raiseAlarm("The object has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Decoder has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
         else:
-            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is now successfully configured")
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("Decoder is now successfully configured")
         if (opStateDetail & OP_SERVUNAVAILABLE[STATE]):
             self.SERVER_UNAVAILalarm.raiseAlarm("The server is missing keep-alive ping continuity messages from the client")
         else:
@@ -541,9 +541,9 @@ class decoder(systemState, schema):
         else:
             self.CLIENT_UNAVAILalarm.ceaseAlarm("The client is now receiving keep-alive ping continuity messages from the server")
         if (opStateDetail & OP_INTFAIL[STATE]):
-            self.INT_FAILalarm.raiseAlarm("The object is experiencing an internal error")
+            self.INT_FAILalarm.raiseAlarm("Decoder is experiencing an internal error")
         else:
-            self.INT_FAILalarm.ceaseAlarm("The object is no longer experiencing any internal errors")
+            self.INT_FAILalarm.ceaseAlarm("Decoder is no longer experiencing any internal errors")
         if (opStateDetail & OP_CBL[STATE]):
             self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
         else:

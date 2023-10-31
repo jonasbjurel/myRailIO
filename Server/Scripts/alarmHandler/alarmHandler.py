@@ -165,16 +165,21 @@ class alarmHandler:
         with alarmHandler._alarmHandlerLock:
             try:
                 alarmHandler._activeSrcs.index(p_alarmObj.src)
+                print(">>>>>>>>>> Alarm object already in active src list")
             except:
+                print(">>>>>>>>>> Apending Alarm object to active src list")
                 alarmHandler._activeSrcs.append(p_alarmObj.src)
                 alarmHandler._activeSrcs.sort()
             for alarmObjItter in alarmHandler._activeAlarms[p_alarmObj.criticality]:
                 if alarmObjItter._globalAlarmClassObjUid == p_alarmObj._globalAlarmClassObjUid:
+                    print(">>>>>>>>>> Alarm object already in active list")
                     return 0
             alarmHandler._globalAlarmInstanceUid += 1
             p_alarmObj._globalAlarmInstanceUid = alarmHandler._globalAlarmInstanceUid
+            print(">>>>>>>>>> Appending Alarm object to active list")
+
             alarmHandler._activeAlarms[p_alarmObj.criticality].append(p_alarmObj)
-            alarmHandler._alarmObjHistory[p_alarmObj._globalAlarmClassObjUid].append(deepcopy(p_alarmObj))
+            alarmHandler._alarmObjHistory[p_alarmObj._globalAlarmClassObjUid - 1].append(deepcopy(p_alarmObj))
         alarmHandler._sendCb(p_alarmObj.criticality)
         return alarmHandler._globalAlarmInstanceUid
 
@@ -191,7 +196,7 @@ class alarmHandler:
                     alarmHandler._ceasedAlarms[p_alarmObj.criticality].append(p_alarmObj)
                     break
             found = False
-            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C):
+            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C + 1):
                 for alarmObjItter in alarmHandler._activeAlarms[criticalityItter]:
                     if alarmObjItter.src == p_alarmObj.src:
                         found = True
@@ -203,18 +208,20 @@ class alarmHandler:
 
     def _updateAlarmMetaData(p_alarmObj):
         with alarmHandler._alarmHandlerLock:
-            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C):
+            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C + 1):
                 for alarmObjItter in range(0, len(alarmHandler._activeAlarms[criticalityItter])):
                     if alarmHandler._activeAlarms[criticalityItter][alarmObjItter]._globalAlarmClassObjUid == p_alarmObj._globalAlarmClassObjUid:
                         alarmHandler._activeAlarms[criticalityItter][alarmObjItter].src = p_alarmObj.src
                         alarmHandler._activeAlarms[criticalityItter][alarmObjItter].sloganDescription = p_alarmObj.sloganDescription
-                        alarmHandler._activeAlarms[criticalityItter][alarmObjItter].contextDescription = p_alarmObj.contextDescription
+                        alarmHandler._activeAlarms[criticalityItter][alarmObjItter].contextRaiseReason = p_alarmObj.contextRaiseReason
+                        alarmHandler._activeAlarms[criticalityItter][alarmObjItter].contextCeaseReason = p_alarmObj.contextCeaseReason
                         return
                 for alarmObjItter in range(0, len(alarmHandler._ceasedAlarms[criticalityItter])):
                     if alarmHandler._ceasedAlarms[criticalityItter][alarmObjItter]._globalAlarmClassObjUid == p_alarmObj._globalAlarmClassObjUid:
                         alarmHandler._ceasedAlarms[criticalityItter][alarmObjItter].src = p_alarmObj.src
                         alarmHandler._ceasedAlarms[criticalityItter][alarmObjItter].sloganDescription = p_alarmObj.sloganDescription
-                        alarmHandler._ceasedAlarms[criticalityItter][alarmObjItter].contextDescription = p_alarmObj.contextDescription
+                        alarmHandler._ceasedAlarms[criticalityItter][alarmObjItter].contextRaiseReason = p_alarmObj.contextRaiseReason
+                        alarmHandler._ceasedAlarms[criticalityItter][alarmObjItter].contextCeaseReason = p_alarmObj.contextCeaseReason
                         return
 
     def getNoOfActiveAlarms(p_criticality):
@@ -226,20 +233,29 @@ class alarmHandler:
             return alarmHandler._activeAlarms[p_criticality]
 
     def getActiveAlarmListTimeOrder():
+        print(">>>>>>>>>>>>>>>>>>>>>>>>get active list in time order")
         with alarmHandler._alarmHandlerLock:
             alarmTimeOrder = []
-            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C):
+            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C + 1):
+                print(">>>>>>>>>>>>> Itterating criticality: " + str(criticalityItter))
+                print(">>>>>>>>>>>>>>>>>> Active alarm list for criticality: " + str(alarmHandler._activeAlarms[criticalityItter]))
                 for alarmObjItter in alarmHandler._activeAlarms[criticalityItter]:
                     if len(alarmTimeOrder) == 0:
+                        print(">>>>>>>>>>> Appending first time order")
                         alarmTimeOrder.append(alarmObjItter)
                     else:
                         for alarmTimeOrderItter in range(0, len(alarmTimeOrder) + 1):
                             if alarmTimeOrderItter == len(alarmTimeOrder):
+                                print(">>>>>>>>>>> Appending to the end of time order")
                                 alarmTimeOrder.append(alarmObjItter)
                                 break
                             if alarmObjItter._raiseEpochTime < alarmTimeOrder[alarmTimeOrderItter]._raiseEpochTime:
+                                print(">>>>>>>>>>> Inserting at: " + str(alarmTimeOrderItter) + " of time order")
                                 alarmTimeOrder.insert(alarmTimeOrderItter, alarmObjItter)
                                 break
+            print(">>>>>>>>>>>>Resulting time-order")
+            for timeItter in alarmTimeOrder:
+                print(timeItter._globalAlarmInstanceUid)
             return alarmTimeOrder
 
     def getCeasedAlarmListPerCriticality(p_criticality):
@@ -249,7 +265,7 @@ class alarmHandler:
     def getCeasedAlarmListTimeOrder(p_ceaseTimeOrder = False):
         with alarmHandler._alarmHandlerLock:
             alarmTimeOrder = []
-            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C):
+            for criticalityItter in range(ALARM_CRITICALITY_A, ALARM_CRITICALITY_C + 1):
                 for alarmObjItter in alarmHandler._ceasedAlarms[criticalityItter]:
                     if len(alarmTimeOrder) == 0:
                         alarmTimeOrder.append(alarmObjItter)
@@ -362,7 +378,9 @@ class alarm:
         self._globalAlarmClassObjUid = alarmHandler._regGlobalAlarmClassObjUid()
 
     def raiseAlarm(self, p_contextDescription = ""):
+        print(">>>>>>>>>>>>>>>>>>Raising alarm type: " + self.type + " with criticality: " + str(self.criticality))
         if self._active:
+            print(">>>>>>>>>>>>>>>Is active - doing nothing")
             return
         self._active = True
         self._raiseUtcTime = datetime.utcnow().strftime('UTC: %Y-%m-%d %H:%M:%S.%f')
@@ -373,6 +391,7 @@ class alarm:
         self._globalAlarmInstanceUid = alarmHandler._raiseAlarm(self)
 
     def ceaseAlarm(self, p_contextDescription = ""):
+        print(">>>>>>>>>>>>>>>>>>Ceasing alarm")
         if not self._active:
             return
         self._active = False
@@ -511,6 +530,7 @@ class alarmTableModel(QtCore.QAbstractTableModel):
         self._reLoadData()
 
     def _reLoadData(self):
+        self._parent.proxymodel.beginResetModel()
         self.beginResetModel()
         self._alarmTable = self.formatAlarmTable(self._alarmHistory, self._criticality, self._srcFilter, self._freeSearchFilter)
         try:
@@ -519,6 +539,9 @@ class alarmTableModel(QtCore.QAbstractTableModel):
             self._colCnt = 0
         self._rowCnt = len(self._alarmTable)
         self.endResetModel()
+        self._parent.proxymodel.endResetModel()
+        self._parent.proxymodel.invalidate()
+
         self._parent.alarmsTableView.resizeColumnsToContents()
         self._parent.alarmsTableView.resizeRowsToContents()
 
@@ -538,6 +561,7 @@ class alarmTableModel(QtCore.QAbstractTableModel):
             if p_srcFilter != "*" and alarmListItter.src != p_srcFilter:
                 continue
             row = []
+            print("############### instance: " + str(alarmListItter._globalAlarmInstanceUid))
             row.append(str(alarmListItter._globalAlarmInstanceUid))
             if alarmListItter.criticality == ALARM_CRITICALITY_A:
                 row.append("A")

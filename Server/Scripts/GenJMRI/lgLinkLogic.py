@@ -63,25 +63,19 @@ from config import *
 class lgLink(systemState, schema):
     def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
         self.win = win
+        self.parentItem = parentItem
+        self.parent = parentItem.getObj()
         self.demo = demo
-        self.rpcClient = rpcClient
-        self.mqttClient = mqttClient
         self.schemaDirty = False
-        systemState.__init__(self)
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
         self.appendSchema(schema.LG_LINK_SCHEMA)
         self.appendSchema(schema.ADM_STATE_SCHEMA)
         self.appendSchema(schema.CHILDS_SCHEMA)
-        self.parentItem = parentItem
-        self.parent = parentItem.getObj()
+        self.rpcClient = rpcClient
+        self.mqttClient = mqttClient
         self.lightGroups.value = []
         self.childs.value = self.lightGroups.candidateValue
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
-        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
-        self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.win.inactivateMoMObj(self.item)
-        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         if name:
             self.lgLinkSystemName.value = name
         else:
@@ -92,11 +86,37 @@ class lgLink(systemState, schema):
         self.lgLinkNo.value = 0
         self.mastDefinitionPath.value = "C:\\Program Files (x86)\\JMRI\\xml\\signals\\Sweden-3HMS"
         self.mastTypes = []
-        trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
+        self.NOT_CONNECTEDalarm = alarm()
+        self.NOT_CONNECTEDalarm.type = "CONNECTION STATUS"
+        self.NOT_CONNECTEDalarm.src = self.nameKey.value
+        self.NOT_CONNECTEDalarm.criticality = ALARM_CRITICALITY_A
+        self.NOT_CONNECTEDalarm.sloganDescription = "Light-group link reported disconnected"
+        self.NOT_CONFIGUREDalarm = alarm()
+        self.NOT_CONFIGUREDalarm.type = "CONFIGURATION STATUS"
+        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
+        self.NOT_CONFIGUREDalarm.criticality = ALARM_CRITICALITY_A
+        self.NOT_CONFIGUREDalarm.sloganDescription = "Light-group link has not received a valid configuration"
+        self.INT_FAILalarm = alarm()
+        self.INT_FAILalarm.type = "INTERNAL FAILURE"
+        self.INT_FAILalarm.src = self.nameKey.value
+        self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
+        self.INT_FAILalarm.sloganDescription = "Light-group link has experienced an internal error"
+        self.CBLalarm = alarm()
+        self.CBLalarm.type = "CONTROL-BLOCK STATUS"
+        self.CBLalarm.src = self.nameKey.value
+        self.CBLalarm.criticality = ALARM_CRITICALITY_C
+        self.CBLalarm.sloganDescription = "Parent object blocked resulting in a control-block of this object"
+        systemState.__init__(self)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         self.commitAll()
         if self.demo:
             for i in range(8):
                 self.addChild(LIGHT_GROUP, name="GJLG-"+str(i), config=False, demo=True)
+        trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -391,6 +411,14 @@ class lgLink(systemState, schema):
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         #self.mqttClient.unsubscribeTopic(self.lgLinkOpUpStreamTopic, self.__onDecoderOpStateChange)
         self.mqttClient.subscribeTopic(self.lgLinkOpUpStreamTopic, self.__onDecoderOpStateChange)
+        self.NOT_CONNECTEDalarm.src = self.nameKey.value
+        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
+        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
+        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
+        self.INT_FAILalarm.src = self.nameKey.value
+        self.INT_FAILalarm.updateAlarmMetaData()
+        self.CBLalarm.src = self.nameKey.value
+        self.CBLalarm.updateAlarmMetaData()
         return rc.OK
 
     def __sysStateRespondListener(self, changedOpStateDetail):
@@ -402,7 +430,7 @@ class lgLink(systemState, schema):
                 self.mqttClient.publish(self.lgLinkAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
     def __sysStateAllListener(self, changedOpStateDetail):
-#        trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP State - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
             self.win.inactivateMoMObj(self.item)
@@ -412,7 +440,28 @@ class lgLink(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
-        # ADD TO ALARM LIST - LATER
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.NOT_CONNECTEDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            return
+        if opStateDetail & OP_INIT[STATE]:
+            self.NOT_CONNECTEDalarm.raiseAlarm("Light-group link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
+        else:
+            self.NOT_CONNECTEDalarm.ceaseAlarm("Light-group link has now successfully connected")
+        if (opStateDetail & OP_UNCONFIGURED[STATE]):
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Light-group link has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
+        else:
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("Light-group link is now successfully configured")
+        if (opStateDetail & OP_INTFAIL[STATE]):
+            self.INT_FAILalarm.raiseAlarm("Light-group link is experiencing an internal error")
+        else:
+            self.INT_FAILalarm.ceaseAlarm("Light-group link is no longer experiencing any internal errors")
+        if (opStateDetail & OP_CBL[STATE]):
+            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
+        else:
+            self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
         return
 
     def __onDecoderOpStateChange(self, topic, value):

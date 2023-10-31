@@ -74,35 +74,57 @@ from config import *
 class sensor(systemState, schema):
     def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
         self.win = win
+        self.parentItem = parentItem
+        self.parent = parentItem.getObj()
         self.demo = demo
-        self.rpcClient = rpcClient
-        self.mqttClient = mqttClient
         self.schemaDirty = False
-        systemState.__init__(self)
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
         self.appendSchema(schema.SENS_SCHEMA)
         self.appendSchema(schema.ADM_STATE_SCHEMA)
         self.appendSchema(schema.CHILDS_SCHEMA)
-        self.parentItem = parentItem
-        self.parent = parentItem.getObj()
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SENSOR, displayIcon=SENSOR_ICON)
-        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
-        self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.win.inactivateMoMObj(self.item)
-        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
+        self.rpcClient = rpcClient
+        self.mqttClient = mqttClient
         if name:
             self.jmriSensSystemName.value = name
         else:
             self.jmriSensSystemName.value = "MS-NewSensSysName"
         self.nameKey.value = "Sens-" + self.jmriSensSystemName.candidateValue
         self.userName.value = "MS-NewSensUsrName"
+        self.description.value = "MS-NewSensDescription"
         self.sensPort.value = 0
         self.sensType.value = "DIGITAL"
         self.sensState = "INACTIVE"
-        self.description.value = "MS-NewSensDescription"
-        trace.notify(DEBUG_INFO,"New Sensor: " + self.nameKey.candidateValue + " created - awaiting configuration")
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SENSOR, displayIcon=SENSOR_ICON)
+        self.NOT_CONNECTEDalarm = alarm()
+        self.NOT_CONNECTEDalarm.type = "CONNECTION STATUS"
+        self.NOT_CONNECTEDalarm.src = self.nameKey.value
+        self.NOT_CONNECTEDalarm.criticality = ALARM_CRITICALITY_A
+        self.NOT_CONNECTEDalarm.sloganDescription = "Sensor reported disconnected"
+        self.NOT_CONFIGUREDalarm = alarm()
+        self.NOT_CONFIGUREDalarm.type = "CONFIGURATION STATUS"
+        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
+        self.NOT_CONFIGUREDalarm.criticality = ALARM_CRITICALITY_A
+        self.NOT_CONFIGUREDalarm.sloganDescription = "Sensor has not received a valid configuration"
+        self.INT_FAILalarm = alarm()
+        self.INT_FAILalarm.type = "INTERNAL FAILURE"
+        self.INT_FAILalarm.src = self.nameKey.value
+        self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
+        self.INT_FAILalarm.sloganDescription = "Sensor has experienced an internal error"
+        self.CBLalarm = alarm()
+        self.CBLalarm.type = "CONTROL-BLOCK STATUS"
+        self.CBLalarm.src = self.nameKey.value
+        self.CBLalarm.criticality = ALARM_CRITICALITY_C
+        self.CBLalarm.sloganDescription = "Parent object blocked resulting in a control-block of this object"
+        systemState.__init__(self)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.win.inactivateMoMObj(self.item)
+        self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         self.commitAll()
+        trace.notify(DEBUG_INFO,"New Sensor: " + self.nameKey.candidateValue + " created - awaiting configuration")
+
+# NEDAN MÅSTE FIXAS - FINS INGEN REFERENS TILL self.sensTopic - kanske måste subscribas för att få status parrallelt med direktkanalen till JMRI?
         self.sensTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
 
     def onXmlConfig(self, xmlConfig):
@@ -297,6 +319,14 @@ class sensor(systemState, schema):
         self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.mqttClient.subscribeTopic(self.sensOpUpStreamTopic, self.__onDecoderOpStateChange)
+        self.NOT_CONNECTEDalarm.src = self.nameKey.value
+        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
+        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
+        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
+        self.INT_FAILalarm.src = self.nameKey.value
+        self.INT_FAILalarm.updateAlarmMetaData()
+        self.CBLalarm.src = self.nameKey.value
+        self.CBLalarm.updateAlarmMetaData()
         return rc.OK
 
     def __senseChangeListener(self, event):
@@ -322,6 +352,28 @@ class sensor(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)        # ADD TO ALARM LIST - LATER
+        if opStateDetail & OP_DISABLED[STATE]:
+            self.NOT_CONNECTEDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
+            return
+        if opStateDetail & OP_INIT[STATE]:
+            self.NOT_CONNECTEDalarm.raiseAlarm("Sensor has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
+        else:
+            self.NOT_CONNECTEDalarm.ceaseAlarm("Sensor has now successfully connected")
+        if (opStateDetail & OP_UNCONFIGURED[STATE]):
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Sensor has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
+        else:
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("Sensor is now successfully configured")
+        if (opStateDetail & OP_INTFAIL[STATE]):
+            self.INT_FAILalarm.raiseAlarm("Sensorp is experiencing an internal error")
+        else:
+            self.INT_FAILalarm.ceaseAlarm("Sensor is no longer experiencing any internal errors")
+        if (opStateDetail & OP_CBL[STATE]):
+            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
+        else:
+            self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
         return
 
     def __onDecoderOpStateChange(self, topic, value):

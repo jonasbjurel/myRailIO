@@ -662,7 +662,7 @@ class UI_alarmShowDialog(QDialog):
         self.alarmsTableView.setSortingEnabled(True)
         alarmHandler.regAlarmCb(ALARM_CRITICALITY_A , self._onAlarm)
         alarmHandler.regAlarmCb(ALARM_CRITICALITY_B , self._onAlarm)
-        alarmHandler.regAlarmCb(ALARM_CRITICALITY_A , self._onAlarm)
+        alarmHandler.regAlarmCb(ALARM_CRITICALITY_C , self._onAlarm)
         self._rePopulateSrcFilters()
         self.connectWidgetSignalsSlots()
          
@@ -781,6 +781,7 @@ class UI_alarmShowDialog(QDialog):
             self.fileName = fileName
 
     def _onAlarm(self, p_criticality, p_noOfAlarms, p_metaData):
+        print(">>>>>>>>>>>>>> UI got an alarm with severity: " + str(p_criticality))
         self._rePopulateSrcFilters()
 
 
@@ -805,7 +806,7 @@ class UI_individualAlarmShowDialog(QDialog):
         if alarm == None:
             historyAlarmTable = self.parent.alarmTableModel.formatAlarmTable(True, ALARM_ALL_CRITICALITY, "*", "*", p_verbosity = True)
             for alarmItter in historyAlarmTable:
-                if alarmItter[0] == alarmInstanceId:
+                if alarmItter[self.parent.alarmTableModel.instanceIdCol(True)] == alarmInstanceId:
                     alarm = alarmItter
                     break
         self.sloganTextEdit.setText(alarm[self.parent.alarmTableModel.sloganCol(True)])
@@ -826,26 +827,23 @@ class UI_individualAlarmShowDialog(QDialog):
         self.ceaseTimeTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseTimeUtcCol(True)])
         self.ceaseTimeEpochTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseTimeEpochCol(True)])
         self.ceaseReasonTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseReasonCol(True)])
-        self.occuranceTextEdit.setText(str(len(alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)])])))
-
-
+        self.occuranceTextEdit.setText(str(len(alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1]))) # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
         index = 0
-        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[14])]:
-            if alarmItter.getGlobalAlarmInstanceUid() == int(alarm[0]):
+        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1]: # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
+            if alarmItter.getGlobalAlarmInstanceUid() == int(alarm[self.parent.alarmTableModel.instanceIdCol(True)]):
                 break
             index += 1
         if index > 0:
-            self.prevOccuranceTextEdit.setText(alarmHandler.getAlarmObjHistory()[int(alarm[14])][index - 1].getRaiseUtcTime())
+            self.prevOccuranceTextEdit.setText(alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1][index - 1].getRaiseUtcTime()) # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
         else:
             self.prevOccuranceTextEdit.setText("-")
         oneHBack = (datetime.utcnow() - timedelta(hours = 1)).strftime('UTC: %Y-%m-%d %H:%M:%S.%f')
         occurances = 0
-        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[14])]:
+        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1]: # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
             if alarmItter.getRaiseUtcTime() < oneHBack:
                 break
             occurances += 1
         self.intencityTextEdit.setText(str(occurances))
-
         if alarm[2] == "False":
             self.alarmPushButton.setIcon(QIcon(NO_ALARM_ICON))
             return

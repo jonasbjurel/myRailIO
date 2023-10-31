@@ -478,7 +478,7 @@ class topDecoder(systemState, schema):
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True, onlyIncludeThisChild=False):
-            trace.notify(DEBUG_TERSE, "Providing top decoder over arching decoder .xml configuration")
+            trace.notify(DEBUG_TERSE, "Providing top decoder over arching .xml configuration")
             topXml = ET.Element("genJMRI")
             if not decoder:
                 childXml = ET.SubElement(topXml, "Author")
@@ -737,7 +737,6 @@ class topDecoder(systemState, schema):
         pass
 
     def __sysStateListener(self, changedOpStateDetail):
-        print(">>>>>>>>>>> TOP DECODER GOT A NEW SYSSTATE >>>>>>>>>>>>>>")
         trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
