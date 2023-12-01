@@ -15,7 +15,9 @@
 import os
 import sys
 import time
+import threading
 import paho.mqtt.client as pahomqtt
+from config import *
 import imp
 imp.load_source('myTrace', '..\\trace\\trace.py')
 from myTrace import *
@@ -32,6 +34,8 @@ class mqtt(pahomqtt.Client):
     def __init__(self, URL, port=1883, keepalive=60, onConnectCb=None, onDisconnectCb=None, clientId="genJMRI"):
         trace.notify(DEBUG_INFO, "Starting and connecting MQTT client: " + clientId + " towards MQTT end-point " + URL + ":" + str(port))
         self.active = True
+        self.retry = False
+        self.retries = 0
         self.subscriptions = {}
         self.onConnectCb = onConnectCb
         self.onDisconnectCb = onDisconnectCb 
@@ -45,7 +49,10 @@ class mqtt(pahomqtt.Client):
         self.on_disconnect = self.__on_disconnect
         self.on_message = self.__on_message
         self.connected = False
-        self.connect(self.URL, self.port, self.keepalive)
+        try:
+            self.connect(self.URL, self.port, self.keepalive)
+        except:
+            trace.notify(DEBUG_ERROR, "MQTT client: " + clientId + " could not connect to broker")
         self.loop_start()
         trace.notify(DEBUG_INFO, "MQTT client: " + clientId + " started")
 
@@ -55,20 +62,23 @@ class mqtt(pahomqtt.Client):
         self.keepalive = keepalive
         if onConnectCb: self.onConnectCb = onConnectCb
         if onDisconnectCb: self.onDisconnectCb = onDisconnectCb
-        if clientId: self.clientId = clientId
-        trace.notify(DEBUG_INFO, "Restarting and MQTT client: " + clientId + " towards MQTT end-point " + URL + ":" + str(port))
+        if clientId == None: 
+            self.clientId = clientId
+            self.reinitialise(self.clientId)
+        trace.notify(DEBUG_INFO, "Restarting MQTT client: " + self.clientId + " towards MQTT end-point " + URL + ":" + str(self.port))
         self.active = False
+        self._stopRetryConnect()
         self.disconnect()
         while self.connected:
             time.sleep(0.1)
         self.loop_stop()
         self.active = True
-        self.connect(self.URL, self.port, self.keepalive)
+        try:
+            self.connect(self.URL, self.port, self.keepalive)
+        except:
+            trace.notify(DEBUG_ERROR, "MQTT client: " + self.clientId + " could not connect to broker")
+            self.__on_connect(None, None, None, pahomqtt.MQTT_ERR_NO_CONN)
         self.loop_start()
-        while not self.connected:
-            time.sleep(0.1)
-        for topic in self.subscriptions:
-            self.subscribe(topic, qos=0)
         trace.notify(DEBUG_INFO, "MQTT client restarted")
 
     def setTopicPrefix(self, topicPrefix):
@@ -121,9 +131,13 @@ class mqtt(pahomqtt.Client):
             self.onConnectCb(self, self.clientId, rc)
         if rc != pahomqtt.MQTT_ERR_SUCCESS:
             trace.notify(DEBUG_ERROR, "MQTT client: " + self.clientId + " could not connect to: " + " MQTT end-point " + self.URL + ":" + str(self.port) + " Error code: " + str(rc))
+            self._retryConnect()
         else:
             trace.notify(DEBUG_INFO, "MQTT client: " + self.clientId + " connected to: " + " MQTT end-point " + self.URL + ":" + str(self.port))
             self.connected = True
+            for topic in self.subscriptions:
+                self.unsubscribe(topic)
+                self.subscribe(topic, qos=0)
 
     def __on_disconnect(self, client, userdata, rc):
         self.connected = False
@@ -145,6 +159,34 @@ class mqtt(pahomqtt.Client):
             trace.notify(DEBUG_VERBOSE, "MQTT client: " + self.clientId + " is calling " + str(cb) + "with MQTT message: " + message.topic + ":" + str(message.payload))
             cb(message.topic, message.payload.decode("utf-8"))
 
+    def _retryConnect(self):
+        if not self.retry:
+            self.retry = True
+            threading.Timer(MQTT_RETRY_PERIOD_S, self._retryConnectLoop).start()
+
+    def _stopRetryConnect(self):
+        self.retry = False
+        self.retries = 0
+
+    def _retryConnectLoop(self):
+        self.retries += 1
+        if self.retry:
+            if not self.connected:
+                if self.retries < 2:
+                    try:
+                        self.connect(self.URL, self.port, self.keepalive)
+                    except:
+                        trace.notify(DEBUG_ERROR, "MQTT client: " + self.clientId + " could not connect to broker, retrying...")
+                        self.__on_connect(None, None, None, pahomqtt.MQTT_ERR_NO_CONN)
+                else:
+                    trace.notify(DEBUG_INFO, "Waiting for MQTT client: " + self.clientId + " to connect...")
+
+                threading.Timer(MQTT_RETRY_PERIOD_S, self._retryConnectLoop).start()
+            else:
+                self.retry = False
+                self.retries = 0
+
     def __delete__(self):
         self.active = False
+        self._stopRetryConnect()
         self.loop_stop()

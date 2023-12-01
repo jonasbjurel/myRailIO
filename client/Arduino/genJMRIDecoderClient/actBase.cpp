@@ -38,7 +38,7 @@
 
 actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle), globalCli(ACTUATOR_MO_NAME, ACTUATOR_MO_NAME, p_actPort, p_satHandle) {
     asprintf(&logContextName, "%s/%s-%i", p_satHandle->getLogContextName(), "actBase", p_actPort);
-    LOG_INFO("%s: Creating actBase stem-object" CR, p_actPort, logContextName);
+    LOG_INFO("%s: Creating actBase stem-object" CR, logContextName);
     satHandle = p_satHandle;
     actPort = p_actPort;
     satAddr = satHandle->getAddr();

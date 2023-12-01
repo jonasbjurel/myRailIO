@@ -264,6 +264,7 @@
     <addaction name="actionConfiguration"/>
     <addaction name="actionVersions"/>
     <addaction name="actionAlarms"/>
+    <addaction name="actionAlarm_inventory"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -290,6 +291,8 @@
     <addaction name="actionSearch"/>
     <addaction name="separator"/>
     <addaction name="actiongitOpsVersions"/>
+    <addaction name="separator"/>
+    <addaction name="actionAlarm_inventory_2"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -523,6 +526,16 @@
   <action name="actionAlarms">
    <property name="text">
     <string>Alarms</string>
+   </property>
+  </action>
+  <action name="actionAlarm_inventory">
+   <property name="text">
+    <string>Alarm inventory</string>
+   </property>
+  </action>
+  <action name="actionAlarm_inventory_2">
+   <property name="text">
+    <string>Alarms inventory</string>
    </property>
   </action>
  </widget>

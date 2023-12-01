@@ -40,6 +40,9 @@ DEFAULT_GIT_TAG =                       "-"
 
 # Tunable default parameters - can be changed - but not exposed as managed objects
 DECODER_MAX_MISSED_PINGS =              3
+MQTT_CLIENT_ID =                        "genJMRIServer"
+MQTT_RETRY_PERIOD_S =                   1
+RPC_RETRY_PERIOD_S =                    1
 
 # System hardcoded parameters - not alterable without implementation design, or verification
 DECODER_MAX_LG_LINKS =                  2

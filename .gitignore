@@ -11,3 +11,4 @@ __pycache__/
 
 # Visual studio cache
 *.vs
+/Server/Scripts/alarmHandler.py

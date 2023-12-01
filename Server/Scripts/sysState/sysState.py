@@ -54,10 +54,15 @@ STATE =                     0                       # The op/admState value litt
 STATE_STR =                 1                       # The op/admState string
 STATE_DESC =                2                       # The op/admState description
 
+
+
 class systemState():
+    _sysStateTransactionId = 0
+
     def __init__(self):
         #self.parent = None
         self.opStateCbs = []
+        self.opStateTransactionIds = [0] * 16
         self.admState = ADM_ENABLE
         self.opStateSummary = OP_SUMMARY_AVAIL
         self.opStateDetail = OP_WORKING[STATE] # opStateDetail only holds the opState bit matrix
@@ -167,77 +172,103 @@ class systemState():
     def getOpStateDetail(self):
         return self.opStateDetail
 
-    def setOpStateDetail(self, opState, publish=True):
-        print("!!!!!!!!!!!!!!!!!Received a new OP-STATE!!!!!!!!!!!!!!!!!!!")
+    def setOpStateDetail(self, opState, publish = True, _p_sysStateTransactionId = None):
         if isinstance(opState, list):
             normOpState = opState[STATE]
         else:
             normOpState = opState
-        if normOpState & OP_CBL[STATE]:
-            print("!!!!!!!!!!!!!!!!!Received a CBL!!!!!!!!!!!!!!!!!!!!!!!!")
         prevOpStateDetail = self.opStateDetail
         self.opStateDetail = self.opStateDetail | normOpState
         changedOpStateDetail = self.opStateDetail ^ prevOpStateDetail
+        if (normOpState & OP_CBL[STATE]) and not (changedOpStateDetail & OP_CBL[STATE]):
+            try:
+                for child in self.childs.value:
+                    child.setOpStateDetail(OP_CBL, publish, _p_sysStateTransactionId)
+            except Exception as e:
+                pass
+        if publish:
+            self.callOpStateCbs(OP_CBL[STATE], _p_sysStateTransactionId)
         if not changedOpStateDetail:
-            print("!!!!!!!!!!!!! OP-State not changed !!!!!!!!!!!")
             return rc.OK
+        opStateModTransactionIds = []
+        for opStateItter in range(0, 16):
+            if 2**opStateItter != OP_CBL[STATE]:
+                if 2**opStateItter & changedOpStateDetail:
+                    systemState._sysStateTransactionId += 1
+                    self.opStateTransactionIds[opStateItter] = systemState._sysStateTransactionId
+                    opStateModTransactionIds.append(systemState._sysStateTransactionId)
+            else:
+                if 2**opStateItter & changedOpStateDetail:
+                    self.opStateTransactionIds[opStateItter] = _p_sysStateTransactionId
+                    opStateModTransactionIds.append(_p_sysStateTransactionId)
         self.opStateSummary = OP_SUMMARY_UNAVAIL
         try:
-            self.childs.value
-            print(self.childs.value)
-            assert self.childs.value != None
-        except:
-            if publish:
-                print("!!!!!!!!! NO CHILDS, OP-State changed!!!!!!!!!!!!")
-                self.callOpStateCbs(changedOpStateDetail)
-            return rc.OK
-        for child in self.childs.value:
-            print("!!!!!!!!! Sending CBL to Childs !!!!!!!!!!!!")
-            child.setOpStateDetail(OP_CBL, publish)
+            for child in self.childs.value:
+                for transactionItter in opStateModTransactionIds:
+                    child.setOpStateDetail(OP_CBL, publish, transactionItter)
+        except Exception as e:
+            pass
         if publish:
-            print("!!!!!!!!! Sending CB to Childs !!!!!!!!!!!!")
-            self.callOpStateCbs(changedOpStateDetail)
+            for opStateItter in range(0, 16):
+                if 2**opStateItter & changedOpStateDetail:
+                    self.callOpStateCbs(2**opStateItter & changedOpStateDetail, opStateModTransactionIds[0])
+                    opStateModTransactionIds.pop(0)
         return rc.OK
 
-    def unSetOpStateDetail(self, opState, publish=True):
+    def reSetOpStateDetail(self, opState):
+        for opStateItter in range(0, 16):
+            if 2**opStateItter & opState:
+                self.callOpStateCbs(opState, self.opStateTransactionIds[opStateItter])
+                return rc.OK
+
+    def unSetOpStateDetail(self, opState, publish = True):
         if isinstance(opState, list):
             normOpState = opState[STATE]
         else:
             normOpState = opState
-
         prevOpStateDetail = self.opStateDetail
         self.opStateDetail = self.opStateDetail & ~normOpState
         changedOpStateDetail = self.opStateDetail ^ prevOpStateDetail
         if not changedOpStateDetail:
             return rc.OK
+        opStateModTransactionIds = []
+        for opStateItter in range(0, 16):
+            if 2**opStateItter & changedOpStateDetail:
+                self.opStateTransactionIds[opStateItter] = self.opStateTransactionIds[opStateItter]
+                opStateModTransactionIds.append(self.opStateTransactionIds[opStateItter])
+                self.opStateTransactionIds[opStateItter] = 0
         if self.opStateDetail == OP_WORKING[STATE]:
             self.opStateSummary = OP_SUMMARY_AVAIL
             self.upTimeStart = time.time()
             try:
-                self.childs.value
-                assert self.childs.value != None
+                for child in self.childs.value:
+                    child.unSetOpStateDetail(OP_CBL, publish)
             except:
-                if publish:
-                    self.callOpStateCbs(changedOpStateDetail)
-                return rc.OK
-            for child in self.childs.value:
-                child.unSetOpStateDetail(OP_CBL, publish)
+                pass
         if publish:
-            self.callOpStateCbs(changedOpStateDetail)
+            for opStateItter in range(0, 16):
+                if 2**opStateItter & changedOpStateDetail:
+                    self.callOpStateCbs(2**opStateItter & changedOpStateDetail, opStateModTransactionIds[0])
+                    opStateModTransactionIds.pop(0)
         return rc.OK
 
     def reEvalOpState(self):
-        try:
-            self.childs.value
-            assert self.childs.value != None
-        except:
-            return rc.OK
+        opStateReplayTransactionIds = self.opStateTransactionIds
+        opStateReplayTransactionIds.sort()
         if self.opStateDetail:
-            for child in self.childs.value:
-                child.setOpStateDetail(OP_CBL)
+            try:
+                for replayTransactionItter in opStateReplayTransactionIds:
+                    if replayTransactionItter != 0:
+                        for child in self.childs.value:
+                            child.setOpStateDetail(OP_CBL, True, replayTransactionItter)
+            except:
+                return rc.OK
         else:
-            for child in self.childs.value:
-                child.unSetOpStateDetail(OP_CBL)
+            try:
+                for child in self.childs.value:
+                    child.unSetOpStateDetail(OP_CBL)
+            except:
+               return rc.OK
         return rc.OK
 
     def getOpStateDetailStrFromBitMap(self, bitMap):
@@ -302,8 +333,7 @@ class systemState():
         except:
             pass
 
-    def callOpStateCbs(self, changedOpStateDetail):
+    def callOpStateCbs(self, changedOpStateDetail, p_sysStateTransactionId = None):
         for cbItter in self.opStateCbs:
             if cbItter[1] & changedOpStateDetail:
-                print(cbItter[0])
-                cbItter[0](cbItter[1] & changedOpStateDetail)
+                cbItter[0](cbItter[1] & changedOpStateDetail, p_sysStateTransactionId)

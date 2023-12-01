@@ -26,6 +26,8 @@ class rc():
     TYPE_VAL_ERR =               10
     RANGE_ERR =                  11
     PARAM_ERR =                  12
+    SOCK_ERR =                   13
+    GEN_COM_ERR =                14
     GEN_ERR =                    255
 
     ERROR_TEXT = [""] * 256
@@ -42,6 +44,8 @@ class rc():
     ERROR_TEXT[10] =                 "Type value error"
     ERROR_TEXT[11] =                "Range error"
     ERROR_TEXT[12] =                "Parameter error"
+    ERROR_TEXT[13] =                "Socket connect error"
+    ERROR_TEXT[14] =                "General communication error"
     ERROR_TEXT[255] =               "General error"
 
     @staticmethod

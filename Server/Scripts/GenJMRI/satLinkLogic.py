@@ -90,33 +90,20 @@ class satLink(systemState, schema):
         self.userName.value = "GJSL-NewSatLinkUsrName"
         self.description.value = "New Satelite link"
         self.satLinkNo.value = 0
+        self.commitAll()
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE_LINK, displayIcon=LINK_ICON)
-        self.NOT_CONNECTEDalarm = alarm()
-        self.NOT_CONNECTEDalarm.type = "CONNECTION STATUS"
-        self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        self.NOT_CONNECTEDalarm.criticality = ALARM_CRITICALITY_A
-        self.NOT_CONNECTEDalarm.sloganDescription = "Satelite link reported disconnected"
-        self.NOT_CONFIGUREDalarm = alarm()
-        self.NOT_CONFIGUREDalarm.type = "CONFIGURATION STATUS"
-        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        self.NOT_CONFIGUREDalarm.criticality = ALARM_CRITICALITY_A
-        self.NOT_CONFIGUREDalarm.sloganDescription = "Satelite link has not received a valid configuration"
-        self.INT_FAILalarm = alarm()
-        self.INT_FAILalarm.type = "INTERNAL FAILURE"
-        self.INT_FAILalarm.src = self.nameKey.value
-        self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
-        self.INT_FAILalarm.sloganDescription = "Satelite link has experienced an internal error"
-        self.CBLalarm = alarm()
-        self.CBLalarm.type = "CONTROL-BLOCK STATUS"
-        self.CBLalarm.src = self.nameKey.value
-        self.CBLalarm.criticality = ALARM_CRITICALITY_C
-        self.CBLalarm.sloganDescription = "Parent object blocked resulting in a control-block of this object"
+        self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite link reported disconnected")
+        self.NOT_CONFIGUREDalarm = alarm(self, "CONFIGURATION STATUS", self.nameKey.value, ALARM_CRITICALITY_A,"Satelite link has not received a valid configuration")
+        self.LINK_SCAN_OVERLOADalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Satelite link scanning overloaded") #NEEDS TO BE IMPLEMENTED
+        self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm = alarm(self, "TRANSMISION ERROR", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite link excessive transmission errors")
+        self.LINK_SCAN_GEN_ERRORalarm = alarm(self, "GENERAL RECOVERABLE ERROR", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite link is experiencing a recoverable general error")
+        self.INT_FAILalarm = alarm(self, "INTERNAL FAILURE", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite link has experienced an internal error")
+        self.CBLalarm = alarm(self, "CONTROL-BLOCK STATUS", self.nameKey.value, ALARM_CRITICALITY_C, "Parent object blocked resulting in a control-block of this object")
         systemState.__init__(self)
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
         self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
-        self.commitAll()
         self.clearStats()
         if self.demo:
             self.logStatsProducer = threading.Thread(target=self.__demoStatsProducer)
@@ -351,6 +338,13 @@ class satLink(systemState, schema):
                 child.delete()
         except:
             pass
+        self.NOT_CONNECTEDalarm.ceaseAlarm("Source object deleted")
+        self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
+        self.LINK_SCAN_OVERLOADalarm.ceaseAlarm("Source object deleted")
+        self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm.ceaseAlarm("Source object deleted")
+        self.LINK_SCAN_GEN_ERRORalarm.ceaseAlarm("Source object deleted")
+        self.INT_FAILalarm.ceaseAlarm("Source object deleted")
+        self.CBLalarm.ceaseAlarm("Source object deleted")
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -411,17 +405,16 @@ class satLink(systemState, schema):
         #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value, self.__onStats)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SATLINK_TOPIC + MQTT_STATS_TOPIC + self.parent.getDecoderUri() + "/" + self.satLinkSystemName.value, self.__onStats)
         self.mqttClient.subscribeTopic(self.satLinkOpUpStreamTopic, self.__onDecoderOpStateChange)
-        self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
-        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
-        self.INT_FAILalarm.src = self.nameKey.value
-        self.INT_FAILalarm.updateAlarmMetaData()
-        self.CBLalarm.src = self.nameKey.value
-        self.CBLalarm.updateAlarmMetaData()
+        self.NOT_CONNECTEDalarm.updateAlarmSrc(self.nameKey.value)
+        self.NOT_CONFIGUREDalarm.updateAlarmSrc(self.nameKey.value)
+        self.LINK_SCAN_OVERLOADalarm.updateAlarmSrc(self.nameKey.value)
+        self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm.updateAlarmSrc(self.nameKey.value)
+        self.LINK_SCAN_GEN_ERRORalarm.updateAlarmSrc(self.nameKey.value)
+        self.INT_FAILalarm.updateAlarmSrc(self.nameKey.value)
+        self.CBLalarm.updateAlarmSrc(self.nameKey.value)
         return rc.OK
 
-    def __sysStateRespondListener(self, changedOpStateDetail):
+    def __sysStateRespondListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         trace.notify(DEBUG_INFO, "Satelite link " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         if changedOpStateDetail & OP_DISABLED[STATE]:
             if self.getAdmState() == ADM_ENABLE:
@@ -429,7 +422,7 @@ class satLink(systemState, schema):
             else:
                 self.mqttClient.publish(self.satLinkAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
-    def __sysStateAllListener(self, changedOpStateDetail):
+    def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP State - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
@@ -440,29 +433,44 @@ class satLink(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
-        if opStateDetail & OP_DISABLED[STATE]:
-            self.NOT_CONNECTEDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            return
-        if opStateDetail & OP_INIT[STATE]:
-            self.NOT_CONNECTEDalarm.raiseAlarm("Satelite link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
-        else:
+        if (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]):
+            self.NOT_CONNECTEDalarm.admDisableAlarm()
+            self.NOT_CONFIGUREDalarm.admDisableAlarm()
+            self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm.admDisableAlarm()
+            self.LINK_SCAN_GEN_ERRORalarm.admDisableAlarm()
+            self.INT_FAILalarm.admDisableAlarm()
+            self.CBLalarm.admDisableAlarm()
+        elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
+            self.NOT_CONNECTEDalarm.admEnableAlarm()
+            self.NOT_CONFIGUREDalarm.admEnableAlarm()
+            self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm.admEnableAlarm()
+            self.LINK_SCAN_GEN_ERRORalarm.admEnableAlarm()
+            self.INT_FAILalarm.admEnableAlarm()
+            self.CBLalarm.admEnableAlarm()
+        if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
+            self.NOT_CONNECTEDalarm.raiseAlarm("Satelite link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.ceaseAlarm("Satelite link has now successfully connected")
-        if (opStateDetail & OP_UNCONFIGURED[STATE]):
-            self.NOT_CONFIGUREDalarm.raiseAlarm("Satelite link has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
-        else:
+        if (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and (opStateDetail & OP_UNCONFIGURED[STATE]):
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Satelite link has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.ceaseAlarm("Satelite link is now successfully configured")
-        if (opStateDetail & OP_INTFAIL[STATE]):
-            self.INT_FAILalarm.raiseAlarm("Satelite link is experiencing an internal error")
-        else:
+        if (changedOpStateDetail & OP_ERRSEC[STATE]) and (opStateDetail & OP_ERRSEC[STATE]):
+            self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm.raiseAlarm("Satelite link is experiencing excessive transmision errors", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_ERRSEC[STATE]) and not (opStateDetail & OP_ERRSEC[STATE]):
+            self.LINK_SCAN_EXCESSIVE_BER_ERRORalarm.ceaseAlarm("Satelite link transmision error rate is now below the alarm threshold")
+        if (changedOpStateDetail & OP_GENERR[STATE]) and (opStateDetail & OP_GENERR[STATE]):
+            self.LINK_SCAN_GEN_ERRORalarm.raiseAlarm("Satelite link is experiencing a recoverable error", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_GENERR[STATE]) and not (opStateDetail & OP_GENERR[STATE]):
+            self.LINK_SCAN_GEN_ERRORalarm.ceaseAlarm("The Satelite link general error has ceased")
+        if (changedOpStateDetail & OP_INTFAIL[STATE]) and (opStateDetail & OP_INTFAIL[STATE]):
+            self.INT_FAILalarm.raiseAlarm("Satelite link is experiencing an internal error", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_INTFAIL[STATE]) and not (opStateDetail & OP_INTFAIL[STATE]):
             self.INT_FAILalarm.ceaseAlarm("Satelite link is no longer experiencing any internal errors")
-        if (opStateDetail & OP_CBL[STATE]):
-            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
-        else:
+        if (changedOpStateDetail & OP_CBL[STATE]) and (opStateDetail & OP_CBL[STATE]):
+            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed", p_sysStateTransactionId, False)
+        elif (changedOpStateDetail & OP_CBL[STATE]) and not (opStateDetail & OP_CBL[STATE]):
             self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
-        return
 
     def __onDecoderOpStateChange(self, topic, value):
         trace.notify(DEBUG_INFO, "Satelite link " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")

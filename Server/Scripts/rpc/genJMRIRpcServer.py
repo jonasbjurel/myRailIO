@@ -264,6 +264,9 @@ class jmriAPIShim(object):
     @staticmethod
     def setRpcServerDebugLevel(debugLevelStr):
         trace.notify(DEBUG_INFO, "Setting debugLevel to " + debugLevelStr)
+        if jmriAPIShim.setStateBySysName(jmriObj.MEMORIES, JMRI_RPC_SERVER_GLOBAL_DEBUG_LEVEL_ADDR, debugLevelStr) != rc.OK:
+            jmriAPIShim.createObject(jmriObj.MEMORIES, JMRI_RPC_SERVER_GLOBAL_DEBUG_LEVEL_ADDR)
+            jmriAPIShim.setStateBySysName(jmriObj.MEMORIES, JMRI_RPC_SERVER_GLOBAL_DEBUG_LEVEL_ADDR, debugLevelStr)
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(debugLevelStr))
         return rc.OK
 

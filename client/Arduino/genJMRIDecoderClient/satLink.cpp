@@ -171,7 +171,6 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
         return;
     }
     LOG_INFO("%s: satLink received an unverified configuration, parsing and validating it..." CR, logContextName);
-
     //PARSING CONFIGURATION
     const char* satLinkSearchTags[5];
     satLinkSearchTags[XML_SATLINK_SYSNAME] = "SystemName";
@@ -180,7 +179,6 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
     satLinkSearchTags[XML_SATLINK_LINK] = "Link";
     satLinkSearchTags[XML_SATLINK_ADMSTATE] = "AdminState";
     getTagTxt(p_satLinkXmlElement->FirstChildElement(), satLinkSearchTags, xmlconfig, sizeof(satLinkSearchTags) / 4); // Need to fix the addressing for portability
-
     //VALIDATING AND SETTING OF CONFIGURATION
     if (!xmlconfig[XML_SATLINK_SYSNAME]){
         panic("%s: SystemName missing", logContextName);
@@ -217,7 +215,6 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
         panic("%s: Admin state: %s is none of \"ENABLE\" or \"DISABLE\"", logContextName, xmlconfig[XML_SATLINK_ADMSTATE]);
         return;
     }
-
     //SHOW FINAL CONFIGURATION
     LOG_INFO("%s: System name: %s" CR, logContextName, xmlconfig[XML_SATLINK_SYSNAME]);
     LOG_INFO("%s: User name: %s" CR, logContextName, xmlconfig[XML_SATLINK_USRNAME]);

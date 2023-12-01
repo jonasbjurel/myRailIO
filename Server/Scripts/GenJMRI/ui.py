@@ -60,6 +60,7 @@ ACTUATOR_DIALOG_UI = "ui/Actuator_Dialog.ui"
 LOGOUTPUT_DIALOG_UI = "ui/Log_Output_Dialog.ui"
 LOGSETTING_DIALOG_UI = "ui/Log_Setting_Dialog.ui"
 SHOWALARMS_DIALOG_UI = "ui/Alarms_Show_Dialog.ui"
+SHOWALARMSINVENTORY_DIALOG_UI = "ui/Alarms_Inventory_Dialog.ui"
 SHOWS_SELECTED_ALARM_DIALOG_UI = "ui/Individual_Alarm_Show_Dialog.ui"
 CONFIGOUTPUT_DIALOG_UI = "ui/Config_Output_Dialog.ui"
 AUTOLOAD_PREF_DIALOG_UI = "ui/AutoLoad_Pref_Dialog.ui"
@@ -108,8 +109,6 @@ class StandardItem(QStandardItem):
 
     def __delete__(self):
         super().__delete__()
-
-
 
 class UI_mainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -177,7 +176,6 @@ class UI_mainWindow(QMainWindow):
             parentItem.appendRow(item)
             return item
         except:
-            print("Error")
             return None
 
     def reSetMoMObjStr(self, item, string):
@@ -289,6 +287,18 @@ class UI_mainWindow(QMainWindow):
         # View actions
         # ------------
         self.actionAlarms.triggered.connect(self.showAlarms)
+        self.actionAlarm_inventory.triggered.connect(self.showAlarmInventory)
+
+        # Tools actions
+        # -------------
+
+        # Inventory actions
+        # -----------------
+        self.actionAlarm_inventory_2.triggered.connect(self.showAlarmInventory)
+
+
+        # Debug actions
+        # -----------------
 
         # Help actions
         # ------------
@@ -356,6 +366,10 @@ class UI_mainWindow(QMainWindow):
     def showAlarms(self):
         self.alarmWidget = UI_alarmShowDialog(self.parentObjHandle)
         self.alarmWidget.show()
+
+    def showAlarmInventory(self):
+        self.alarmInventoryWidget = UI_alarmInventoryShowDialog(self.parentObjHandle)
+        self.alarmInventoryWidget.show()
 
     def about(self):
         QMessageBox.about(
@@ -647,6 +661,23 @@ class UI_logSettingDialog(QDialog):
 
 
 
+class UI_alarmShowDialogUpdateWorker(QtCore.QObject):
+    updateAlarms = QtCore.pyqtSignal()
+    def __init__(self, alarmShowHandle = None):
+        super(self.__class__, self).__init__(alarmShowHandle)
+
+    @QtCore.pyqtSlot()
+    def start(self):
+        self.run = True
+        while self.run:
+            self.updateAlarms.emit()
+            QtCore.QThread.sleep(1)
+
+    def stop(self):
+        self.run = False
+
+
+
 class UI_alarmShowDialog(QDialog):
     def __init__(self, parentObjHandle, parent=None):
         super().__init__(parent)
@@ -664,8 +695,29 @@ class UI_alarmShowDialog(QDialog):
         alarmHandler.regAlarmCb(ALARM_CRITICALITY_B , self._onAlarm)
         alarmHandler.regAlarmCb(ALARM_CRITICALITY_C , self._onAlarm)
         self._rePopulateSrcFilters()
+        self.updateTableWorker = UI_alarmShowDialogUpdateWorker(self)
+        self.updateTableWorker.setParent(None)
+        self.updateTableWorkerThread = QtCore.QThread()
+        self.updateTableWorker.moveToThread(self.updateTableWorkerThread)
+        self.updateTableWorkerThread.start()
+        self.updateTableWorkerThread.started.connect(self.updateTableWorker.start)
+        self.updateTableWorker.updateAlarms.connect(self.updateAlarmTable)
         self.connectWidgetSignalsSlots()
-         
+        self.closeEvent = self.stopUpdate
+
+    def stopUpdate(self, event):
+        if self.updateTableWorkerThread.isRunning():
+            self.updateTableWorker.stop()
+
+    def updateAlarmTable(self):
+        self.proxymodel.beginResetModel()
+        self.alarmTableModel.beginResetModel()
+        self.alarmTableModel.endResetModel()
+        self.proxymodel.endResetModel()
+        self._rePopulateSrcFilters()
+        self.alarmsTableView.resizeColumnsToContents()
+        self.alarmsTableView.resizeRowsToContents()
+
     def connectWidgetSignalsSlots(self):
         self.alarmHistoryComboBox.currentTextChanged.connect(self.alarmHistoryHandler)
         self.severityFilterComboBox.currentTextChanged.connect(self.severityFilterHandler)
@@ -781,8 +833,48 @@ class UI_alarmShowDialog(QDialog):
             self.fileName = fileName
 
     def _onAlarm(self, p_criticality, p_noOfAlarms, p_metaData):
-        print(">>>>>>>>>>>>>> UI got an alarm with severity: " + str(p_criticality))
-        self._rePopulateSrcFilters()
+        pass
+
+
+
+class UI_alarmInventoryShowDialog(QDialog):
+    def __init__(self, parentObjHandle, parent=None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(SHOWALARMSINVENTORY_DIALOG_UI, self)
+        self.proxymodel = QtCore.QSortFilterProxyModel()
+        self.alarmInventoryTableModel = alarmInventoryTableModel(self)
+        self.proxymodel.setSourceModel(self.alarmInventoryTableModel)
+        self.alarmInventoryTableView.setModel(self.proxymodel)
+        self.alarmInventoryTableView.setSortingEnabled(True)
+        self.updateTableWorker = UI_alarmShowDialogUpdateWorker(self)
+        self.updateTableWorker.setParent(None)
+        self.updateTableWorkerThread = QtCore.QThread()
+        self.updateTableWorker.moveToThread(self.updateTableWorkerThread)
+        self.updateTableWorkerThread.start()
+        self.updateTableWorkerThread.started.connect(self.updateTableWorker.start)
+        self.updateTableWorker.updateAlarms.connect(self.updateAlarmInventoryTable)
+        self.connectWidgetSignalsSlots()
+        self.closeEvent = self.stopUpdate
+
+    def stopUpdate(self, event):
+        if self.updateTableWorkerThread.isRunning():
+            self.updateTableWorker.stop()
+
+    def updateAlarmInventoryTable(self):
+        self.proxymodel.beginResetModel()
+        self.alarmInventoryTableModel.beginResetModel()
+        self.alarmInventoryTableModel.endResetModel()
+        self.proxymodel.endResetModel()
+        self.alarmInventoryTableView.resizeColumnsToContents()
+        self.alarmInventoryTableView.resizeRowsToContents()
+
+    def connectWidgetSignalsSlots(self):
+        self.alarmInventoryTableView.clicked.connect(self.showSelectedAlarm)
+
+    def showSelectedAlarm(self, p_clickedIndex):
+        self.individualAlarmWidget = UI_individualAlarmShowDialog(p_clickedIndex, self.parentObjHandle, parent = self)
+        self.individualAlarmWidget.show()
 
 
 
@@ -796,66 +888,107 @@ class UI_individualAlarmShowDialog(QDialog):
         self._populate()
 
     def _populate(self):
-        alarmInstanceId = self.parent.alarmsTableView.model().index(self.clickedIndex.row(), 0).data()
         alarm = None
-        activeAlarmTable = self.parent.alarmTableModel.formatAlarmTable(False, ALARM_ALL_CRITICALITY, "*", "*", p_verbosity = True)
-        for alarmItter in activeAlarmTable:
-            if alarmItter[0] == alarmInstanceId:
-                alarm = alarmItter
-                break
-        if alarm == None:
-            historyAlarmTable = self.parent.alarmTableModel.formatAlarmTable(True, ALARM_ALL_CRITICALITY, "*", "*", p_verbosity = True)
-            for alarmItter in historyAlarmTable:
-                if alarmItter[self.parent.alarmTableModel.instanceIdCol(True)] == alarmInstanceId:
-                    alarm = alarmItter
-                    break
-        self.sloganTextEdit.setText(alarm[self.parent.alarmTableModel.sloganCol(True)])
-        self.severityTextEdit.setText(alarm[self.parent.alarmTableModel.severityCol(True)])
-        self.activeTextEdit.setText(alarm[self.parent.alarmTableModel.activeCol(True)])
-        self.durationTextEdit.setText(alarm[self.parent.alarmTableModel.durationCol(True)])
-        self.occuranceTextEdit.setText("-")
-        self.durationSTextEdit.setText(alarm[self.parent.alarmTableModel.durationSCol(True)])
-        self.prevOccuranceTextEdit.setText("-")
-        self.intencityTextEdit.setText("-")
-        self.typeTextEdit.setText(alarm[self.parent.alarmTableModel.typeCol(True)])
-        self.objIdTextEdit.setText(alarm[self.parent.alarmTableModel.objIdCol(True)])
-        self.instanceIdTextEdit.setText(alarm[self.parent.alarmTableModel.instanceIdCol(True)])
-        self.sourceTextEdit.setText(alarm[self.parent.alarmTableModel.sourceCol(True)])
-        self.raiseTimeTextEdit.setText(alarm[self.parent.alarmTableModel.raiseTimeUtcCol(True)])
-        self.raiseTimeEpochTextEdit.setText(alarm[self.parent.alarmTableModel.raiseTimeEpochCol(True)])
-        self.raiseReasonTextEdit.setText(alarm[self.parent.alarmTableModel.raiseReasonCol(True)])
-        self.ceaseTimeTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseTimeUtcCol(True)])
-        self.ceaseTimeEpochTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseTimeEpochCol(True)])
-        self.ceaseReasonTextEdit.setText(alarm[self.parent.alarmTableModel.ceaseReasonCol(True)])
-        self.occuranceTextEdit.setText(str(len(alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1]))) # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
+        try:
+            tableModel = self.parent.alarmInventoryTableModel
+        except:
+            tableModel = self.parent.alarmTableModel
+
+        if tableModel.isFirstColumnObjectId():
+            alarm = tableModel.getAlarmObjFromObjId(int(self.parent.alarmInventoryTableView.model().index(self.clickedIndex.row(), 0).data()))
+        elif tableModel.isFirstColumnInstanceId():
+            alarm = tableModel.getAlarmObjFromInstanceId(int(self.parent.alarmsTableView.model().index(self.clickedIndex.row(), 0).data()))
+        else:
+            #PANIC 
+            pass
+        if not alarm:
+            return
+
+        self.objIdTextEdit.setText(str(alarm.getGlobalAlarmClassObjUid()))
+        if alarm.getGlobalAlarmInstanceUid() != None:
+            self.instanceIdTextEdit.setText(str(alarm.getGlobalAlarmInstanceUid()))
+        else:
+            self.instanceIdTextEdit.setText("-")
+        self.typeTextEdit.setText(alarm.getType())
+        self.sourceTextEdit.setText(alarm.getSource())
+        self.sloganTextEdit.setText(alarm.getSloganDescription())
+        self.severityTextEdit.setText(alarm.getSeverity())
+        self.activeTextEdit.setText(str(alarm.getIsActive()))
+        if alarm.getCurrentOriginActiveInstance() != 0:
+            self.parentAlarmIdTextEdit.setText(str(alarm.getCurrentOriginActiveInstance()))
+        elif alarm.getCurrentOriginActiveInstance(True) != 0:
+            self.parentAlarmIdTextEdit.setText(str(alarm.getCurrentOriginActiveInstance(True)))
+        else:
+            self.parentAlarmIdTextEdit.setText("-")
+        if alarm.getRaiseUtcTime() != None:
+            self.raiseTimeTextEdit.setText(alarm.getRaiseUtcTime())
+        else:
+            self.raiseTimeTextEdit.setText("-")
+        if alarm.getRaiseEpochTime() != None:
+            self.raiseTimeEpochTextEdit.setText(str(alarm.getRaiseEpochTime()))
+        else:
+            self.raiseTimeEpochTextEdit.setText("-")
+        if alarm.getRaiseReason() != None:
+            self.raiseReasonTextEdit.setText(alarm.getRaiseReason())
+        else:
+            self.raiseReasonTextEdit.setText("-")
+        if alarm.getCeaseUtcTime() != None:
+            self.ceaseTimeTextEdit.setText(alarm.getCeaseUtcTime())
+        else:
+            self.ceaseTimeTextEdit.setText("-")
+        if alarm.getCeaseEpochTime() != None:
+            self.ceaseTimeEpochTextEdit.setText(str(alarm.getCeaseEpochTime()))
+        else:
+            self.ceaseTimeEpochTextEdit.setText("-")
+        if alarm.getCeaseReason() != None:
+            self.ceaseReasonTextEdit.setText(alarm.getCeaseReason())
+        else:
+            self.ceaseReasonTextEdit.setText("-")
+        if alarm.getLastingTime() != None:
+            self.durationTextEdit.setText(alarm.getLastingTime())
+        else:
+            self.durationTextEdit.setText("-")
+        if alarm.getLastingTimeS() != None:
+            self.durationSTextEdit.setText(str(alarm.getLastingTimeS()))
+        else:
+            self.durationSTextEdit.setText("-")
+        if len(alarmHandler.getAlarmObjHistory()[alarm.getGlobalAlarmClassObjUid() - 1]) > 0:
+            self.occuranceTextEdit.setText(str(len(alarmHandler.getAlarmObjHistory()[alarm.getGlobalAlarmClassObjUid() - 1]))) # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
+        else:
+            self.occuranceTextEdit.setText("-")
         index = 0
-        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1]: # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
-            if alarmItter.getGlobalAlarmInstanceUid() == int(alarm[self.parent.alarmTableModel.instanceIdCol(True)]):
+        for alarmItter in alarmHandler.getAlarmObjHistory()[alarm.getGlobalAlarmClassObjUid() - 1]: # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
+            if alarmItter.getGlobalAlarmInstanceUid() == alarm.getGlobalAlarmInstanceUid():
                 break
             index += 1
         if index > 0:
-            self.prevOccuranceTextEdit.setText(alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1][index - 1].getRaiseUtcTime()) # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
+            self.prevOccuranceTextEdit.setText(alarmHandler.getAlarmObjHistory()[alarm.getGlobalAlarmClassObjUid() - 1][index - 1].getRaiseUtcTime()) # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
         else:
             self.prevOccuranceTextEdit.setText("-")
         oneHBack = (datetime.utcnow() - timedelta(hours = 1)).strftime('UTC: %Y-%m-%d %H:%M:%S.%f')
         occurances = 0
-        for alarmItter in alarmHandler.getAlarmObjHistory()[int(alarm[self.parent.alarmTableModel.objIdCol(True)]) - 1]: # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
+        for alarmItter in alarmHandler.getAlarmObjHistory()[alarm.getGlobalAlarmClassObjUid() - 1]: # I THINK IT SHOULD BE -1 sinse AlarmObjID is 1 enumerated
             if alarmItter.getRaiseUtcTime() < oneHBack:
                 break
             occurances += 1
-        self.intencityTextEdit.setText(str(occurances))
-        if alarm[2] == "False":
+        if occurances > 0:
+            self.intencityTextEdit.setText(str(occurances))
+        else:
+            self.intencityTextEdit.setText("-")
+        if alarm.getIsActive() == False:
             self.alarmPushButton.setIcon(QIcon(NO_ALARM_ICON))
             return
-        if alarm[1] == "A":
+        if alarm.getSeverity() == "A":
             self.alarmPushButton.setIcon(QIcon(ALARM_A_ICON))
             return
-        if alarm[1] == "B":
+        elif alarm.getSeverity() == "B":
             self.alarmPushButton.setIcon(QIcon(ALARM_B_ICON))
             return
-        if alarm[1] == "C":
+        elif alarm.getSeverity() == "C":
             self.alarmPushButton.setIcon(QIcon(ALARM_C_ICON))
             return
+
+
 
 class UI_getConfig(QDialog):
     def __init__(self, parentObjHandle, configuration, parent=None):

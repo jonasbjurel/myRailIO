@@ -85,34 +85,20 @@ class lgLink(systemState, schema):
         self.description.value = "New Light group link"
         self.lgLinkNo.value = 0
         self.mastDefinitionPath.value = "C:\\Program Files (x86)\\JMRI\\xml\\signals\\Sweden-3HMS"
+        self.commitAll()
         self.mastTypes = []
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, LIGHT_GROUP_LINK, displayIcon=LINK_ICON)
-        self.NOT_CONNECTEDalarm = alarm()
-        self.NOT_CONNECTEDalarm.type = "CONNECTION STATUS"
-        self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        self.NOT_CONNECTEDalarm.criticality = ALARM_CRITICALITY_A
-        self.NOT_CONNECTEDalarm.sloganDescription = "Light-group link reported disconnected"
-        self.NOT_CONFIGUREDalarm = alarm()
-        self.NOT_CONFIGUREDalarm.type = "CONFIGURATION STATUS"
-        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        self.NOT_CONFIGUREDalarm.criticality = ALARM_CRITICALITY_A
-        self.NOT_CONFIGUREDalarm.sloganDescription = "Light-group link has not received a valid configuration"
-        self.INT_FAILalarm = alarm()
-        self.INT_FAILalarm.type = "INTERNAL FAILURE"
-        self.INT_FAILalarm.src = self.nameKey.value
-        self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
-        self.INT_FAILalarm.sloganDescription = "Light-group link has experienced an internal error"
-        self.CBLalarm = alarm()
-        self.CBLalarm.type = "CONTROL-BLOCK STATUS"
-        self.CBLalarm.src = self.nameKey.value
-        self.CBLalarm.criticality = ALARM_CRITICALITY_C
-        self.CBLalarm.sloganDescription = "Parent object blocked resulting in a control-block of this object"
+        self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Light-group link reported disconnected")
+        self.NOT_CONFIGUREDalarm = alarm(self, "CONFIGURATION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Light-group link has not received a valid configuration")
+        self.LINK_SCAN_OVERLOADalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Light-group link scanning overloaded") #NEEDS TO BE IMPLEMENTED
+        self.LINK_FLASH_OVERLOADalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Flash load overloaded") #NEEDS TO BE IMPLEMENTED
+        self.INT_FAILalarm = alarm(self, "INTERNAL FAILURE", self.nameKey.value, ALARM_CRITICALITY_A, "Light-group link has experienced an internal error""Light-group link has experienced an internal error")
+        self.CBLalarm = alarm(self, "CONTROL-BLOCK STATUS", self.nameKey.value, ALARM_CRITICALITY_C, "Parent object blocked resulting in a control-block of this object")
         systemState.__init__(self)
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
         self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
-        self.commitAll()
         if self.demo:
             for i in range(8):
                 self.addChild(LIGHT_GROUP, name="GJLG-"+str(i), config=False, demo=True)
@@ -219,7 +205,7 @@ class lgLink(systemState, schema):
             try:
                 trace.notify(DEBUG_TERSE, "Light group link " + self.lgLinkSystemName.value + " was reconfigured - applying the configuration")
                 res = self.__setConfig()
-            except:
+            except Exception as e:
                 trace.notify(DEBUG_PANIC, "Could not set new configuration for Light group link " + self.lgLinkSystemName.value)
                 return rc.GEN_ERR
             if res != rc.OK:
@@ -352,6 +338,11 @@ class lgLink(systemState, schema):
                 child.delete()
         except:
             pass
+        self.NOT_CONNECTEDalarm.ceaseAlarm("Source object deleted")
+        self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
+        self.LINK_SCAN_OVERLOADalarm.ceaseAlarm("Source object deleted")
+        self.LINK_FLASH_OVERLOADalarm.ceaseAlarm("Source object deleted")
+        self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -411,17 +402,15 @@ class lgLink(systemState, schema):
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         #self.mqttClient.unsubscribeTopic(self.lgLinkOpUpStreamTopic, self.__onDecoderOpStateChange)
         self.mqttClient.subscribeTopic(self.lgLinkOpUpStreamTopic, self.__onDecoderOpStateChange)
-        self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
-        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
-        self.INT_FAILalarm.src = self.nameKey.value
-        self.INT_FAILalarm.updateAlarmMetaData()
-        self.CBLalarm.src = self.nameKey.value
-        self.CBLalarm.updateAlarmMetaData()
+        self.NOT_CONNECTEDalarm.updateAlarmSrc(self.nameKey.value)
+        self.NOT_CONFIGUREDalarm.updateAlarmSrc(self.nameKey.value)
+        self.LINK_SCAN_OVERLOADalarm.updateAlarmSrc(self.nameKey.value)
+        self.LINK_FLASH_OVERLOADalarm.updateAlarmSrc(self.nameKey.value)
+        self.INT_FAILalarm.updateAlarmSrc(self.nameKey.value)
+        self.CBLalarm.updateAlarmSrc(self.nameKey.value)
         return rc.OK
 
-    def __sysStateRespondListener(self, changedOpStateDetail):
+    def __sysStateRespondListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         trace.notify(DEBUG_INFO, "Light group link " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         if changedOpStateDetail & OP_DISABLED[STATE]:
             if self.getAdmState() == ADM_ENABLE:
@@ -429,7 +418,7 @@ class lgLink(systemState, schema):
             else:
                 self.mqttClient.publish(self.lgLinkAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
 
-    def __sysStateAllListener(self, changedOpStateDetail):
+    def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP State - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
@@ -440,29 +429,32 @@ class lgLink(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
-        if opStateDetail & OP_DISABLED[STATE]:
-            self.NOT_CONNECTEDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            return
-        if opStateDetail & OP_INIT[STATE]:
-            self.NOT_CONNECTEDalarm.raiseAlarm("Light-group link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
-        else:
+        if (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]):
+            self.NOT_CONNECTEDalarm.admDisableAlarm()
+            self.NOT_CONFIGUREDalarm.admDisableAlarm()
+            self.INT_FAILalarm.admDisableAlarm()
+            self.CBLalarm.admDisableAlarm()
+        elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
+            self.NOT_CONNECTEDalarm.admEnableAlarm()
+            self.NOT_CONFIGUREDalarm.admEnableAlarm()
+            self.INT_FAILalarm.admEnableAlarm()
+            self.CBLalarm.admEnableAlarm()
+        if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
+            self.NOT_CONNECTEDalarm.raiseAlarm("Light-group link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.ceaseAlarm("Light-group link has now successfully connected")
-        if (opStateDetail & OP_UNCONFIGURED[STATE]):
-            self.NOT_CONFIGUREDalarm.raiseAlarm("Light-group link has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
-        else:
+        if (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and (opStateDetail & OP_UNCONFIGURED[STATE]):
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Light-group link has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.ceaseAlarm("Light-group link is now successfully configured")
-        if (opStateDetail & OP_INTFAIL[STATE]):
-            self.INT_FAILalarm.raiseAlarm("Light-group link is experiencing an internal error")
-        else:
+        if (changedOpStateDetail & OP_INTFAIL[STATE]) and (opStateDetail & OP_INTFAIL[STATE]):
+            self.INT_FAILalarm.raiseAlarm("Light-group link is experiencing an internal error", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_INTFAIL[STATE]) and not (opStateDetail & OP_INTFAIL[STATE]):
             self.INT_FAILalarm.ceaseAlarm("Light-group link is no longer experiencing any internal errors")
-        if (opStateDetail & OP_CBL[STATE]):
-            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
-        else:
+        if (changedOpStateDetail & OP_CBL[STATE]) and (opStateDetail & OP_CBL[STATE]):
+            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed", p_sysStateTransactionId, False)
+        elif (changedOpStateDetail & OP_CBL[STATE]) and not (opStateDetail & OP_CBL[STATE]):
             self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
-        return
 
     def __onDecoderOpStateChange(self, topic, value):
         trace.notify(DEBUG_INFO, "Lg Link " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
@@ -494,15 +486,16 @@ class lgLink(systemState, schema):
     def __getMastAspects(self):
         trace.notify(DEBUG_INFO, "Configuring mastAspects")
         self.aspectTable = {}
+        self.mastTypes = []
         try:
             aspectsXmlTree = ET.ElementTree(ET.fromstring(self.rpcClient.getFile(self.mastDefinitionPath.value + "/aspects.xml")))
         except:
-            trace.notify(DEBUG_PANIC, "aspects.xml not found")
-            assert false
+            trace.notify(DEBUG_ERROR, "aspects.xml not found")
+            return None
 
         if str(aspectsXmlTree.getroot().tag) != "aspecttable":
             trace.notify(DEBUG_PANIC, "aspects.xml missformated")
-            assert false
+            assert False
         found = False
         for child in aspectsXmlTree.getroot():
             if child.tag == "aspects":
@@ -517,7 +510,7 @@ class lgLink(systemState, schema):
             trace.notify(DEBUG_PANIC, "no Aspects found - aspects.xml  missformated")
             assert false
         fileFound = False
-        self.mastTypes = []
+
         for filename in self.rpcClient.listDir(self.mastDefinitionPath.value):
             if filename.endswith(".xml") and filename.startswith("appearance-"):
                 fileFound = True

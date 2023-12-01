@@ -23,11 +23,9 @@
 #from ast import Try
 import os
 import sys
-#from this import s
 import time
 import threading
 import traceback
-# from typing_extensions import Self
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -77,6 +75,16 @@ from config import *
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
+'''
+Alarms:
+    CPU (Three levels)
+    Memory (Three levels)
+    CLI
+    Debug mode
+    NTP
+    Log overload
+    WIFI SNR
+'''
 class decoder(systemState, schema):
     def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
         self.win = win
@@ -105,37 +113,24 @@ class decoder(systemState, schema):
         self.decoderMqttURI.value = "no.valid.uri"
         self.mac.value = "00:00:00:00:00:00"
         self.description.value = "New decoder"
+        self.commitAll()
         self.item = self.win.registerMoMObj(self, self.parentItem, self.nameKey.candidateValue, DECODER, displayIcon=DECODER_ICON)
-        self.NOT_CONNECTEDalarm = alarm()
-        self.NOT_CONNECTEDalarm.type = "CONNECTION STATUS"
-        self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        self.NOT_CONNECTEDalarm.criticality = ALARM_CRITICALITY_A
-        self.NOT_CONNECTEDalarm.sloganDescription = "Decoder reported disconnected"
-        self.NOT_CONFIGUREDalarm = alarm()
-        self.NOT_CONFIGUREDalarm.type = "CONFIGURATION STATUS"
-        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        self.NOT_CONFIGUREDalarm.criticality = ALARM_CRITICALITY_A
-        self.NOT_CONFIGUREDalarm.sloganDescription = "Decoder has not received a valid configuration"
-        self.SERVER_UNAVAILalarm = alarm()
-        self.SERVER_UNAVAILalarm.type = "KEEP-ALIVE STATUS"
-        self.SERVER_UNAVAILalarm.src = self.nameKey.value
-        self.SERVER_UNAVAILalarm.criticality = ALARM_CRITICALITY_A
-        self.SERVER_UNAVAILalarm.sloganDescription = "Server-side has reported missing keep-live messages from client"
-        self.CLIENT_UNAVAILalarm = alarm()
-        self.CLIENT_UNAVAILalarm.type = "KEEP-ALIVE STATUS"
-        self.CLIENT_UNAVAILalarm.src = self.nameKey.value
-        self.CLIENT_UNAVAILalarm.criticality = ALARM_CRITICALITY_A
-        self.CLIENT_UNAVAILalarm.sloganDescription = "Client-side has reported missing keep-live messages from server"
-        self.INT_FAILalarm = alarm()
-        self.INT_FAILalarm.type = "INTERNAL FAILURE"
-        self.INT_FAILalarm.src = self.nameKey.value
-        self.INT_FAILalarm.criticality = ALARM_CRITICALITY_A
-        self.INT_FAILalarm.sloganDescription = "Decoder has experienced an internal error"
-        self.CBLalarm = alarm()
-        self.CBLalarm.type = "CONTROL-BLOCK STATUS"
-        self.CBLalarm.src = self.nameKey.value
-        self.CBLalarm.criticality = ALARM_CRITICALITY_C
-        self.CBLalarm.sloganDescription = "Parent object blocked resulting in a control-block of this object"
+        self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder reported disconnected")
+        self.NOT_CONFIGUREDalarm = alarm(self, "CONFIGURATION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder has not received a valid configuration")
+        self.SERVER_UNAVAILalarm = alarm(self, "KEEP-ALIVE STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Server-side has reported missing keep-live messages from client")
+        self.CLIENT_UNAVAILalarm = alarm(self, "KEEP-ALIVE STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Client-side has reported missing keep-live messages from server")
+        self.CPU_LOAD_Calarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder has reached 75% CPU Load") #NEEDS TO BE IMPLEMENTED
+        self.CPU_LOAD_Balarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder has reached 85% CPU Load") #NEEDS TO BE IMPLEMENTED
+        self.CPU_LOAD_Aalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder has reached 95% CPU Load") #NEEDS TO BE IMPLEMENTED
+        self.INT_MEM_Calarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder internal memory usage has reached 75%") #NEEDS TO BE IMPLEMENTED
+        self.INT_MEM_Balarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder internal memory usage has reached 85%") #NEEDS TO BE IMPLEMENTED
+        self.INT_MEM_Calarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder internal memory usage has reached 95%") #NEEDS TO BE IMPLEMENTED
+        self.LOG_OVERLOADalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder logging overloaded") #NEEDS TO BE IMPLEMENTED
+        self.CLI_ACCESSalarm = alarm(self, "AUDIT TRAIL", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder is being accessed by a CLI user") #NEEDS TO BE IMPLEMENTED
+        self.CLI_DEBUG_ACCESSalarm = alarm(self, "AUDIT TRAIL", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder is being accessed by a CLI user which has set the debug-flag, risking configuration inconsistances") #NEEDS TO BE IMPLEMENTED
+        self.NTP_SYNCHalarm = alarm(self, "TIME SYNCHRONIZATION", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder NTP Time synchronization failed") #NEEDS TO BE IMPLEMENTED
+        self.INT_FAILalarm = alarm(self, "INTERNAL FAILURE", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder has experienced an internal error")
+        self.CBLalarm = alarm(self, "CONTROL-BLOCK STATUS", self.nameKey.value, ALARM_CRITICALITY_C, "Parent object blocked resulting in a control-block of this object")
         systemState.__init__(self)
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.setAdmState(ADM_DISABLE[STATE_STR])
@@ -144,7 +139,6 @@ class decoder(systemState, schema):
         self.missedPingReq = 0
         self.supervisionActive = False
         self.restart = True
-        self.commitAll()
         if self.demo:
             for i in range(DECODER_MAX_LG_LINKS):
                 self.addChild(LIGHT_GROUP_LINK, name="GJLL-" + str(i), config=False, demo=True)
@@ -411,6 +405,22 @@ class decoder(systemState, schema):
                 child.delete()
         except:
             pass
+        self.NOT_CONNECTEDalarm.ceaseAlarm("Source object deleted")
+        self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
+        self.SERVER_UNAVAILalarm.ceaseAlarm("Source object deleted")
+        self.CLIENT_UNAVAILalarm.ceaseAlarm("Source object deleted")
+        self.CPU_LOAD_Calarm.ceaseAlarm("Source object deleted")
+        self.CPU_LOAD_Balarm.ceaseAlarm("Source object deleted")
+        self.CPU_LOAD_Aalarm.ceaseAlarm("Source object deleted")
+        self.INT_MEM_Calarm.ceaseAlarm("Source object deleted")
+        self.INT_MEM_Balarm.ceaseAlarm("Source object deleted")
+        self.INT_MEM_Calarm.ceaseAlarm("Source object deleted")
+        self.LOG_OVERLOADalarm.ceaseAlarm("Source object deleted")
+        self.CLI_ACCESSalarm.ceaseAlarm("Source object deleted")
+        self.CLI_DEBUG_ACCESSalarm.ceaseAlarm("Source object deleted")
+        self.NTP_SYNCHalarm.ceaseAlarm("Source object deleted")
+        self.INT_FAILalarm.ceaseAlarm("Source object deleted")
+        self.CBLalarm.ceaseAlarm("Source object deleted")
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -472,31 +482,25 @@ class decoder(systemState, schema):
         self.decoderAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.getDecoderUri() + "/" + self.decoderSystemName.value
         self.unRegOpStateCb(self.__sysStateRespondListener)
         self.unRegOpStateCb(self.__sysStateAllListener)
-        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
+        self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE] | OP_CBL[STATE])
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIGREQ_TOPIC + self.decoderMqttURI.value, self.__onDecoderConfigReq)
         self.mqttClient.subscribeTopic(self.decoderOpUpStreamTopic, self.__onDecoderOpStateChange)
-        self.NOT_CONNECTEDalarm.src = self.nameKey.value
-        self.NOT_CONNECTEDalarm.updateAlarmMetaData()
-        self.NOT_CONFIGUREDalarm.src = self.nameKey.value
-        self.NOT_CONFIGUREDalarm.updateAlarmMetaData()
-        self.SERVER_UNAVAILalarm.src = self.nameKey.value
-        self.SERVER_UNAVAILalarm.updateAlarmMetaData()
-        self.CLIENT_UNAVAILalarm.src = self.nameKey.value
-        self.CLIENT_UNAVAILalarm.updateAlarmMetaData()
-        self.INT_FAILalarm.src = self.nameKey.value
-        self.INT_FAILalarm.updateAlarmMetaData()
-        self.CBLalarm.src = self.nameKey.value
-        self.CBLalarm.updateAlarmMetaData()
+        self.NOT_CONNECTEDalarm.updateAlarmSrc(self.nameKey.value)
+        self.NOT_CONFIGUREDalarm.updateAlarmSrc(self.nameKey.value)
+        self.SERVER_UNAVAILalarm.updateAlarmSrc(self.nameKey.value)
+        self.CLIENT_UNAVAILalarm.updateAlarmSrc(self.nameKey.value)
+        self.INT_FAILalarm.updateAlarmSrc(self.nameKey.value)
+        self.CBLalarm.updateAlarmSrc(self.nameKey.value)
         if self.getAdmState() == ADM_ENABLE:
             self.__startSupervision()
         return rc.OK
 
-    def __sysStateRespondListener(self, changedOpStateDetail):
+    def __sysStateRespondListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         if changedOpStateDetail & OP_SERVUNAVAILABLE[STATE]:
-            trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " Informing client decoder about the new ServerUnavailability state ")
-            self.mqttClient.publish(self.decoderOpDownStreamTopic, self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & OP_SERVUNAVAILABLE[STATE]))
+            trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " Informing client decoder about the new ServerUnavailability/Decoder CBL state ")
+            self.mqttClient.publish(self.decoderOpDownStreamTopic, self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & (OP_SERVUNAVAILABLE[STATE] | OP_CBL[STATE])))
         if changedOpStateDetail & OP_DISABLED[STATE]:
             if self.getAdmState() == ADM_ENABLE:
                 self.mqttClient.publish(self.decoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
@@ -505,7 +509,7 @@ class decoder(systemState, schema):
                 self.mqttClient.publish(self.decoderAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
                 self.__stopSupervision()
 
-    def __sysStateAllListener(self, changedOpStateDetail):
+    def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
@@ -516,39 +520,52 @@ class decoder(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
-        if  opStateDetail & OP_DISABLED[STATE]:
-            self.NOT_CONNECTEDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.NOT_CONFIGUREDalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.SERVER_UNAVAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.CLIENT_UNAVAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.INT_FAILalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            self.CBLalarm.ceaseAlarm("The object is manually disabled/adminstratively blocked - and therefore removed from the active alarm list")
-            return
-        if (opStateDetail & OP_INIT[STATE]) or (opStateDetail & OP_DISCONNECTED[STATE]) or (opStateDetail & OP_NOIP[STATE]) or (opStateDetail & OP_UNDISCOVERED[STATE]):
-            self.NOT_CONNECTEDalarm.raiseAlarm("Decoder has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker")
-        else:
+        if  (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]): #NEW
+            self.NOT_CONNECTEDalarm.admDisableAlarm()
+            self.NOT_CONFIGUREDalarm.admDisableAlarm()
+            self.SERVER_UNAVAILalarm.admDisableAlarm()
+            self.CLIENT_UNAVAILalarm.admDisableAlarm()
+            self.INT_FAILalarm.admDisableAlarm()
+            self.CBLalarm.admDisableAlarm()
+        elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]): #NEW
+            self.NOT_CONNECTEDalarm.admEnableAlarm()
+            self.NOT_CONFIGUREDalarm.admEnableAlarm()
+            self.SERVER_UNAVAILalarm.admEnableAlarm()
+            self.CLIENT_UNAVAILalarm.admEnableAlarm()
+            self.INT_FAILalarm.admEnableAlarm()
+            self.CBLalarm.admEnableAlarm()
+        if (((changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE])) or
+            ((changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE])) or
+            ((changedOpStateDetail & OP_NOIP[STATE]) and (opStateDetail & OP_NOIP[STATE])) or
+            ((changedOpStateDetail & OP_UNDISCOVERED[STATE]) and (opStateDetail & OP_UNDISCOVERED[STATE]))):
+            self.NOT_CONNECTEDalarm.raiseAlarm("Decoder has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
+        elif (((changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE])) or
+            ((changedOpStateDetail & OP_DISCONNECTED[STATE]) and not (opStateDetail & OP_DISCONNECTED[STATE])) or
+            ((changedOpStateDetail & OP_NOIP[STATE]) and not (opStateDetail & OP_NOIP[STATE])) or
+            ((changedOpStateDetail & OP_UNDISCOVERED[STATE]) and not (opStateDetail & OP_UNDISCOVERED[STATE]))):
             self.NOT_CONNECTEDalarm.ceaseAlarm("Decoder has now successfully connected")
-        if (opStateDetail & OP_UNCONFIGURED[STATE]):
-            self.NOT_CONFIGUREDalarm.raiseAlarm("Decoder has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned")
-        else:
+        if (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and (opStateDetail & OP_UNCONFIGURED[STATE]):
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Decoder has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.ceaseAlarm("Decoder is now successfully configured")
-        if (opStateDetail & OP_SERVUNAVAILABLE[STATE]):
-            self.SERVER_UNAVAILalarm.raiseAlarm("The server is missing keep-alive ping continuity messages from the client")
-        else:
+        if (changedOpStateDetail & OP_SERVUNAVAILABLE[STATE]) and (opStateDetail & OP_SERVUNAVAILABLE[STATE]):
+            self.SERVER_UNAVAILalarm.raiseAlarm("The server is missing keep-alive ping continuity messages from the client", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_SERVUNAVAILABLE[STATE]) and not (opStateDetail & OP_SERVUNAVAILABLE[STATE]):
             self.SERVER_UNAVAILalarm.ceaseAlarm("The server is now receiving keep-alive ping continuity messages from the client")
-        if (opStateDetail & OP_CLIEUNAVAILABLE[STATE]):
-            self.CLIENT_UNAVAILalarm.raiseAlarm("The client is missing keep-alive ping continuity messages from the server")
-        else:
+        if (changedOpStateDetail & OP_CLIEUNAVAILABLE[STATE]) and (opStateDetail & OP_CLIEUNAVAILABLE[STATE]):
+            self.CLIENT_UNAVAILalarm.raiseAlarm("The client is missing keep-alive ping continuity messages from the server", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_CLIEUNAVAILABLE[STATE]) and not (opStateDetail & OP_CLIEUNAVAILABLE[STATE]):
             self.CLIENT_UNAVAILalarm.ceaseAlarm("The client is now receiving keep-alive ping continuity messages from the server")
-        if (opStateDetail & OP_INTFAIL[STATE]):
-            self.INT_FAILalarm.raiseAlarm("Decoder is experiencing an internal error")
-        else:
+        if (changedOpStateDetail & OP_INTFAIL[STATE]) and (opStateDetail & OP_INTFAIL[STATE]):
+            self.INT_FAILalarm.raiseAlarm("Decoder is experiencing an internal error", p_sysStateTransactionId, True)
+        elif (changedOpStateDetail & OP_INTFAIL[STATE]) and not (opStateDetail & OP_INTFAIL[STATE]):
             self.INT_FAILalarm.ceaseAlarm("Decoder is no longer experiencing any internal errors")
-        if (opStateDetail & OP_CBL[STATE]):
-            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed")
-        else:
+        if (changedOpStateDetail & OP_CBL[STATE]) and (opStateDetail & OP_CBL[STATE]):
+            #SEND A CBL MQTT BROADCAST MESSAGE
+            self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed", p_sysStateTransactionId, False)
+        elif (changedOpStateDetail & OP_CBL[STATE]) and not (opStateDetail & OP_CBL[STATE]):
+            #SEND A CBL UNBLOCK MQTT BROADCAST MESSAGE
             self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
-          
 
     def __onDecoderOpStateChange(self, topic, value):
         trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
@@ -601,6 +618,7 @@ class decoder(systemState, schema):
         if self.missedPingReq >= DECODER_MAX_MISSED_PINGS:
             self.missedPingReq = DECODER_MAX_MISSED_PINGS
             #if not (self.getOpStateDetail() & OP_FAIL[STATE]):
+            
             self.setOpStateDetail(OP_SERVUNAVAILABLE)
 
     def __onPingReq(self, topic, payload):

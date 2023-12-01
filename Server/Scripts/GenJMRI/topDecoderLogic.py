@@ -57,7 +57,6 @@ from config import *
 
 
 
-
 # ==============================================================================================================================================
 # Constants
 # ==============================================================================================================================================
@@ -85,20 +84,28 @@ from config import *
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
+MQTT_DISCONNECTED_FAILURE = 0b00000001
+RPC_DISCONNECTED_FAILURE =  0b00000010
 
+
+#TODO:
+#HANDLE CLIENTID IN A MORE GENERIC WAY
 class topDecoder(systemState, schema):
     def __init__(self, win, demo=False):
-        trace.start() #MOVE TO MAIN
+        self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]
+        self.topDecoderOpUpStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM)[:-1]
+        self.topDecoderAdmDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM)[:-1]
+        trace.start()
         trace.notify(DEBUG_INFO, "Starting Top-decoder")
         alarmHandler.start()
         self.win = win
+        self.parent = None
         self.demo = demo
         self.mqttClient = None
-        self.mqttConnected = False
+        self.mqttClientId = MQTT_CLIENT_ID
         self.rpcClient = None
         self.schemaDirty = False
         childsSchemaDirty = False
-        systemState.__init__(self)
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
         self.setSchema(schema.TOP_DECODER_SCHEMA)
@@ -111,13 +118,6 @@ class topDecoder(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.decoders.value = []
         self.childs.value = self.decoders.candidateValue
-        self.topItem = self.win.registerMoMObj(self, 0, "topDecoder", TOP_DECODER, displayIcon=SERVER_ICON)
-        self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]
-        self.topDecoderOpUpStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM)[:-1]
-        self.topDecoderAdmDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM)[:-1]
-        self.regOpStateCb(self.__sysStateListener, OP_ALL[STATE])
-        self.setAdmState(ADM_DISABLE[STATE_STR])
-        self.win.inactivateMoMObj(self.topItem)
         self.nameKey.value = "topDecoder"
         self.gitUrl.value = "my.git.com"
         self.gitBranch.value = DEFAULT_GIT_BRANCH
@@ -136,11 +136,10 @@ class topDecoder(systemState, schema):
         self.jmriRpcURI.value = DEFAULT_JMRI_RPC_URI
         self.jmriRpcPortBase.value = DEFAULT_JMRI_RPC_PORT_BASE
         self.JMRIRpcKeepAlivePeriod.value = DEFAULT_JMRI_RPC_KEEPALIVE_PERIOD
-        #Time/NTP
         self.ntpUri.value = DEFAULT_NTP_SERVER
         self.ntpPort.value = DEFAULT_NTP_PORT
+        #SET SAME TIMEZONE AS SERVER
         self.tz.value = 0
-        #RSyslog
         probeSocket = socket(AF_INET, SOCK_DGRAM)                                                       # Get local host IP address to use as default
         probeSocket.settimeout(0)
         try:
@@ -156,22 +155,32 @@ class topDecoder(systemState, schema):
         self.logFile.value = DEFAULT_LOG_FILE
         self.logRotateNoFiles.value = DEFAULT_LOG_ROTATION_NO_FILES
         self.logFileSize.value = DEFAULT_LOG_FILE_SIZE_KB
-        #SNMP
         self.snmpUri.value = DEFAULT_SNMP_SERVER
         self.snmpPort.value = DEFAULT_SNMP_PORT
         self.snmpProtocol.value = DEFAULT_SNMP_PROTOCOL
         self.decoderFailSafe.value = True
         self.trackFailSafe.value = DEFAULT_TRACK_FAILSAFE
+        self.commitAll()
+        self.MQTTalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "MQTT client disconnected")
+        self.RPCalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "RPC client disconnected")
+        self.LOGLEVELalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "High log-level enabled, this may lead to extensive system load and excessive performance degradation")
+        self.subConnectionOpState = MQTT_DISCONNECTED_FAILURE
+        self.subConnectionOpState = MQTT_DISCONNECTED_FAILURE | RPC_DISCONNECTED_FAILURE
+        self.topItem = self.win.registerMoMObj(self, 0, "topDecoder", TOP_DECODER, displayIcon=SERVER_ICON)
+        self.win.inactivateMoMObj(self.topItem)
+        systemState.__init__(self)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
+        self.setAdmState(ADM_DISABLE[STATE_STR])
+        self.setOpStateDetail(OP_DISCONNECTED[STATE])
         self.xmlConfig = None
         self.nestedUpdate = 0
-        self.commitAll()
         if self.demo:
             for i in range(6):
                 self.addChild(DECODER, name="GJD-" + str(i), config=False, demo=True)
         else:
             self.rpcClient = jmriRpcClient()
             self.rpcClient.start(uri = self.jmriRpcURI.value, portBase=self.jmriRpcPortBase.value, errCb=self.__onRpcErr)
-            self.mqttClient = mqtt(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId="genJMRIServer")
+            self.mqttClient = mqtt(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId=MQTT_CLIENT_ID)
             self.commitAll()
 
     def onXmlConfig(self, xmlConfig):
@@ -308,7 +317,6 @@ class topDecoder(systemState, schema):
             else:
                 trace.notify(DEBUG_INFO, "\"AdminState\" not set for topDecoder - disabling it")
                 self.setAdmState(ADM_DISABLE[STATE_STR])
-
         except:
                 trace.notify(DEBUG_ERROR, "XML configuration missformated, topDecoder section is missing mandatory tags/values or values did not pass type/range check: " + str(traceback.print_exc()))
                 return rc.PARSE_ERR
@@ -328,7 +336,6 @@ class topDecoder(systemState, schema):
                 child.decoderRestart()
         return rc.OK
 
-    #NEW METHOD BROKEN OUT WORK NEEDED
     def generateDiscoveryResponse(self, xmlConfig):
         self.xmlConfig = xmlConfig
         trace.notify(DEBUG_INFO, "Generating discovery response")
@@ -445,9 +452,9 @@ class topDecoder(systemState, schema):
             try:
                 trace.notify(DEBUG_TERSE, "topDecoder was reconfigured - applying the configuration")
                 res = self.__setConfig()
-            except:
-                trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
+            except Exception:
                 traceback.print_exc() 
+                trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
 
             if res != rc.OK:
                 trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
@@ -636,9 +643,13 @@ class topDecoder(systemState, schema):
     def restart(self):
         print("Restarting genJMRI server...")
 
-    def setLogVerbosity(self, logVerbosity): #REBASE
+    def setLogVerbosity(self, logVerbosity):
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(logVerbosity))
         self.rpcClient.setRpcServerDebugLevel(logVerbosity)
+        if trace.getSeverityFromSeverityStr(logVerbosity) < DEBUG_INFO:
+            self.LOGLEVELalarm.raiseAlarm("Log level set at " + logVerbosity)
+        else:
+            self.LOGLEVELalarm.ceaseAlarm("Log level set at " + logVerbosity)
 
     def startLog(self, logTargetHandle):
         self.logTargetHandle = logTargetHandle
@@ -675,9 +686,10 @@ class topDecoder(systemState, schema):
         return rc.OK # Place holder for object config validation
 
     def __setConfig(self):
-        #if self.rpcConfigChanged:
-        #self.rpcClient.stop() NEEDS FIX RESTARING RPC CLIENT DOES NOT WORK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        #self.rpcClient.start(uri = self.jmriRpcURI, portBase=self.jmriRpcPortBase, errCb=self.__onRpcErr) NEEDS FIX
+        # Set RPC parameters
+        if self.rpcConfigChanged:
+            self.rpcClient.setRpcUri(self.jmriRpcURI.value)
+            self.rpcClient.setRpcPortBase(self.jmriRpcPortBase.value)
         self.rpcClient.setKeepaliveInterval(self.JMRIRpcKeepAlivePeriod.value)
         self.rpcClient.setRpcServerDebugLevel(self.logVerbosity.value)
         # Set Syslog parameters
@@ -687,19 +699,24 @@ class topDecoder(systemState, schema):
         rSyslog.start(self.rsyslogUrl.value, self.rsyslogPort.value, self.logFile.value, self.logRotateNoFiles.value, self.logFileSize.value * 1000)
         trace.notify(DEBUG_INFO, "Starting/re-starting local RSyslog producer")
         trace.startSyslog(self.rsyslogUrl.value, self.rsyslogPort.value)
+        # Set MQTT parameters
         if self.mqttConfigChanged:
             trace.notify(DEBUG_INFO, "Connecting/re-connecting MQTT client genJMRIServer to MQTT brooker: " + self.decoderMqttURI.value + ":" + str(self.decoderMqttPort.value))
-            self.mqttClient.restart(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId="genJMRIServer")
-            self.mqttClient.setTopicPrefix(self.decoderMqttTopicPrefix.value)
+            self.mqttClient.restart(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId = MQTT_CLIENT_ID)
+        self.mqttClient.setTopicPrefix(self.decoderMqttTopicPrefix.value)
         self.setLogVerbosity(self.logVerbosity.value)
-        # Set NTP server
+        # Set NTP system state topics
         self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]
         self.topDecoderOpUpStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM)[:-1]
         self.topDecoderAdmDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM)[:-1]
-        self.unRegOpStateCb(self.__sysStateListener)
-        self.regOpStateCb(self.__sysStateListener, OP_ALL[STATE])
+        self.unRegOpStateCb(self.__sysStateAllListener)
+        self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         #self.mqttClient.unSubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
+        # Update alarm source names
+        self.MQTTalarm.updateAlarmSrc(self.nameKey.value)
+        self.RPCalarm.updateAlarmSrc(self.nameKey.value)
+        self.LOGLEVELalarm.updateAlarmSrc(self.nameKey.value)
         return rc.OK
 
     def __setVersion(self, version):
@@ -722,22 +739,48 @@ class topDecoder(systemState, schema):
     def __onMQTTConnect(self, mqttObj, clientId, rc):
         if rc != pahomqtt.MQTT_ERR_SUCCESS:
             trace.notify(DEBUG_ERROR, "MQTT client: " + clientId + " could not connect to brooker")
+            self.subConnectionOpState = self.subConnectionOpState | MQTT_DISCONNECTED_FAILURE
+            if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
+                self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+            else:
+                self.setOpStateDetail(OP_DISCONNECTED[STATE])
         else:
             trace.notify(DEBUG_INFO, "MQTT client: " + clientId + " connected to brooker")
-            self.mqttConnected = True
+            self.subConnectionOpState = self.subConnectionOpState & ~MQTT_DISCONNECTED_FAILURE
+            if not self.subConnectionOpState:
+                self.unSetOpStateDetail(OP_DISCONNECTED[STATE])
+            else:
+                self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
 
     def __onMQTTDisconnect(self, mqttObj, clientId, rc):
-        self.mqttConnected = False
+        self.subConnectionOpState = self.subConnectionOpState | MQTT_DISCONNECTED_FAILURE
+        if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
+            self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+        else:
+            self.setOpStateDetail(OP_DISCONNECTED[STATE])
         if rc != pahomqtt.MQTT_ERR_SUCCESS:
             trace.notify(DEBUG_ERROR, "MQTT client: " + clientId + " disconnected from brooker, return code: " + str(rc))
         else:
             trace.notify(DEBUG_INFO, "MQTT client: " + clientId + " disconnected from brooker")
 
-    def __onRpcErr(self):
-        pass
+    def __onRpcErr(self, conStatus):
+        if conStatus != rc.OK:
+            trace.notify(DEBUG_ERROR, "RPC client disconnected from RPC server")
+            self.subConnectionOpState = self.subConnectionOpState | RPC_DISCONNECTED_FAILURE
+            if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
+                self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+            else:
+                self.setOpStateDetail(OP_DISCONNECTED[STATE])
+        else:
+            trace.notify(DEBUG_INFO, "RPC client connected to RPC server")
+            self.subConnectionOpState = self.subConnectionOpState & ~RPC_DISCONNECTED_FAILURE
+            if not self.subConnectionOpState:
+                self.unSetOpStateDetail(OP_DISCONNECTED[STATE])
+            else:
+                self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
 
-    def __sysStateListener(self, changedOpStateDetail):
-        trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+    def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
+        trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP State - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
         if opStateDetail & OP_DISABLED[STATE]:
             self.win.inactivateMoMObj(self.topItem)
@@ -747,13 +790,29 @@ class topDecoder(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.topItem, True)
         else:
             self.win.faultBlockMarkMoMObj(self.topItem, False)
-        if changedOpStateDetail & ~OP_DISABLED[STATE]:
-            self.mqttClient.publish(self.topDecoderOpDownStreamTopic, self.getOpStateDetailStr())
-        if changedOpStateDetail & OP_DISABLED[STATE]:
-            if self.getAdmState() == ADM_ENABLE:
-                self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
+        if (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]):
+            self.MQTTalarm.admDisableAlarm()
+            self.RPCalarm.admDisableAlarm()
+            if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
+                self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
+        elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
+            self.MQTTalarm.admEnableAlarm()
+            self.RPCalarm.admEnableAlarm()
+            if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
+                self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
+        if (changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE]):
+            if self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
+                self.MQTTalarm.raiseAlarm("MQTT client: " + MQTT_CLIENT_ID + " disconnected from brooker", p_sysStateTransactionId, True)
             else:
-                self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD)
+                self.MQTTalarm.ceaseAlarm("MQTT client: " + MQTT_CLIENT_ID + " connected to brooker")
+            if self.subConnectionOpState & RPC_DISCONNECTED_FAILURE:
+                self.RPCalarm.raiseAlarm("RPC client disconnected from remote RPC server", p_sysStateTransactionId, True)
+            else:
+                self.RPCalarm.ceaseAlarm("RPC client connected to remote RPC server")
+        elif (changedOpStateDetail & OP_DISCONNECTED[STATE]) and not (opStateDetail & OP_DISCONNECTED[STATE]):
+            self.MQTTalarm.ceaseAlarm("MQTT client: " + MQTT_CLIENT_ID + " connected to brooker")
+            self.RPCalarm.ceaseAlarm("RPC client connected to remote RPC server")
+
     def __onDiscoveryReq(self, topic, payload):
         try:
             self.discoveryConfigXML
