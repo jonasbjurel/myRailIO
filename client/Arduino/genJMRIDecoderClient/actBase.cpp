@@ -315,6 +315,11 @@ void actBase::wdtKicked(void) {
     setOpStateByBitmap(OP_INTFAIL);
 }
 
+rc_t actBase::getOpStateStr(char* p_opStateStr) {
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
+}
+
 rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {
     LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;

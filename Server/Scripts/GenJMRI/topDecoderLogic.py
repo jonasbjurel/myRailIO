@@ -394,13 +394,13 @@ class topDecoder(systemState, schema):
         if self.schemaDirty:
             trace.notify(DEBUG_TERSE, "topDecoder - configuration has been changed - validating it")
             if self.decoderMqttURI.value != self.decoderMqttURI.candidateValue or\
-               self.decoderMqttPort.value != self.decoderMqttPort.candidateValue or\
-               self.decoderMqttTopicPrefix.value != self.decoderMqttTopicPrefix.candidateValue:
+                self.decoderMqttPort.value != self.decoderMqttPort.candidateValue or\
+                self.decoderMqttTopicPrefix.value != self.decoderMqttTopicPrefix.candidateValue:
                 self.mqttConfigChanged = True
             else:
                 self.mqttConfigChanged = False
             if self.jmriRpcURI.value != self.jmriRpcURI.candidateValue or\
-               self.jmriRpcPortBase.value != self.jmriRpcPortBase.candidateValue:
+                self.jmriRpcPortBase.value != self.jmriRpcPortBase.candidateValue:
                 self.rpcConfigChanged = True
             else:
                 self.rpcConfigChanged = False

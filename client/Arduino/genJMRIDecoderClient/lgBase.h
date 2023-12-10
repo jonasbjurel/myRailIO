@@ -103,6 +103,7 @@ public:
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
 	static void wdtKickedHelper(void* lgBaseHandle);
 	void wdtKicked(void);
+	rc_t getOpStateStr(char* p_opStateStr);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
 	rc_t getSystemName(char* p_systemName, bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);

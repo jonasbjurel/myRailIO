@@ -175,19 +175,21 @@
 #################################################################################################################################################
 # Module/Library dependance
 #################################################################################################################################################
-from genericpath import samestat
+#import dataclasses
+#from genericpath import samestat
 import os
 import sys
-import copy
+#import copy
 sys.path.append(os.path.realpath('..'))
 import traceback
-import keyboard
+#import keyboard
 import xmlrpc.client
 import threading
-import time
+#import time
 import xmltodict
-from config import *
 import imp
+imp.load_source('config', '..\\genJMRI\\config.py')
+from config import *
 imp.load_source('jmriObj', '..\\rpc\\JMRIObjects.py')
 from jmriObj import jmriObj
 imp.load_source('myTrace', '..\\trace\\trace.py')
@@ -279,9 +281,29 @@ def getCallBackNewState(checkDict):
 # Description: Provides all public proxy RPC methods provided by the library
 #################################################################################################################################################
 RPC_CONNECTED =                             0
-RPC_CONNECTED_NO_KEEPALIVE =                1
-RPC_NOT_CONNECTED =                         2
-RPC_NOT_ACTIVE =                            3
+RPC_CONNECTING =                            1
+RPC_CONNECTED_NO_KEEPALIVE =                3
+RPC_NOT_CONNECTED =                         4
+RPC_NOT_ACTIVE =                            5
+
+class jmriObjRecord():
+    type : str | None = None
+    sysName : str | None = None
+    userName : str | None = None
+    description : str | None = None
+    state : str | None = None
+
+class mqttPubRecord():
+    type : str | None = None
+    sysName : str | None = None
+    topic : str | None = None
+    payloadMap : str | None = None
+
+class mqttSubRecord():
+    type : str | None = None
+    sysName : str | None = None
+    topic : str | None = None
+    payloadMap : str | None = None
 
 class jmriRpcClient():
     def __init__(self):
@@ -297,11 +319,13 @@ class jmriRpcClient():
         self.keepAliveInterval = keepAliveInterval
         self.rpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(portBase) + "/")
         self.cbRpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(portBase + 1) + "/")
-        self.running = False
         self.regCbs = {}
         self.errCb = errCb
         self.mqttPubRecordDict = {}
         self.mqttSubRecordDict = {}
+        self.jmriObjDict = {}
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>STARTING THE CB GENERATOR>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        self.running = True
         self.jmriRpcCbThread = threading.Thread(target=self.cbGenerator)
         self.jmriRpcCbThread.start()
         if self.errCb != None:
@@ -310,12 +334,10 @@ class jmriRpcClient():
         self.missedKeepAlive = 0
         self.setKeepaliveInterval(self.keepAliveInterval)
         self.startKeepAliveHandler()
-        self.running = True
-
         trace.notify(DEBUG_INFO, "RPC client started")
          
     def stop(self):
-        trace.notify(DEBUG_INFO, "Stopping RPC client")
+        trace.notify(DEBUG_TERSE, "Stopping RPC client")
         for typeStr in self.regCbs.copy():
             for sysName in self.regCbs.get(typeStr).copy():
                 self.unRegEventCb(jmriObj.getGenJMRITypeFromJMRIType(typeStr), sysName, None, allCb=True)
@@ -349,102 +371,156 @@ class jmriRpcClient():
 
     def setRpcUri(self, uri):
         self.uri = uri
-        self._retryConnect(rc.GEN_COM_ERR)
+        self._reConnect(rc.GEN_COM_ERR)
 
     def getRpcUri(self):
         return self.uri
 
     def setRpcPortBase(self, portBase):
         self.portBase = portBase
-        self._retryConnect(rc.GEN_COM_ERR)
+        self._reConnect(rc.GEN_COM_ERR)
 
     def getRpcPortBase(self):
         return self.portBase
 
-    def _reconnect(self):
-        trace.notify(DEBUG_INFO, "Reconnecting RPC Client")
+    def _tryReconnect(self):
+        print("#############################_tryReconnect()")
+        trace.notify(DEBUG_INFO, "Reconnecting to RPC server")
         self.stopKeepAliveHandler()
-        #try:
-        #    self.rpc.rpcOnStateChangeRelease()
-        #except:
-        #    pass
         self.running = False
+
+        try:
+            self.rpc.rpcOnStateChangeRelease()
+            #self.rpc.rpcOnStateChangePurge()
+        except:
+            pass
         try:
             self.jmriRpcCbThread.join(timeout=1)
         except:
             pass
-        #try:
-        #    self.rpc.rpcOnStateChangePurge()
-        #except:
-        #    pass
         if self.jmriRpcCbThread.is_alive():
             trace.notify(DEBUG_ERROR, "Failed to stop RPC client - " + rc.getErrStr(rc.GEN_ERR))
             return rc.GEN_ERR
         trace.notify(DEBUG_INFO, "RPC client stoped")
-        self.rpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(self.portBase) + "/")
-        self.cbRpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(self.portBase + 1) + "/")
-        self.setRpcServerDebugLevel(self.globalDebugLevelStr)
+        try:
+            self.rpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(self.portBase) + "/")
+            self.cbRpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(self.portBase + 1) + "/")
+            print("#####################Restarted RPC")
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Failed to start RPC client - " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Failed to start RPC client - " + str(err))
+            return rc.GEN_ERR
+        if self.setRpcServerDebugLevel(self.globalDebugLevelStr) != rc.OK:
+            trace.notify(DEBUG_ERROR, "Failed to set debug level")
+            return rc.GEN_COM_ERR
+        print("#####################ReSet debug level")
         self.missedKeepAlive = 0
-        self.setKeepaliveInterval(self.keepAliveInterval)
+        if self.setKeepaliveInterval(self.keepAliveInterval) != rc.OK:
+            trace.notify(DEBUG_ERROR, "Failed to set keepAlive interval")
+            return rc.GEN_COM_ERR
+        print("#####################ReSet keepAlive")
+
+        print(">>>>>>>>>>>>>>>>>>>>>>>>STARTING KEEPALIVE AND CBGEN>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         self.startKeepAliveHandler()
         self.running = True
         self.jmriRpcCbThread = threading.Thread(target=self.cbGenerator)
         self.jmriRpcCbThread.start()
-        trace.notify(DEBUG_INFO, "RPC client restarted, re-registering RPC call-backs...")
-        try:
-            res = self.reRegEventCbs()
-            if res != rc.OK:
-                trace.notify(DEBUG_ERROR, "RPC client failed to re-register RPC call-backs...")
-                return res
-        except:
+        trace.notify(DEBUG_INFO, "RPC client restarted, re-populating JMRI objects, MQTT subscriptions- and publication requests as well as RPC call-backs")
+        if self.reCreateObjects() != rc.OK:
+            trace.notify(DEBUG_ERROR, "RPC client failed to re-populating JMRI objects...")
+            return rc.GEN_COM_ERR
+        print("#####################ReCreated objects")
+
+        if self.reRegMqttPubs() != rc.OK:
+            trace.notify(DEBUG_ERROR, "RPC client failed to re-registrate MQTT publications...")
+            return rc.GEN_COM_ERR
+        print("#####################Re registered MQTT PUBs")
+
+        if self.reRegMqttSubs() != rc.OK:
+            rc.notify(DEBUG_ERROR, "RPC client failed to re-registrate MQTT subscriptions...")
+            return rc.GEN_COM_ERR
+        print("#####################Re registered MQTT SUBs")
+        if self.reRegEventCbs() != rc.OK:
             trace.notify(DEBUG_ERROR, "RPC client failed to re-register RPC call-backs...")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "RPC has successfully re-registered all previously registered RPC call-backs...")
+        print("#####################Re registered Event CBs")
+        trace.notify(DEBUG_INFO, "RPC has successfully connected...")
         return rc.OK
 
     def regEventCb(self, type, sysName, cb):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
-            return rc.GEN_COM_ERR
         trace.notify(DEBUG_INFO, "Registering RPC client callback: " + str(cb.__name__) + ", for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
         if self.regCbs.get(jmriObj.getObjTypeStr(type)) == None:
             self.regCbs[jmriObj.getObjTypeStr(type)] = {sysName:[cb]}
-            if self.rpc.rpcListen(type, sysName) != rc.OK:
-                self.unRegEventCb(type, sysName, cb)
-                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc:" + rc.getErrStr(rc.GEN_ERR))
+            try:
+                res = self.rpc.rpcListen(type, sysName)
+            except xmlrpc.client.ProtocolError as err:
+                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc: " + err.errmsg)
+                return rc.GEN_COM_ERR
+            except Exception as err:
+                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc: " + str(err))
                 return rc.GEN_ERR
+            if res != rc.OK:
+                self.unRegEventCb(type, sysName, cb)
+                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc: " + rc.getErrStr(res))
+                return res
         elif self.regCbs[jmriObj.getObjTypeStr(type)].get(sysName) == None:
             self.regCbs[jmriObj.getObjTypeStr(type)][sysName] = [cb]
-            if self.rpc.rpcListen(type, sysName) != rc.OK:
-                self.unRegEventCb(type, sysName, cb)
-                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc:" + rc.getErrStr(rc.GEN_ERR))
+            try:
+                res = self.rpc.rpcListen(type, sysName)
+            except xmlrpc.client.ProtocolError as err:
+                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc: " + err.errmsg)
+                return rc.GEN_COM_ERR
+            except Exception as err:
+                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc: " + str(err))
                 return rc.GEN_ERR
+            if res != rc.OK:
+                self.unRegEventCb(type, sysName, cb)
+                trace.notify(DEBUG_ERROR, "Registering RPC client callback failed - rc: " + rc.getErrStr(res))
+                return res
         else:
             self.regCbs[jmriObj.getObjTypeStr(type)][sysName].append(cb)
+        trace.notify(DEBUG_INFO, "RPC client callback successfully registered : " + str(cb.__name__) + ", for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         return rc.OK
 
     def reRegEventCbs(self):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Re-registering RPC client callbacks")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Re-registering RPC client callbacks")
         for rpcCbTypeItter in self.regCbs:
             for rpcCbSysNameItter in self.regCbs[rpcCbTypeItter]:
-                res = self.rpc.rpcListen(type, sysName)
+                try:
+                    self.rpc.rpcUnListen(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
+                except:
+                    pass
+                try:
+                    print("#################Listening to CB for Type:SystemName " + str(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter)) + ":" + str(rpcCbSysNameItter))
+                    res = self.rpc.rpcListen(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
+                except xmlrpc.client.ProtocolError as err:
+                    trace.notify(DEBUG_ERROR, "Re-registering RPC client callback failed - rc: " + err.errmsg)
+                    return rc.GEN_COM_ERR
+                except Exception as err:
+                    trace.notify(DEBUG_ERROR, "Re-registering RPC client callback failed - rc: " + str(err))
+                    return rc.GEN_ERR
                 if res != rc.OK:
-                    trace.notify(DEBUG_ERROR, "Re-registering RPC client callbacks failed - rc:" + rc.getErrStr(res))
+                    trace.notify(DEBUG_ERROR, "Re-registering RPC client callbacks failed - rc: " + rc.getErrStr(res))
                     return res
         trace.notify(DEBUG_INFO, "Successfully Re-registered RPC client callbacks")
         return rc.OK
 
     def unRegEventCb(self, type, sysName, cb, allCb=False):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
-            return rc.GEN_COM_ERR
         if allCb:
-            trace.notify(DEBUG_INFO, "Un-Registering ALL RPC client callbacks: " + ", for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+            trace.notify(DEBUG_TERSE, "Un-Registering ALL RPC client callbacks: " + ", for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         else:
-            trace.notify(DEBUG_INFO, "Un-Registering RPC client callback: " + str(cb.__name__) + ", for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+            trace.notify(DEBUG_TERSE, "Un-Registering RPC client callback: " + str(cb.__name__) + ", for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
         try:
             if allCb:
                 self.regCbs[jmriObj.getObjTypeStr(type)][sysName] = []
@@ -464,10 +540,10 @@ class jmriRpcClient():
         return rc.OK
 
     def regMqttPub(self, type, sysName, topic, payloadMap):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_INFO, "Registering MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Register MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         try:
             self.mqttPubRecordDict[sysName]
         except:
@@ -475,34 +551,81 @@ class jmriRpcClient():
         else:
             trace.notify(DEBUG_INFO, "MQTT pub event already registered for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - replacing it")
             self.unRegMqttPub(type, sysName)
-        rcRegMqttPub = self.rpc.rpcRegMqttPub(type, sysName, topic, payloadMap)
-        if rcRegMqttPub != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not register MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcRegMqttPub))
-        self.mqttPubRecordDict[sysName] = type
-        return rcRegMqttPub
+        try:
+            res = self.rpc.rpcRegMqttPub(type, sysName, topic, payloadMap)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "MQTT pub event Registration failed - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "MQTT pub event Registration failed - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not register MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
+        self.mqttPubRecordDict[sysName] = mqttPubRecord()
+        self.mqttPubRecordDict[sysName].type = type
+        self.mqttPubRecordDict[sysName].sysName = sysName
+        self.mqttPubRecordDict[sysName].topic = topic
+        self.mqttPubRecordDict[sysName].payloadMap = payloadMap
+        trace.notify(DEBUG_INFO, "MQTT pub event succesfully registered for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
+        return rc.OK
+
+    def reRegMqttPubs(self):
+        trace.notify(DEBUG_TERSE, "Re-registering RPC pub events")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+        for sysNameItter in self.mqttPubRecordDict:
+            print("############################## UnReging PUB Type:SysName " + str(self.mqttPubRecordDict[sysNameItter].type) + ":" + str(self.mqttPubRecordDict[sysNameItter].sysName) + "With payloadmap: " + str(self.mqttPubRecordDict[sysNameItter].payloadMap))
+            try:
+                self.rpc.rpcUnRegMqttPub(self.mqttPubRecordDict[sysNameItter].type, self.mqttPubRecordDict[sysNameItter].sysName)
+            except:
+                pass
+            try:
+                res = self.rpc.rpcRegMqttPub(self.mqttPubRecordDict[sysNameItter].type, self.mqttPubRecordDict[sysNameItter].sysName, self.mqttPubRecordDict[sysNameItter].topic, self.mqttPubRecordDict[sysNameItter].payloadMap)
+            except xmlrpc.client.ProtocolError as err:
+                trace.notify(DEBUG_ERROR, "MQTT pub event Re-registration failed - rc: " + err.errmsg)
+                return rc.GEN_COM_ERR
+            except Exception as err:
+                trace.notify(DEBUG_ERROR, "MQTT pub event Re-registration failed - rc: " + str(err))
+                return rc.GEN_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "Re-registering RPC client callbacks failed - rc: " + rc.getErrStr(res))
+                return res
+        trace.notify(DEBUG_INFO, "Successfully Re-registered MQTT pubs over RPC")
+        return rc.OK
 
     def unRegMqttPub(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Un-Register MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Un-Register MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         try:
             self.mqttPubRecordDict[sysName]
         except:
             trace.notify(DEBUG_INFO, "Cannot unregister MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - record of registration does not exist")
             return rc.DOES_NOT_EXIST
-        rcUnRegMqttPub = self.rpc.rpcUnRegMqttPub(type, sysName)
-        if rcUnRegMqttPub != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not Unregister MQTT publishment: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcUnRegMqttPub))
+        try:
+            res = self.rpc.rpcUnRegMqttPub(type, sysName)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not Unregister MQTT publishment - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not Unregister MQTT publishment - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not Unregister MQTT publishment: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
         else:
             del self.mqttPubRecordDict[sysName]
-        return rcUnRegMqttPub
+        trace.notify(DEBUG_INFO, "Successfully Un-registered MQTT pubs over RPC")
+        return rc.OK
 
     def regMqttSub(self, type, sysName, topic, payloadMap):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Registering MQTT subscription event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Register MQTT sub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         try:
             self.mqttSubRecordDict[sysName]
         except:
@@ -510,187 +633,439 @@ class jmriRpcClient():
         else:
             trace.notify(DEBUG_INFO, "MQTT sub event already registered for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - replacing it")
             self.unRegMqttSub(type, sysName)
-        rcRegMqttSub = self.rpc.rpcRegMqttSub(type, sysName, topic, payloadMap)
-        if rcRegMqttSub != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not register MQTT sub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcRegMqttPub))
-        self.mqttSubRecordDict[sysName] = type
-        return rcRegMqttSub
+        try:
+            res = self.rpc.rpcRegMqttSub(type, sysName, topic, payloadMap)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not register MQTT sub event - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not register MQTT sub event - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not register MQTT sub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
+        self.mqttSubRecordDict[sysName] = mqttPubRecord()
+        self.mqttSubRecordDict[sysName].type = type
+        self.mqttSubRecordDict[sysName].sysName = sysName
+        self.mqttSubRecordDict[sysName].topic = topic
+        self.mqttSubRecordDict[sysName].payloadMap = payloadMap
+        trace.notify(DEBUG_INFO, "Successfully registered MQTT subscription event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
+        return rc.OK
+
+    def reRegMqttSubs(self):
+        trace.notify(DEBUG_TERSE, "Re-registering MQTT subscription events")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+        for sysNameItter in self.mqttSubRecordDict:
+            try:
+                self .rpc.rpcUnRegMqttSub(self.mqttSubRecordDict[sysNameItter].type, self.mqttSubRecordDict[sysNameItter].sysName)
+            except:
+                pass
+            try:
+                res = self.rpc.rpcRegMqttSub(self.mqttSubRecordDict[sysNameItter].type, self.mqttSubRecordDict[sysNameItter].sysName, self.mqttSubRecordDict[sysNameItter].topic, self.mqttSubRecordDict[sysNameItter].payloadMap)
+            except xmlrpc.client.ProtocolError as err:
+                trace.notify(DEBUG_ERROR, "Could not Re-register MQTT sub event - rc: " + err.errmsg)
+                return rc.GEN_COM_ERR 
+            except Exception as err:
+                trace.notify(DEBUG_ERROR, "Could not Re-register MQTT sub event - rc: " + str(err))
+                return rc.GEN_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "Could not Re-register MQTT sub event - rc: " + jmriObj.getObjTypeStr(self.mqttSubRecordDict[sysNameItter].type) + " System name: " + str(sysNameItter) + ", result: " + rc.getErrStr(res))
+                return res
+        trace.notify(DEBUG_INFO, "Done re-registering RPC sub events")
+        return rc.OK
 
     def unRegMqttSub(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Un-Register MQTT subscription for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Un-Register MQTT sub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         try:
             self.mqttSubRecordDict[sysName]
         except:
-            trace.notify(DEBUG_INFO, "Cannot unregister MQTT sub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - record of registration does not exist")
+            trace.notify(DEBUG_ERROR, "Cannot un-register MQTT subscription for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - record of registration does not exist")
             return rc.DOES_NOT_EXIST
-        rcUnRegMqttSub = self.rpc.rpcUnRegMqttSub(type, sysName)
-        if rcUnRegMqttSub != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not Unregister MQTT Subscription: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcUnRegMqttSub))
-        else:
-            del self.mqttSubRecordDict[sysName]
-        return rcUnRegMqttSub
+        try:
+            res = self.rpc.rpcUnRegMqttSub(type, sysName)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "un-register MQTT subscription - rc: " + err.errmsg)
+            rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "un-register MQTT subscription - rc: " + str(err))
+            rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not un-register MQTT subscription: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
+        del self.mqttSubRecordDict[sysName]
+        trace.notify(DEBUG_INFO, "Successfully un-registered MQTT subscription for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        return rc.OK
 
     def createObject(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        print(">>>>>>>>>>>>>>>>>>>>Creating object: " + str(sysName))
+        trace.notify(DEBUG_TERSE, "Creating JMRI object for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Create object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
-        rcCreateObject = self.rpc.rpcCreateObject(type, sysName)
-        if rcCreateObject != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not create object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcCreateObject))
-        return rcCreateObject
+        try:
+            self.jmriObjDict[sysName]
+        except:
+            pass
+        else:
+            trace.notify(DEBUG_ERROR, "Could not create JMRI object - already exists - Type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - replacing it")
+            try:
+                self.rpc.rpcDeleteObject(type, sysName)
+            except:
+                pass
+        try:
+            res = self.rpc.rpcCreateObject(type, sysName)
+        except xmlrpc.client.ProtocolError as err:
+                trace.notify(DEBUG_ERROR, "Could not create JMRI object - rc: " + err.errmsg)
+                rc.GEN_COM_ERR
+        except Exception as err:
+                trace.notify(DEBUG_ERROR, "Could not create JMRI object - rc: " + str(err))
+                rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not create JMRI object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
+        self.jmriObjDict[sysName] = jmriObjRecord()
+        self.jmriObjDict[sysName].type = type
+        self.jmriObjDict[sysName].sysName = sysName
+        trace.notify(DEBUG_INFO, "Successfully created JMRI object for object type: - Type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + " - replacing it")
+        return rc.OK
+
+    def reCreateObjects(self):
+        trace.notify(DEBUG_TERSE, "Re-consiliating JMRI objects")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+        for sysNameItter in self.jmriObjDict:
+            try:
+                res = self.rpc.rpcCreateObject(self.jmriObjDict[sysNameItter].type, self.jmriObjDict[sysNameItter].sysName)
+            except xmlrpc.client.ProtocolError as err:
+                trace.notify(DEBUG_ERROR, "Could not Re-consiliate JMRI object \"" + sysNameItter + "\" - rc: " + err.errmsg)
+                return rc.GEN_COM_ERR
+            except Exception as err:
+                trace.notify(DEBUG_ERROR, "Could not Re-consiliate JMRI object \"" + sysNameItter + "\" - rc: " + str(err))
+                return rc.GEN_COM_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "Could not Re-consiliate JMRI object \"" + sysNameItter + "\" - rc: " + ", result: " + rc.getErrStr(res))
+                return res
+            if self.jmriObjDict[sysNameItter].userName != None:
+                try:
+                    res = self.rpc.rpcSetUserNameBySysName(self.jmriObjDict[sysNameItter].type, self.jmriObjDict[sysNameItter].sysName, self.jmriObjDict[sysNameItter].userName)
+                except xmlrpc.client.ProtocolError as err:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate Username for JMRI object \"" + sysNameItter + "\" - rc: " + err.errmsg)
+                    return rc.GEN_COM_ERR
+                except Exception as err:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate Username for JMRI object \"" + sysNameItter + "\" - rc: " + str(err))
+                    return rc.GEN_ERR
+                if res != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate Username for JMRI object \"" + sysNameItter + "\" - rc: " + rc.getErrStr(res))
+                    return res
+
+            if self.jmriObjDict[sysNameItter].description != None:
+                try:
+                    res = self.rpc.rpcSetCommentBySysName(self.jmriObjDict[sysNameItter].type, self.jmriObjDict[sysNameItter].sysName, self.jmriObjDict[sysNameItter].description)
+                except xmlrpc.client.ProtocolError as err:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate Description for JMRI object \"" + sysNameItter + "\" - rc: " + err.errmsg)
+                    return rc.GEN_COM_ERR
+                except Exception as err:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate Description for JMRI object \"" + sysNameItter + "\" - rc: " + str(err))
+                    return rc.GEN_ERR
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "Could not Re-consiliate Description for JMRI object \"" + sysNameItter + "\" - rc: " + rc.getErrStr(res))
+                return res
+            if self.jmriObjDict[sysNameItter].state != None:
+                try:
+                    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>Setting state by system name Type:%s, sysName: %s, state: %s", str(self.jmriObjDict[sysNameItter].type), self.jmriObjDict[sysNameItter].sysName, str(self.jmriObjDict[sysNameItter].state))
+
+                    res = self.rpc.rpcSetStateBySysName(self.jmriObjDict[sysNameItter].type, self.jmriObjDict[sysNameItter].sysName, self.jmriObjDict[sysNameItter].state)
+                except xmlrpc.client.ProtocolError as err:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate State for JMRI object \"" + sysNameItter + "\" - rc: " + err.errmsg)
+                    return rc.GEN_COM_ERR
+                except Exception as err:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate State for JMRI object \"" + sysNameItter + "\" - rc: " + str(err))
+                    return rc.GEN_ERR
+                if res != rc.OK:
+                    trace.notify(DEBUG_ERROR, "Could not Re-consiliate State for JMRI object \"" + sysNameItter + "\" - rc: " + rc.getErrStr(res))
+                    return rc.res
+        trace.notify(DEBUG_TERSE, "Done re-consiliating JMRI objects ")
+        return rc.OK
 
     def getObjectConfig(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetConfigsXmlByType(type))).get(jmriObj.getObjTypeStr(type)).get(sysName)
+        try:
+            return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetConfigsXmlByType(type))).get(jmriObj.getObjTypeStr(type)).get(sysName)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get objectConfig \"" + sysName + "\" - rc: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get objectConfig \"" + sysName + "\" - rc: " + str(err))
+            return None
 
     def canDeleteObject(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return False
-        canDeleteObject = self.rpc.rpcCanDeleteObject(type, sysName)
+        try:
+            canDeleteObject = self.rpc.rpcCanDeleteObject(type, sysName)
+        except xmlrpc.client.ProtocolError as err:
+            traceback.notify(DEBUG_ERROR, "Could not evaluate if JMRI object can be deleted\"" + sysName + "\" - rc: " + err.errmsg)
+            return rc.CANNOT_DELETE
+        except Exception as err:
+            traceback.notify(DEBUG_ERROR, "Could not evaluate if JMRI object can be deleted\"" + sysName + "\" - rc: " + str(err))
+            return rc.CANNOT_DELETE
         trace.notify(DEBUG_INFO, "Can delete object request?: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + str(canDeleteObject))
         return canDeleteObject
 
     def deleteObject(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Deleting object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Deleting object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
-        rcDeleteObject = self.rpc.rpcDeleteObject(type, sysName)
-        if rcDeleteObject != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not delete object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcDeleteObject))
-        return rcDeleteObject
+        try:
+            res = self.rpc.rpcDeleteObject(type, sysName)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not delete JMRI object \"" + sysName + "\" - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not delete JMRI object \"" + sysName + "\" - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not delete JMRI object \"" + sysName + "\" - rc: " + rc.getErrStr(res))
+            return rc.res
+        del self.jmriObjDict[sysName]
+        trace.notify(DEBUG_INFO, "Successfully deleted object: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        return rc.OK
 
     def getConfigsByType(self, type):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetConfigsXmlByType(type)))
+        try:
+            return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetConfigsXmlByType(type)))
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get type configuration for type \"" + type + "\" - rc: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get type configuration for type \"" + type + "\" - rc: " + str(err))
+            return None
 
     def getUserNameBySysName(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetUserNameXmlBySysName(type, sysName))).get("usrName")
+        try:
+            userName = dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetUserNameXmlBySysName(type, sysName))).get("usrName")
+            jmriObjDict[sysName].userName = userName
+            return userName
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get userName for systemName  \"" + sysName + "\" - rc: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get userName for systemName  \"" + sysName + "\" - rc: " + str(err))
+            return None
 
-    def setUserNameBySysName(self, type, sysName, usrName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+    def setUserNameBySysName(self, type, sysName, userName):
+        trace.notify(DEBUG_TERSE, "Setting user name: " + userName + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Setting user name: " + usrName + " to: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
-        rcSetUserName = self.rpc.rpcSetUserNameBySysName(type, sysName, usrName)
-        if rcSetUserName != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not set user name: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcSetUserName))
-        return rcSetUserName
+        try:
+            res = self.rpc.rpcSetUserNameBySysName(type, sysName, userName)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not set userName for systemName \"" + sysName + "\" - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not set userName for systemName \"" + sysName + "\" - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not set userName for systemName \"" + sysName + "\" - rc: " + rc.getErrStr(res))
+            return res
+        print(">>>>>>>>>>>>>>>>>>>>>>> jmriObjDict:" + str(self.jmriObjDict))
+        self.jmriObjDict[sysName].userName = userName
+        trace.notify(DEBUG_INFO, "Successfully set user name: " + userName + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        return rc.OK
 
     def getCommentBySysName(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetCommentXmlBySysName(type, sysName))).get("comment")
+        try:
+            comment = dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetCommentXmlBySysName(type, sysName))).get("comment")
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not set comment for systemName \"" + sysName + "\" - rc: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not set comment for systemName \"" + sysName + "\" - rc: " + str(err))
+            return None
+        self.jmriObjDict[sysName].description = comment
+        return comment
 
     def setCommentBySysName(self, type, sysName, comment):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Setting comment: " + comment + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Setting comment: " + comment + " to: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
-        rcSetComment = self.rpc.rpcSetCommentBySysName(type, sysName, comment)
-        if rcSetComment != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not set comment: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcSetComment))
-        return rcSetComment
+        try:
+            res = self.rpc.rpcSetCommentBySysName(type, sysName, comment)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not set comment for systemName \"" + sysName + "\" - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not set comment for systemName \"" + sysName + "\" - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not set comment for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
+        self.jmriObjDict[sysName].description = comment
+        trace.notify(DEBUG_INFO, "Successfully set comment: " + comment + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        return rc.OK
+
+    def setStateBySysName(self, type, sysName, state):
+        trace.notify(DEBUG_TERSE, "Setting state to: " + state + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+        try:
+            res = self.rpc.rpcSetStateBySysName(type, sysName, state)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not set state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not set state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not set state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
+            return res
+        jmriObjDict[sysName].state = state
+        trace.notify(DEBUG_INFO, "Successfully set state to: " + state + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
+        return rc.OK
 
     def getStateBySysName(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetStateXmlBySysName(type, sysName))).get("state")
+        try:
+            return dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetStateXmlBySysName(type, sysName))).get("state")
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + str(err))
+            return None
 
     def getValidStatesBySysName(self, type, sysName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        states = dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetValidStatesBySysName(type, sysName))).get("states").strip("[]").split(",")
+        try:
+            states = dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetValidStatesBySysName(type, sysName))).get("states").strip("[]").split(",")
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + str(err))
+            return None
         for i in range(len(states)):
             states[i] = states[i].strip()
         return states
 
-    def setStateBySysName(self, type, sysName, state):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
-            return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Setting state: " + state + " to: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
-        rcSetState = self.rpc.rpcSetStateBySysName(type, sysName, state)
-        if rcSetState != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not set state: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(rcSetState))
-        return rcSetState
-
     def setRpcServerDebugLevel(self, globalDebugLevelStr):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Setting global debug level to " + globalDebugLevelStr)
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Setting global debug level to " + globalDebugLevelStr)
         self.globalDebugLevelStr = globalDebugLevelStr
         try:
-            assert self.rpc.rpcsetRpcServerDebugLevel(globalDebugLevelStr) == rc.OK
-            return rc.OK
-        except:
-            self._retryConnect(rc.GEN_COM_ERR)
+            res = self.rpc.rpcsetRpcServerDebugLevel(globalDebugLevelStr)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not set global debug level - rc: " + err.errmsg)
             return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not set global debug level - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not set global debug level - rc: " + rc.getErrStr(res))
+            return res
+        trace.notify(DEBUG_INFO, "Successfully set global debug level to " + globalDebugLevelStr)
+        return rc.OK
 
     def getKeepaliveInterval(self):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return 0
         try:
             return self.rpc.rpcGetKeepaliveInterval()
-        except:
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get keep-alive interval - rc: " + err.errmsg)
+            return 0
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get keep-alive interval - rc: " + str(err))
             return 0
 
     def setKeepaliveInterval(self, keepaliveInterval):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        trace.notify(DEBUG_TERSE, "Setting RPC keep-alive interval (Server and Client) to: " + str(keepaliveInterval))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
-        trace.notify(DEBUG_INFO, "Setting RPC keep-alive interval (Server and Client) to: " + str(keepaliveInterval))
+        try:
+            res = self.rpc.rpcSetKeepaliveInterval(keepaliveInterval)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not set keep-alive interval - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not set keep-alive interval - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            trace.notify(DEBUG_ERROR, "Could not set keep-alive interval - rc: " + res)
+            return res
         self.keepAliveInterval = keepaliveInterval
         #self.startKeepAliveHandler()
-        try:
-            assert self.rpc.rpcSetKeepaliveInterval(keepaliveInterval) == rc.OK
-            return rc.OK
-        except:
-            self._retryConnect(rc.GEN_COM_ERR)
-            return rc.GEN_COM_ERR
+        trace.notify(DEBUG_INFO, "Successfully set RPC keep-alive interval (Server and Client) to: " + str(keepaliveInterval))
+        return rc.OK
 
     def getFile(self, fileName):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
         try:
             return self.rpc.rpcGetFile(fileName)
-        except:
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get file - rc: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get file - rc: " + str(err))
             return None
 
     def listDir(self, path):
-        if self.retryStateMachine != RPC_CONNECTED:
-            trace.notify(DEBUG_ERROR, "RPC connection failed")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return None
-        #try:
-        return self.rpc.rpcListDir(path)
-        #except:
-        #    return None
+        try:
+            return self.rpc.rpcListDir(path)
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Could not get file - rc: " + err.errmsg)
+            return None
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Could not get file - rc: " + str(err))
+            return None
 
     def cbGenerator(self):
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR INIT>>>>>>>>>>>>>>>>>>>>>>>>>>")
         while self.running:
+            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR WAIT>>>>>>>>>>>>>>>>>>>>>>>>>>")
             trace.notify(DEBUG_VERBOSE, "Waiting for call-back")
             try:
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>WAITING FOR CB>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 callBackDict = dictEscapeing.dictUnEscape(xmltodict.parse(self.cbRpc.rpcOnStateChange()))
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>GOT CB>>>>>>>>>>>>>>>>>>>>>>>>>>")
             except:
-                self._retryConnect(rc.SOCK_ERR)
+                trace.notify(DEBUG_ERROR, "CB Generator failed to communicate with server - reconnecting...")
+                self._reConnect(rc.SOCK_ERR)
                 return
             trace.notify(DEBUG_VERBOSE, "Got a RPC CB message: " + str(callBackDict))
             if isRelease(callBackDict):
@@ -698,6 +1073,8 @@ class jmriRpcClient():
                 break
             if isKeepAlive(callBackDict):
                 trace.notify(DEBUG_VERBOSE, "Got a Keep-alive message")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>GOT PING>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
                 self._stopRetryConnect()
                 self.missedKeepAlive = 0
             elif isStateChange(callBackDict):
@@ -713,8 +1090,9 @@ class jmriRpcClient():
                 except:
                     pass
             else:
-                trace.notify(DEBUG_ERROR, "Got a RPC CB garbage")
-                pass
+                trace.notify(DEBUG_ERROR, "Got RPC CB garbage: " + str(callBackDict))
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR DIED>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
 
     def startKeepAliveHandler(self):
         self.stopKeepAliveHandler()
@@ -736,7 +1114,7 @@ class jmriRpcClient():
         self.missedKeepAlive += 1
         if self.missedKeepAlive > MAX_MISSED_KEEPALIVE:
             trace.notify(DEBUG_ERROR, "RPC keepalive error,  more than " + str(MAX_MISSED_KEEPALIVE) + " keep-alive messages missed")
-            self._retryConnect(rc.KEEPALIVE_TIMEOUT)
+            self._reConnect(rc.KEEPALIVE_TIMEOUT)
         else:
             trace.notify(DEBUG_VERBOSE, "RPC keepalive timer report " + str(self.missedKeepAlive) + " keep-alive messages missed...")
             if self.keepAliveInterval != 0:
@@ -745,8 +1123,9 @@ class jmriRpcClient():
                 self.keepAliveTimerHandle = threading.Timer(self.keepAliveInterval, self.keepAliveTimer)
                 self.keepAliveTimerHandle.start()
 
-    def _retryConnect(self, err):
+    def _reConnect(self, err):
         if not self.retry:
+            self.running = False
             self.retry = True
             self.retryStateMachine = RPC_NOT_CONNECTED
             self.connected = False
@@ -774,7 +1153,8 @@ class jmriRpcClient():
         if self.retry:
             if self.retryStateMachine == RPC_NOT_CONNECTED:
                 try:
-                    assert self._reconnect() == rc.OK
+                    self.retryStateMachine = RPC_CONNECTING
+                    assert self._tryReconnect() == rc.OK
                     trace.notify(DEBUG_INFO, "RPC client successfully re-connected to server, waiting for RPC keep alive messages...")
                     self.retryStateMachine = RPC_CONNECTED_NO_KEEPALIVE
                     threading.Timer(3 * self.keepAliveInterval, self._retryConnectLoop).start()
@@ -782,6 +1162,7 @@ class jmriRpcClient():
                 except Exception:
                     traceback.print_exc() #Should this be removed or should it be based on verbosity?
                     trace.notify(DEBUG_ERROR, "RPC client could not re-connect to server, retrying...")
+                    self.retryStateMachine = RPC_NOT_CONNECTED
                     threading.Timer(RPC_RETRY_PERIOD_S, self._retryConnectLoop).start()
                     return
             elif self.retryStateMachine == RPC_CONNECTED_NO_KEEPALIVE:

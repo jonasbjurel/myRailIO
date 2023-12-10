@@ -190,7 +190,7 @@ rc_t signalMastAspects::getAppearance(char* p_smType, char* p_aspect, uint8_t** 
     }
     for (uint8_t i = 0; true; i++) {
         if (i > aspects.size() - 1) {
-            LOG_ERROR_NOFMT("Aspect \"%s\" doesnt exist, setting mast to failsafe appearance and continuing..." CR);
+            LOG_ERROR("Aspect \"%s\" doesnt exist, setting mast to failsafe appearance and continuing..." CR, p_aspect);
             *p_appearance = failsafeMastAppearance;
             return RC_GEN_ERR;
         }

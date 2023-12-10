@@ -271,7 +271,7 @@ void lgBase::onSysStateChange(sysState_t p_sysState) {
     sysState_t sysStateChange = newSysState ^ prevSysState;
     if (!sysStateChange)
         return;
-    LOG_INFO("%s: lg has a new OP-state: %s" CR, logContextName, systemState::systemState::getOpStateStr(opStateStr));
+    LOG_INFO("%s: lg has a new OP-state: %s" CR, logContextName, systemState::getOpStateStr(opStateStr));
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
@@ -341,6 +341,11 @@ void lgBase::wdtKickedHelper(void* lgBaseHandle) {
 
 void lgBase::wdtKicked(void) {
     systemState::setOpStateByBitmap(OP_INTFAIL);
+}
+
+rc_t lgBase::getOpStateStr(char* p_opStateStr) {
+    systemState::getOpStateStr(p_opStateStr);
+    return RC_OK;
 }
 
 rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {

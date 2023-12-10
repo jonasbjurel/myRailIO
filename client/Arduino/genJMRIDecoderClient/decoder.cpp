@@ -207,7 +207,6 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_MAC] = NULL;
     decoderSearchTags[XML_DECODER_URI] = NULL;
     decoderSearchTags[XML_DECODER_ADMSTATE] = NULL;
-
     LOG_INFO("Parsing decoder configuration:" CR);
     getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability E.g. sizeof(decoderSearchTags)/sizeof(size_t)
     decoderSearchTags[XML_DECODER_MQTT_URI] = NULL;
@@ -432,17 +431,24 @@ rc_t decoder::start(void) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
     LOG_INFO("%s: Subscribing to adm- and op- state topics" CR, logContextName);
-    char admopSubscribeTopic[300];
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
-    if (mqtt::subscribeTopic(admopSubscribeTopic, onAdmStateChangeHelper, this)) {
-        panic("%s: Failed to suscribe to admState topic\"%s\"", logContextName, admopSubscribeTopic);
+    char subscribeTopic[300];
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this)) {
+        panic("%s: Failed to suscribe to admState topic\"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
     }
-    sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
-    if (mqtt::subscribeTopic(admopSubscribeTopic, onOpStateChangeHelper, this)) {
-        panic("%s: Failed to suscribe to opState topic \"%s\"", logContextName, admopSubscribeTopic);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this)) {
+        panic("%s: Failed to suscribe to opState topic \"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
     }
+
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_REBOOT_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onRebootHelper, this)) {
+        panic("%s: Failed to suscribe to reboot topic \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+
     LOG_INFO("Starting lightgroup link Decoders" CR);
     for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
         LOG_TERSE("%s: Starting LgLink-%d" CR, logContextName, lgLinkItter);
@@ -1016,6 +1022,14 @@ bool decoder::getDebug(void) {
 
 const char* decoder::getLogContextName(void) {
     return logContextName;
+}
+
+void decoder::onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onReboot();
+}
+
+void decoder::onReboot(void) {
+    panic("Ordered reboot");
 }
 
 /* CLI decoration methods */

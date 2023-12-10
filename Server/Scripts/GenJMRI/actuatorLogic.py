@@ -294,65 +294,38 @@ class actuator(systemState, schema):
         return rc.OK
 
     def __setConfig(self):
-        try:
-            if self.actType.value == "TURNOUT":
-                actuators = self.rpcClient.getConfigsByType(jmriObj.TURNOUTS)
-                actuator = actuators[jmriObj.getObjTypeStr(jmriObj.TURNOUTS)][self.jmriActSystemName.value]
-                self.rpcClient.setUserNameBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.userName.value)
-                self.rpcClient.setCommentBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.description.value)
-                self.actState = self.rpcClient.getStateBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value)
-            elif self.actType.value == "LIGHT":
-                actuators = self.rpcClient.getConfigsByType(jmriObj.LIGHTS)
-                actuator = actuators[jmriObj.getObjTypeStr(jmriObj.LIGHTS)][self.jmriActSystemName.value]
-                self.rpcClient.setUserNameBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.userName.value)
-                self.rpcClient.setCommentBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.description.value)
-                self.actState = self.rpcClient.getStateBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value)
-            elif self.actType.value == "MEMORY":
-                actuators = self.rpcClient.getConfigsByType(jmriObj.MEMORIES)
-                actuator = actuators[jmriObj.getObjTypeStr(jmriObj.MEMORIES)][self.jmriActSystemName.value]
-                self.rpcClient.setUserNameBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.userName.value)
-                self.rpcClient.setCommentBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.description.value)
-                self.actState = self.rpcClient.getStateBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value)
-            trace.notify(DEBUG_INFO, "System name " + self.jmriActSystemName.value + " already configured in JMRI, re-using it")
-        except:
-            trace.notify(DEBUG_INFO, "System name " + self.jmriActSystemName.value + " doesnt exist in JMRI, creating it")
-            if self.actType.value == "TURNOUT":
-                self.rpcClient.createObject(jmriObj.TURNOUTS, self.jmriActSystemName.value)
-                self.rpcClient.setUserNameBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.userName.value)
-                self.rpcClient.setCommentBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.description.value)
-            elif self.actType.value == "LIGHT":
-                self.rpcClient.createObject(jmriObj.LIGHTS, self.jmriActSystemName.value)
-                self.rpcClient.setUserNameBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.userName.value)
-                self.rpcClient.setCommentBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.description.value)
-            elif self.actType.value == "MEMORY":
-                self.rpcClient.createObject(jmriObj.MEMORIES, self.jmriActSystemName.value)
-                self.rpcClient.setUserNameBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.userName.value)
-                self.rpcClient.setCommentBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.description.value)
-        #SORT IN UNDER EACH CATEGORY BELOW
-        self.rpcClient.unRegEventCb(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.__actChangeListener)
-        self.rpcClient.unRegEventCb(jmriObj.LIGHTS, self.jmriActSystemName.value, self.__actChangeListener)
-        self.rpcClient.unRegEventCb(jmriObj.MEMORIES, self.jmriActSystemName.value, self.__actChangeListener)
-        self.rpcClient.unRegMqttPub(jmriObj.TURNOUTS, self.jmriActSystemName.value)
-        self.rpcClient.unRegMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value)
-        self.rpcClient.unRegMqttPub(jmriObj.MEMORIES, self.jmriActSystemName.value)
+        trace.notify(DEBUG_INFO, "Creating Actuator - System name " + self.jmriActSystemName.value)
         if self.actType.value == "TURNOUT":
+            self.rpcClient.unRegEventCb(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.__actChangeListener)
+            self.rpcClient.unRegMqttPub(jmriObj.TURNOUTS, self.jmriActSystemName.value)
+            self.rpcClient.createObject(jmriObj.TURNOUTS, self.jmriActSystemName.value)
             self.rpcClient.setUserNameBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.userName.value)
             self.rpcClient.setCommentBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.TURNOUTS, self.jmriActSystemName.value, MQTT_TURNOUT_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
+
         elif self.actType.value == "LIGHT":
+            self.rpcClient.unRegEventCb(jmriObj.LIGHTS, self.jmriActSystemName.value, self.__actChangeListener)
+            self.rpcClient.unRegMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value)
+            self.rpcClient.createObject(jmriObj.LIGHTS, self.jmriActSystemName.value)
             self.rpcClient.setUserNameBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.userName.value)
             self.rpcClient.setCommentBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.LIGHTS, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.LIGHTS, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value, MQTT_LIGHT_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
         elif self.actType.value == "MEMORY":
+            self.rpcClient.unRegEventCb(jmriObj.MEMORIES, self.jmriActSystemName.value, self.__actChangeListener)
+            self.rpcClient.unRegMqttPub(jmriObj.MEMORIES, self.jmriActSystemName.value)
+            self.rpcClient.createObject(jmriObj.MEMORIES, self.jmriActSystemName.value)
             self.rpcClient.setUserNameBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.userName.value)
             self.rpcClient.setCommentBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value, self.description.value)
             self.actState = self.rpcClient.getStateBySysName(jmriObj.MEMORIES, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.MEMORIES, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.MEMORIES, self.jmriActSystemName.value, MQTT_MEMORY_TOPIC + MQTT_STATE_TOPIC+ self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
+        else:
+            trace.notify(DEBUG_INFO, "Could not create Actuator type " + self.actType.value + " for " + self.nameKey.value +" , type not supported")
+            return rc.PARAM_ERR
         self.actOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
         self.actOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value
         self.actAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_ACT_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value

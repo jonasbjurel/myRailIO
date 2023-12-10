@@ -103,6 +103,13 @@
 // Payload examples:
 // MQTT_STATS_TOPIC_FRAGMENT_PAYLOAD
 
+
+// Decoder reboot:
+#define MQTT_DECODER_REBOOT_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/reboot"
+
+// Payload examples:
+#define REBOOT_PAYLOAD							"<REBOOT/>"
+
 // MQTT Object resource business logic topics and payloads
 // Sensors
 #define MQTT_SENS_TOPIC							MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_SENS_TOPIC_FRAGMENT "/state"										///followed by /sysname

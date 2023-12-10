@@ -604,6 +604,7 @@ class jmriListener():
     @staticmethod
     def keepAlive():
         trace.notify(DEBUG_VERBOSE, "A keepalive event is queued")
+        print(">>>>>>>>>>>>>>>>>>PING>>>>>>>>>>>>>>>")
         jmriListener.keepaliveTimerHandle = threading.Timer(jmriListener.keepAlivePeriod, jmriListener.keepAlive)
         jmriListener.keepaliveTimerHandle.start()
         if jmriListener.cbWaiting:

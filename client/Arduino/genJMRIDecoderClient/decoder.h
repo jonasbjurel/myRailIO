@@ -239,6 +239,8 @@ public:
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	const char* getLogContextName(void);
+	static void onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onReboot(void);
 
 	/* CLI decoration methods */
 	// No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.

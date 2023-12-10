@@ -32,7 +32,7 @@
 
 // Decoder configuration
 #define DECODER_DISCOVERY_TIMEOUT_S					60
-#define MAX_SATLINKS								1	//2
+#define MAX_SATLINKS								0	//2
 #define MAX_LGLINKS									1	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
@@ -59,7 +59,7 @@
 
 // Satelite link configuration
 // ===========================
-#define MAX_SATELITES								1 //8 Max satelites for each Satelite link
+#define MAX_SATELITES								0 //8 Max satelites for each Satelite link
 #define SATLINK_LINKERR_HIGHTRES					10 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 #define SATLINK_LINKERR_LOWTRES						0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 
@@ -72,13 +72,13 @@
 // Sensor configuration
 // ====================
 #define DEFAULT_SENS_FILTER_TIME					5	// Digital sensor filter (ms)
-#define MAX_SENS									8	//8 Maximum sensors // Maximum satelites per satelite link
+#define MAX_SENS									0	//8 Maximum sensors // Maximum satelites per satelite link
 #define SATLINK_UPDATE_MS							5	// Satelite scan period (ms)
 #define SENSDIGITAL_DEFAULT_FAILSAFE				true
 
 // Actuator configuration
 // ======================
-#define MAX_ACT										4	//4 Maximum actuators per satelite
+#define MAX_ACT										0	//4 Maximum actuators per satelite
 
 // General servo configuration
 #define SERVO_LEFT_PWM_VAL							26

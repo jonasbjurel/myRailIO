@@ -12,6 +12,7 @@
 ################################################################################################################################################## Southbound Decoder MQTT Topics
 # Decoder channel topics
 # -----------------------
+
 MQTT_JMRI_PRE_TOPIC =                       "/trains/"
 
 MQTT_DECODER_DISCOVERY_REQUEST_TOPIC =      "track/discoveryreq"                                # Discovery request from decoders
@@ -45,6 +46,7 @@ MQTT_DISCOVERY_REQ =                        "track/discoveryreq"
 MQTT_DISCOVERY_RSEP =                       "track/discoveryresp"
 MQTT_SUPERVISION_UPSTREAM =                 "track/decodersupervision/upstream/"
 MQTT_SUPERVISION_DOWNSTREAM =               "track/decodersupervision/downstream/"
+MQTT_REBOOT_TOPIC =                         "reboot/"
 
 # Northbound Decoder MQTT Payload           //Need to fix what is NB and SB
 # -------------------------------
@@ -60,6 +62,7 @@ ADM_ON_LINE_PAYLOAD =                       "<ADMSTATE>ONLINE</ADMSTATE>"
 ADM_OFF_LINE_PAYLOAD =                      "<ADMSTATE>OFFLINE</ADMSTATE>"
 OP_AVAIL_PAYLOAD =                          "<OPSTATE>AVAILABLE</OPSTATE>"
 OP_UNAVAIL_PAYLOAD =                        "<OPSTATE>UNAVAILABLE</OPSTATE>"
+REBOOT_PAYLOAD =                            "<REBOOT/>"
 
 
 

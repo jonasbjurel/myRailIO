@@ -285,23 +285,18 @@ class sensor(systemState, schema):
         return rc.OK
 
     def __setConfig(self):
-        try:
-            sensors = self.rpcClient.getConfigsByType(jmriObj.SENSORS)
-            sensor = sensors[jmriObj.getObjTypeStr(jmriObj.SENSORS)][self.jmriSensSystemName.value]
-            trace.notify(DEBUG_INFO, "System name " + self.jmriSensSystemName.value + " already configured in JMRI, re-using it")
-        except:
-            trace.notify(DEBUG_INFO, "System name " + self.jmriSensSystemName.value + " doesnt exist in JMRI, creating it")
-            self.rpcClient.createObject(jmriObj.SENSORS, self.jmriSensSystemName.value)
-        self.sensOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
-        self.sensOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
-        self.sensAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        trace.notify(DEBUG_INFO, "Creating sensor - System name " + self.jmriSensSystemName.value)
+        self.rpcClient.unRegEventCb(jmriObj.SENSORS, self.jmriSensSystemName.value, self.__senseChangeListener)
+        self.rpcClient.unRegMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value)
+        self.rpcClient.createObject(jmriObj.SENSORS, self.jmriSensSystemName.value)
         self.rpcClient.setUserNameBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value, self.userName.value)
         self.rpcClient.setCommentBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value, self.description.value)
         self.sensState = self.rpcClient.getStateBySysName(jmriObj.SENSORS, self.jmriSensSystemName.value)
-        self.rpcClient.unRegEventCb(jmriObj.SENSORS, self.jmriSensSystemName.value, self.__senseChangeListener)
-        self.rpcClient.unRegMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value)
         self.rpcClient.regEventCb(jmriObj.SENSORS, self.jmriSensSystemName.value, self.__senseChangeListener)
         self.rpcClient.regMqttSub(jmriObj.SENSORS, self.jmriSensSystemName.value, MQTT_SENS_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value, {"*":"*"})
+        self.sensOpDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        self.sensOpUpStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_OPSTATE_TOPIC_UPSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+        self.sensAdmDownStreamTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + MQTT_ADMSTATE_TOPIC_DOWNSTREAM + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
         self.unRegOpStateCb(self.__sysStateRespondListener)
         self.unRegOpStateCb(self.__sysStateAllListener)
         self.regOpStateCb(self.__sysStateRespondListener, OP_DISABLED[STATE] | OP_SERVUNAVAILABLE[STATE])
