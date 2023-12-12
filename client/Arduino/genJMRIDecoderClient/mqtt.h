@@ -115,9 +115,11 @@ public:
     static rc_t setDefaultQoS(uint8_t p_defaultQoS);
     static uint8_t getDefaultQoS(void);
     static rc_t setKeepAlive(uint8_t p_keepAlive);
-    static float getKeepAlive(void);
+    static uint8_t getKeepAlive(void);
     static rc_t setPingPeriod(float p_pingPeriod);
     static float getPingPeriod(void);
+    static void setMqttTopicPrefix(const char* p_mqttTopicPrefix);
+    static const char* getMqttTopicPrefix(void);
     static uint16_t getOpStateBitmap(void);
     static rc_t getOpStateStr(char* p_opState);
     static uint32_t getOverRuns(void);
@@ -161,9 +163,10 @@ private:
     static uint8_t keepAlive;
     static bool opStateTopicSet;
     static char* opStateTopic;
+    static char mqttTopicPrefix[50];
+    static char* mqttPingUpstreamTopic;
     static char* upPayload;
     static char* downPayload;
-    static char* mqttPingUpstreamTopic;
     static uint8_t missedPings;
     static int mqttStatus;
     static uint8_t qos;

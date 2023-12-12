@@ -214,10 +214,10 @@ public:
 	rc_t setMqttPrefix(const char* p_mqttPrefix, bool p_force = false);
 	const char* getMqttPrefix(bool p_force = false);
 	rc_t setKeepAlivePeriod(uint8_t p_keepAlivePeriod, bool p_force = false);
-	float getKeepAlivePeriod(bool p_force = false);
+	uint8_t getKeepAlivePeriod(bool p_force = false);
 	rc_t setPingPeriod(float p_pingPeriod, bool p_force = false);
 	float getPingPeriod(bool p_force = false);
-	rc_t setNtpServer(const char* p_ntpServer, uint16_t p_port, bool p_force = false);
+	rc_t setNtpServer(const char* p_ntpServer, uint16_t p_port = NTP_DEFAULT_PORT, bool p_force = false);
 	rc_t setTz(const char* p_tz, bool p_force = false);
 	rc_t getTz(char* p_tz, bool p_force = false);
 	rc_t setLogLevel(const char* p_logLevel, bool p_force = false);

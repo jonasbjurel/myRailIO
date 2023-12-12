@@ -1107,6 +1107,7 @@ class UI_topDialog(QDialog):
         self.JMRIRpcKeepalivePeriodDoubleSpinBox.setEnabled(True)
         # MQTT Southbound API Configuration
         self.DecoderPingPeriodDoubleSpinBox.setEnabled(True)
+        self.DecoderKeepAlivePeriodDoubleSpinBox.setEnabled(True)
         self.decoderFailSafeCheckBox.setEnabled(True)
         self.trackFailSafeCheckBox.setEnabled(True)
         self.MQTT_URI_LineEdit.setEnabled(True)
@@ -1144,6 +1145,7 @@ class UI_topDialog(QDialog):
         self.logRotateFileSizeLineEdit.setEnabled(False)
         # MQTT Southbound API Configuration
         self.DecoderPingPeriodDoubleSpinBox.setEnabled(False)
+        self.DecoderKeepAlivePeriodDoubleSpinBox.setEnabled(False)
         self.decoderFailSafeCheckBox.setEnabled(False)
         self.trackFailSafeCheckBox.setEnabled(False)
         self.MQTT_URI_LineEdit.setEnabled(False)
@@ -1182,7 +1184,8 @@ class UI_topDialog(QDialog):
         self.logRotateNoFilesSpinBox.setValue(self.parentObjHandle.logRotateNoFiles.value)
         self.logRotateFileSizeLineEdit.setText(str(self.parentObjHandle.logFileSize.value))
         # MQTT Southbound API Configuration
-        self.DecoderPingPeriodDoubleSpinBox.setValue(self.parentObjHandle.decoderMqttKeepalivePeriod.value)
+        self.DecoderPingPeriodDoubleSpinBox.setValue(self.parentObjHandle.decoderMqttPingPeriod.value)
+        self.DecoderKeepAlivePeriodDoubleSpinBox.setValue(self.parentObjHandle.decoderMqttKeepAlivePeriod.value)
         self.decoderFailSafeCheckBox.setChecked(self.parentObjHandle.decoderFailSafe.value)
         self.trackFailSafeCheckBox.setChecked(self.parentObjHandle.trackFailSafe.value)
         self.MQTT_URI_LineEdit.setText(self.parentObjHandle.decoderMqttURI.value)
@@ -1218,7 +1221,10 @@ class UI_topDialog(QDialog):
         self.parentObjHandle.logRotateNoFiles.value = self.logRotateNoFilesSpinBox.value()
         self.parentObjHandle.logFileSize.value = int(self.logRotateFileSizeLineEdit.displayText())
         # MQTT Southbound API Configuration
-        self.parentObjHandle.decoderMqttKeepalivePeriod.value = self.DecoderPingPeriodDoubleSpinBox.value()
+        print("%%%%%%%%%%%%%% Setting Ping period, type is: " + str(type(self.DecoderPingPeriodDoubleSpinBox.value())))
+        self.parentObjHandle.decoderMqttPingPeriod.value = self.DecoderPingPeriodDoubleSpinBox.value()
+        print("%%%%%%%%%%%%%% Setting Keep-alive period, type is: " + str(type(int(self.DecoderKeepAlivePeriodDoubleSpinBox.value()))))
+        self.parentObjHandle.decoderMqttKeepAlivePeriod.value = int(self.DecoderKeepAlivePeriodDoubleSpinBox.value())
         self.parentObjHandle.decoderFailSafe.value = self.decoderFailSafeCheckBox.isChecked()
         self.parentObjHandle.trackFailSafe.value = self.trackFailSafeCheckBox.isChecked()
         self.parentObjHandle.decoderMqttURI.value = self.MQTT_URI_LineEdit.displayText()

@@ -28,12 +28,15 @@ from myTrace import *
 
 class RSyslogUDPHandler(socketserver.BaseRequestHandler):
 	def handle(self):
-		data = bytes.decode(self.request[0].strip())
-		socket = self.request[1]
-		rSyslog.log(str(data))
+		try:
+			data = bytes.decode(self.request[0].strip())
+			socket = self.request[1]
+			rSyslog.log(str(data))
+		except:
+			rSyslog.log("sysLog decode error")
+
 
 class rSyslog(socketserver.BaseRequestHandler):
-
 	@staticmethod
 	def start(p_host, p_port, p_fileBaseName = None, p_rotateNo = 5, p_fileSize = 500000000):
 		rSyslog.logLock = Lock()

@@ -15,8 +15,9 @@
 #################################################################################################################################################
 
 # Default system parameters - defaults if nothing else is given in configuration
-DEFAULT_DECODER_KEEPALIVE_PERIOD =      10.0
-DEFAULT_DECODER_MQTT_URI =              "broker.emqx.io"
+DEFAULT_DECODER_PING_PERIOD =           10.0
+DEFAULT_DECODER_KEEPALIVE_PERIOD =      60
+DEFAULT_DECODER_MQTT_URI =              "test.mosquitto.org"
 DEFAULT_DECODER_MQTT_PORT =             1883
 DEFAULT_DECODER_MQTT_TOPIC_PREFIX =     "/trains/"
 DEFAULT_JMRI_RPC_URI =                  "127.0.0.2"

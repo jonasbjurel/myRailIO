@@ -345,7 +345,7 @@
     <string>NTP server URL</string>
    </property>
    <property name="text">
-    <string>myNtpServerUrl.org</string>
+    <string>pool.ntp.org</string>
    </property>
   </widget>
   <widget class="QSpinBox" name="timeZoneSpinBox">
@@ -995,6 +995,12 @@
    <property name="decimals">
     <number>1</number>
    </property>
+   <property name="minimum">
+    <double>1.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>10.000000000000000</double>
+   </property>
   </widget>
   <widget class="QDoubleSpinBox" name="JMRIRpcKeepalivePeriodDoubleSpinBox">
    <property name="geometry">
@@ -1021,6 +1027,12 @@
    </property>
    <property name="decimals">
     <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>1.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>10.000000000000000</double>
    </property>
   </widget>
   <widget class="QLineEdit" name="MQTT_TOPIC_PREFIX_LineEdit">
@@ -1083,7 +1095,7 @@
     <string>JMRI RPC URI</string>
    </property>
    <property name="text">
-    <string>myJMRIRpcUrl.org</string>
+    <string>127.0.0.1</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_18">
@@ -1274,7 +1286,7 @@
     <string>MQTT Broker URI</string>
    </property>
    <property name="text">
-    <string>myMqttBrokerUrl.org</string>
+    <string>test.mosquitto.org</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_19">
@@ -1326,7 +1338,7 @@
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="DecoderPingPeriodDoubleSpinBox_2">
+  <widget class="QDoubleSpinBox" name="DecoderKeepAlivePeriodDoubleSpinBox">
    <property name="geometry">
     <rect>
      <x>781</x>
@@ -1350,7 +1362,13 @@
     <string>MQTT supervision keep-alive period</string>
    </property>
    <property name="decimals">
-    <number>1</number>
+    <number>0</number>
+   </property>
+   <property name="minimum">
+    <double>1.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>60.000000000000000</double>
    </property>
   </widget>
   <widget class="QLabel" name="label_23">

@@ -55,6 +55,7 @@ EXT_RAM_ATTR uint8_t mqtt::defaultQoS = 0;
 EXT_RAM_ATTR uint8_t mqtt::keepAlive = 0;
 EXT_RAM_ATTR bool mqtt::opStateTopicSet = false;
 EXT_RAM_ATTR char* mqtt::opStateTopic = NULL;
+EXT_RAM_ATTR char mqtt::mqttTopicPrefix[50];
 EXT_RAM_ATTR char* mqtt::upPayload = NULL;
 EXT_RAM_ATTR char* mqtt::downPayload = NULL;
 EXT_RAM_ATTR char* mqtt::mqttPingUpstreamTopic = NULL;
@@ -96,6 +97,7 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     keepAlive = p_keepAlive;
     pingPeriod = p_pingPeriod;
     defaultRetain = p_defaultRetain;
+    strcpy(mqttTopicPrefix, MQTT_PRE0_TOPIC_DEFAULT_FRAGMENT);
     avgSamples = int(MQTT_POLL_LATENCY_AVG_TIME_MS * 1000 / MQTT_POLL_PERIOD_MS);
     latencyVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
     for (uint16_t i = 0; i < avgSamples; i++)
@@ -180,7 +182,7 @@ rc_t mqtt::reConnect(void){
                         downPayload);
     uint8_t tries = 0;
     while (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
-        if (tries++ >= 10) {
+        if (tries++ >= 50) {
             LOG_ERROR_NOFMT("Failed to reconnect MQTT client, will continue to try in the background...");
             return RC_GEN_ERR;
         }
@@ -206,6 +208,9 @@ rc_t mqtt::up(void) {
     sprintf(mqttPingUpstreamTopic, "%s%s%s", MQTT_PING_UPSTREAM_TOPIC, "/", decoderUri);
     char mqttPingDownstreamTopic[300];
     sprintf(mqttPingDownstreamTopic, "%s%s%s", MQTT_PING_DOWNSTREAM_TOPIC, "/", decoderUri);
+
+    
+
     if (subscribeTopic(mqttPingDownstreamTopic, onMqttPing, NULL)) {
         sysState->setOpStateByBitmap(OP_INTFAIL); 
         panic("Failed to to subscribe to MQTT ping topic");
@@ -242,7 +247,10 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
     bool found = false;
     int i;
     int j;
-    char* topic = createNcpystr(p_topic);
+    char* topic = new (heap_caps_malloc(strlen(p_topic) + strlen(mqttTopicPrefix) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char;
+    strcpy(topic, mqttTopicPrefix);
+    strcat(topic, p_topic);
+    Serial.printf("&&&&&&&&&&&&&&&&&&&&& Subscribing to topic %s" CR, topic);
     uint16_t state = sysState->getOpStateBitmap();
     if (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
         sysState->setOpStateByBitmap(OP_INTFAIL);
@@ -300,7 +308,9 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
 rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback) {
     bool topicFound = false;
     bool cbFound = false;
-    char* topic = createNcpystr(p_topic);
+    char* topic = new (heap_caps_malloc(strlen(p_topic) + strlen(mqttTopicPrefix) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char;
+    strcpy(topic, mqttTopicPrefix);
+    strcat(topic, p_topic);
     LOG_INFO("MQTT-Unsubscribe, Un-subscribing to topic %s" CR, topic);
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, topic)) {
@@ -342,9 +352,12 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
 
 rc_t mqtt::sendMsg(const char* p_topic, const char* p_payload, bool p_retain) {
     LOG_VERBOSE("Sending MQTT message, Topic: %s, Payload: %s" CR, p_topic, p_payload);
+    char topic[300];
     char sysStateStr[200];
-    if ((sysState->getOpStateBitmap() & OP_DISCONNECTED) || !mqttClient->publish(p_topic, p_payload, p_retain)) {
-        LOG_ERROR("Could not send message, topic: %s, payload: %s , either the MQTT OP-state: %s doesnt allow it, or there was an internal MQTT error" CR, p_topic, p_payload, sysState->getOpStateStr(sysStateStr));
+    strcpy(topic, mqttTopicPrefix);
+    strcat(topic, p_topic);
+    if ((sysState->getOpStateBitmap() & OP_DISCONNECTED) || !mqttClient->publish(topic, p_payload, p_retain)) {
+        LOG_ERROR("Could not send message, topic: %s, payload: %s , either the MQTT OP-state: %s doesnt allow it, or there was an internal MQTT error" CR, topic, p_payload, sysState->getOpStateStr(sysStateStr));
         return RC_GEN_ERR;
     }
     else {
@@ -456,7 +469,7 @@ rc_t mqtt::setKeepAlive(uint8_t p_keepAlive) {
     return RC_OK;
 }
 
-float mqtt::getKeepAlive(void) {
+uint8_t mqtt::getKeepAlive(void) {
     return keepAlive;
 }
 
@@ -465,14 +478,21 @@ rc_t mqtt::setPingPeriod(float p_pingPeriod) {
         return RC_PARAMETERVALUE_ERR;
     pingPeriod = p_pingPeriod;
     if (!(sysState->getOpStateBitmap() & OP_INIT)){
-        down();
-        up();
+        reConnect();
     }
     return RC_OK;
 }
 
 float mqtt::getPingPeriod(void) {
     return pingPeriod;
+}
+
+void mqtt::setMqttTopicPrefix(const char* p_mqttTopicPrefix) {
+    strcpy(mqttTopicPrefix, p_mqttTopicPrefix);
+}
+
+const char* mqtt::getMqttTopicPrefix(void) {
+    return mqttTopicPrefix;
 }
 
 uint16_t mqtt::getOpStateBitmap(void) {

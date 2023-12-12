@@ -237,7 +237,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     sprintf(tz, "%s%+.2i", xmlconfig[XML_DECODER_TZ_AREA], atoi(xmlconfig[XML_DECODER_TZ_AREA]));
     bool failSafe;
     if(!strcmp(xmlconfig[XML_DECODER_FAILSAFE], MQTT_BOOL_TRUE_PAYLOAD))
-        failSafe=true;
+        failSafe = true;
     else if(!strcmp(xmlconfig[XML_DECODER_FAILSAFE], MQTT_BOOL_FALSE_PAYLOAD))
         failSafe = false;
     else{
@@ -271,8 +271,6 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true) ||
         setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true) ||
         setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true) ||
-        setNtpServer(xmlconfig[XML_DECODER_NTPURI], true) ||
-        setNtpPort(atoi(xmlconfig[XML_DECODER_NTPPORT]), true) ||
         setTz(tz, true) ||
         setFailSafe(failSafe, true))
         panic("decoder::onConfig: Could not validate and set provided configuration");
@@ -286,9 +284,36 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         setFailSafe(failSafe, true))
             panic("decoder::onConfig: Could not validate and set provided configuration");
 */
+
+    LOG_TERSE("Setting up MQTT endpoints and properties" CR);
+    setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
+    setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true);
+    setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true);
+    setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
+    setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
+
+
+    LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
-        setNtpServer(xmlconfig[XML_DECODER_NTPURI], atoi(xmlconfig[XML_DECODER_NTPPORT]), true);
-        ntpTime::start();
+        LOG_TERSE("Setting up NTP server URI and Port from configuration - URI: %s Port: %s" CR, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
+        if (uint8_t rc = setNtpServer(xmlconfig[XML_DECODER_NTPURI], atoi(xmlconfig[XML_DECODER_NTPPORT]), true) != RC_OK)
+            LOG_WARN("Could not set-up NTP server - NTP client will not be started, rc: %i" CR, rc);
+        else
+            ntpTime::start();
+    }
+    else if (xmlconfig[XML_DECODER_NTPURI]) {
+        LOG_TERSE("Setting up NTP server URI from configuration with default port settings - URI: %s Port: %s" CR, xmlconfig[XML_DECODER_NTPURI], NTP_DEFAULT_PORT);
+        if (uint8_t rc = setNtpServer(xmlconfig[XML_DECODER_NTPURI], NTP_DEFAULT_PORT, true) != RC_OK)
+            LOG_WARN("Could not set-up NTP server - NTP client will not be started, rc: %i" CR, rc);
+        else
+            ntpTime::start();
+    }
+    else {
+        LOG_TERSE("No NTP server configuration was provided, setting up default NTP server and port settings - URI: %s Port: %s" CR, NTP_DEFAULT_URI, NTP_DEFAULT_PORT);
+        if (uint8_t rc = setNtpServer(NTP_DEFAULT_URI, NTP_DEFAULT_PORT, true) != RC_OK)
+            LOG_WARN("Could not set-up NTP server - NTP client will not be started, rc: %i" CR, rc);
+        else
+            ntpTime::start();
     }
     if (xmlconfig[XML_DECODER_SYSNAME] == NULL) {
         panic("%s: System name was not provided", logContextName);
@@ -331,7 +356,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     //SHOW FINAL CONFIGURATION
     LOG_INFO("%s: Successfully set the decoder top-configuration as follows:" CR);
     LOG_INFO("%s: MQTT Server: \"%s:%s\"" CR, logContextName, xmlconfig[XML_DECODER_MQTT_URI], xmlconfig[XML_DECODER_MQTT_PORT]);
-    LOG_INFO("%s: MQTT Prefix: %s - NOTE: CHANGING MQTT PREFIX CURRENTLY NOT SUPPORTED, will do nothing, default MQTT prefix: %s remains active" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PREFIX], MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
+    LOG_INFO("%s: MQTT Prefix: \"%s\"" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PREFIX], MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
     LOG_INFO("%s: MQTT Ping-period: %s" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PINGPERIOD]);
     LOG_INFO("%s: NTP Server: \"%s:%s\"" CR, logContextName, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
     LOG_INFO("%s: Time-zone: \"%s\"" CR, logContextName, tz);
@@ -649,11 +674,11 @@ rc_t decoder::setMqttPrefix(const char* p_mqttPrefix, bool p_force) { //NEED TO 
         return RC_DEBUG_NOT_SET_ERR;
     }
     else {
-        //LOG_INFO("decoder::setMqttPrefix: setting MQTT Prefix to %s" CR, p_mqttPrefix);
-        //if (xmlconfig[XML_DECODER_MQTT_PREFIX])
-        //    delete xmlconfig[XML_DECODER_MQTT_PREFIX];
-        //xmlconfig[XML_DECODER_MQTT_PREFIX] = createNcpystr(p_mqttPrefix);
-        LOG_ERROR("%s: Setting MQTT Prefix not supported" CR, logContextName);
+        LOG_INFO("decoder::setMqttPrefix: setting MQTT Prefix to %s" CR, p_mqttPrefix);
+        if (xmlconfig[XML_DECODER_MQTT_PREFIX])
+            delete xmlconfig[XML_DECODER_MQTT_PREFIX];
+        xmlconfig[XML_DECODER_MQTT_PREFIX] = createNcpystr(p_mqttPrefix);
+        mqtt::setMqttTopicPrefix(p_mqttPrefix);
         return RC_OK;
     }
 }
@@ -663,8 +688,7 @@ const char* decoder::getMqttPrefix(bool p_force) {  //NEED TO FIX
         LOG_ERROR("%s: Cannot get MQTT prefix as decoder is not configured" CR, logContextName);
         return NULL;
     }
-    return MQTT_PRE_TOPIC_DEFAULT_FRAGMENT;
-    //return xmlconfig[XML_DECODER_MQTT_PREFIX];
+    return xmlconfig[XML_DECODER_MQTT_PREFIX];
 }
 
 rc_t decoder::setKeepAlivePeriod(uint8_t p_keepAlivePeriod, bool p_force) {
@@ -682,7 +706,7 @@ rc_t decoder::setKeepAlivePeriod(uint8_t p_keepAlivePeriod, bool p_force) {
     }
 }
 
-float decoder::getKeepAlivePeriod(bool p_force) {
+uint8_t decoder::getKeepAlivePeriod(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get keep-alive period as decoder is not configured" CR, logContextName);
         return RC_GEN_ERR;

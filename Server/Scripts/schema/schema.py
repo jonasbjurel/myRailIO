@@ -70,7 +70,7 @@ class schema():
     BASE_SCHEMA =       {"userName":estr_t, "nameKey":estr_t, "description":estr_t}
     ADMIN_SCHEMA =      {"version":estr_t, "author":estr_t, "versionHistory":elist_t, "date":date_t, "time":time_t}
     GIT_SCHEMA =        {"gitBranch":estr_t, "gitTag":estr_t, "gitUrl":uri_t}
-    MQTT_SCHEMA =       {"decoderMqttURI":uri_t, "decoderMqttPort":ipPort_t, "decoderMqttTopicPrefix":estr_t, "decoderMqttKeepalivePeriod":efloat_t}
+    MQTT_SCHEMA =       {"decoderMqttURI":uri_t, "decoderMqttPort":ipPort_t, "decoderMqttTopicPrefix":estr_t, "decoderMqttKeepAlivePeriod":eint_t, "decoderMqttPingPeriod":efloat_t}
     JMRI_RPC_SCHEMA =   {"jmriRpcURI":uri_t, "jmriRpcPortBase":ipPort_t, "JMRIRpcKeepAlivePeriod":efloat_t}
     SERVICES_SCHEMA =   {"ntpUri":uri_t, "ntpPort":ipPort_t, "ntpProtocol":ipProtocol_t, "tz":tz_t, "rsyslogUrl":uri_t,
                          "rsyslogPort":ipPort_t, "rsyslogProtocol":ipProtocol_t, "logVerbosity":logVerbosity_t, "logFile":estr_t, "logRotateNoFiles":eint_t, "logFileSize":eint_t, "snmpUri":uri_t,

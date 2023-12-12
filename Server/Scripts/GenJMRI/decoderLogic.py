@@ -590,7 +590,7 @@ class decoder(systemState, schema):
         self.mqttClient.publish(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIG_TOPIC + self.decoderMqttURI.value, self.parent.getXmlConfigTree(decoder=True, text=True, onlyIncludeThisChild=self))
         self.restart = False
 
-    def __startSupervision(self): #Improvement request - after disabled a quarantain period should start requiring consecutive DECODER_MAX_MISSED_PINGS before bringing it back - may require proportional slack in the __supervisionTimer - eg (self.parent.decoderMqttKeepalivePeriod.value*1.1)
+    def __startSupervision(self): #Improvement request - after disabled a quarantain period should start requiring consecutive DECODER_MAX_MISSED_PINGS before bringing it back - may require proportional slack in the __supervisionTimer - eg (self.parent.decoderMqttPingPeriod.value*1.1)
         if self.supervisionActive:
             return
         trace.notify(DEBUG_INFO, "Decoder supervision for " + self.nameKey.value + " is started/restarted")
@@ -598,7 +598,7 @@ class decoder(systemState, schema):
         self.supervisionActive = True
         #self.mqttClient.unsubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SUPERVISION_UPSTREAM + self.decoderMqttURI.value, self.__onPingReq)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_SUPERVISION_UPSTREAM + self.decoderMqttURI.value, self.__onPingReq)
-        threading.Timer(self.parent.decoderMqttKeepalivePeriod.value, self.__supervisionTimer).start()
+        threading.Timer(self.parent.decoderMqttPingPeriod.value, self.__supervisionTimer).start()
 
     def __stopSupervision(self):
         trace.notify(DEBUG_INFO, "Decoder supervision for " + self.nameKey.value + " is stoped")
@@ -613,7 +613,7 @@ class decoder(systemState, schema):
             return
         if not self.supervisionActive:
             return
-        threading.Timer(self.parent.decoderMqttKeepalivePeriod.value, self.__supervisionTimer).start()
+        threading.Timer(self.parent.decoderMqttPingPeriod.value, self.__supervisionTimer).start()
         self.missedPingReq += 1
         if self.missedPingReq >= DECODER_MAX_MISSED_PINGS:
             self.missedPingReq = DECODER_MAX_MISSED_PINGS

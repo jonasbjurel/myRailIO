@@ -29,7 +29,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../icons/genJMRI.png</normaloff>../icons/genJMRI.png</iconset>
+    <normaloff>../../../../../../../../.designer/icons/genJMRI.png</normaloff>../../../../../../../../.designer/icons/genJMRI.png</iconset>
   </property>
   <property name="whatsThis">
    <string>Main JMRI navigation dialog</string>
@@ -317,7 +317,7 @@
   <action name="actionOpenConfig">
    <property name="icon">
     <iconset>
-     <normaloff>../.designer/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Gui/icons/gui_save_icon_157040.png</normaloff>../.designer/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Gui/icons/gui_save_icon_157040.png</iconset>
+     <normaloff>../../../../../../../../.designer/.designer/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Gui/icons/gui_save_icon_157040.png</normaloff>../../../../../../../../.designer/.designer/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Gui/icons/gui_save_icon_157040.png</iconset>
    </property>
    <property name="text">
     <string>Open</string>
