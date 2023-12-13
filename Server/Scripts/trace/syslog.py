@@ -36,13 +36,14 @@ class RSyslogUDPHandler(socketserver.BaseRequestHandler):
 			rSyslog.log("sysLog decode error")
 
 
+
 class rSyslog(socketserver.BaseRequestHandler):
 	@staticmethod
 	def start(p_host, p_port, p_fileBaseName = None, p_rotateNo = 5, p_fileSize = 500000000):
 		rSyslog.logLock = Lock()
 		rSyslog.stop()
-		rSyslog.host = p_host; 
-		rSyslog.port = p_port;
+		rSyslog.host = p_host
+		rSyslog.port = p_port
 		rSyslog.fileBaseName = p_fileBaseName
 		rSyslog.rotateNo = p_rotateNo
 		rSyslog.fileSize = p_fileSize

@@ -28,6 +28,8 @@
 EXT_RAM_ATTR char stackTraceBuff[4096];
 EXT_RAM_ATTR char panicLogMsg[512];
 EXT_RAM_ATTR bool ongoingPanic = false;
+QList<panicCbReg_t*>* panicCbList = new QList<panicCbReg_t*>;
+
 
 void panic(const char* p_panicFmt, ...) {
     if (ongoingPanic) {
@@ -36,6 +38,7 @@ void panic(const char* p_panicFmt, ...) {
         return; 
     }
     ongoingPanic = true;
+
     esp_backtrace_buff(20, stackTraceBuff);
     va_list args;
     va_start(args, p_panicFmt);
@@ -64,6 +67,35 @@ void panic(const char* p_panicFmt, ...) {
     if (xTimerStart(rebootTimer, 0) != pdPASS) {
         Serial.printf("panic: Could not start reboot timer - rebooting immediatly..." CR);
         reboot(NULL);
+    }
+}
+
+rc_t regPanicCb(panicCb_t p_panicCb, void* pMetaData){
+    for (uint8_t cbListIndex = 0; cbListIndex < panicCbList->size(); cbListIndex++) {
+        if (panicCbList->at(cbListIndex)->panicCb == p_panicCb && panicCbList->at(cbListIndex)->metaData == pMetaData)
+            return RC_ALREADYEXISTS_ERR;
+    }
+    panicCbReg_t* panicCbReg = new (heap_caps_malloc(sizeof(panicCbReg_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) panicCbReg_t;
+    panicCbReg->panicCb = p_panicCb;
+    panicCbReg->metaData = pMetaData;
+    panicCbList->push_back(panicCbReg);
+    return RC_OK;
+}
+
+rc_t unRegPanicCb(panicCb_t p_panicCb, void* pMetaData) {
+    for (uint8_t cbListIndex = 0; cbListIndex < panicCbList->size(); cbListIndex++) {
+        if (panicCbList->at(cbListIndex)->panicCb == p_panicCb && panicCbList->at(cbListIndex)->metaData == pMetaData){
+            delete panicCbList->at(cbListIndex);
+            panicCbList->clear(cbListIndex);
+            return RC_OK; 
+        }
+    }
+    return RC_NOT_FOUND_ERR;
+}
+
+void sendPanicCb(void) {
+    for (uint8_t cbListIndex = 0; cbListIndex < panicCbList->size(); cbListIndex++) {
+        panicCbList->at(cbListIndex)->panicCb(panicCbList->at(cbListIndex)->metaData);
     }
 }
 

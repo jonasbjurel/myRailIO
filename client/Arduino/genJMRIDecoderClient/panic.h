@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <esp_debug_helpers.h>
+#include <QList.h>
 #include "rc.h"
 #include "logHelpers.h"
 #include "mbedtls/base64.h"
@@ -44,10 +45,17 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
+typedef void(*panicCb_t)(void* p_metaData);
+struct panicCbReg_t {
+	panicCb_t panicCb;
+	void* metaData;
+};
+
 void panic(const char* fmt, ...);
+rc_t regPanicCb(panicCb_t p_panicCb, void* pMetaData);
+rc_t unRegPanicCb(panicCb_t p_panicCb, void* pMetaData);
+void sendPanicCb(void);
 rc_t esp_backtrace_buff(int depth, char* p_stackBuff);
 void reboot(void* p_dummy);
-
-//extern decoder* decoderHandle;
 
 #endif /*PANIC_H*/

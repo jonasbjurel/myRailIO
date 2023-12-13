@@ -312,7 +312,7 @@ class topDecoder(systemState, schema):
                 self.decoderMqttPingPeriod.value = float(topDecoderXmlConfig.get("DecoderPingPeriod"))
             else: trace.notify(DEBUG_INFO, "\"DecoderPingPeriod\" not set, using default " + str(DEFAULT_DECODER_PING_PERIOD))
             if topDecoderXmlConfig.get("DecoderKeepAlivePeriod") != None: 
-                self.decoderMqttKeepAlivePeriod.value = float(topDecoderXmlConfig.get("DecoderKeepAlivePeriod"))
+                self.decoderMqttKeepAlivePeriod.value = int(topDecoderXmlConfig.get("DecoderKeepAlivePeriod"))
             else: trace.notify(DEBUG_INFO, "\"DecoderKeepAlivePeriod\" not set, using default " + str(DEFAULT_DECODER_KEEPALIVE_PERIOD))
             if topDecoderXmlConfig.get("JMRIRpcKeepAlivePeriod") != None: 
                 self.JMRIRpcKeepAlivePeriod.value = float(topDecoderXmlConfig.get("JMRIRpcKeepAlivePeriod"))

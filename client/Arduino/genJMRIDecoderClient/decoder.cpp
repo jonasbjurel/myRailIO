@@ -42,6 +42,7 @@
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, NULL, true) {
+    regPanicCb(onPanicHelper, this);
     asprintf(&logContextName, "%s", "decoder-0");
     LOG_INFO("%s: Creating decoder" CR, logContextName);
     setSysStateObjName(logContextName);
@@ -1046,6 +1047,16 @@ bool decoder::getDebug(void) {
 
 const char* decoder::getLogContextName(void) {
     return logContextName;
+}
+
+void decoder::onPanicHelper(void* p_metaData) {
+    ((decoder*)p_metaData)->onPanic();
+}
+
+void decoder::onPanic(void) {
+    char opStateFail[50];
+    LOG_FATAL("%s: Panic callback received - setting OP-state to: \"%s\"" CR, logContextName, getOpStateStrByBitmap(OP_INTFAIL, opStateFail));
+    setOpStateByBitmap(OP_INTFAIL);
 }
 
 void decoder::onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {

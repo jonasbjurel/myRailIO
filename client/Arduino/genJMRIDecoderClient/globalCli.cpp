@@ -2721,17 +2721,26 @@ bool globalCli::getFailSafe(void){
 /* Common CLI decoration methods */
 void globalCli::onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
 									cliCmdTable_t* p_cmdTable) {
+	if (static_cast<globalCli*>(p_cliContext)->getDebug()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_CMD_ERR, "Debug already set");
+		return;
+	}
 	static_cast<globalCli*>(p_cliContext)->setDebug(true);
 	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
 void globalCli::onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
 									  cliCmdTable_t* p_cmdTable) {
+	if (!static_cast<globalCli*>(p_cliContext)->getDebug()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_CMD_ERR, "Debug already unset");
+		return;
+	}
 	static_cast<globalCli*>(p_cliContext)->setDebug(false);
 	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
 void globalCli::setDebug(bool p_debug) {
+	notAcceptedCliCommand(CLI_GEN_ERR, "Setting/Unsetting debug flag is not implemented for this context");
 }
 
 void globalCli::onCliGetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,

@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "panic.h"
 #include "networking.h"
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "logHelpers.h"
@@ -239,6 +240,8 @@ public:
 	void setDebug(bool p_debug);
 	bool getDebug(void);
 	const char* getLogContextName(void);
+	static void onPanicHelper(void* p_metaData);
+	void onPanic(void);
 	static void onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
 	void onReboot(void);
 
