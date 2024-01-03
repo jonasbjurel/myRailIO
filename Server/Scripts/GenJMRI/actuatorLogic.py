@@ -85,6 +85,7 @@ class actuator(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
+        self.updated = True
         if name:
             self.jmriActSystemName.value = name
         else:
@@ -147,7 +148,10 @@ class actuator(systemState, schema):
         except:
             trace.notify(DEBUG_ERROR, "Configuration validation failed for Actuator, traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
-        res = self.parent.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Validation of, or setting of configuration failed - initiated by configuration change of: " + actuatorXmlConfig.get("JMRISystemName") + ", return code: " + trace.getErrStr(res))
             return res
@@ -155,8 +159,12 @@ class actuator(systemState, schema):
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
         return rc.OK
 
-    def updateReq(self):
-        return self.parent.updateReq() #Just from the template - not applicable for this object leaf
+    def updateReq(self, child, source, uploadNReboot = True):
+        if uploadNReboot: 
+            self.updated = True
+        else:
+            self.updated = False
+        return self.parent.updateReq(self, source, uploadNReboot)
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration validate()")
@@ -229,7 +237,7 @@ class actuator(systemState, schema):
     def getActivMethods(self):
         activeMethods = METHOD_VIEW | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_DISABLE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
-            activeMethods = activeMethods & ~METHOD_ENABLE
+            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
             activeMethods = activeMethods & ~METHOD_DISABLE
         else: activeMethods = ""
@@ -263,7 +271,7 @@ class actuator(systemState, schema):
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
-            self.parent.updateReq()
+            self.updateReq(self, self, uploadNReboot = True)
         return rc.OK
 
     def accepted(self):
@@ -274,7 +282,10 @@ class actuator(systemState, schema):
         elif self.actType.candidateValue == "MEMORY":
             self.nameKey.value = "Mem-" + self.jmriActSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
-        res = self.parent.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + trace.getErrStr(res))
             return res
@@ -304,7 +315,6 @@ class actuator(systemState, schema):
             self.actState = self.rpcClient.getStateBySysName(jmriObj.TURNOUTS, self.jmriActSystemName.value)
             self.rpcClient.regEventCb(jmriObj.TURNOUTS, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.regMqttPub(jmriObj.TURNOUTS, self.jmriActSystemName.value, MQTT_TURNOUT_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriActSystemName.value, {"*":"*"})
-
         elif self.actType.value == "LIGHT":
             self.rpcClient.unRegEventCb(jmriObj.LIGHTS, self.jmriActSystemName.value, self.__actChangeListener)
             self.rpcClient.unRegMqttPub(jmriObj.LIGHTS, self.jmriActSystemName.value)
@@ -372,6 +382,8 @@ class actuator(systemState, schema):
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
+            if not self.updated:
+                self.updateReq(self, self, uploadNReboot = True)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.raiseAlarm("Actuator has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):

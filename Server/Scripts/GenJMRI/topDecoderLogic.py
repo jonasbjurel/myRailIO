@@ -116,7 +116,9 @@ class topDecoder(systemState, schema):
         self.appendSchema(schema.SERVICES_SCHEMA)
         self.appendSchema(schema.ADM_STATE_SCHEMA)
         self.appendSchema(schema.CHILDS_SCHEMA)
+        self.updated = True
         self.decoders.value = []
+        self.pendingDecoderRestartList = []
         self.childs.value = self.decoders.candidateValue
         self.nameKey.value = "topDecoder"
         self.gitUrl.value = "my.git.com"
@@ -144,7 +146,7 @@ class topDecoder(systemState, schema):
         probeSocket = socket(AF_INET, SOCK_DGRAM)                                                       # Get local host IP address to use as default
         probeSocket.settimeout(0)
         try:
-            probeSocket.connect(('10.0.0.0', 0))                                                       # doesn't even have to be reachable
+            probeSocket.connect(('10.0.0.0', 0))                                                        # Doesn't even have to be reachable
             self.rsyslogUrl.value = probeSocket.getsockname()[0]
         except Exception:
             self.rsyslogUrl.value = DEFAULT_RSYSLOG_SERVER
@@ -325,7 +327,10 @@ class topDecoder(systemState, schema):
         except:
                 trace.notify(DEBUG_ERROR, "XML configuration missformated, topDecoder section is missing mandatory tags/values or values did not pass type/range check: " + str(traceback.print_exc()))
                 return rc.PARSE_ERR
-        res = self.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of topDecoder, return code: " + trace.getErrStr(res))
             return res
@@ -370,13 +375,22 @@ class topDecoder(systemState, schema):
                         minidom.parseString(self.discoveryConfigXML).toprettyxml())
         return rc.OK
 
-    def updateReq(self):
+    def updateReq(self, child, source, uploadNReboot = True):
+        if uploadNReboot: 
+            self.updated = True
+        else:
+            self.updated = False
+        if self.nestedUpdate == 0:
+            self.pendingDecoderRestartList.clear()
+        if uploadNReboot:
+            if not child in self.pendingDecoderRestartList:
+                self.pendingDecoderRestartList.append(child)
         self.nestedUpdate += 1
         res = self.validate()
         self.nestedUpdate -= 1
         if self.nestedUpdate == 0:
-            for child in self.childs.value:
-                child.decoderRestart()
+            for decoder in self.pendingDecoderRestartList:
+                decoder.decoderRestart()
         return res
 
     def validate(self):
@@ -529,7 +543,6 @@ class topDecoder(systemState, schema):
                     if version["gitTag"]: gitTagXml.text = version["gitTag"]
                     gitUrlXml = ET.SubElement(versionXml, "gitUrl")
                     if version["gitUrl"]: gitUrlXml.text = version["gitUrl"]
-
             childXml = ET.SubElement(topXml, "DecoderMqttURI")
             childXml.text = self.decoderMqttURI.value
             childXml = ET.SubElement(topXml, "DecoderMqttPort")
@@ -597,7 +610,7 @@ class topDecoder(systemState, schema):
     def getActivMethods(self):
         activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
         if self.getAdmState() == ADM_ENABLE:
-            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE
+            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT
         elif self.getAdmState() == ADM_DISABLE:
             activeMethods = activeMethods & ~METHOD_DISABLE & ~METHOD_DISABLE_RECURSIVE
         else: activeMethods = ""
@@ -678,7 +691,10 @@ class topDecoder(systemState, schema):
         if self.version.value != self.version.candidateValue:
             self.__setVersion(self.version.value)
             self.schemaObjects["versionHistory"].commit()
-        res = self.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + self.nameKey.candidateValue + ", return code: " + rc.getErrStr(res))
             return res
@@ -805,6 +821,8 @@ class topDecoder(systemState, schema):
         elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
             self.MQTTalarm.admEnableAlarm()
             self.RPCalarm.admEnableAlarm()
+            if not self.updated:
+                updateReq(self, self, uploadNReboot = True)
             if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
                 self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
         if (changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE]):

@@ -101,6 +101,7 @@ class decoder(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
+        self.updated = True
         self.lgLinks.value = []
         self.satLinks.value = []
         self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
@@ -177,7 +178,10 @@ class decoder(systemState, schema):
         except:
             trace.notify(DEBUG_ERROR, "Configuration validation failed for Decoder, traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
-        res = self.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of: " + decoderXmlConfig.get("SystemName") + ", return code: " + trace.getErrStr(res))
             return res
@@ -197,8 +201,12 @@ class decoder(systemState, schema):
                     return res
         return rc.OK
 
-    def updateReq(self):
-        return self.parent.updateReq()
+    def updateReq(self, child, source, uploadNReboot = True):
+        if uploadNReboot:
+            self.updated = True
+        else:
+            self.updated = False
+        return self.parent.updateReq(self, source, uploadNReboot)
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.candidateValue + " received configuration validate()")
@@ -319,7 +327,7 @@ class decoder(systemState, schema):
     def getActivMethods(self):
         activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
         if self.getAdmState() == ADM_ENABLE:
-            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE
+            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
             activeMethods = activeMethods & ~METHOD_DISABLE & ~METHOD_DISABLE_RECURSIVE
         else: activeMethods = ""
@@ -424,13 +432,16 @@ class decoder(systemState, schema):
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
-            self.updateReq()
+            self.updateReq(self, self, uploadNReboot = True)
         return rc.OK
 
     def accepted(self):
         self.nameKey.value = "Decoder-" + self.decoderSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
-        res = self.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + rc.getErrStr(res))
             return res
@@ -521,20 +532,22 @@ class decoder(systemState, schema):
             self.win.faultBlockMarkMoMObj(self.item, True)
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
-        if  (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]): #NEW
+        if (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]):
             self.NOT_CONNECTEDalarm.admDisableAlarm()
             self.NOT_CONFIGUREDalarm.admDisableAlarm()
             self.SERVER_UNAVAILalarm.admDisableAlarm()
             self.CLIENT_UNAVAILalarm.admDisableAlarm()
             self.INT_FAILalarm.admDisableAlarm()
             self.CBLalarm.admDisableAlarm()
-        elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]): #NEW
+        elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
             self.NOT_CONNECTEDalarm.admEnableAlarm()
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.SERVER_UNAVAILalarm.admEnableAlarm()
             self.CLIENT_UNAVAILalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
+            if not self.updated:
+                updateReq(self, self, uploadNReboot = True)
         if (((changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE])) or
             ((changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE])) or
             ((changedOpStateDetail & OP_NOIP[STATE]) and (opStateDetail & OP_NOIP[STATE])) or

@@ -84,6 +84,7 @@ class lightGroup(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
+        self.updated = True
         if name:
             self.jmriLgSystemName.value = name
         else:
@@ -156,7 +157,10 @@ class lightGroup(systemState, schema):
         except:
             trace.notify(DEBUG_ERROR, "Configuration validation failed for Light group, traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
-        res = self.parent.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Validation of, or setting of configuration failed - initiated by configuration change of: " + lgXmlConfig.get("JMRISystemName") + ", return code: " + trace.getErrStr(res))
             return res
@@ -168,8 +172,12 @@ class lightGroup(systemState, schema):
         self.mqttClient.subscribeTopic(self.mqttLgReqTopic, self.__LgMqttReqListener)
         return rc.OK
 
-    def updateReq(self):
-        return self.parent.updateReq()
+    def updateReq(self, child, source, uploadNReboot = True):
+        if uploadNReboot: 
+            self.updated = True
+        else:
+            self.updated = False
+        return self.parent.updateReq(self, source, uploadNReboot)
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration validate()")
@@ -243,7 +251,7 @@ class lightGroup(systemState, schema):
     def getActivMethods(self):
         activeMethods = METHOD_VIEW | METHOD_EDIT | METHOD_DELETE |  METHOD_ENABLE | METHOD_DISABLE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
-            activeMethods = activeMethods & ~METHOD_ENABLE
+            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
             activeMethods = activeMethods & ~METHOD_DISABLE
         else: activeMethods = ""
@@ -277,13 +285,16 @@ class lightGroup(systemState, schema):
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
-            self.parent.updateReq()
+            self.updateReq(self, self, uploadNReboot = True)
         return rc.OK
 
     def accepted(self):
         self.nameKey.value = "LightGroup-" + self.jmriLgSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
-        res = self.parent.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + trace.getErrStr(res))
             return res
@@ -364,6 +375,8 @@ class lightGroup(systemState, schema):
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
+            if not self.updated:
+                self.updateReq(self, self, uploadNReboot = True)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.raiseAlarm("Light-group has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):

@@ -82,6 +82,7 @@ class satLink(systemState, schema):
         self.mqttClient = mqttClient
         self.satelites.value = []
         self.childs.value = self.satelites.candidateValue
+        self.updated = True
         if name:
             self.satLinkSystemName.value = name
         else:
@@ -141,7 +142,10 @@ class satLink(systemState, schema):
         except:
             trace.notify(DEBUG_ERROR, "Configuration validation failed for Satelite link, traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
-        res = self.parent.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of: " + satLinkXmlConfig.get("SystemName") + ", return code: " + trace.getErrStr(res))
             return res
@@ -155,8 +159,12 @@ class satLink(systemState, schema):
                     return res
         return rc.OK
 
-    def updateReq(self):
-        return self.parent.updateReq()
+    def updateReq(self, child, source, uploadNReboot = True):
+        if uploadNReboot: 
+            self.updated = True
+        else:
+            self.updated = False
+        return self.parent.updateReq(self, source, uploadNReboot)
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Satelite link " + self.satLinkSystemName.candidateValue + " received configuration validate()")
@@ -275,7 +283,7 @@ class satLink(systemState, schema):
     def getActivMethods(self):
         activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
         if self.getAdmState() == ADM_ENABLE:
-            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE
+            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
             activeMethods = activeMethods & ~METHOD_DISABLE & ~METHOD_DISABLE_RECURSIVE
         else: activeMethods = ""
@@ -348,13 +356,16 @@ class satLink(systemState, schema):
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
-            self.parent.updateReq()
+            self.updateReq(self, self, uploadNReboot = True)
         return rc.OK
 
     def accepted(self):
         self.nameKey.value = "SatLink-" + self.satLinkSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
-        res = self.parent.updateReq()
+        if self.getAdmState() == ADM_ENABLE[STATE]:
+            res = self.updateReq(self, self, uploadNReboot = True)
+        else:
+            res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + trace.getErrStr(res))
             return res
@@ -447,6 +458,8 @@ class satLink(systemState, schema):
             self.LINK_SCAN_GEN_ERRORalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
+            if not self.updated:
+                self.updateReq(self, self, uploadNReboot = True)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.raiseAlarm("Satelite link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):
