@@ -110,8 +110,8 @@ public:
     rc_t getUsrName(char* p_userName, bool p_force = false);
     rc_t setDesc(const char* p_description, bool p_force = false);
     rc_t getDesc(char* p_desc, bool p_force = false);
-    rc_t setLink(uint8_t p_link);
-    rc_t getLink(uint8_t* p_link);
+    rc_t setLink(uint8_t p_link, bool p_force = false);
+    rc_t getLink(uint8_t* p_link, bool p_force = false);
     const char* getLogLevel(void);
     void setDebug(bool p_debug);
     bool getDebug(void);

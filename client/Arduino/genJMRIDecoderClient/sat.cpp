@@ -587,16 +587,30 @@ const char* sat::getDesc(bool p_force) {
     return xmlconfig[XML_SAT_DESC];
 }
 
-rc_t sat::setAddr(uint8_t p_addr) {
-    LOG_ERROR("%s: Cannot set Address - not supported" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
+rc_t sat::setAddr(uint8_t p_addr, bool p_force) {
+    if (!debug || !p_force) {
+        LOG_ERROR("%s: Cannot set Satelite address as debug is inactive" CR, logContextName);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set Satelite address as Actuator is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_ERROR("%s: Cannot set Satelite Address - not supported" CR, logContextName);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
 }
 
-uint8_t sat::getAddr(void) {
+uint8_t sat::getAddr(bool p_force) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED && !p_force) {
+        LOG_ERROR("%s: Cannot get Satelite adress as Satelite is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     return satAddr;
 }
 
-const char* sat::getLogLevel(void) {
+const char* sat::getLogLevel(void) { //IS THIS METHOD REALLY NEEDED HERE?
     if (!Log.transformLogLevelInt2XmlStr(Log.getLogLevel())) {
         LOG_ERROR("%s: Could not retrieve a valid Log-level" CR, logContextName);
         return NULL;

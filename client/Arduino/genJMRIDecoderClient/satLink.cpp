@@ -579,12 +579,24 @@ const char* satLink::getDesc(bool p_force) {
     return xmlconfig[XML_SATLINK_DESC];
 }
 
-rc_t satLink::setLink(uint8_t p_link) {
-    LOG_ERROR("%s: Cannot set Link No - not supported" CR, logContextName);
+rc_t satLink::setLink(uint8_t p_link, bool p_force) {
+    if (!debug || !p_force) {
+        LOG_ERROR("%s: Cannot set Satelite link No as debug is inactive" CR, logContextName);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set Satelite link No as satLink is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    LOG_ERROR("%s: Cannot set Satelite link No - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-uint8_t satLink::getLink(void) {
+uint8_t satLink::getLink(bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
+        LOG_ERROR("%s: Cannot get Satelite link No as satLink is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     return linkNo;
 }
 

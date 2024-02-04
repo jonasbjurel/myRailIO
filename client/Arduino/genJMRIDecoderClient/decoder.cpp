@@ -1023,6 +1023,10 @@ rc_t decoder::setDecoderUri(const char* p_decoderUri, bool p_force) {
         LOG_INFO("%s: Cannot set decoder URI as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set decoder URI as Decoder is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     else {
         LOG_INFO("%s: Cannot set Decoder URI - not implemented" CR, logContextName);
         return RC_NOTIMPLEMENTED_ERR;

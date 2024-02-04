@@ -119,11 +119,11 @@ public:
 	const char* getUsrName(bool p_force = false);
 	rc_t setDesc(const char* p_description, bool p_force = false);
 	const char* getDesc(bool p_force = false);
-	rc_t setPort(uint8_t p_port);
+	rc_t setPort(uint8_t p_port, bool p_force = false);
 	int8_t getPort(bool p_force = false);
 	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
-	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
-	rc_t getShowing(char* p_showing, char* p_orderedShowing);
+	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force = false);
+	rc_t getShowing(char* p_showing, char* p_orderedShowing, bool p_force = false);
 	rc_t setShowing(const char* p_showing, bool p_force = false);
 	const char* getLogLevel(void);
 	void setDebug(bool p_debug);

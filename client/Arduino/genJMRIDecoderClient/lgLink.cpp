@@ -165,9 +165,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
     lgLinkSearchTags[XML_LGLINK_DESC] = "Description";
     lgLinkSearchTags[XML_LGLINK_LINK] = "Link";
     lgLinkSearchTags[XML_LGLINK_ADMSTATE] = "AdminState";
-
     getTagTxt(p_lightgroupLinkXmlElement->FirstChildElement(), lgLinkSearchTags, xmlconfig, sizeof(lgLinkSearchTags) / 4); // Need to fix the addressing for portability
-
     //VALIDATING AND SETTING OF CONFIGURATION
     if (!xmlconfig[XML_LGLINK_SYSNAME]) {
         panic("%s: System name was not provided", logContextName);
@@ -190,7 +188,6 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         panic("%s: Link number inconsistant with what was provided in the object constructor", logContextName);
         return;
     }
-
     if (xmlconfig[XML_LGLINK_ADMSTATE] == NULL) {
         LOG_WARN("%s: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR, logContextName);
         xmlconfig[XML_LGLINK_ADMSTATE] = createNcpystr("DISABLE");
@@ -212,7 +209,6 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
     LOG_INFO("%s: Description: %s" CR, logContextName, xmlconfig[XML_LGLINK_DESC]);
     LOG_INFO("%s: LG-Link #: %s" CR, logContextName, xmlconfig[XML_LGLINK_LINK]);
     LOG_INFO("%s: LG-Link admin state: %s" CR, logContextName, xmlconfig[XML_LGLINK_ADMSTATE]);
-
     //CONFIFIGURING LIGHTGROUP ASPECTS
     LOG_INFO("%s: Creating and configuring signal mast aspect description object" CR, logContextName);
     signalMastAspectsObject = new (heap_caps_malloc(sizeof(signalMastAspects), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) signalMastAspects(this);
@@ -509,12 +505,24 @@ rc_t lgLink::getDesc(char* p_desc, bool p_force){
     return RC_OK;
 }
 
-rc_t lgLink::setLink(uint8_t p_link) {
+rc_t lgLink::setLink(uint8_t p_link, bool p_force) {
+    if (!debug && !p_force) {
+        LOG_ERROR("%s: Cannot set Link No as debug is inactive" CR, logContextName);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set Link No as lgLink is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     LOG_ERROR("%s: Cannot set Link No - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-rc_t lgLink::getLink(uint8_t* p_link) {
+rc_t lgLink::getLink(uint8_t* p_link, bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
+        LOG_ERROR("%s: Cannot get Link No as lgLink is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     *p_link = linkNo;
     return RC_OK;
 }
@@ -729,6 +737,7 @@ flash* lgLink::getFlashObj(uint8_t p_flashType) {
         break;
     }
 }
+
 signalMastAspects* lgLink::getSignalMastAspectObj(void){
 return signalMastAspectsObject;
 }
@@ -763,6 +772,7 @@ void lgLink::failsafe(bool p_set) {
 const char* lgLink::getLogContextName(void) {
     return logContextName;
 }
+
 
 
 /* CLI decoration methods */

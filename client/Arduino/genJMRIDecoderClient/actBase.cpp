@@ -321,8 +321,18 @@ rc_t actBase::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {
-    LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
+    if (!debug || !p_force) {                               //LETS MOVE THESE CHECKS TO GLOBALCLI
+        LOG_ERROR("%s: Cannot set System name as debug is inactive" CR, logContextName);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set System name as actuator is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
 }
 
 const char* actBase::getSystemName(bool p_force) {
@@ -339,7 +349,7 @@ rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("%s: Cannot set System name as actuator is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot set User name as actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -383,9 +393,19 @@ const char* actBase::getDesc(bool p_force) {
     return xmlconfig[XML_ACT_DESC];
 }
 
-rc_t actBase::setPort(uint8_t p_port) {
-    LOG_ERROR("%s: Cannot set port - not supported" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
+rc_t actBase::setPort(uint8_t p_port, bool p_force) {
+    if (!debug || !p_force) {
+        LOG_ERROR("%s: Cannot set port as debug is inactive" CR, logContextName);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set port as actuator is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_ERROR("%s: Cannot set port - not supported" CR, logContextName);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
 }
 
 int8_t actBase::getPort(bool p_force) {
@@ -409,8 +429,8 @@ rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool 
     return RC_OK;
 }
 
-rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
-    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED && !p_force) {
         LOG_ERROR("%s: Cannot get Actuator property as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
@@ -418,8 +438,8 @@ rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
     return RC_OK;
 }
 
-rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing) {
-    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing, bool p_force) {
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED && !p_force) {
         LOG_ERROR("%s: Cannot get Actuator showing as Actuator is not configured" CR, logContextName);
         p_showing = NULL;
         return RC_NOT_CONFIGURED_ERR;

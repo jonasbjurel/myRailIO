@@ -128,9 +128,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     lgSearchTags[XML_LG_PROPERTY2] = "Property2";
     lgSearchTags[XML_LG_PROPERTY3] = "Property3";
     lgSearchTags[XML_LG_ADMSTATE] = "AdminState";
-
     getTagTxt(p_lgXmlElement->FirstChildElement(), lgSearchTags, xmlconfig, sizeof(lgSearchTags) / 4); // Need to fix the addressing for portability
-
     //VALIDATING AND SETTING OF CONFIGURATION
     if (!xmlconfig[XML_LG_SYSNAME]){
         panic("%s: System Name missing", logContextName);
@@ -158,7 +156,6 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         panic("%s: lgType missing", logContextName);
         return;
     }
-
     if (xmlconfig[XML_LG_ADMSTATE] == NULL) {
         LOG_WARN("%s: Admin state not provided in the configuration, setting it to \"DISABLE\"" CR, logContextName);
         xmlconfig[XML_LG_ADMSTATE] = createNcpystr("DISABLE");
@@ -173,7 +170,6 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         panic("%s: Admin state: %s is none of \"ENABLE\" or \"DISABLE\"", logContextName, xmlconfig[XML_DECODER_ADMSTATE]);
         return;
     }
-
     //SHOW FINAL CONFIGURATION
     LOG_INFO("%s: Configuring lg %s with the follwing configuration" CR, logContextName, xmlconfig[XML_LG_SYSNAME]);
     LOG_INFO("%s: System name: %s" CR, logContextName, xmlconfig[XML_LG_SYSNAME]);
@@ -187,7 +183,6 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
     if (xmlconfig[XML_LG_PROPERTY3])
         LOG_INFO("%s: lg-type specific \"property3\" provided with value %s, will be passed to the LG extention class object" CR, logContextName, xmlconfig[XML_LG_PROPERTY3]);
     LOG_INFO("%s: lg admin state: %s" CR, logContextName, xmlconfig[XML_LG_ADMSTATE]);
-
     //CONFIFIGURING STEM OBJECT WITH PROPERTIES
     if (!strcmp((const char*)xmlconfig[XML_LG_TYPE], "SIGNAL MAST")) {
             LOG_INFO("%s: lg-type is Signal mast (sm)- programing act-stem object by creating an lgSignalMast extention class object" CR, logContextName);
@@ -353,8 +348,14 @@ rc_t lgBase::setSystemName(const char* p_systemName, bool p_force) {
         LOG_ERROR("%s: Cannot set System name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set System name as light group is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_ERROR("%s: Cannot set System name - not suppoted" CR, logContextName);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
 }
 
 rc_t lgBase::getSystemName(char* p_systemName, bool p_force) {
@@ -371,10 +372,16 @@ rc_t lgBase::setUsrName(const char* p_usrName, bool p_force) {
         LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_INFO("%s: Setting User name to %s" CR, logContextName, p_usrName);
-    delete (char*)xmlconfig[XML_LG_USRNAME];
-    xmlconfig[XML_LG_USRNAME] = createNcpystr(p_usrName);
-    return RC_OK;
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set User name as light group is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_INFO("%s: Setting User name to %s" CR, logContextName, p_usrName);
+        delete (char*)xmlconfig[XML_LG_USRNAME];
+        xmlconfig[XML_LG_USRNAME] = createNcpystr(p_usrName);
+        return RC_OK;
+    }
 }
 
 rc_t lgBase::getUsrName(char* p_userName, bool p_force) {
@@ -391,10 +398,16 @@ rc_t lgBase::setDesc(const char* p_description, bool p_force) {
         LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set Description as light group is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
         LOG_INFO("Setting Description to %s" CR, p_description);
         delete xmlconfig[XML_LG_DESC];
         xmlconfig[XML_LG_DESC] = createNcpystr(p_description);
         return RC_OK;
+    }
 }
 
 rc_t lgBase::getDesc(char* p_desc, bool p_force) {
@@ -411,8 +424,14 @@ rc_t lgBase::setAddress(uint8_t p_address, bool p_force) {
         LOG_ERROR("%s: Cannot set Address as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_ERROR("%s: Cannot set Address - not supported" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set Address as light group is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_ERROR("%s: Cannot set Address - not supported" CR, logContextName);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
 }
 
 rc_t lgBase::getAddress(uint8_t* p_address, bool p_force) {
@@ -429,8 +448,14 @@ rc_t lgBase::setNoOffLeds(uint8_t p_noOfLeds, bool p_force){
         LOG_ERROR("%s: Cannot set number of leds as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
-    LOG_ERROR("%s: Cannot set number of leds - not supported" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set number of leds as light group is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    else {
+        LOG_ERROR("%s: Cannot set number of leds - not supported" CR, logContextName);
+        return RC_NOTIMPLEMENTED_ERR;
+    }
 }
 
 rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
@@ -481,6 +506,10 @@ rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
     if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set showing as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
+    }
+    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set showing as lg is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
     }
     if(extentionLgClassObj){
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], setShowing(p_showing));

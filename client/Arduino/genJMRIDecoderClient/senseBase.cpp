@@ -381,12 +381,24 @@ const char* senseBase::getDesc(bool p_force) {
     return xmlconfig[XML_SENS_DESC];
 }
 
-rc_t senseBase::setPort(const uint8_t p_port) {
-    LOG_ERROR("%s: Cannot set port - not supported" CR, logContextName);
+rc_t senseBase::setPort(const uint8_t p_port, bool p_force) {
+    if (!debug || !p_force) {
+        LOG_ERROR("%s: Cannot set Sensor port as debug is inactive" CR, logContextName);
+        return RC_DEBUG_NOT_SET_ERR;
+    }
+    else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
+        LOG_ERROR("%s: Cannot set Sensor port as satLink is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
+    LOG_ERROR("%s: Cannot set Sensor port - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-uint8_t senseBase::getPort(void) {
+uint8_t senseBase::getPort(bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
+        LOG_ERROR("%s: Cannot get Sensor port as sensor is not configured" CR, logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     return sensPort;
 }
 
@@ -403,9 +415,9 @@ rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, boo
     return RC_OK;
 }
 
-rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
-    if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("%s: Cannot set Sensor property as sensor is not configured" CR, logContextName);
+rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force) {
+    if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
+        LOG_ERROR("%s: Cannot get Sensor properties as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getProperty(p_propertyId, p_propertyVal));

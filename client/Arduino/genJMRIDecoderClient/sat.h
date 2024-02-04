@@ -95,8 +95,8 @@ public:
 	const char* getUsrName(bool p_force = false);
 	rc_t setDesc(const char* p_description, bool p_force = false);
 	const char* getDesc(bool p_force = false);
-	rc_t setAddr(uint8_t p_addr);
-	uint8_t getAddr(void);
+	rc_t setAddr(uint8_t p_addr, bool p_force = false);
+	uint8_t getAddr(bool p_force = false);
 	const char* getLogLevel(void);
 	void setDebug(const bool p_debug);
 	bool getDebug(void);

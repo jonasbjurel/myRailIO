@@ -85,7 +85,6 @@ public:
 	void onSatLinkLibStateChange(satOpState_t p_satOpState);
 	static void onSysStateChangeHelper(const void* p_satLinkHandle, sysState_t p_sysState);
 	void onSysStateChange(const sysState_t p_sysState);
-	void processSysState(void);
 	static void onOpStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject);
 	void onOpStateChange(const char* p_topic, const char* p_payload);
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject);
@@ -97,8 +96,8 @@ public:
 	const char* getUsrName(bool p_force = false);
 	rc_t setDesc(const char* p_description, const bool p_force = false);
 	const char* getDesc(bool p_force = false);
-	rc_t setLink(uint8_t p_link);
-	uint8_t getLink(void);
+	rc_t setLink(uint8_t p_link, bool p_force = false);
+	uint8_t getLink(bool p_force = false);
 	const char* getLogLevel(void);
 	void setDebug(const bool p_debug);
 	bool getDebug(void);
