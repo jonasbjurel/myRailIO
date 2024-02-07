@@ -616,9 +616,9 @@ class topDecoder(systemState, schema):
         else: activeMethods = ""
         return activeMethods
 
-    def addChild(self, resourceType, name=None, config=True, configXml=None, demo=False):
+    def addChild(self, resourceType, name = None, config = True, configXml = None, demo = False):
         if resourceType == DECODER:
-            self.decoders.append(decoder(self.win, self.topItem, self.rpcClient, self.mqttClient, name=name, demo=demo))
+            self.decoders.append(decoder(self.win, self.topItem, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.decoders.candidateValue
             trace.notify(DEBUG_INFO, "Decoder: " + self.decoders.candidateValue[-1].nameKey.candidateValue + " has been added to genJMRI server (top decoder) - awaiting configuration")
             if not config and configXml:

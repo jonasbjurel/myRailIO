@@ -68,7 +68,7 @@ from config import *
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
 class satelite(systemState, schema):
-    def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
+    def __init__(self, win, parentItem, rpcClient, mqttClient, name = None, demo = False):
         self.win = win
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
@@ -298,12 +298,11 @@ class satelite(systemState, schema):
         else: activeMethods = ""
         return activeMethods
 
-    def addChild(self, resourceType, name=None, config=True, configXml=None, demo=False):
+    def addChild(self, resourceType, name = None, config = True, configXml = None, demo = False):
         if resourceType == SENSOR:
-            self.sensors.append(sensor(self.win, self.item, self.rpcClient, self.mqttClient, name=name, demo=demo))
+            self.sensors.append(sensor(self.win, self.item, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.sensors.candidateValue + self.actuators.candidateValue
             trace.notify(DEBUG_INFO, "Sensor: " + self.sensors.candidateValue[-1].nameKey.candidateValue + "is being added to satelite" + self.nameKey.value)
-
             if not config and configXml:
                 nameKey = self.sensors.candidateValue[-1].nameKey.candidateValue
                 res = self.sensors.candidateValue[-1].onXmlConfig(configXml)

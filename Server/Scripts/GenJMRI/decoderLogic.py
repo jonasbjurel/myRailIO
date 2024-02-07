@@ -86,7 +86,7 @@ Alarms:
     WIFI SNR
 '''
 class decoder(systemState, schema):
-    def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
+    def __init__(self, win, parentItem, rpcClient, mqttClient, name = None, demo = False):
         self.win = win
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
@@ -333,9 +333,9 @@ class decoder(systemState, schema):
         else: activeMethods = ""
         return activeMethods
 
-    def addChild(self, resourceType, name=None, config=True, configXml=None, demo=False):
+    def addChild(self, resourceType, name = None, config = True, configXml = None, demo = False):
         if resourceType == LIGHT_GROUP_LINK:
-            self.lgLinks.append(lgLink(self.win, self.item, self.rpcClient, self.mqttClient, name=name, demo=demo))
+            self.lgLinks.append(lgLink(self.win, self.item, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
             trace.notify(DEBUG_INFO, "Light group link: " + self.lgLinks.candidateValue[-1].nameKey.candidateValue + "is being added to decoder " + self.nameKey.value)
             if not config and configXml:
@@ -354,7 +354,7 @@ class decoder(systemState, schema):
                 self.reEvalOpState()
                 return rc.OK
         elif resourceType == SATELITE_LINK:
-            self.satLinks.append(satLink(self.win, self.item, self.rpcClient, self.mqttClient, name=name, demo=demo))
+            self.satLinks.append(satLink(self.win, self.item, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
             trace.notify(DEBUG_INFO, "Satelite link: " + self.satLinks.candidateValue[-1].nameKey.candidateValue + "is being added to decoder " + self.nameKey.value)
             if not config and configXml:

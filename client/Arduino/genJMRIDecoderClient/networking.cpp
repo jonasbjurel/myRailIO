@@ -58,11 +58,11 @@ void networking::provisioningConfigTrigger(void) {
         configPBSecs++;
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    if (configPBSecs > 30) {
+    if (configPBSecs > FACTORY_RESET_PROVISIONING_TIMEOUT_S) {
         provisionAction = provisionAction | PROVISIONING_DEFAULT_FROM_FACTORY_RESET;
         LOG_INFO_NOFMT("Factory reset and provisioning ordered\n");
     }
-    else if (configPBSecs > 5) {
+    else if (configPBSecs > PROVISIONING_TIMEOUT_S) {
         provisionAction = provisionAction | PROVISION_DEFAULT_FROM_FILE;
         LOG_INFO_NOFMT("Provisioning with default settings from configuration file ordered\n");
     }
@@ -120,11 +120,12 @@ void networking::start(void) {
 
         if (provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET) {
             LOG_INFO("Config button was hold down for more "
-                       "than 30 seconds or file system was not available - "
+                       "than %i seconds or file system was not available - "
                        "formatting filesystem, resetting to factory default settings "
                        "and starting provisioning AP, "
                        "connect to SSID: %s_%s and navigate to http://%s to "
-                       "configure the device..." CR, WIFI_MGR_AP_NAME_PREFIX, getMac(),
+                       "configure the device..." CR, FACTORY_RESET_PROVISIONING_TIMEOUT_S,
+                       WIFI_MGR_AP_NAME_PREFIX, getMac(),
                        IPAddress(WIFI_MGR_AP_IP).toString().c_str());
             fileSys::format();
             wifiManager.resetSettings();
@@ -134,9 +135,9 @@ void networking::start(void) {
         }
         else if (provisionAction | PROVISION_DEFAULT_FROM_FILE) {
             LOG_INFO("Config button was hold down for more than "
-                        "5 seconds or restart escalation - starting provisioning AP, "
+                        "%i seconds and less than or restart escalation - starting provisioning AP, "
                         "connect to SSID: %s_%s and navigate to http://%s to configure "
-                        "the device" CR, WIFI_MGR_AP_NAME_PREFIX, getMac(),
+                        "the device" CR, PROVISIONING_TIMEOUT_S, WIFI_MGR_AP_NAME_PREFIX, getMac(),
                         IPAddress(WIFI_MGR_AP_IP).toString().c_str());
             getNetworkConfig(&networkConfig);
         }

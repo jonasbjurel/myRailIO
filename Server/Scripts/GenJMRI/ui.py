@@ -111,7 +111,7 @@ class StandardItem(QStandardItem):
         super().__delete__()
 
 class UI_mainWindow(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent = None):
         super().__init__(parent)
         self.configFileDialog = UI_fileDialog("genJMRI main configuration", self)
         loadUi(MAIN_FRAME_UI, self)
@@ -133,12 +133,12 @@ class UI_mainWindow(QMainWindow):
         alarmHandler.regAlarmCb(ALARM_CRITICALITY_B, self._onAlarm, p_metaData = self)
         alarmHandler.regAlarmCb(ALARM_CRITICALITY_C, self._onAlarm, p_metaData = self)
 
-    def registerMoMObj(self, objHandle, parentItem, string, type, displayIcon=None):
+    def registerMoMObj(self, objHandle, parentItem, string, type, displayIcon = None):
         if type == TOP_DECODER:
             fontSize = 14 
             setBold = True
             color = QColor(0, 0, 0)
-            item = StandardItem(objHandle, txt=string, font_size=fontSize, set_bold=setBold, color=color, icon=displayIcon)
+            item = StandardItem(objHandle, txt=string, font_size=fontSize, set_bold = setBold, color = color, icon = displayIcon)
             self.MoMroot.appendRow(item)
             return item
         elif type == DECODER:
@@ -172,7 +172,7 @@ class UI_mainWindow(QMainWindow):
         else:
             return None
         try:
-            item = StandardItem(objHandle, txt=string, font_size=fontSize, set_bold=setBold, color=color, icon=displayIcon)
+            item = StandardItem(objHandle, txt = string, font_size = fontSize, set_bold = setBold, color = color, icon = displayIcon)
             parentItem.appendRow(item)
             return item
         except:
@@ -383,7 +383,7 @@ class UI_mainWindow(QMainWindow):
 
 
 class UI_fileDialog(QWidget):
-    def __init__(self, fileContext, parentObjHandle, autoLoad=None, autoLoadDelay=None, path=None, fileName=None):
+    def __init__(self, fileContext, parentObjHandle, autoLoad = None, autoLoadDelay = None, path = None, fileName = None):
         super().__init__()
         self.fileContext = fileContext
         self.parentObjHandle = parentObjHandle
@@ -552,7 +552,7 @@ class UI_fileDialog(QWidget):
 
 
 class UI_setAutoloadPrefsDialog(QDialog):
-    def __init__(self, parentObjHandle, autoLoad, autoLoadDelay, parent=None):
+    def __init__(self, parentObjHandle, autoLoad, autoLoadDelay, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(AUTOLOAD_PREF_DIALOG_UI, self)
@@ -574,7 +574,7 @@ class UI_setAutoloadPrefsDialog(QDialog):
 
 
 class UI_logDialog(QDialog):
-    def __init__(self, parentObjHandle, parent=None):
+    def __init__(self, parentObjHandle, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(LOGOUTPUT_DIALOG_UI, self)
@@ -641,7 +641,7 @@ class UI_logDialog(QDialog):
 
 
 class UI_logSettingDialog(QDialog):
-    def __init__(self, parentObjHandle, parent=None):
+    def __init__(self, parentObjHandle, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(LOGSETTING_DIALOG_UI, self)
@@ -679,7 +679,7 @@ class UI_alarmShowDialogUpdateWorker(QtCore.QObject):
 
 
 class UI_alarmShowDialog(QDialog):
-    def __init__(self, parentObjHandle, parent=None):
+    def __init__(self, parentObjHandle, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(SHOWALARMS_DIALOG_UI, self)
@@ -838,7 +838,7 @@ class UI_alarmShowDialog(QDialog):
 
 
 class UI_alarmInventoryShowDialog(QDialog):
-    def __init__(self, parentObjHandle, parent=None):
+    def __init__(self, parentObjHandle, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(SHOWALARMSINVENTORY_DIALOG_UI, self)
@@ -879,7 +879,7 @@ class UI_alarmInventoryShowDialog(QDialog):
 
 
 class UI_individualAlarmShowDialog(QDialog):
-    def __init__(self, p_clickedIndex, parentObjHandle, parent=None):
+    def __init__(self, p_clickedIndex, parentObjHandle, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         self.parent = parent
@@ -991,7 +991,7 @@ class UI_individualAlarmShowDialog(QDialog):
 
 
 class UI_getConfig(QDialog):
-    def __init__(self, parentObjHandle, configuration, parent=None):
+    def __init__(self, parentObjHandle, configuration, parent = None):
         super().__init__(parent)
         self.configuration = configuration
         self.parentObjHandle = parentObjHandle
@@ -1028,7 +1028,7 @@ class UI_getConfig(QDialog):
 
 
 class UI_addDialog(QDialog):
-    def __init__(self, parentObjHandle, resourceTypes, parent=None):
+    def __init__(self, parentObjHandle, resourceTypes, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(ADD_DIALOG_UI, self)
@@ -1069,7 +1069,7 @@ class UI_addDialog(QDialog):
 
 
 class UI_topDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(TOP_DIALOG_UI, self)
@@ -1300,7 +1300,7 @@ class UI_topDialog(QDialog):
 
 
 class UI_decoderDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(DECODER_DIALOG_UI, self)
@@ -1401,7 +1401,7 @@ class UI_decoderDialog(QDialog):
 
 
 class UI_lightgroupsLinkDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(LIGHTGROUP__LINK_DIALOG_UI, self)
@@ -1501,7 +1501,7 @@ class UI_lightgroupsLinkDialog(QDialog):
 
 
 class UI_satLinkDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(SATLINK_DIALOG_UI, self)
@@ -1627,7 +1627,7 @@ class UI_satLinkDialog(QDialog):
 
 
 class UI_lightGroupDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(LIGHTGROUP_DIALOG_UI, self)
@@ -1778,7 +1778,7 @@ class UI_lightGroupDialog(QDialog):
 
 
 class UI_sateliteDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(SATELITE_DIALOG_UI, self)
@@ -1900,7 +1900,7 @@ class UI_sateliteDialog(QDialog):
 
 
 class UI_sensorDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(SENSOR_DIALOG_UI, self)
@@ -2003,7 +2003,7 @@ class UI_sensorDialog(QDialog):
 
 
 class UI_actuatorDialog(QDialog):
-    def __init__(self, parentObjHandle, edit=False, parent=None):
+    def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         loadUi(ACTUATOR_DIALOG_UI, self)

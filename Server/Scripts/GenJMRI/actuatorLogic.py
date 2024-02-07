@@ -72,7 +72,7 @@ from config import *
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
 class actuator(systemState, schema):
-    def __init__(self, win, parentItem, rpcClient, mqttClient, name=None, demo=False):
+    def __init__(self, win, parentItem, rpcClient, mqttClient, name = None, demo = False):
         self.win = win
         self.parentItem = parentItem
         self.parent = parentItem.getObj()

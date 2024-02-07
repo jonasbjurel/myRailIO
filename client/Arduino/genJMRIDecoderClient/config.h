@@ -31,6 +31,8 @@
 /*==============================================================================================================================================*/
 
 // Decoder configuration
+#define FACTORY_RESET_PROVISIONING_TIMEOUT_S		30
+#define PROVISIONING_TIMEOUT_S						5
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								0	//2
 #define MAX_LGLINKS									1	//2
