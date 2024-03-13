@@ -38,7 +38,7 @@
 EXT_RAM_ATTR telnetCore cliCore::telnetServer;
 EXT_RAM_ATTR SimpleCLI cliCore::cliContextObjHandle;
 EXT_RAM_ATTR SemaphoreHandle_t cliCore::cliCoreLock;
-EXT_RAM_ATTR char* cliCore::clientIp;
+EXT_RAM_ATTR char* cliCore::clientIp = NULL;
 EXT_RAM_ATTR cliCore* cliCore::rootCliContext;
 EXT_RAM_ATTR cliCore* cliCore::currentContext;
 EXT_RAM_ATTR cliCore* cliCore::currentParsingContext;
@@ -215,8 +215,10 @@ void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_met
 	else {
 		LOG_INFO("The CLI seesion from: %s was closed" CR,
 			p_clientIp);
-		if (clientIp)
+		if (clientIp) {
 			delete clientIp;
+			clientIp = NULL;
+		}
 	}
 }
 

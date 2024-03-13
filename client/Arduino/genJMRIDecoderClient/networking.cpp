@@ -49,9 +49,13 @@ EXT_RAM_ATTR WiFiManagerParameter* networking::hostNameConfigParam;
 EXT_RAM_ATTR WiFiManagerParameter* networking::mqttServerUriConfigParam;
 EXT_RAM_ATTR WiFiManagerParameter* networking::mqttServerPortConfigParam;
 EXT_RAM_ATTR wifiProvisioningAction_t networking::provisionAction = NO_PROVISION;
+EXT_RAM_ATTR bool networking::nwFailCounted = false;
+EXT_RAM_ATTR networkProvisioningValidationResult_t networking::provisionValidationErr = NETWORK_VALIDATION_NO_ERR;
+
+
 
 void networking::provisioningConfigTrigger(void) {
-    LOG_INFO_NOFMT("Provisioning trigger capture started\n");
+    LOG_INFO_NOFMT("Provisioning trigger capture started" CR);
     pinMode(WIFI_CONFIG_PB_PIN, INPUT_PULLUP);
     uint8_t configPBSecs = 0;
     while (!digitalRead(WIFI_CONFIG_PB_PIN)) {
@@ -60,11 +64,11 @@ void networking::provisioningConfigTrigger(void) {
     }
     if (configPBSecs > FACTORY_RESET_PROVISIONING_TIMEOUT_S) {
         provisionAction = provisionAction | PROVISIONING_DEFAULT_FROM_FACTORY_RESET;
-        LOG_INFO_NOFMT("Factory reset and provisioning ordered\n");
+        LOG_INFO_NOFMT("Factory reset and provisioning ordered" CR);
     }
     else if (configPBSecs > PROVISIONING_TIMEOUT_S) {
         provisionAction = provisionAction | PROVISION_DEFAULT_FROM_FILE;
-        LOG_INFO_NOFMT("Provisioning with default settings from configuration file ordered\n");
+        LOG_INFO_NOFMT("Provisioning with default settings from configuration file ordered" CR);
     }
 }
 
@@ -79,11 +83,11 @@ void networking::start(void) {
     WiFiWdTimerArgs.dispatch_method = ESP_TIMER_TASK;
     WiFiWdTimerArgs.name = "WiFi WD timer";
     if (esp_timer_create(&WiFiWdTimerArgs, &WiFiWdTimerHandle)) {
-        panic("Could not initialize WiFi watch-dog timer");
+        panic("Could not initialize WiFi watch-dog timer" CR);
         return;
     }
     if (!getAps(NULL)){
-        panic("No WiFi networks found");
+        panic("No WiFi networks found" CR);
         return;
     }
     sysState->regSysStateCb(NULL, wifiWd);
@@ -91,132 +95,207 @@ void networking::start(void) {
     WiFi.onEvent(&WiFiEvent);
     WiFi.mode(WIFI_MODE_STA);
     esp_wifi_set_ps(WIFI_PS_NONE);
-    if (!(provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET)) {
-        if (recoverPersistantConfig(&networkConfig) || setNetworkConfig(&networkConfig))
-            provisionAction = provisionAction | PROVISIONING_DEFAULT_FROM_FACTORY_RESET;
-    }
-    //if (networkConfig.previousNetworkFail >= WIFI_WD_ESCALATION_CNT_THRES) NEEDS TO BE FIXED
-    //    provisionAction = provisionAction | PROVISION_DEFAULT_FROM_FILE;
-    if(provisionAction){
-        WiFiManager wifiManager;
-        wifiManager.setAPStaticIPConfig(IPAddress(WIFI_MGR_AP_IP),
-            IPAddress(WIFI_MGR_AP_GW_IP),
-            IPAddress(255, 255, 255, 0));
-        wifiManager.setAPCallback(configModeCb);
-        wifiManager.setPreSaveConfigCallback(preSaveConfigCb);
-        wifiManager.setSaveConfigCallback(saveConfigCb);
-        wifiManager.setTitle(WIFI_MGR_HTML_TITLE);
-        wifiManager.setConnectTimeout(WIFI_MGR_STA_CONNECT_TIMEOUT_S);
-        wifiManager.setConfigPortalTimeout(WIFI_MGR_AP_CONFIG_TIMEOUT_S);
-        wifiManager.setShowStaticFields(true);
-        wifiManager.setShowDnsFields(true);
-        wifiManager.setShowInfoErase(true);
-        wifiManager.setShowInfoUpdate(true);
-        wifiManager.setBreakAfterConfig(true);
-        wifiManager.setShowPassword(false);
-        wifiManager.setCaptivePortalEnable(true);
-        wifiManager.setConfigResetCallback(resetCb);
-        wifiManager.setConfigPortalTimeoutCallback(configurePortalConnectTimeoutCb);
-
-        if (provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET) {
-            LOG_INFO("Config button was hold down for more "
-                       "than %i seconds or file system was not available - "
-                       "formatting filesystem, resetting to factory default settings "
-                       "and starting provisioning AP, "
-                       "connect to SSID: %s_%s and navigate to http://%s to "
-                       "configure the device..." CR, FACTORY_RESET_PROVISIONING_TIMEOUT_S,
-                       WIFI_MGR_AP_NAME_PREFIX, getMac(),
-                       IPAddress(WIFI_MGR_AP_IP).toString().c_str());
-            fileSys::format();
-            wifiManager.resetSettings();
-            factoryResetSettings(&networkConfig);
-            setNetworkConfig(&networkConfig);
-            getNetworkConfig(&networkConfig);
-        }
-        else if (provisionAction | PROVISION_DEFAULT_FROM_FILE) {
-            LOG_INFO("Config button was hold down for more than "
-                        "%i seconds and less than or restart escalation - starting provisioning AP, "
-                        "connect to SSID: %s_%s and navigate to http://%s to configure "
-                        "the device" CR, PROVISIONING_TIMEOUT_S, WIFI_MGR_AP_NAME_PREFIX, getMac(),
-                        IPAddress(WIFI_MGR_AP_IP).toString().c_str());
-            getNetworkConfig(&networkConfig);
-        }
-        hostNameConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("HostName", "HostName",
-                                                       networkConfig.hostName, 31);
-        wifiManager.addParameter(hostNameConfigParam);
-        mqttServerUriConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("MQTTserverURI", "MQTTserverURI",
-                                                            networkConfig.mqttUri, 100);
-        wifiManager.addParameter(mqttServerUriConfigParam);
-        char tmpMqttPort[6];
-        mqttServerPortConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("MQTTserverPort", "MQTTserverPort",
-                                                             itoa(networkConfig.mqttPort,
-                                                             tmpMqttPort, 10), 5);
-        wifiManager.addParameter(mqttServerPortConfigParam);
-        char apSsid[50];
-        sprintf(apSsid, "%s_%s", WIFI_MGR_AP_NAME_PREFIX, getMac());
+    LOG_TERSE_NOFMT("Setting up the WifI provisioning manager service" CR);
+    wifiManager.setAPStaticIPConfig(IPAddress(WIFI_MGR_AP_IP),
+                                    IPAddress(WIFI_MGR_AP_GW_IP),
+                                    IPAddress(255, 255, 255, 0));
+    wifiManager.setAPCallback(configModeCb);
+    wifiManager.setPreSaveConfigCallback(preSaveConfigCb);
+    wifiManager.setSaveConfigCallback(saveConfigCb);
+    wifiManager.setTitle(WIFI_MGR_HTML_TITLE);
+    wifiManager.setConnectTimeout(WIFI_MGR_STA_CONNECT_TIMEOUT_S);
+    wifiManager.setConfigPortalTimeout(WIFI_MGR_AP_CONFIG_TIMEOUT_S);
+    wifiManager.setShowStaticFields(true);
+    wifiManager.setShowDnsFields(true);
+    wifiManager.setShowInfoErase(true);
+    wifiManager.setShowInfoUpdate(true);
+    wifiManager.setBreakAfterConfig(true);
+    wifiManager.setShowPassword(false);
+    wifiManager.setCaptivePortalEnable(true);
+    wifiManager.setRestorePersistent(true);
+    //wifiManager.setAPClientCheck(false); // Inhibits timeout when client connects to WiFi manager AP
+    wifiManager.setWiFiAutoReconnect(true);
+    wifiManager.setConfigResetCallback(resetCb);
+    wifiManager.setConfigPortalTimeoutCallback(configurePortalConnectTimeoutCb);
+    hostNameConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("HostName", "HostName",
+                               networkConfig.hostName, 31);
+    wifiManager.addParameter(hostNameConfigParam);
+    mqttServerUriConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("MQTTserverURI", "MQTTserverURI",
+                                    networkConfig.mqttUri, 100);
+    wifiManager.addParameter(mqttServerUriConfigParam);
+    char tmpMqttPort[6];
+    mqttServerPortConfigParam = new (heap_caps_malloc(sizeof(WiFiManagerParameter), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManagerParameter("MQTTserverPort", "MQTTserverPort",
+                                     itoa(networkConfig.mqttPort, tmpMqttPort, 10), 5);
+    wifiManager.addParameter(mqttServerPortConfigParam);
+    char apSsid[50];
+    sprintf(apSsid, "%s_%s", WIFI_MGR_AP_NAME_PREFIX, getMac());
+    if (recoverPersistantConfig(&networkConfig)) {
+        LOG_INFO("No valid persistant configuration found, "
+                 "formatting filesystem, resetting to factory default settings "
+                 "and starting provisioning AP, "
+                 "connect to SSID: %s_%s and navigate to http://%s to "
+                 "configure the device..." CR,
+                 WIFI_MGR_AP_NAME_PREFIX, getMac(),
+                 IPAddress(WIFI_MGR_AP_IP).toString().c_str());
+        fileSys::format();
+        wifiManager.resetSettings();
+        factoryResetSettings(&networkConfig);
+        setNetworkUiDefault(&networkConfig);
         wifiManager.startConfigPortal(apSsid);
         wifiManager.stopConfigPortal();
-        LOG_INFO("A networking config has been entered - starting the networking service, connecting to SSID: %s" CR,
-            networkConfig.wifiConfig.ssid);
+        setNetworkConfig(&networkConfig);
+        LOG_INFO_NOFMT("Wifi provisiong service stopped, networking service started" CR);
+    }
+    else if (provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET) {
+        LOG_INFO("Config button was hold down for more than %i seconds: "
+                 "formatting filesystem, resetting to factory default settings "
+                 "and starting provisioning AP, "
+                 "connect to SSID: %s_%s and navigate to http://%s to "
+                 "configure the device..." CR, FACTORY_RESET_PROVISIONING_TIMEOUT_S,
+                 WIFI_MGR_AP_NAME_PREFIX, getMac(),
+                 IPAddress(WIFI_MGR_AP_IP).toString().c_str());
+        fileSys::format();
+        wifiManager.resetSettings();
+        factoryResetSettings(&networkConfig);
+        setNetworkUiDefault(&networkConfig);
+        wifiManager.startConfigPortal(apSsid);
+        wifiManager.stopConfigPortal();
+        setNetworkConfig(&networkConfig);
+        LOG_INFO_NOFMT("Wifi provisiong service stopped, networking service started" CR);
+
+    }
+    else if (networkConfig.previousNetworkFail >= WIFI_WD_ESCALATION_CNT_THRES) {
+        LOG_INFO("WiFi connect escalationConfig, could not connect to WiFi for %i consecutive reboots - "
+                 "starting provisioning AP, "
+                 "connect to SSID: %s_%s and navigate to http://%s to configure "
+                 "the device" CR, WIFI_WD_ESCALATION_CNT_THRES, WIFI_MGR_AP_NAME_PREFIX, getMac(),
+                 IPAddress(WIFI_MGR_AP_IP).toString().c_str());
+        getNetworkConfig(&networkConfig);
+        setNetworkUiDefault(&networkConfig);
+        wifiManager.startConfigPortal(apSsid);
+        wifiManager.stopConfigPortal();
+        setNetworkConfig(&networkConfig);
+        LOG_INFO_NOFMT("Wifi provisiong service stopped, networking service started" CR);
+
+    }
+    else if (provisionAction & PROVISION_DEFAULT_FROM_FILE) {
+        LOG_INFO("Config button was hold down for more than "
+                 "%i seconds and less than %i seconds - starting provisioning AP, "
+                 "connect to SSID: %s_%s and navigate to http://,%s to configure "
+                 "the device" CR, PROVISIONING_TIMEOUT_S, FACTORY_RESET_PROVISIONING_TIMEOUT_S,
+                 WIFI_MGR_AP_NAME_PREFIX, getMac(),
+                 IPAddress(WIFI_MGR_AP_IP).toString().c_str());
+        getNetworkConfig(&networkConfig);
+        setNetworkUiDefault(&networkConfig);
+        wifiManager.startConfigPortal(apSsid);
+        wifiManager.stopConfigPortal();
+        setNetworkConfig(&networkConfig);
+        LOG_INFO_NOFMT("Wifi provisiong service stopped, networking service started" CR);
     }
     else {
-        LOG_INFO("A valid networking configuration was found "
-            "- starting the networking service, connecting to SSID: %s" CR,
-            networkConfig.wifiConfig.ssid);
-        setNetworkConfig(&networkConfig);
+        LOG_INFO("A valid networking configuration was found - "
+                 "starting the networking service, connecting to SSID: %s" CR,
+                 networkConfig.wifiConfig.ssid);
         getNetworkConfig(&networkConfig);
         sysState->unSetOpStateByBitmap(OP_UNCONFIGURED);
-        WiFi.begin();
+        setNetworkConfig(&networkConfig);
+        LOG_INFO_NOFMT("Networking service started" CR);
     }
 }
 
-void networking::regWifiEventCallback(const wifiEventCallback_t p_callback,
+rc_t networking::regWifiEventCallback(const wifiEventCallback_t p_callback,
                                       const void* p_args) {
+    LOG_INFO("Regestring WiFi Event call-back function at: 0x%X with arg 0x%X" CR, p_callback, p_args);
+    for (uint8_t i = 0; i < wifiEventCallbackList.size(); i++) {
+        if ((wifiEventCallbackList.at(i)->cb == p_callback) && wifiEventCallbackList.at(i)->args == p_args) {
+            LOG_WARN("Could not register WiFi Provision callback 0x%X, already exists" CR, p_callback);
+            return RC_ALREADYEXISTS_ERR;
+        }
+    }
     wifiEventCallbackInstance_t* wifiEventCallbackInstance = 
-                                 new (heap_caps_malloc(sizeof(wifiEventCallbackInstance_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wifiEventCallbackInstance_t;
+        new (heap_caps_malloc(sizeof(wifiEventCallbackInstance_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wifiEventCallbackInstance_t;
     wifiEventCallbackInstance->cb = p_callback;
     wifiEventCallbackInstance->args = (void*)p_args;
     wifiEventCallbackList.push_back(wifiEventCallbackInstance);
+    return RC_OK;
 }
 
-void networking::unRegWifiEventCallback(const wifiEventCallback_t p_callback) {
+void networking::sendWifiEventCallback(WiFiEvent_t p_event, arduino_event_info_t p_info){
+    LOG_TERSE_NOFMT("Sendig WiFi event notifications to those that have subscribed to it" CR);
     for (uint8_t i = 0; i < wifiEventCallbackList.size(); i++) {
-        if (wifiEventCallbackList.at(i)->cb == p_callback) {
-            delete wifiEventCallbackList.at(i);
-            wifiEventCallbackList.clear(i);
-        }
+        LOG_TERSE("Calling WIFI event callback function: 0x%x" CR,
+            wifiEventCallbackList.at(i)->cb);
+        wifiEventCallbackList.at(i)->cb(p_event, p_info,
+            wifiEventCallbackList.at(i)->args);
     }
 }
 
-void networking::regWifiOpStateCallback(sysStateCb_t p_callback,
-                                        void* p_args) {
-    sysState->regSysStateCb(p_args, p_callback);
+rc_t networking::unRegWifiEventCallback(const wifiEventCallback_t p_callback,
+                                        const void* p_args) {
+    LOG_INFO("UnRegestring WiFi Event callback function at: 0x%X with arg 0x%X" CR, p_callback, p_args);
+    for (uint8_t i = 0; i < wifiEventCallbackList.size(); i++) {
+        if (wifiEventCallbackList.at(i)->cb == p_callback && wifiEventCallbackList.at(i)->args == p_args) {
+            delete wifiEventCallbackList.at(i);
+            wifiEventCallbackList.clear(i);
+            return RC_OK;
+        }
+    }
+    LOG_WARN("Could not remove WiFi event callback 0x%X, not found" CR, p_callback);
+    return RC_NOT_FOUND_ERR;
 }
 
-void networking::unRegWifiOpStateCallback(sysStateCb_t p_callback) {
-    sysState->unRegSysStateCb(p_callback);
+rc_t networking::regWifiOpStateCallback(sysStateCb_t p_callback, void* p_args) {
+    return sysState->regSysStateCb(p_args, p_callback);
 }
 
-void networking::regWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
+rc_t networking::unRegWifiOpStateCallback(sysStateCb_t p_callback, void* p_args) {
+    return sysState->unRegSysStateCb(p_callback);
+}
+
+rc_t networking::regWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
                                           const void* p_args) {
+    LOG_INFO("Regestring WiFi provisioning call-back function at: 0x%X with arg 0x%X" CR, p_callback, p_args);
+    for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
+        if ((wifiProvisionCallbackList.at(i)->cb == p_callback) && wifiProvisionCallbackList.at(i)->args == p_args) {
+            LOG_WARN("Could not register WiFi Provision callback 0x%X, already exists" CR, p_callback);
+            return RC_ALREADYEXISTS_ERR;
+        }
+    }
     wifiProvisionCallbackInstance_t* wifiProvisionCallbackInstance =
-                                     new (heap_caps_malloc(sizeof(wifiProvisionCallbackInstance_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wifiProvisionCallbackInstance_t;
+        new (heap_caps_malloc(sizeof(wifiProvisionCallbackInstance_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wifiProvisionCallbackInstance_t;
     wifiProvisionCallbackInstance->cb = p_callback;
     wifiProvisionCallbackInstance->args = (void*)p_args;
     wifiProvisionCallbackList.push_back(wifiProvisionCallbackInstance);
+    return RC_OK;
 }
 
-void networking::unRegWifiProvisionCallback(const wifiProvisionCallback_t p_callback) {
+void networking::sendNetworkProvisionCallback(void) {
+    LOG_TERSE_NOFMT("Sendig WiFi provisioning event notifications to those that have subscribed to it" CR);
     for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
-        if (wifiProvisionCallbackList.at(i)->cb == p_callback) {
+        LOG_VERBOSE("Calling WIFI provisioning event callback function: 0x%x" CR,
+            wifiProvisionCallbackList.at(i)->cb);
+        wifiProvisionCallbackList.at(i)->cb(WIFI_PROVISIONING_SAVE,
+            wifiProvisionCallbackList.at(i)->args);
+    }
+}
+
+rc_t networking::unRegWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
+                                            const void* p_args) {
+    LOG_TERSE("Removing WiFi Provision callback 0x%X" CR, p_callback);
+    for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
+        if ((wifiProvisionCallbackList.at(i)->cb == p_callback) && wifiProvisionCallbackList.at(i)->args == p_args ) {
             delete wifiProvisionCallbackList.at(i);
             wifiProvisionCallbackList.clear(i);
+            return RC_OK;
         }
     }
+    LOG_WARN("Could not remove WiFi Provision callback 0x%X, not found" CR, p_callback);
+    return RC_NOT_FOUND_ERR;
 }
 
 uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
     uint16_t networks = 0;
+    LOG_INFO_NOFMT("Scanning APs" CR);
     networks = WiFi.scanNetworks();
     if (networks)
         LOG_INFO("%i WiFi networks were found" CR, networks);
@@ -226,9 +305,9 @@ uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
     }
     if (p_printOut) {
         LOG_INFO("Following %i networks were found:" CR, networks);
-        LOG_INFO("| %*s | %*s | %*s | %*s | %*s |",
-                  -30, "SSID:", -20, "BSSID:",
-                  -10, "RSSI:", -10, "Channel:", -20, "Encryption:");
+        LOG_INFO("| %*s | %*s | %*s | %*s | %*s |" CR,
+                 -30, "SSID:", -17, "BSSID:",
+                 -5, "RSSI:", -8, "Channel:", -20, "Encryption:");
     }
     for (int i = 0; i < networks; i++) {
         apStruct_t* apInfo = new (heap_caps_malloc(sizeof(apStruct_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) apStruct_t;
@@ -238,9 +317,10 @@ uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
         sprintf(apInfo->bssid, "%s", WiFi.BSSIDstr(i).c_str());
         strcpy(apInfo->encryption, getEncryptionStr(WiFi.encryptionType(i)));
         if (p_printOut){
-            LOG_INFO("| %*s | %*s | %*i | %*i | %*s |",
-                      -30, apInfo->ssid, -20, apInfo->bssid,
-                      -10, apInfo->rssi, -10, apInfo->channel, -20, apInfo->encryption);
+            LOG_INFO("| %*s | %*s | %*i | %*i | %*s |" CR,
+                      -30, apInfo->ssid, -17, apInfo->bssid,
+                      -5, apInfo->rssi, -8, apInfo->channel,
+                      -20, apInfo->encryption);
         }
         if (p_apList)
             p_apList->push_back(apInfo);
@@ -253,10 +333,46 @@ uint16_t networking::getAps(QList<apStruct_t*>* p_apList, bool p_printOut) {
 }
 
 void networking::unGetAps(QList<apStruct_t*>* p_apList) {
+    LOG_INFO_NOFMT("unScanning / Forgetting APs" CR);
     while (p_apList->size()) {
         delete p_apList->back();
         p_apList->pop_back();
     }
+}
+
+rc_t networking::setSsidNPass(const char* p_ssid, const char* p_pass, bool p_persist) {
+    LOG_INFO("Setting %s SSID: %s and Pass: %s" CR, p_persist? "persistant" : "non persistant", p_ssid, p_pass);
+    getNetworkConfig(&networkConfig);
+    char ssidBackup[50];
+    strcpy(ssidBackup, networkConfig.wifiConfig.ssid);
+    strcpy(networkConfig.wifiConfig.ssid, p_ssid);
+    char passBackup[50];
+    strcpy(passBackup, networkConfig.wifiConfig.pass);
+    strcpy(networkConfig.wifiConfig.pass, p_pass);
+
+    if (setNetworkConfig(&networkConfig, p_persist)) {
+        LOG_ERROR_NOFMT("Could not set SSID and Pass, reverting to previous SSID and Pass configuration" CR);
+        strcpy(networkConfig.wifiConfig.ssid, ssidBackup);
+        strcpy(networkConfig.wifiConfig.pass, passBackup);
+        setNetworkConfig(&networkConfig, p_persist);
+        return RC_PARAMETERVALUE_ERR;
+    }
+    return RC_OK;
+}
+
+rc_t networking::setSsid(const char* p_ssid, bool p_persist) {
+    LOG_INFO("Setting SSID: %s" CR, p_ssid);
+    getNetworkConfig(&networkConfig);
+    char ssidBackup[50];
+    strcpy(ssidBackup, networkConfig.wifiConfig.ssid);
+    strcpy(networkConfig.wifiConfig.ssid, p_ssid);
+    if (setNetworkConfig(&networkConfig)) {
+        LOG_ERROR_NOFMT("Could not set SSID, reverting to previous SSID configuration" CR);
+        strcpy(networkConfig.wifiConfig.ssid, ssidBackup);
+        setNetworkConfig(&networkConfig, p_persist);
+        return RC_PARAMETERVALUE_ERR;
+    }
+    return RC_OK;
 }
 
 char* networking::getSsid(void) {
@@ -265,12 +381,32 @@ char* networking::getSsid(void) {
 }
 
 char* networking::getBssid(void) {
-    return (char*)WiFi.BSSIDstr().c_str();
+    getNetworkConfig(&networkConfig);
+    return networkConfig.wifiConfig.bssid;
 }
 
-char* networking::getAuth() {
+char* networking::getAuth(void) {
     getNetworkConfig(&networkConfig);
     return networkConfig.wifiConfig.encryption;
+}
+
+rc_t networking::setPass(const char* p_pass, bool p_persist) {
+    LOG_INFO("Setting WiFi password: %s" CR, p_pass);
+    getNetworkConfig(&networkConfig);
+    char passBackup[30];
+    strcpy(passBackup, networkConfig.wifiConfig.pass);
+    if (setNetworkConfig(&networkConfig, p_persist)) {
+        LOG_ERROR_NOFMT("Could not set WiFi password, reverting to previous configuration" CR);
+        strcpy(networkConfig.wifiConfig.pass, passBackup);
+        setNetworkConfig(&networkConfig, p_persist);
+        return RC_PARAMETERVALUE_ERR;
+    }
+    return RC_OK;
+}
+
+char* networking::getPass(void) {
+    getNetworkConfig(&networkConfig);
+    return networkConfig.wifiConfig.pass;
 }
 
 uint8_t networking::getChannel(void) {
@@ -288,24 +424,69 @@ char* networking::getMac(void) {
     return networkConfig.mac;
 }
 
-rc_t networking::setStaticIpAddr(IPAddress p_address, IPAddress p_mask, IPAddress p_gw, IPAddress p_dns, bool p_persist) {
-    netwStaConfig_t nwConfig;
+rc_t networking::setDHCP(bool p_persist) {
+    LOG_INFO_NOFMT("Setting DHCP network operation" CR);
     getNetworkConfig(&networkConfig);
-    nwConfig.ipAddr = p_address;
-    nwConfig.ipMask = p_mask;
-    nwConfig.gatewayIpAddr = p_gw;
-    nwConfig.dnsIpAddr = p_dns;
-    if (setNetworkConfig(&networkConfig)) {
-        WiFi.persistent(true);
+    bool dhcpBackup = networkConfig.staticIp;
+    networkConfig.staticIp = false;
+    if (setNetworkConfig(&networkConfig, p_persist)) {
+        LOG_ERROR_NOFMT("Could not set DHCP network operation, reverting network configuration" CR);
+        networkConfig.staticIp = dhcpBackup;
+        setNetworkConfig(&networkConfig, p_persist);
         return RC_PARAMETERVALUE_ERR;
     }
-    if (p_persist) {
-        persistentSaveConfig(&nwConfig);
-        WiFi.persistent(true);
-    }
-    else
-        WiFi.persistent(false);
     return RC_OK;
+}
+
+rc_t networking::setStaticIpAddr(const char* p_address, const char* p_mask, const char* p_gw, const char* p_dns, bool p_persist) {
+    if (!(isIpAddress(p_address) && isIpAddress(p_mask) && isIpAddress(p_gw) && isIpAddress(p_dns))) {
+        LOG_ERROR_NOFMT("One or more of provided Static IP-Addresses is not a valid IP-Addresses " CR);
+        return RC_PARAMETERVALUE_ERR;
+    }
+    else{
+        IPAddress ipAddr;
+        ipAddr.fromString(p_address);
+        IPAddress ipMask;
+        ipMask.fromString(p_mask);
+        IPAddress ipGw;
+        ipGw.fromString(p_gw);
+        IPAddress ipDns;
+        ipGw.fromString(p_dns);
+        return setStaticIpAddr(ipAddr, ipMask, ipGw, ipDns, p_persist);
+    }
+}
+rc_t networking::setStaticIpAddr(IPAddress p_address, IPAddress p_mask, IPAddress p_gw, IPAddress p_dns, bool p_persist) {
+    LOG_INFO("Setting Static IP address network operation - IP: %s, MASK: %s, GW: %s, DNS: %s" CR,
+                    p_address.toString().c_str(),
+                    p_mask.toString().c_str(),
+                    p_gw.toString().c_str(),
+                    p_dns.toString().c_str());
+    getNetworkConfig(&networkConfig);
+    IPAddress ipAddrBackup = networkConfig.ipAddr;
+    IPAddress ipMaskBackup = networkConfig.ipMask;
+    IPAddress ipGwBackup = networkConfig.gatewayIpAddr;
+    IPAddress ipDnsBackup = networkConfig.dnsIpAddr;
+    bool staticIpBackup = networkConfig.staticIp;
+    networkConfig.ipAddr = p_address;
+    networkConfig.ipMask = p_mask;
+    networkConfig.gatewayIpAddr = p_gw;
+    networkConfig.dnsIpAddr = p_dns;
+    networkConfig.staticIp = true;
+    if (setNetworkConfig(&networkConfig, p_persist)){
+        LOG_ERROR_NOFMT("Could not set Static IP address network operation, reverting to previous configuration" CR);
+        networkConfig.ipAddr = ipAddrBackup;
+        networkConfig.ipMask = ipMaskBackup;
+        networkConfig.gatewayIpAddr = ipGwBackup;
+        networkConfig.dnsIpAddr = ipDnsBackup;
+        networkConfig.staticIp = staticIpBackup;
+        setNetworkConfig(&networkConfig, p_persist);
+        return RC_PARAMETERVALUE_ERR;
+    }
+    return RC_OK;
+}
+
+bool networking::isStatic(void) {
+    return networkConfig.staticIp;
 }
 
 IPAddress networking::getIpAddr(void) {
@@ -329,37 +510,21 @@ IPAddress networking::getDnsIpAddr(void) {
 }
 
 rc_t networking::setHostname(const char* p_hostname, bool p_persist) {
-    if ((strlen(p_hostname) < 3) || strlen(p_hostname) > 31) {
-        LOG_ERROR("Hostname: \"%s\" string size out "
-                  "of bounds" CR, p_hostname);
+    LOG_INFO("Setting Hostname to: %s" CR, p_hostname);
+    if(!isHostName(p_hostname)){
+        LOG_ERROR("Hostname: \"%s\" is not a valid Hostname " CR, p_hostname);
         return RC_PARAMETERVALUE_ERR;
     }
-    for (uint8_t i = 0; i < strlen(p_hostname); i++) {
-        if (i == 0 && !isAlphaNumeric(p_hostname[i])) {
-            LOG_ERROR("Hostname: \"%s\" string first "
-                "character is not alphanumerical" CR, p_hostname);
-            return RC_PARAMETERVALUE_ERR;
-        }
-        if (!(isAlphaNumeric(p_hostname[i]) || p_hostname[i] == '.' ||
-                             p_hostname[i] == '-' || p_hostname[i] == '_' ||
-                             p_hostname[i] == ':')) {
-            LOG_ERROR("Hostname: \"%s\" string character "
-                      "at position %i does not comply to host name conventions" CR,
-                      p_hostname, i);
-            return RC_PARAMETERVALUE_ERR;
-        }
-    }
-    if (!p_persist)
-        WiFi.persistent(false);
     getNetworkConfig(&networkConfig);
+    char hostNameBackup[100];
+    strcpy(hostNameBackup, networkConfig.hostName);
     strcpy(networkConfig.hostName, p_hostname);
-    if (setNetworkConfig(&networkConfig)) {
-        WiFi.persistent(true);
+    if (setNetworkConfig(&networkConfig, p_persist)) {
+        LOG_ERROR("Could not set Hostname: \"%s\" reverting to previous configuration " CR, p_hostname);
+        strcpy(networkConfig.hostName, hostNameBackup);
+        setNetworkConfig(&networkConfig, p_persist);
         return RC_PARAMETERVALUE_ERR;
     }
-    if (p_persist)
-        persistentSaveConfig(&networkConfig);
-    WiFi.persistent(true);
     return RC_OK;
 }
 
@@ -368,17 +533,26 @@ char* networking::getHostname(void) {
     return networkConfig.hostName;
 }
 
+rc_t networking::setMqttUri(IPAddress p_mqttIP, bool p_persist) {
+    return setMqttUri(p_mqttIP.toString().c_str(), p_persist);
+}
+
 rc_t networking::setMqttUri(const char* p_mqttUri, bool p_persist) {
-    IPAddress isIpAddress = IPAddress();
-    if (!(isUri(p_mqttUri) || isIpAddress.fromString(p_mqttUri))) {
-        LOG_ERROR("MQTT URI: %s is not a valid URI" CR,
+    LOG_INFO("Setting MQTT-URI to: %s" CR, p_mqttUri);
+    if (!(isUri(p_mqttUri) || isIpAddress(p_mqttUri))) {
+        LOG_ERROR("MQTT URI: %s is not a valid URI or IP-Address" CR,
                   p_mqttUri);
         return RC_PARAMETERVALUE_ERR;
     }
-    getNetworkConfig(&networkConfig);
+    char mqttUriBackup[100];
+    strcpy(mqttUriBackup, networkConfig.mqttUri);
     strcpy(networkConfig.mqttUri, p_mqttUri);
-    if (p_persist)
-        persistentSaveConfig(&networkConfig);
+    if (setNetworkConfig(&networkConfig, p_persist)) {
+        LOG_ERROR_NOFMT("Could not set MQTT URI, reverting to previous configuration" CR);
+        strcpy(networkConfig.mqttUri, mqttUriBackup);
+        setNetworkConfig(&networkConfig, p_persist);
+        return RC_PARAMETERVALUE_ERR;
+    }
     return RC_OK;
 }
 
@@ -387,21 +561,58 @@ char* networking::getMqttUri(void) {
     return networkConfig.mqttUri;
 }
 
-rc_t networking::setMqttPort(uint16_t p_mqttPort, bool p_persist) {
-    if (p_mqttPort < 0 || p_mqttPort > 65535)
+rc_t networking::setMqttPort(const char* p_mqttPort, bool p_persist) {
+    LOG_INFO("Setting MQTT-Port to: %s" CR, p_mqttPort);
+    if (!atoi(p_mqttPort)) {
+        LOG_ERROR_NOFMT("MQTT-Port is not a valid port" CR);
         return RC_PARAMETERVALUE_ERR;
-    getNetworkConfig(&networkConfig);
+    }
+    else
+        return setMqttPort(atoi(p_mqttPort), p_persist);
+}
+
+rc_t networking::setMqttPort(int32_t p_mqttPort, bool p_persist) {
+    LOG_INFO("Setting MQTT-Port to: %i" CR, p_mqttPort);
+    if (!isIpPort(p_mqttPort)) {
+        LOG_ERROR_NOFMT("MQTT-Port is not a valid port" CR);
+        return RC_PARAMETERVALUE_ERR;
+    }
+    uint16_t mqttPortBackup = networkConfig.mqttPort;
     networkConfig.mqttPort = p_mqttPort;
-    if (setNetworkConfig(&networkConfig))
-            return RC_PARAMETERVALUE_ERR;
-    if (p_persist)
-        persistentSaveConfig(&networkConfig);
+    if (setNetworkConfig(&networkConfig, p_persist)) {
+        LOG_ERROR_NOFMT("Could not set MQTT-Port, reverting to previous configuration" CR);
+        networkConfig.mqttPort = mqttPortBackup;
+        setNetworkConfig(&networkConfig, p_persist);
+        return RC_PARAMETERVALUE_ERR;
+    }
     return RC_OK;
 }
 
 uint16_t networking::getMqttPort(void) {
         getNetworkConfig(&networkConfig);
         return networkConfig.mqttPort;
+}
+
+uint8_t networking::getNwFail(void) {
+    return networkConfig.previousNetworkFail;
+}
+
+void networking::reportNwFail(void) {
+    if (!nwFailCounted){
+        networkConfig.previousNetworkFail++;
+        persistentSaveConfig(&networkConfig);
+        nwFailCounted = true;
+    }
+}
+
+void networking::concludeRestart(void) {
+    LOG_INFO_NOFMT("Restart of services that directly depend on "
+                   "Networking, including any reporting of errors "
+                   "from those services concluded" CR);
+    if (!nwFailCounted) {
+        networkConfig.previousNetworkFail = 0;
+        persistentSaveConfig(&networkConfig);
+    }
 }
 
 sysState_t networking::getOpStateBitmap(void) {
@@ -413,33 +624,81 @@ char* networking::getOpStateStr(char* p_opStateStr) {
     return p_opStateStr;
 }
 
-bool networking::getNetworkConfig(netwStaConfig_t* p_staConfig) {
-    bool validConf = true;
-    strcpy(p_staConfig->wifiConfig.ssid, WiFi.SSID().c_str());
-    if (WiFi.SSID(true).length() == 0)
-        validConf = false;
-    sprintf(p_staConfig->wifiConfig.bssid, "%s", WiFi.BSSIDstr().c_str());
+rc_t networking::getNetworkConfig(netwStaConfig_t* p_staConfig) {
+    bool inValidConf = false;
+    if (wifiManager.getWiFiSSID(true).length() == 0)
+        inValidConf = true;
+    else
+        strcpy(p_staConfig->wifiConfig.ssid, wifiManager.getWiFiSSID(true).c_str());
+    strcpy(p_staConfig->wifiConfig.bssid, WiFi.BSSIDstr().c_str());
     p_staConfig->wifiConfig.channel = WiFi.channel();
     p_staConfig->wifiConfig.rssi = WiFi.RSSI();
-    strcpy(p_staConfig->wifiConfig.encryption,
-        getEncryptionStr(WiFi.encryptionType(0)));
     strcpy(p_staConfig->mac, WiFi.macAddress().c_str());
-    p_staConfig->ipAddr = WiFi.localIP();
-    p_staConfig->ipMask = WiFi.subnetMask();
-    p_staConfig->gatewayIpAddr = WiFi.gatewayIP();
-    p_staConfig->dnsIpAddr = WiFi.dnsIP();
+    if (!networkConfig.staticIp) {
+        LOG_INFO_NOFMT("DHCP address allocation configured, getting asigned addresses" CR);
+        p_staConfig->ipAddr = WiFi.localIP();
+        p_staConfig->ipMask = WiFi.subnetMask();
+        p_staConfig->gatewayIpAddr = WiFi.gatewayIP();
+        p_staConfig->dnsIpAddr = WiFi.dnsIP();
+    }
+    else {
+        LOG_INFO_NOFMT("Static IP configured, static addresses already known" CR);
+    }
     strcpy(p_staConfig->hostName, (WiFi.getHostname()));
-    return validConf;
-}
-
-rc_t networking::setNetworkConfig(netwStaConfig_t* p_staConfig) {
-    WiFi.config(p_staConfig->ipAddr, p_staConfig->gatewayIpAddr, p_staConfig->ipMask,  p_staConfig->dnsIpAddr);
-    WiFi.setHostname(p_staConfig->hostName);
+    if (inValidConf) {
+        LOG_ERROR_NOFMT("Retreived configuration not valid - reverting to previously known configuration" CR);
+        return RC_GEN_ERR;
+    }
     return RC_OK;
 }
 
+rc_t networking::setNetworkConfig(netwStaConfig_t* p_staConfig, bool p_persist) {
+    LOG_INFO("Setting %s networking configuration" CR, p_persist? "persistant" : "non persistant"); // BETTER SHOW THE CONFIG
+    WiFi.disconnect();
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    WiFi.persistent(p_persist); //Broken
+    if (p_staConfig->staticIp){
+        LOG_INFO("Setting WiFi static address configuration, address: %s, gateway: %s, mask: %s, DNS: %s" CR,
+                 p_staConfig->ipAddr.toString(), p_staConfig->gatewayIpAddr.toString(),
+                 p_staConfig->ipMask.toString(), p_staConfig->dnsIpAddr.toString());
+        WiFi.config(p_staConfig->ipAddr, p_staConfig->gatewayIpAddr, p_staConfig->ipMask, p_staConfig->dnsIpAddr);
+        WiFi.setHostname(p_staConfig->hostName);
+        WiFi.begin(p_staConfig->wifiConfig.ssid, getPass());
+    }
+    else {
+        LOG_INFO("Setting WiFi DHCP configuration" CR);
+        WiFi.setHostname(p_staConfig->hostName);
+        WiFi.begin(p_staConfig->wifiConfig.ssid, p_staConfig->wifiConfig.pass);
+    }
+    if (p_persist) {
+        persistentSaveConfig(p_staConfig);
+        WiFi.persistent(false);
+    }
+    sendNetworkProvisionCallback();
+    return RC_OK;
+}
+
+void networking::cpyNetworkConfig(netwStaConfig_t* dst, const netwStaConfig_t* src) {
+    memcpy(dst->wifiConfig.ssid, src->wifiConfig.ssid, sizeof(*dst->wifiConfig.ssid));
+    memcpy(dst->wifiConfig.bssid, src->wifiConfig.bssid, sizeof(*dst->wifiConfig.bssid));
+    dst->wifiConfig.channel = src->wifiConfig.channel;
+    dst->wifiConfig.rssi = src->wifiConfig.rssi;
+    memcpy(dst->wifiConfig.encryption, src->wifiConfig.encryption, sizeof(*dst->wifiConfig.encryption));
+    memcpy(dst->wifiConfig.pass, src->wifiConfig.pass, sizeof(*dst->wifiConfig.pass));
+    memcpy(dst->mac, src->mac, sizeof(*dst->mac));
+    dst->staticIp = src->staticIp;
+    dst->ipAddr = src->ipAddr;
+    dst->ipMask = src->ipMask;
+    dst->gatewayIpAddr = src->gatewayIpAddr;
+    dst->dnsIpAddr = src->dnsIpAddr;
+    memcpy(dst->hostName, src->hostName, sizeof(*dst->hostName));
+    memcpy(dst->mqttUri, src->mqttUri, sizeof(*dst->mqttUri));
+    dst->mqttPort = src->mqttPort;
+    dst->previousNetworkFail = src->previousNetworkFail;
+}
+
 rc_t networking::persistentSaveConfig(const netwStaConfig_t* p_staConfig) {
-    LOG_INFO("Saving WiFi configuration to "
+    LOG_INFO("Saving Network configuration to "
              "persistant store: %s" CR, WIFI_CONFIG_STORE_FILENAME);
     DynamicJsonDocument wifiConfigJsonDoc(WIFI_CONFIG_JSON_OBJ_SIZE);
     char wifiConfigJsonPrettySerialized[WIFI_CONFIG_JSON_SERIAL_SIZE];
@@ -448,7 +707,9 @@ rc_t networking::persistentSaveConfig(const netwStaConfig_t* p_staConfig) {
     wifiConfigJsonDoc["wifiConfig"]["channel"] = p_staConfig->wifiConfig.channel;
     wifiConfigJsonDoc["wifiConfig"]["rssi"] = p_staConfig->wifiConfig.rssi;
     wifiConfigJsonDoc["wifiConfig"]["encryption"] = p_staConfig->wifiConfig.encryption;
+    wifiConfigJsonDoc["wifiConfig"]["pass"] = p_staConfig->wifiConfig.pass;
     wifiConfigJsonDoc["mac"] = p_staConfig->mac;
+    wifiConfigJsonDoc["staticIp"] = p_staConfig->staticIp;
     wifiConfigJsonDoc["ipAddr"] = p_staConfig->ipAddr;
     wifiConfigJsonDoc["ipMask"] = p_staConfig->ipMask;
     wifiConfigJsonDoc["gatewayIpAddr"] = p_staConfig->gatewayIpAddr;
@@ -474,7 +735,7 @@ rc_t networking::persistentSaveConfig(const netwStaConfig_t* p_staConfig) {
 }
 
 rc_t networking::recoverPersistantConfig(netwStaConfig_t* p_staConfig) {
-    LOG_INFO("Recovering WiFi configuration from "
+    LOG_INFO("Recovering Network configuration from "
              "persistant store: %s" CR, WIFI_CONFIG_STORE_FILENAME);
     DynamicJsonDocument wifiConfigJsonDoc(WIFI_CONFIG_JSON_OBJ_SIZE);
     char wifiConfigJsonPrettySerialized[WIFI_CONFIG_JSON_SERIAL_SIZE];
@@ -487,17 +748,35 @@ rc_t networking::recoverPersistantConfig(netwStaConfig_t* p_staConfig) {
         return RC_GEN_ERR;
     }
     Serial.printf("Wifi pretty Json content "
-        "recovered: %s" CR, wifiConfigJsonPrettySerialized);
+                  "recovered: %s" CR, wifiConfigJsonPrettySerialized);
     LOG_VERBOSE("Wifi pretty Json content "
                 "recovered: %s" CR, wifiConfigJsonPrettySerialized);
-    deserializeJson(wifiConfigJsonDoc, wifiConfigJsonPrettySerialized); //CATCH ERROR
+    if (deserializeJson(wifiConfigJsonDoc, wifiConfigJsonPrettySerialized)) {
+        LOG_ERROR_NOFMT("Could not parse/deserialize persistant Wifi configuration" CR);
+        return RC_GEN_ERR;
+    }
+    if (wifiConfigJsonDoc["wifiConfig"]["ssid"].isNull() || wifiConfigJsonDoc["wifiConfig"]["bssid"].isNull() ||
+        wifiConfigJsonDoc["wifiConfig"]["channel"].isNull() || wifiConfigJsonDoc["wifiConfig"]["rssi"].isNull() ||
+        wifiConfigJsonDoc["wifiConfig"]["encryption"].isNull() || wifiConfigJsonDoc["wifiConfig"]["pass"].isNull() ||
+        wifiConfigJsonDoc["mac"].isNull() || wifiConfigJsonDoc["staticIp"].isNull() ||
+        wifiConfigJsonDoc["ipAddr"].isNull() || wifiConfigJsonDoc["ipMask"].isNull() ||
+        wifiConfigJsonDoc["gatewayIpAddr"].isNull() || wifiConfigJsonDoc["dnsIpAddr"].isNull() ||
+        wifiConfigJsonDoc["hostName"].isNull() || wifiConfigJsonDoc["mqttUri"].isNull() ||
+        wifiConfigJsonDoc["mqttPort"].isNull() || wifiConfigJsonDoc["previousNetworkFail"].isNull()) {
+        LOG_ERROR_NOFMT("Could not recover persistant Wifi configuration, schema entries missing..." CR);
+        return RC_NOT_FOUND_ERR;
+    }
     strcpy(p_staConfig->wifiConfig.ssid, wifiConfigJsonDoc["wifiConfig"]["ssid"]);
     strcpy(p_staConfig->wifiConfig.bssid, wifiConfigJsonDoc["wifiConfig"]["bssid"]);
     p_staConfig->wifiConfig.channel = wifiConfigJsonDoc["wifiConfig"]["channel"];
     p_staConfig->wifiConfig.rssi = wifiConfigJsonDoc["wifiConfig"]["rssi"];
     strcpy(p_staConfig->wifiConfig.encryption,
            wifiConfigJsonDoc["wifiConfig"]["encryption"]);
+    strcpy(p_staConfig->wifiConfig.pass,
+        wifiConfigJsonDoc["wifiConfig"]["pass"]);
     strcpy(p_staConfig->mac, wifiConfigJsonDoc["mac"]);
+    p_staConfig->mqttPort = wifiConfigJsonDoc["mqttPort"];
+    p_staConfig->staticIp = wifiConfigJsonDoc["staticIp"];
     p_staConfig->ipAddr.fromString(wifiConfigJsonDoc["ipAddr"].as<const char*>());
     p_staConfig->ipMask.fromString(wifiConfigJsonDoc["ipMask"].as<const char*>());
     p_staConfig->gatewayIpAddr.fromString(wifiConfigJsonDoc["gatewayIpAddr"].
@@ -512,16 +791,35 @@ rc_t networking::recoverPersistantConfig(netwStaConfig_t* p_staConfig) {
 }
 
 void networking::factoryResetSettings(netwStaConfig_t* p_staConfig) {
+    LOG_TERSE_NOFMT("Setting Factory Network default settings" CR);
     strcpy(p_staConfig->wifiConfig.ssid, "");
-    sprintf(p_staConfig->hostName, "%s_%s", WIFI_ESP_HOSTNAME_PREFIX,
-            WiFi.macAddress().c_str());
-    strcpy(p_staConfig->mqttUri, MQTT_DEFAULT_URI);
-    p_staConfig->mqttPort = MQTT_DEFAULT_PORT;
+    strcpy(p_staConfig->wifiConfig.bssid, "");
+    strcpy(p_staConfig->wifiConfig.encryption, getEncryptionStr(WiFi.encryptionType(0)));
+    strcpy(p_staConfig->wifiConfig.pass, "");
+    p_staConfig->wifiConfig.channel = WiFi.channel();
+    p_staConfig->wifiConfig.rssi = WiFi.RSSI();
+    strcpy(p_staConfig->mac, WiFi.macAddress().c_str());
+    p_staConfig->staticIp = false;
     p_staConfig->ipAddr = IPAddress(0, 0, 0, 0);
     p_staConfig->ipMask = IPAddress(0, 0, 0, 0);
     p_staConfig->gatewayIpAddr = IPAddress(0, 0, 0, 0);
     p_staConfig->dnsIpAddr = IPAddress(0, 0, 0, 0);
+    sprintf(p_staConfig->hostName, "%s_%s", WIFI_ESP_HOSTNAME_PREFIX,
+            WiFi.macAddress().c_str());
+    strcpy(p_staConfig->mqttUri, MQTT_DEFAULT_URI);
+    p_staConfig->mqttPort = MQTT_DEFAULT_PORT;
     p_staConfig->previousNetworkFail = 0;
+}
+
+void networking::setNetworkUiDefault(netwStaConfig_t* p_staConfig) {
+    if (p_staConfig->staticIp) {
+        //wifiManager.setShowSTAStaticIPFields(p_staConfig->ipAddr, p_staConfig->gatewayIpAddr, p_staConfig->ipMask, p_staConfig->dnsIpAddr); // Needs a pullrequest proposal to the WiFiManager project
+    }
+    hostNameConfigParam->setValue(p_staConfig->hostName, 31);
+    mqttServerUriConfigParam->setValue(p_staConfig->mqttUri, 100);
+    char mqttPortStr[6];
+    itoa(p_staConfig->mqttPort, mqttPortStr, 10);
+    mqttServerPortConfigParam->setValue(mqttPortStr, 5);
 }
 
 char* networking::getEncryptionStr(wifi_auth_mode_t p_wifi_auth_mode) {
@@ -552,7 +850,7 @@ char* networking::getEncryptionStr(wifi_auth_mode_t p_wifi_auth_mode) {
     }
 }
 
-void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) { //This should be serialized into a job-queue
+void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) { //Should this be serialized into a job-queue?
     switch (p_event) {
     case ARDUINO_EVENT_WIFI_READY:
         LOG_INFO_NOFMT("WiFi service ready" CR);
@@ -569,28 +867,27 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) { /
         sysState->setOpStateByBitmap(OP_INIT | OP_DISCONNECTED | OP_NOIP);
         break;
     case SYSTEM_EVENT_STA_CONNECTED:
-        sysState->unSetOpStateByBitmap(OP_INIT | OP_DISCONNECTED);                                  //Sometimes the start event is missing for unknown reasons
+        sysState->unSetOpStateByBitmap(OP_INIT | OP_DISCONNECTED);
         LOG_INFO("Station connected to AP-SSID: %s, "
-                   "channel: %d, RSSI: %d" CR, getSsid(), getChannel(), getRssi());
+                 "channel: %d, RSSI: %d" CR, getSsid(), getChannel(), getRssi());
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
         sysState->setOpStateByBitmap(OP_DISCONNECTED | OP_NOIP);
         LOG_INFO("Station disconnected from AP-SSID: %s, "
-                   "attempting reconnection" CR, getSsid());
+                 "attempting reconnection" CR, getSsid());
         WiFi.reconnect();
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        LOG_INFO("Authentication mode changed to: %s"
-                   CR, getAuth());
+        LOG_INFO("Authentication mode changed to: %s" CR, getAuth());
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
         sysState->unSetOpStateByBitmap(OP_NOIP);
         LOG_INFO("Station got IP-address:%s, Mask: %s, \n"
-                    "Gateway: %s, DNS: %s, Hostname: %s" CR,
-                    getIpAddr().toString().c_str(), getIpMask().toString().c_str(),
-                    getGatewayIpAddr().toString().c_str(),
-                    getDnsIpAddr().toString().c_str(),
-                    getHostname());
+                 "Gateway: %s, DNS: %s, Hostname: %s" CR,
+                 getIpAddr().toString().c_str(), getIpMask().toString().c_str(),
+                 getGatewayIpAddr().toString().c_str(),
+                 getDnsIpAddr().toString().c_str(),
+                 getHostname());
         break;
     case SYSTEM_EVENT_STA_LOST_IP:
         sysState->setOpStateByBitmap(OP_NOIP);
@@ -611,8 +908,8 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) { /
         break;
     case ARDUINO_EVENT_WIFI_AP_START:
         LOG_INFO("AP started with SSID %s, "
-                   "IP address: %s" CR, WiFi.softAPSSID().c_str(),
-                   WiFi.softAPIP().toString().c_str());
+                 "IP address: %s" CR, WiFi.softAPSSID().c_str(),
+                 WiFi.softAPIP().toString().c_str());
         break;
     case ARDUINO_EVENT_WIFI_AP_STOP:
         LOG_INFO_NOFMT("WiFiEvent: AP stoped" CR);
@@ -631,103 +928,98 @@ void networking::WiFiEvent(WiFiEvent_t p_event, arduino_event_info_t p_info) { /
         LOG_INFO_NOFMT("The AP received a probe request" CR);
         break;
     default:
-        LOG_ERROR("Received a non recognized WIFI event: %i"
-                  CR, p_event);
+        LOG_ERROR("Received a non recognized WIFI event: %i" CR,
+                  p_event);
         break;
     }
-    if (!wifiEventCallbackList.size())
-        LOG_VERBOSE_NOFMT("No callback functions to call" CR);
-    else {
-        for (uint8_t i = 0; i < wifiEventCallbackList.size(); i++) {
-            LOG_VERBOSE("Calling callback function: 0x%x"
-                CR, wifiEventCallbackList.at(i)->cb);
-            wifiEventCallbackList.at(i)->cb(p_event, p_info,
-                wifiEventCallbackList.at(i)->args);
-        }
-    }
+    sendWifiEventCallback(p_event, p_info);
 }
 
 void networking::configModeCb(WiFiManager* p_WiFiManager) {
     LOG_INFO("genJMRIdecoder provisioning manager "
-               "started - SSID: %s, IP address %s" CR,
-               wifiManager.getConfigPortalSSID().c_str(), WiFi.softAPIP().toString().c_str());
-    for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
-        LOG_VERBOSE("Calling callback function: 0x%x"
-                    CR, wifiProvisionCallbackList.at(i)->cb);
-        wifiProvisionCallbackList.at(i)->cb(WIFI_PROVISIONING_START,
-                                            wifiProvisionCallbackList.at(i)->args);
-    }
+             "started - AP SSID: %s, IP address %s" CR,
+             wifiManager.getConfigPortalSSID().c_str(),
+             WiFi.softAPIP().toString().c_str());
+    cpyNetworkConfig(&networkConfigBackup, &networkConfig);
 }
 
 void networking::preSaveConfigCb() {
     LOG_INFO("genJMRIdecoder provisioning manager "
-               "parameters are about to be saved, creating a backup of the configuration" CR);
-    memcpy(&networkConfigBackup, &networkConfig, sizeof(networkConfig));
-    for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
-        LOG_VERBOSE("Calling callback function: %p"
-                    CR, wifiProvisionCallbackList.at(i)->cb);
-        wifiProvisionCallbackList.at(i)->cb(WIFI_PROVISIONING_PRESAVE,
-                                            wifiProvisionCallbackList.at(i)->args);
+        "Network parameters are about to be saved, validating Network parameters" CR);
+    provisionValidationErr = NETWORK_VALIDATION_NO_ERR;
+    if (!(isUri(mqttServerUriConfigParam->getValue()) || isIpAddress(mqttServerUriConfigParam->getValue()))) {
+        LOG_ERROR("Configured/provided MQTT URI %s does not qualify as a legimite URI, nor a legimite IP-address" CR, mqttServerUriConfigParam->getValue());
+        provisionValidationErr = provisionValidationErr | NETWORK_VALIDATION_MQTTURI_ERR;
     }
+    if (!isIpPort(mqttServerPortConfigParam->getValue())) {
+        LOG_ERROR("Configured/provided MQTT Port %s does not qualify as a legimite MQTT port" CR, mqttServerPortConfigParam->getValue());
+        provisionValidationErr = provisionValidationErr | NETWORK_VALIDATION_MQTTPORT_ERR;
+    }
+    if (!isHostName(hostNameConfigParam->getValue())){
+        LOG_ERROR("Configured/provided Hostname %s does not qualify as a legimite Hostname" CR, hostNameConfigParam->getValue());
+        provisionValidationErr = provisionValidationErr | NETWORK_VALIDATION_HOSTNAME_ERR;
+    }
+    if (!provisionValidationErr) {
+        LOG_INFO_NOFMT("Validation of Network parameters succeded, setting hostname early as is needed" CR);
+        WiFi.setHostname(hostNameConfigParam->getValue());
+    }
+    //LOG_ERROR("Validation of Network parameters failed: %s" CR, provisionValidationErrToStr(provisionValidationErr));
 }
 
 void networking::saveConfigCb() {
-    bool validConfig = true;
-    getNetworkConfig(&networkConfig);
-
-    if (setHostname(hostNameConfigParam->getValue())) {
-        validConfig = false;
-        LOG_ERROR_NOFMT("Host name validation error" CR);
+    LOG_INFO_NOFMT("A networking config has been saved or is about to be saved" CR);
+    if (provisionValidationErr) {
+        //HERE WE HAVE PRESAVE ERRORS, SKIP SAVE, AND RESTART THE UI OR USE BACKUP TO RESTORE?
     }
-    if (setMqttUri(mqttServerUriConfigParam->getValue())) {
-        validConfig = false;
-        LOG_ERROR_NOFMT("MQTT server URI validation error" CR);
+    strcpy(networkConfig.wifiConfig.ssid, wifiManager.getWiFiSSID().c_str());
+    strcpy(networkConfig.wifiConfig.bssid, WiFi.BSSIDstr().c_str());
+    networkConfig.wifiConfig.channel = WiFi.channel();
+    networkConfig.wifiConfig.rssi = WiFi.RSSI();
+    strcpy(networkConfig.wifiConfig.encryption,
+           getEncryptionStr(WiFi.encryptionType(0)));
+    strcpy(networkConfig.wifiConfig.pass, 
+           wifiManager.getWiFiPass().c_str());
+    strcpy(networkConfig.mac,
+           WiFi.macAddress().c_str());
+    if (networkConfig.staticIp = wifiManager.isStaticIp()) {
+        wifiManager.getStaticIp(&networkConfig.ipAddr);
+        wifiManager.getStaticSn(&networkConfig.ipMask);
+        wifiManager.getStaticGw(&networkConfig.gatewayIpAddr);
+        wifiManager.getStaticDns(&networkConfig.dnsIpAddr);
     }
-    if (setMqttPort(atoi(mqttServerPortConfigParam->getValue()))) {
-        validConfig = false;
-        LOG_ERROR_NOFMT("MQTT server port validation error" CR);
+    else {
+        networkConfig.ipAddr = WiFi.localIP();
+        networkConfig.ipMask = WiFi.subnetMask();
+        networkConfig.gatewayIpAddr = WiFi.gatewayIP();
+        networkConfig.dnsIpAddr = WiFi.dnsIP();
     }
-    if (!validConfig) {
-        LOG_ERROR("New configuration have errors and will "
-                  "not be applied, reverting to previous configuration or factory "
-                  "default" CR);
-        memcpy(&networkConfig, &networkConfigBackup, sizeof(networkConfigBackup));
-        setNetworkConfig(&networkConfig);
-    }
-    if (persistentSaveConfig(&networkConfig))
-        LOG_ERROR_NOFMT("Could not peristantly store "
-                    "configuration" CR);
-    else
-        LOG_INFO_NOFMT("Configuration peristantly stored" CR);
-    for (uint8_t i = 0; i < wifiProvisionCallbackList.size(); i++) {
-        LOG_VERBOSE("Calling callback function: 0x%x" CR,
-                    wifiProvisionCallbackList.at(i)->cb);
-        wifiProvisionCallbackList.at(i)->cb(WIFI_PROVISIONING_SAVE,
-                                            wifiProvisionCallbackList.at(i)->args);
-    }
+    strcpy(networkConfig.hostName, hostNameConfigParam->getValue());
+    WiFi.setHostname(hostNameConfigParam->getValue()); //Maybe needs to go to pre-save
+    strcpy(networkConfig.mqttUri, mqttServerUriConfigParam->getValue());
+    networkConfig.mqttPort = atoi(mqttServerPortConfigParam->getValue());
+    networkConfig.previousNetworkFail = 0;
+    persistentSaveConfig(&networkConfig);
+    sendNetworkProvisionCallback();
     sysState->unSetOpStateByBitmap(OP_UNCONFIGURED);
 }
 
 void networking::resetCb(void) {
+    LOG_INFO_NOFMT("Reseting configuration to factory default ordered from UI" CR);
     factoryResetSettings(&networkConfig);
-    setNetworkConfig(&networkConfig);
-    getNetworkConfig(&networkConfig);
-    if (persistentSaveConfig(&networkConfig)) {
-        LOG_ERROR_NOFMT("Could not peristantly store configuration" CR);
-        panic("Networking configuration has been reset to factory default");
-        return;
-    }
+    panic("Ordered factory default settings - rebooting...");
 }
 
 void networking::configurePortalConnectTimeoutCb(void) {
     if (provisionAction & PROVISIONING_DEFAULT_FROM_FACTORY_RESET){
-        panic("No client connected to the WiFi provisioning manager despite factory reset request");
+        panic("No client connected to the WiFi provisioning manager despite factory reset request" CR);
         return;
     }
-    else
-        LOG_ERROR_NOFMT("No client connected to the WiFi provisioning manager, continuing with current configuration...");
+    else {
+        LOG_ERROR_NOFMT("No client connected to the WiFi provisioning manager, continuing with current configuration..." CR);
+        getNetworkConfig(&networkConfig);
+        sysState->unSetOpStateByBitmap(OP_UNCONFIGURED);
+    }
 }
-
 
 void networking::wifiWd(const void* p_args, sysState_t p_wifiOpState) {
     esp_err_t errCode;
@@ -735,28 +1027,25 @@ void networking::wifiWd(const void* p_args, sysState_t p_wifiOpState) {
         if (!filtering) {
             filtering = true;
             if (errCode = esp_timer_start_once(WiFiWdTimerHandle, WIFI_WD_TIMEOUT_S * 1000000)) {
-                panic("Could not start WiFi WD timer, reason: %s", esp_err_to_name(errCode));
+                panic("Could not start WiFi WD timer, reason: %s" CR, esp_err_to_name(errCode));
                 return;
             }
-            LOG_VERBOSE_NOFMT("Watchdog timer started" CR);
+            LOG_VERBOSE_NOFMT("WIFI watchdog timer started" CR);
         }
     }
     else if (filtering){
         filtering = false;
         if (errCode = esp_timer_stop(WiFiWdTimerHandle)) {
-            panic("Could not stop WiFi WD timer, reason: %s", esp_err_to_name(errCode));
+            panic("WIFI up and connected, but could not stop WiFi WD timer, reason: %s" CR, esp_err_to_name(errCode));
             return;
         }
-        networkConfig.previousNetworkFail = 0;
-        //persistentSaveConfig(&networkConfig); NEEDS TO BE FIXED
-        LOG_VERBOSE_NOFMT("Watchdog timer stoped" CR);
+        LOG_VERBOSE_NOFMT("WIFI up and connected - Watchdog timer stoped" CR);
     }
 }
 
 void networking::wifiWdTimeout(void* p_dummy) {
-    //networkConfig.previousNetworkFail++; NEEDS TO BE FIXED
-    persistentSaveConfig(&networkConfig);
-    panic("WiFi watchdog timed out");
+    reportNwFail();
+    panic("Could not establish WiFi connectivity - watchdog timed out" CR);
 }
 /*==============================================================================================================================================*/
 /* END Class networking                                                                                                                         */

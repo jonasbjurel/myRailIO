@@ -267,33 +267,12 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     else {
         LOG_INFO("%s: RSyslog server URI not provided, will not start RSyslog" CR, logContextName);
     }
-/* NEED TO FIX CHANGES OF MQTT PARAMETERS
-    if (setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true) ||
-        setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true) ||
-        setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true) ||
-        setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true) ||
-        setTz(tz, true) ||
-        setFailSafe(failSafe, true))
-        panic("decoder::onConfig: Could not validate and set provided configuration");
-*/
-/*
-    if (setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true) ||
-        setNtpServer(xmlconfig[XML_DECODER_NTPURI], true) ||
-        setNtpPort(atoi(xmlconfig[XML_DECODER_NTPPORT]), true) ||
-        setLogLevel(xmlconfig[XML_DECODER_LOGLEVEL], true) ||
-        setTz(tz, true) ||
-        setFailSafe(failSafe, true))
-            panic("decoder::onConfig: Could not validate and set provided configuration");
-*/
-
     LOG_TERSE("Setting up MQTT endpoints and properties" CR);
     setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
     setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true);
     setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true);
     setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
     setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
-
-
     LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
         LOG_TERSE("Setting up NTP server URI and Port from configuration - URI: %s Port: %s" CR, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
@@ -355,7 +334,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         return;
     }
     //SHOW FINAL CONFIGURATION
-    LOG_INFO("%s: Successfully set the decoder top-configuration as follows:" CR);
+    LOG_INFO("%s: Successfully set the decoder top-configuration as follows:" CR, logContextName);
     LOG_INFO("%s: MQTT Server: \"%s:%s\"" CR, logContextName, xmlconfig[XML_DECODER_MQTT_URI], xmlconfig[XML_DECODER_MQTT_PORT]);
     LOG_INFO("%s: MQTT Prefix: \"%s\"" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PREFIX], MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
     LOG_INFO("%s: MQTT Ping-period: %s" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PINGPERIOD]);

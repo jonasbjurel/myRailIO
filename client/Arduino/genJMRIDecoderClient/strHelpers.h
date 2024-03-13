@@ -49,6 +49,10 @@
 char* createNcpystr(const char* src, bool internal = false);
 //char* concatStr(const char* srcStrings[], uint8_t noOfSrcStrings);
 bool isUri(const char* p_uri);
+bool isIpPort(const char* p_port);
+bool isIpPort(int32_t p_port);
+bool isIpAddress(const char* p_ipAddr);
+bool isHostName(const char* p_hostName);
 bool isIntNumberStr(const char* p_numberStr);
 bool isFloatNumberStr(const char* p_numberStr);
 char* trimSpace(char* p_s);

@@ -161,6 +161,7 @@ void flash::flashLoop(void) {
             nextLoopTime = esp_timer_get_time();
         }
     }
+    vTaskDelete(NULL);
 }
 
 int flash::getOverRuns(void) {

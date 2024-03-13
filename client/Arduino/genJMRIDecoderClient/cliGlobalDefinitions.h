@@ -240,13 +240,23 @@ EXT_RAM_ATTR const char GLOBAL_STOP_CPUMEM_HELP_TXT[] =				"Stops earlier starte
 
 EXT_RAM_ATTR const char GLOBAL_SHOW_CPUMEM_HELP_TXT[] =				"Shows a summary of the heap status and statistics, is identical to \"get memory\"";
 
-EXT_RAM_ATTR const char GLOBAL_SET_NETWORK_HELP_TXT[] =				"Sets IP and WIFI networking parameters.\n\r" \
-																		"	- \"-hostname {hostName}\": Sets the host name\n\r" \
-																		"	- \"-address {hostIpAddress}\": Sets the host IPv4 network address\n\r" \
-																		"	- \"-mask {networkIpMask}\": Sets the IPv4 network mask\n\r" \
-																		"	- \"-gw {networkIpAddress}\": Sets the IPv4 network default gateway address\n\r" \
-																		"	- \"-dns {dnsIpAddress}\": Sets the IPv4 DNS address\n\r" \
-																		"	- \"-persist\": Persists the network configuration\n\r";
+EXT_RAM_ATTR const char GLOBAL_SET_NETWORK_HELP_TXT[] =				"Sets IP and WIFI networking parameters:\n\r" \
+																	"Available flags:\n\r"
+																	"	- \"-ssid {ssid}\": Sets the WiFi SSID\n\r" \
+																	"	- \"-pass {pass}\": Sets the WiFi password\n\r" \
+																	"	- \"-hostname {hostName}\": Sets the host name\n\r" \
+																	"	- \"-address {address}\": Sets the host IPv4 network address\n\r" \
+																	"	- \"-mask {networkIpMask}\": Sets the IPv4 network mask\n\r" \
+																	"	- \"-gw {networkIpAddress}\": Sets the IPv4 network default gateway address\n\r" \
+																	"	- \"-dns {dnsIpAddress}\": Sets the IPv4 DNS address\n\r" \
+																	"	- \"-dhcp\": Sets DHCP operation where the network parameters are assigned from a DHCP server\n\r" \
+																	"	- \"-persist\": Persists the network configuration\n\r" \
+																	"If any of \"ssid\"-, or \"pass\"- are provided, The WiFi SSID and password is reprovisioned\n\r" \
+																	"if one of the two parameters is not provided it will assume the same value as in the previous configuration\n\r" \
+																	"If any of \"address\"-, \"mask\"-, \"gw\"-, or \"dns\"- are provided, a static IP address configuration will be set for all\n\r" \
+																	"of those parameters, if any of those are not provided, that parameter will assume a static value from what it previously\n\r" \
+																	"was set to be \(from previously set static configuration, or from previously DHCP assigned configuration\)\n\r" \
+																	"If \"dhcp\" is set, all of \"address\"-, \"mask\"-, \"gw\"-, and \"dns\" will be assigned from the DHCP server.";
 
 EXT_RAM_ATTR const char GLOBAL_GET_NETWORK_HELP_TXT[] =				"Prints IP and WIFI networking parameters and statistics. \"get network\" without flags is identical to \"show network\"\n\r" \
 																		"Available flags:\n\r"

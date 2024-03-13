@@ -8,7 +8,7 @@
 // You may obtain a copy of the License at
 
 // http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 // Unless required by applicable law and agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,11 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
+//#include <wm_strings_es.h>
+//#include <wm_strings_en.h>
+//#include <wm_consts_en.h>
+//#include <WiFiManager.h>
+//#include <strings_en.h>
 #include "genJMRIDecoderClient.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -79,13 +84,16 @@ void setupTask(void* p_dummy) {
     ntpTime::init();
     LOG_INFO_NOFMT("Time- and NTP- service initialized" CR);
     LOG_INFO_NOFMT("Starting the runtime web-portal service" CR);
-    wifiManager = new(heap_caps_malloc(sizeof(WiFiManager), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManager;
-    wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
+    //wifiManager = new(heap_caps_malloc(sizeof(WiFiManager), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManager;
+    //wifiManager = new WiFiManager;
+
+    /*wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
     wifiManager->setShowStaticFields(true);
     wifiManager->setShowDnsFields(true);
     wifiManager->setShowInfoErase(true);
     wifiManager->setShowInfoUpdate(true);
-    wifiManager->startWebPortal();
+    */
+    //wifiManager->startWebPortal();
     LOG_INFO_NOFMT("Runtime web-portal service started" CR);
     LOG_INFO_NOFMT("Starting the decoder service" CR);
     decoderHandle = new (heap_caps_malloc(sizeof(decoder), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) decoder();

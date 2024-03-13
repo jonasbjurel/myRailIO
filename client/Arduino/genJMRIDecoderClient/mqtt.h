@@ -173,11 +173,13 @@ private:
     static bool defaultRetain;
     static float pingPeriod;
     static bool discovered;
+    static bool reSubscribeReq;
     static QList<mqttTopic_t*> mqttTopics;
     static mqttStatusCallback_t statusCallback;
     static void* statusCallbackArgs;
     static wdt* mqttWdt;
     static bool supervision;
+    static uint16_t retryCnt;
 };
 
 /*==============================================================================================================================================*/

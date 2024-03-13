@@ -38,7 +38,6 @@ void panic(const char* p_panicFmt, ...) {
         return; 
     }
     ongoingPanic = true;
-
     esp_backtrace_buff(20, stackTraceBuff);
     va_list args;
     va_start(args, p_panicFmt);

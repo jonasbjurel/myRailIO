@@ -199,4 +199,5 @@ void job::jobProcess(void) {
 			jobOverloadCb(jobOverloadCbMetaData, false);
 		}
 	}
+	vTaskDelete(NULL);
 }

@@ -169,11 +169,14 @@ void globalCli::regGlobalCliMOCmds(void) {
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
 	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, onCliSetNetwork);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "ssid", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "pass", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "hostname", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "address", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "mask", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "gw", 1, true);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "dns", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "dhcp", 1, false);
 	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, "persist", 1, false);
 	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, GLOBAL_SET_NETWORK_HELP_TXT);
 
@@ -1106,24 +1109,50 @@ void globalCli::onCliSetNetwork(cmd* p_cmd, cliCore* p_cliContext,
 		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
 		return;
 	}
+	printCli("Changing network parameters will cause disruption in the network connectivity, potentially" \
+			 "leading to service failures, including disconnection of this CLI Telnet session." CR);
+	printCli("Do you want to continue [\"Y\"/\"N\"]?:");
+	// Create acknowledgement
+	printCli("Please re-establish your CLI-session...");
 	if (p_cmdTable->commandFlags->isPresent("persist")) {
 		if (!(p_cmdTable->commandFlags->isPresent("hostname") ||
 			p_cmdTable->commandFlags->isPresent("address") ||
 			p_cmdTable->commandFlags->isPresent("mask") ||
 			p_cmdTable->commandFlags->isPresent("gw") ||
-			p_cmdTable->commandFlags->isPresent("dns"))) {
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Can only persist Network" \
-								  "Address - , Mask - , Gateway - , &DNS");
-			LOG_VERBOSE_NOFMT("Can only persist MQTT URI and " \
-						"MQTT Port" CR);
+			p_cmdTable->commandFlags->isPresent("dns") ||
+			p_cmdTable->commandFlags->isPresent("dhcp") ||
+			p_cmdTable->commandFlags->isPresent("ssid") ||
+			p_cmdTable->commandFlags->isPresent("pass"))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Can only persist Network configurations such as " \
+														 "\"hostname\"-, \"address\"-, \"mask\"-, \"gw\"-, " \
+														 "\"dns\"- , \"dhcp\", \"ssid\" and \"pass\"");
+			LOG_VERBOSE_NOFMT("Can only persist Network configurations such as " \
+							  "\"hostname\"-, \"address\"-, \"mask\"-, \"gw\"-, \"dns\"-, \"dhcp\", \"ssid\" and \"pass\"");
 			return;
 		}
 		else{
 			persist = true;
+		}
+	}
+	if (p_cmdTable->commandFlags->isPresent("ssid") || p_cmdTable->commandFlags->isPresent("pass")) {
+		if (rc = networking::setSsidNPass(p_cmdTable->commandFlags->isPresent("ssid") ? p_cmdTable->commandFlags->isPresent("ssid")->getValue() : networking::getSsid(),
+										  p_cmdTable->commandFlags->isPresent("pass") ? p_cmdTable->commandFlags->isPresent("pass")->getValue() : networking::getPass(), persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the WiFi SSID or WiFi Password, " \
+											   "return code %i", rc);
+			LOG_WARN("Could not set the WiFi SSID or WiFi Password, " \
+					 "return code % i" CR, rc);
+		}
+		else {
+			printCli("Wifi SSID and Password set - \"ssid\": %s, \"pass\": %s" CR,
+					 p_cmdTable->commandFlags->isPresent("ssid") ? p_cmdTable->commandFlags->isPresent("ssid")->getValue() : networking::getSsid(),
+ 					 p_cmdTable->commandFlags->isPresent("pass") ? p_cmdTable->commandFlags->isPresent("pass")->getValue() : networking::getPass());
+			LOG_INFO("Wifi SSID and Password set - \"ssid\": %s, \"pass\": %s" CR,
+					 p_cmdTable->commandFlags->isPresent("ssid") ? p_cmdTable->commandFlags->isPresent("ssid")->getValue() : networking::getSsid(),
+					 p_cmdTable->commandFlags->isPresent("pass") ? p_cmdTable->commandFlags->isPresent("pass")->getValue() : networking::getPass());
 			cmdHandled = true;
 		}
 	}
-	if (p_cmdTable->commandFlags->isPresent("hostname")) {
+	else if (p_cmdTable->commandFlags->isPresent("hostname")) {
 		if (rc = networking::setHostname(p_cmdTable->commandFlags->
 			isPresent("hostname")->getValue(), persist)) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the Hostname, " \
@@ -1136,95 +1165,84 @@ void globalCli::onCliSetNetwork(cmd* p_cmd, cliCore* p_cliContext,
 				 networking::getHostname());
 		cmdHandled = true;
 	}
-	if (p_cmdTable->commandFlags->isPresent("address")) {
+	else if (p_cmdTable->commandFlags->isPresent("dhcp")) {
+		if (rc = networking::setDHCP(persist)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not enable DHCP, " \
+				"return code %i", rc);
+			LOG_WARN("Could not enable DHCP, \
+					  return code %i" CR, rc);
+			return;
+		}
+		LOG_INFO_NOFMT("DHCP Enabled" CR);
+		cmdHandled = true;
+		return;
+	}
+	else {
 		IPAddress ip;
-		if (!ip.fromString(p_cmdTable->commandFlags->
-			isPresent("address")->getValue())) {
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid IP-address");
-			LOG_VERBOSE_NOFMT("Not a valid IP-address" CR);
-			return;
+		bool ipProvided = false;
+		if (p_cmdTable->commandFlags->isPresent("address")) {
+			if (!ip.fromString(p_cmdTable->commandFlags->
+				isPresent("address")->getValue())) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "\"Address\" does not provide a valid IP-address");
+				LOG_VERBOSE_NOFMT("\"Address\" does not provide a valid IP-address" CR);
+				return;
+			}
+			ipProvided = true;
 		}
-		if (rc = networking::setStaticIpAddr(ip, networking::getIpMask(), 
-											 networking::getGatewayIpAddr(),
-											 networking::getDnsIpAddr(), persist)) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the IP-Address, "\
-												"return code %i", rc);
-			LOG_WARN("Could not set the IP-Address, " \
-					  "return code %i" CR, rc);
-			return;
-		}
-		printCli("IP-address changed to %s", networking::getIpAddr().
-				 toString().c_str());
-		LOG_INFO("IP-address changed to %s" CR,
-				 networking::getIpAddr().toString().c_str());
-		cmdHandled = true;
-	}
-	if (p_cmdTable->commandFlags->isPresent("mask")) {
 		IPAddress mask;
-		if (!mask.fromString(p_cmdTable->commandFlags->isPresent("mask")->getValue())) {
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid IP-mask");
-			LOG_VERBOSE_NOFMT("Not a valid IP-mask" CR);
-			return;
+		bool maskProvided = false;
+		if (p_cmdTable->commandFlags->isPresent("mask")) {
+			if (!mask.fromString(p_cmdTable->commandFlags->isPresent("mask")->getValue())) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "\"mask\" does not provide a valid IP-address");
+				LOG_VERBOSE_NOFMT("\"mask\" does not provide a valid IP-address" CR);
+				return;
+			}
+			maskProvided = true;
 		}
-		if (rc = networking::setStaticIpAddr(networking::getIpAddr(), mask,
-			networking::getGatewayIpAddr(),
-			networking::getDnsIpAddr(), persist)) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the IP-mask, "\
-								  "return code %i", rc);
-			LOG_WARN("Could not set the IP-mask, \
-					 return code %i" CR, rc);
-			return;
-		}
-		printCli("IP-mask changed to %s", networking::getIpMask().
-				 toString().c_str());
-		LOG_INFO("IP-mask changed to %s" CR,
-				 networking::getIpMask().toString().c_str());
-		cmdHandled = true;
-	}
-	if (p_cmdTable->commandFlags->isPresent("gw")) {
 		IPAddress gw;
-		if (!gw.fromString(p_cmdTable->commandFlags->isPresent("gw")->getValue())) {
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid Gateway-address");
-			LOG_VERBOSE_NOFMT("Not a valid Gateway-address" CR);
-			return;
+		bool gwProvided = false;
+		if (p_cmdTable->commandFlags->isPresent("gw")) {
+			if (!gw.fromString(p_cmdTable->commandFlags->isPresent("gw")->getValue())) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "\"gw\" does not provide a valid IP-address");
+				LOG_VERBOSE_NOFMT("Not a valid Gateway-address" CR);
+				return;
+			}
+			gwProvided = true;
 		}
-		if (rc = networking::setStaticIpAddr(networking::getIpAddr(),
-			networking::getIpMask(), gw,
-			networking::getDnsIpAddr(), persist)) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the Gateway-Address, " \
-												"return code %i", rc);
-			LOG_WARN("Could not set the Gateway-Address, " \
-					  "return code %i" CR, rc);
-			return;
+		IPAddress dns;
+		bool dnsProvided = false;
+		if (p_cmdTable->commandFlags->isPresent("dns")) {
+			if (!dns.fromString(p_cmdTable->commandFlags->isPresent("dns")->getValue())) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "\"dns\" does not provide a valid IP-address");
+				LOG_VERBOSE_NOFMT("\"dns\" does not provide a valid IP-address" CR);
+				return;
+			}
+			dnsProvided = true;
 		}
-		printCli("Gateway IP address changed to %s",
-				 networking::getGatewayIpAddr().toString().c_str());
-		LOG_INFO("Gateway IP address changed to %s" CR,
-				 networking::getGatewayIpAddr().toString().c_str());
-		cmdHandled = true;
-	}
-	if (p_cmdTable->commandFlags->isPresent("dns")){
-			IPAddress dns;
-		if (!dns.fromString(p_cmdTable->commandFlags->isPresent("dns")->getValue())) {
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Not a valid DNS-address");
-			LOG_VERBOSE_NOFMT("Not a valid DNS-address" CR);
-			return;
+		if (ipProvided || maskProvided || gwProvided || dnsProvided) {
+			if (rc = networking::setStaticIpAddr(ipProvided ? ip : networking::getIpAddr(),
+				maskProvided ? mask : networking::getIpMask(),
+				gwProvided ? gw : networking::getGatewayIpAddr(),
+				dnsProvided ? dns : networking::getDnsIpAddr(),
+				persist)) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Static addresses, " \
+					"return code %i", rc);
+				LOG_WARN("Could not set Static addresses, " \
+					"return code %i" CR, rc);
+				return;
+			}
+			printCli("Static IP addresses set - \"ip\": %s, \"mask\": %s, \"gw\": %s, \"dns\": %s" CR,
+				ipProvided ? ip.toString().c_str() : networking::getIpAddr().toString().c_str(),
+				maskProvided ? mask.toString().c_str() : networking::getIpMask().toString().c_str(),
+				gwProvided ? gw.toString().c_str() : networking::getGatewayIpAddr().toString().c_str(),
+				dnsProvided ? dns.toString().c_str() : networking::getDnsIpAddr().toString().c_str());
+			LOG_INFO("Static IP addresses set - \"ip\": %s, \"mask\": %s, \"gw\": %s, \"dns\": %s" CR,
+				ipProvided ? ip.toString().c_str() : networking::getIpAddr().toString().c_str(),
+				maskProvided ? mask.toString().c_str() : networking::getIpMask().toString().c_str(),
+				gwProvided ? gw.toString().c_str() : networking::getGatewayIpAddr().toString().c_str(),
+				dnsProvided ? dns.toString().c_str() : networking::getDnsIpAddr().toString().c_str());
+			cmdHandled = true;
 		}
-		if (rc = networking::setStaticIpAddr(networking::getIpAddr(),
-											 networking::getIpMask(),
-											 networking::getGatewayIpAddr(),
-											 dns, persist)) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set the DNS-Address, " \
-												"return code %i", rc);
-			LOG_WARN("Could not set the DNS-Address, " \
-					 "return code %i" CR, rc);
-			return;
-		}
-		printCli("DNS IP address changed to %s", networking::getDnsIpAddr().
-				 toString().c_str());
-		LOG_INFO("DNS IP address changed to %s" CR,
-				 networking::getDnsIpAddr().toString().c_str());
-		cmdHandled = true;
 	}
 	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_EXECUTED);
@@ -1324,7 +1342,7 @@ void globalCli::onCliGetNetwork(cmd* p_cmd, cliCore* p_cliContext,
 		networking::unGetAps(&aps);
 		cmdHandled = true;
 	}
-	if (cmdHandled)
+	if (cmdHandled) 
 		acceptedCliCommand(CLI_TERM_QUIET);
 	else
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
@@ -1352,10 +1370,12 @@ void globalCli::showNetwork(void) {
 	int rssi = networking::getRssi();
 	char mac[18 + 1];
 	strcpyTruncMaxLen(mac, networking::getMac(), 18);
-	char hostname[35 + 1];
-	strcpyTruncMaxLen(hostname, networking::getHostname(), 35);
+	char hostname[20 + 1];
+	strcpyTruncMaxLen(hostname, networking::getHostname(), 20);
+	char dhcp[5 + 1];
+	strcpyTruncMaxLen(dhcp, networking::isStatic()? "False" : "True", 5);
 	char ipaddr[16 + 1];
-	strcpyTruncMaxLen(ipaddr, networking::getIpAddr().toString().c_str(), 35);
+	strcpyTruncMaxLen(ipaddr, networking::getIpAddr().toString().c_str(), 16);
 	char mask[16 + 1];
 	strcpyTruncMaxLen(mask, networking::getIpMask().toString().c_str(), 16);
 	char gw[16 + 1];
@@ -1363,26 +1383,28 @@ void globalCli::showNetwork(void) {
 	char dns[16 + 1];
 	strcpyTruncMaxLen(dns, networking::getDnsIpAddr().toString().c_str(), 16);
 	uint8_t ch = networking::getChannel();
-	printCli("| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |", 
+	printCli("| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |", 
 			-20, "SSID:",
 			-18, "BSSID:",
 			-8, "Channel:",
 			-11, "Encryption:",
 			-7, "RSSI:",
 			-18, "MAC:",
-			-30, "Host-name:",
+			-20, "Host-name:",
+			-5, "DHCP:",
 			-16, "IP-Address:",
 			-16, "IP-Mask",
 			-16, "Gateway:",
 			-16, "DNS");
-	printCli("| %*s | %*s | %*i | %*s | %*i | %*s | %*s | %*s | %*s | %*s | %*s |",
+	printCli("| %*s | %*s | %*i | %*s | %*i | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
 			 -20, ssid,
 			 -18, bssid,
 			 -8, channel,
 			 -11, auth,
 			 -7, rssi,
 			 -18, mac,
-			 -30, hostname,
+			 -20, hostname,
+			 -5, dhcp,
 			 -16, ipaddr,
 			 -16, mask,
 			 -16, gw,
@@ -1424,7 +1446,13 @@ void globalCli::onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,
 		else{
 			persist = true;
 		}
-		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("uri") || p_cmdTable->commandFlags->isPresent("port")){
+		printCli("Changing network parameters will cause disruption in the network connectivity, potentially" \
+				 "leading to service failures, including disconnection of this CLI Telnet session." CR);
+		printCli("Do you want to continue [\"Y\"/\"N\"]?:");
+		// Create acknowledgement
+		printCli("Please re-establish your CLI-session...");
 	}
 	if (p_cmdTable->commandFlags->isPresent("uri")) {
 		if (rc = mqtt::setBrokerUri(p_cmdTable->commandFlags->
@@ -1466,7 +1494,7 @@ void globalCli::onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,
 		if (rc = mqtt::setKeepAlive(atof(p_cmdTable->commandFlags->
 			isPresent("keepalive")->getValue()))) {
 			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set MQTT KeepAlive, " \
-												"return code %i", rc);
+											   "return code %i", rc);
 			return;
 		}
 		cmdHandled = true;

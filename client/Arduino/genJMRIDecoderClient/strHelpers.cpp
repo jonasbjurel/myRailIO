@@ -88,6 +88,42 @@ bool isUri(const char* p_uri) {
     return true;
 }
 
+bool isIpPort(const char* p_port) {
+    if (!atoi(p_port))
+        return false;
+    else
+        return isIpPort(atoi(p_port));
+}
+
+bool isIpPort(int32_t p_port){
+    if (p_port <= 0 || p_port > 65535)
+        return false;
+    else
+        return true;
+}
+
+bool isIpAddress(const char* p_ipAddr) {
+    IPAddress ipAddr;
+    return ipAddr.fromString(p_ipAddr);
+}
+
+bool isHostName(const char* p_hostName) {
+    if ((strlen(p_hostName) < 3) || strlen(p_hostName) > 31) {
+        return false;
+    }
+    for (uint8_t i = 0; i < strlen(p_hostName); i++) {
+        if (i == 0 && !isAlphaNumeric(p_hostName[i])) {
+            return false;
+        }
+        if (!(isAlphaNumeric(p_hostName[i]) || p_hostName[i] == '.' ||
+            p_hostName[i] == '-' || p_hostName[i] == '_' ||
+            p_hostName[i] == ':')) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool isIntNumberStr(const char* p_numberStr) {
     for (uint8_t i = 0; i < strlen(p_numberStr); i++) {
         if (!isDigit(*(p_numberStr + i)))

@@ -46,6 +46,7 @@
 #include <esp_wifi_types.h>
 #include <WiFiManager.h>
 #include <QList.h>
+#include <string.h>
 #include "systemState.h"
 #include "strHelpers.h"
 #include "config.h"
@@ -53,7 +54,6 @@
 #include "panic.h"
 #include "rc.h"
 #include "fileSys.h"
-#include "mqtt.h"
 #include "telnetCore.h"
 #include "logHelpers.h"
 
@@ -99,14 +99,16 @@ typedef struct apStruct_t {                                                     
     char ssid[50];                                                                      // WIFI AP SSID
     char bssid[18];                                                                     // WIFI AP BSSID
     int32_t channel;                                                                    // WIFI AP Channel
-    int32_t rssi;                                                                       // WIFI AP RSSI (E.g. S/N ratio [dBm] as measured from the
+    int8_t rssi;                                                                        // WIFI AP RSSI (E.g. S/N ratio [dBm] as measured from the
                                                                                         //   station/client)
     char encryption[20];                                                                // WIFI Encryption method
+    char pass[30];
 };
 
 typedef struct netwStaConfig_t {                                                        // Station network configuration struct
     apStruct_t wifiConfig;                                                              // Wifi configuration
     char mac[18];                                                                       // Station WIFI MAC address
+    bool staticIp;                                                                      // Static IP address
     IPAddress ipAddr;                                                                   // Station Static host WIFI IP address
     IPAddress ipMask;                                                                   // Station Static WIFI network mask
     IPAddress gatewayIpAddr;                                                            // Station Static Gateway IP address
@@ -127,6 +129,14 @@ typedef uint8_t wifiProvisioningAction_t;                                       
                                                                                         //   default settings from persisted configuration file(s)
 #define PROVISIONING_DEFAULT_FROM_FACTORY_RESET         0b00000010                      // Start provisioning Access point and captive portal with
                                                                                         //   factory default settings
+
+typedef uint8_t networkProvisioningValidationResult_t;                                  // WiFi manager Network configuration propriatary parameter
+                                                                                        //   validation errors
+#define NETWORK_VALIDATION_NO_ERR                       0b00000000                      // No validation error
+#define NETWORK_VALIDATION_MQTTURI_ERR                  0b00000001                      // MQTT URI did not pass the validation
+#define NETWORK_VALIDATION_MQTTPORT_ERR                 0b00000010                      // MQTT URI Port did not pass the validation
+#define NETWORK_VALIDATION_HOSTNAME_ERR                 0b00000100                      // MQTT URI did not pass the validation
+
 
 typedef uint8_t wifiProvisioningEvent_t;
 #define WIFI_PROVISIONING_START                         1
@@ -155,27 +165,40 @@ public:
     //Public methods
     static void provisioningConfigTrigger(void);                                        // Start sense of WiFi provisioning button 
     static void start(void);                                                            // Start WiFi networking service
-    static void regWifiEventCallback(const wifiEventCallback_t p_callback,
+    static rc_t regWifiEventCallback(const wifiEventCallback_t p_callback,
                                      const void* p_args);                               // Register callback for WiFi events
-    static void unRegWifiEventCallback(const wifiEventCallback_t p_callback);           // Un-Register callback for WiFi events
-    static void regWifiOpStateCallback(sysStateCb_t p_callback,
+    static rc_t unRegWifiEventCallback(const wifiEventCallback_t p_callback,            // Un-Register callback for WiFi events
+                                       const void* p_args);
+    static rc_t regWifiOpStateCallback(sysStateCb_t p_callback,
                                        void* p_args);                                   // Register callback for WiFi operational status
-    static void unRegWifiOpStateCallback(sysStateCb_t p_callback);                      // Un-Register callback for WiFi operational status
-    static void regWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
+    static rc_t unRegWifiOpStateCallback(sysStateCb_t p_callback,                       // Un-Register callback for WiFi operational status
+                                         void* p_args);
+    static rc_t regWifiProvisionCallback(const wifiProvisionCallback_t p_callback,
                                             const void* p_args);                        // Register callback for WiFi provisioning events
-    static void unRegWifiProvisionCallback(const wifiProvisionCallback_t p_callback);   // Un-Register callback for WiFi provisioning 
+    static rc_t unRegWifiProvisionCallback(const wifiProvisionCallback_t p_callback,    // Un-Register callback for WiFi provisioning
+        const void* p_args);
     static uint16_t getAps(QList<apStruct_t*>* p_apList, bool p_printOut=true);         // Scan all APs, print out all AP details, and provide a list of
                                                                                         //   apStruct_t* unless p_apList is NULL
     static void unGetAps(QList<apStruct_t*>* p_apList);                                 // Frees the p_aplist structure created by getAps
+    static rc_t setSsidNPass(const char* p_ssid, const char* p_pass,                    // Sets both of Accsess point SSID and password
+                             bool p_persist = true);
+    static rc_t setSsid(const char* p_ssid, bool p_persist = true);                     // Sets the Accsess point SSID
+
     static char* getSsid(void);                                                         // Get WIFI SSID
     static char* getBssid(void);                                                        // Get connected AP BSSID
     static char* getAuth();                                                             // Get WIFI Authentication method
+    static rc_t setPass(const char* p_pass, bool p_persist = true);
+    static char* getPass(void);
     static uint8_t getChannel(void);                                                    // Get provisioned WIFI Channel
     static long getRssi(void);                                                          // Get connected WIFI signal SNR
     static char* getMac(void);                                                          // Get MAC adress
-    static rc_t setStaticIpAddr(IPAddress p_ipAddr, IPAddress p_ipMask,
-        IPAddress p_gatewayIpAddr, IPAddress p_dnsIpAddr,                               // Set static IP adresses, if p_persist is true the static 
-        bool p_persist = false);                                                        //   configuration will be persisted
+    static rc_t setDHCP(bool p_persist = true);                                         // Sets DHCP address assignment operation, if p_persist 
+                                                                                        //   is true the configuration will persit across reboots
+    static rc_t setStaticIpAddr(const char* p_address, const char* p_mask,              // Sets static IP adresses operation, if p_persist 
+        const char* p_gw, const char* p_dns, bool p_persist = true);                    //   is true the configuration will persit across reboots
+    static rc_t setStaticIpAddr(IPAddress p_ipAddr, IPAddress p_ipMask,                 // Sets static IP adresses operation, if p_persist 
+        IPAddress p_gatewayIpAddr, IPAddress p_dnsIpAddr, bool p_persist = true);       //   is true the configuration will persit across reboots
+    static bool isStatic(void);                                                         // Reports if static IP is set or not
     static IPAddress getIpAddr(void);                                                   // Get host IP address received by DHCP or provisioned 
                                                                                         //   by WiFi manager
     static IPAddress getIpMask(void);                                                   // Get network IP mask received by DHCP or provisioned
@@ -184,14 +207,19 @@ public:
                                                                                         //   by WiFi manager
     static IPAddress getDnsIpAddr(void);                                                // Get DNS server address received by DHCP or provisioned
                                                                                         //   by WiFi manager
-    static rc_t setHostname(const char* p_hostname, bool p_persist=true);               // Set hostname
+    static rc_t setHostname(const char* p_hostname, bool p_persist = true);             // Set hostname
     static char* getHostname(void);                                                     // Get hostname received - either factory defined-, or defined
                                                                                         //   by WiFi manager- or defined by setHostname()
-    static rc_t setMqttUri(const char* p_mqttUri, bool p_persist=true);                 // Set Mqtt URI, IP Address or URL
+    static rc_t setMqttUri(IPAddress p_mqttIP, bool p_persist = true);                  // Set Mqtt IP Address or URL
+    static rc_t setMqttUri(const char* p_mqttUri, bool p_persist = true);               // Set Mqtt URI, IP Address or URL
     static char* getMqttUri(void);                                                      // Get Mqtt URI, IP Address or URL
-    static rc_t setMqttPort(uint16_t p_mqttPort, bool p_persist=true);                  // Set MQTT broker port
+    static rc_t setMqttPort(const char* p_mqttPort, bool p_persist = true);             // Set MQTT broker port
+    static rc_t setMqttPort(int32_t p_mqttPort, bool p_persist = true);                 // Set MQTT broker port
     static uint16_t getMqttPort(void);                                                  // Get MQTT broker port
-    static sysState_t getOpStateBitmap(void);                                                 // Get current Networking Operational state
+    static uint8_t getNwFail(void);                                                     // Get number of consequtive network fails
+    static void reportNwFail(void);                                                     // Report a network dependent service start fail
+    static void concludeRestart(void);                                                  // Conclude the start of all network dependent services 
+    static sysState_t getOpStateBitmap(void);                                           // Get current Networking Operational state
     static char* getOpStateStr(char* p_opStateStr);                                     // Get current Networking Operational state as string
 
 
@@ -200,12 +228,17 @@ public:
 
 private:
     //Private methods
-    static void setOpState(uint8_t p_opState);                                          // Set the WiFi operational state (bit-wise)
-    static void unSetOpState(uint8_t p_opState);                                        // Un-Set the WiFi operational state (bit-wise)
-    static bool getNetworkConfig(netwStaConfig_t* p_staConfig);                         // Retreive network config from persistant store,
+    static void sendWifiEventCallback(WiFiEvent_t p_event, arduino_event_info_t p_info);// Sends WiFi event notification callbacks to
+                                                                                        //   those subscribing to it
+    static void sendNetworkProvisionCallback(void);                                     // Sends WiFi provisioning notification callbacks to
+                                                                                        //   those subscribing to it
+    static rc_t getNetworkConfig(netwStaConfig_t* p_staConfig);                         // Retreive network config from persistant store,
                                                                                         //   returns true if all network config was found,
                                                                                         //   otherwise returns false
-    static rc_t setNetworkConfig(netwStaConfig_t* p_staConfig);                         // Validates and sets the current network configuration.
+    static rc_t setNetworkConfig(netwStaConfig_t* p_staConfig,                          // Validates and sets the current network configuration.
+                                 bool p_persist = true);
+    static void cpyNetworkConfig(netwStaConfig_t* dst, const netwStaConfig_t* src);     // Copies a network configuratrion
+    static void setNetworkUiDefault(netwStaConfig_t* p_staConfig);                      // Pre fills the UI with default data
     static void factoryResetSettings(netwStaConfig_t* p_staConfig);                     // Set factory default network settings to *p_staConfig
     static rc_t persistentSaveConfig(const netwStaConfig_t* p_staConfig);               // Persistantly save network settings from *p_staConfig
     static rc_t recoverPersistantConfig(netwStaConfig_t* p_staConfig);                  // Recover persistantly stored network settings to *p_staConfig
@@ -220,7 +253,7 @@ private:
     static void wifiWdTimeout(void* p_dummy);                                           // WiFi unoperational timeout <WIFI_WD_TIMEOUT_S>
 
     //Private data structures
-    static systemState* sysState;                                                        // Operational/system state object
+    static systemState* sysState;                                                       // Operational/system state object
     static WiFiManager wifiManager;
     static esp_timer_handle_t WiFiWdTimerHandle;
     static esp_timer_create_args_t WiFiWdTimerArgs;
@@ -234,6 +267,9 @@ private:
     static WiFiManagerParameter* hostNameConfigParam;                                   // Captive portal hostName configuration object
     static WiFiManagerParameter* mqttServerUriConfigParam;                              // Captive portal MQTT brocker URI configuration object
     static WiFiManagerParameter* mqttServerPortConfigParam;                             // Captive portal MQTT brocker port configuration object
+    static bool nwFailCounted;                                                          // Indicates if a network dependent start fail has already
+                                                                                        //  been accounted for
+    static networkProvisioningValidationResult_t provisionValidationErr;                // Validation error of propriatary WiFi manager network parameters
 };
 /*==============================================================================================================================================*/
 /* END Class networking                                                                                                                         */

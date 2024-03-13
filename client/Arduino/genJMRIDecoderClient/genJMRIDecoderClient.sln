@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleCLI-1.1.4", "Librarie
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QList-0.6.7", "Libraries\QList\0.6.7\QList\QList-0.6.7.vcxitems", "{A832FB07-ED9F-4AA3-9F63-EC8F1901B7ED}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WiFiManager-2.0.16-rc.2", "Libraries\WiFiManager\2.0.16-rc.2\WiFiManager\WiFiManager-2.0.16-rc.2.vcxitems", "{98496472-D1D4-43E0-A58D-86982A75B68D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -42,6 +44,8 @@ Global
 		Libraries\QList\0.6.7\QList\QList-0.6.7.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
 		Libraries\SimpleCLI\1.1.4\SimpleCLI\SimpleCLI-1.1.4.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
 		Libraries\SimpleSyslog-0.1.1\0.1.1\SimpleSyslog-0.1.1\SimpleSyslog-0.1.1-0.1.1.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
+		Libraries\WiFiManager\2.0.16-rc.2\WiFiManager\WiFiManager-2.0.16-rc.2.vcxitems*{816d0a37-f38a-4083-a96d-e1653e0b8af7}*SharedItemsImports = 4
+		Libraries\WiFiManager\2.0.16-rc.2\WiFiManager\WiFiManager-2.0.16-rc.2.vcxitems*{98496472-d1d4-43e0-a58d-86982a75b68d}*SharedItemsImports = 9
 		Libraries\QList\0.6.7\QList\QList-0.6.7.vcxitems*{a832fb07-ed9f-4aa3-9f63-ec8f1901b7ed}*SharedItemsImports = 9
 		Libraries\ESP_Telnet\2.1.1\ESP_Telnet\ESP_Telnet-2.1.1.vcxitems*{c24b909b-5a4b-483c-9e0d-15efd68adb15}*SharedItemsImports = 9
 		Libraries\SimpleCLI\1.1.4\SimpleCLI\SimpleCLI-1.1.4.vcxitems*{dae021ae-46e5-432c-a995-b72ca08f55b2}*SharedItemsImports = 9

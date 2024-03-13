@@ -65,11 +65,15 @@ EXT_RAM_ATTR uint8_t mqtt::qos = 0;
 EXT_RAM_ATTR bool mqtt::defaultRetain = false;
 EXT_RAM_ATTR float mqtt::pingPeriod = 0 ;
 EXT_RAM_ATTR bool mqtt::discovered = false;
+EXT_RAM_ATTR bool mqtt::reSubscribeReq = false;
 EXT_RAM_ATTR QList<mqttTopic_t*> mqtt::mqttTopics;
 EXT_RAM_ATTR mqttStatusCallback_t mqtt::statusCallback = NULL;
 EXT_RAM_ATTR void* mqtt::statusCallbackArgs = NULL;
 EXT_RAM_ATTR wdt* mqtt::mqttWdt = NULL;
 EXT_RAM_ATTR bool mqtt::supervision = false;
+EXT_RAM_ATTR uint16_t mqtt::retryCnt = 0;
+
+
 
 // Public methods
 void mqtt::create(void) {
@@ -130,6 +134,7 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
     LOG_INFO_NOFMT("MQTT client successfully connected (I.e. opState ~OP_DISCONNECTED)..." CR);
+    networking::concludeRestart();
     LOG_INFO_NOFMT("Starting discovery process..." CR);
     discover();
     uint8_t tries = 0;
@@ -169,7 +174,9 @@ rc_t mqtt::regStatusCallback(const mqttStatusCallback_t p_statusCallback, const 
 }
 
 rc_t mqtt::reConnect(void){
+    xSemaphoreTake(mqttLock, portMAX_DELAY);
     LOG_INFO("Re-connecting MQTT Client" CR);
+    retryCnt = 0;
     mqttClient->disconnect();
     mqttClient->setServer(brokerUri, brokerPort);
     mqttClient->setKeepAlive(keepAlive);
@@ -180,6 +187,7 @@ rc_t mqtt::reConnect(void){
                         MQTT_DEFAULT_QOS,
                         true,
                         downPayload);
+    xSemaphoreGive(mqttLock);
     uint8_t tries = 0;
     while (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
         if (tries++ >= 50) {
@@ -193,7 +201,10 @@ rc_t mqtt::reConnect(void){
 }
 
 void mqtt::disConnect(void) {
+    xSemaphoreTake(mqttLock, portMAX_DELAY);
+    LOG_INFO("Disconnecting MQTT Client" CR);
     mqttClient->disconnect();
+    xSemaphoreGive(mqttLock);
 }
 
 rc_t mqtt::up(void) {
@@ -208,9 +219,6 @@ rc_t mqtt::up(void) {
     sprintf(mqttPingUpstreamTopic, "%s%s%s", MQTT_PING_UPSTREAM_TOPIC, "/", decoderUri);
     char mqttPingDownstreamTopic[300];
     sprintf(mqttPingDownstreamTopic, "%s%s%s", MQTT_PING_DOWNSTREAM_TOPIC, "/", decoderUri);
-
-    
-
     if (subscribeTopic(mqttPingDownstreamTopic, onMqttPing, NULL)) {
         sysState->setOpStateByBitmap(OP_INTFAIL); 
         panic("Failed to to subscribe to MQTT ping topic");
@@ -224,7 +232,7 @@ rc_t mqtt::up(void) {
             CPU_MQTT_PING_STACKSIZE_1K * 1024,  // Stack size
             NULL,                               // Parameter passing
             CPU_MQTT_PING_PRIO,                 // Priority 0-24, higher is more
-            CPU_MQTT_PING_STACK_ATTR)) {         // Task stack attribute
+            CPU_MQTT_PING_STACK_ATTR)) {        // Task stack attribute
             panic("MQTT supervision task could not be started");
             return RC_OUT_OF_MEM_ERR;
         }
@@ -244,19 +252,20 @@ void mqtt::wdtKicked(void* p_dummy) {
 }
 
 rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback, const void* p_args) {
+    xSemaphoreTake(mqttLock, portMAX_DELAY);
     bool found = false;
     int i;
     int j;
     char* topic = new (heap_caps_malloc(strlen(p_topic) + strlen(mqttTopicPrefix) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char;
     strcpy(topic, mqttTopicPrefix);
     strcat(topic, p_topic);
-    Serial.printf("&&&&&&&&&&&&&&&&&&&&& Subscribing to topic %s" CR, topic);
     uint16_t state = sysState->getOpStateBitmap();
-    if (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
+    /*if (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
         sysState->setOpStateByBitmap(OP_INTFAIL);
         panic("Could not subscribe to topic as the MQTT client is not running");
+        xSemaphoreGive(mqttLock);
         return RC_GEN_ERR;
-    }
+    }*/
     LOG_INFO("Subscribing to topic %s" CR, topic);
     for (i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, topic)) {
@@ -277,21 +286,26 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
             sysState->setOpStateByBitmap(OP_INTFAIL);
             int conStat;
             if (conStat = mqttClient->state()){
-                panic("Could not subscribe to topic from broker as client is not connected, status: %d", conStat);
-                return RC_GEN_ERR;
+                //panic("Could not subscribe to topic from broker as client is not connected, status: %d", conStat);
+                LOG_WARN("Could not subscribe to topic from broker as client is not connected, status: %d - continuing...", conStat);
+                xSemaphoreGive(mqttLock);
+                return RC_OK;
             }
             else {
                 panic("Could not subscribe to topic from broker", stat);
+                xSemaphoreGive(mqttLock);
                 return RC_GEN_ERR;
             }
 
         }
+        xSemaphoreGive(mqttLock);
         return RC_OK;
     }
     else {
         for (j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
             if (mqttTopics.at(i)->topicList->at(j)->mqttSubCallback == p_callback) {
                 LOG_WARN("MQTT-subscribeTopic: subscribeTopic was called, but the callback 0x%x for Topic %s already exists - doing nothing" CR, (int)p_callback, topic);
+                xSemaphoreGive(mqttLock);
                 return RC_OK;
             }
         }
@@ -300,12 +314,15 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
         mqttTopics.at(i)->topicList->back()->topic = topic;
         mqttTopics.at(i)->topicList->back()->mqttSubCallback = p_callback;
         mqttTopics.at(i)->topicList->back()->mqttCallbackArgs = (void*)p_args;
+        xSemaphoreGive(mqttLock);
         return RC_OK;
     }
+    xSemaphoreGive(mqttLock);
     return RC_GEN_ERR;   //Should never reach here
 }
 
 rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback) {
+    xSemaphoreTake(mqttLock, portMAX_DELAY);
     bool topicFound = false;
     bool cbFound = false;
     char* topic = new (heap_caps_malloc(strlen(p_topic) + strlen(mqttTopicPrefix) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char;
@@ -327,10 +344,12 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
                         if (!mqttClient->unsubscribe(topic)) {
                             LOG_ERROR("Could not unsubscribe Topic: %s from broker" CR, topic);
                             delete topic;
+                            xSemaphoreGive(mqttLock);
                             return RC_GEN_ERR;
                         }
                         LOG_INFO("Last callback for %s unsubscribed - unsubscribed Topic from broker" CR, topic);
                         delete topic;
+                        xSemaphoreGive(mqttLock);
                         return RC_OK;
                     }
                 }
@@ -340,13 +359,16 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
     if (!topicFound) {
         LOG_ERROR("Topic %s not found" CR, topic);
         delete topic;
+        xSemaphoreGive(mqttLock);
         return RC_GEN_ERR;
     }
     if (!cbFound) {
         LOG_ERROR("MQTT-Unsubscribe, callback not found while unsubscribing topic %s" CR, topic);
-        return 1;
+        xSemaphoreGive(mqttLock);
+        return RC_GEN_ERR;
     }
     delete topic;
+    xSemaphoreGive(mqttLock);
     return RC_GEN_ERR;
 }
 
@@ -547,14 +569,18 @@ void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const 
 }
 
 rc_t mqtt::reSubscribe(void) {
+    xSemaphoreTake(mqttLock, portMAX_DELAY);
     LOG_INFO_NOFMT("Resubscribing all registered topics" CR);
+    mqttClient->unsubscribe("#");
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!mqttClient->subscribe(mqttTopics.at(i)->topic, defaultQoS)) {
             sysState->setOpStateByBitmap(OP_INTFAIL);
+            xSemaphoreGive(mqttLock);
             panic("Failed to resubscribe topic from broker");
             return RC_GEN_ERR;
         }
     }
+    xSemaphoreGive(mqttLock);
     LOG_INFO_NOFMT("Successfully resubscribed to all registered topics" CR);
     return RC_OK;
 }
@@ -621,7 +647,9 @@ void mqtt::clearMaxLatency(void) {
 }
 
 bool mqtt::getSubs(uint16_t p_index, char* p_topic, uint16_t p_topicSize, char* p_cbs, uint16_t p_cbSize) {
+    xSemaphoreTake(mqttLock, portMAX_DELAY);
     if (p_index >= mqttTopics.size()) {
+        xSemaphoreGive(mqttLock);
         return false;
     }
     else {
@@ -632,6 +660,7 @@ bool mqtt::getSubs(uint16_t p_index, char* p_topic, uint16_t p_topicSize, char* 
             strcatTruncMaxLen(p_cbs, itoa((int)(void*)mqttTopics.at(p_index)->topicList->at(0)->mqttSubCallback, p_cbs, 10), p_cbSize);
         }
     }
+    xSemaphoreGive(mqttLock);
     return true;
 }
 
@@ -640,13 +669,14 @@ void mqtt::poll(void* dummy) {
     int64_t thisLoopTime;
     uint16_t latencyIndex = 0;
     int32_t latency = 0;
-    uint8_t retryCnt = 0;
     for (uint16_t i = 0; i < avgSamples; i++)
         latencyVect[i] = 0;
     int stat;
     //esp_task_wdt_init(1, true); //enable panic so ESP32 restarts
     //esp_task_wdt_add(NULL); //add current thread to WDT watch
     while (true) {
+        if (sysState->getOpStateBitmap() & OP_INTFAIL)
+            return;
         char op[200];
         //Serial.println("POLL");
         thisLoopTime = nextLoopTime;
@@ -658,10 +688,9 @@ void mqtt::poll(void* dummy) {
         switch (stat) {
         case MQTT_CONNECTED:
             if (mqttStatus != stat) {
-                sysState->unSetOpStateByBitmap(OP_DISCONNECTED);
-                //mqttClient->unsubscribe("#");
-                //resubscribe
                 LOG_INFO("MQTT connection established - unsetting opstate OP_DISCONNECTED" CR);
+                sysState->unSetOpStateByBitmap(OP_DISCONNECTED);
+                reSubscribeReq = true;
             }
             retryCnt = 0;
             break;
@@ -674,7 +703,10 @@ void mqtt::poll(void* dummy) {
             sysState->setOpStateByBitmap(OP_DISCONNECTED);
             if (retryCnt++ >= MAX_MQTT_CONNECT_ATTEMPTS) {
                 sysState->setOpStateByBitmap(OP_INTFAIL);
-                panic("Max number of MQTT connect/reconnect attempts reached");
+                networking::reportNwFail();
+                panic("Max number of MQTT connect/reconnect attempts reached - stopping MQTT poll loop");
+                vTaskDelete(NULL);
+                return;
             }
             LOG_INFO_NOFMT("Connecting to Mqtt" CR);
             if (opStateTopicSet) {
@@ -702,8 +734,10 @@ void mqtt::poll(void* dummy) {
         case MQTT_CONNECT_BAD_CREDENTIALS:
         case MQTT_CONNECT_UNAUTHORIZED:
             sysState->setOpStateByBitmap(OP_INTFAIL);
-            panic("Fatal MQTT error, one of BAD_PROTOCOL, BAD_CLIENT_ID, UNAVAILABLE, BAD_CREDETIALS, UNOTHORIZED");
-            break;
+            networking::reportNwFail();
+            panic("Fatal MQTT error, one of BAD_PROTOCOL, BAD_CLIENT_ID, UNAVAILABLE, BAD_CREDETIALS, UNOTHORIZED - stopping MQTT poll loop" CR);
+            vTaskDelete(NULL);
+            return;
         }
         if (mqttStatus != stat) {
             mqttStatus = stat;
@@ -730,13 +764,20 @@ void mqtt::poll(void* dummy) {
             nextLoopTime = esp_timer_get_time();
         }
     }
+    vTaskDelete(NULL);
 }
 
 void mqtt::mqttPingTimer(void* dummy) {
     LOG_INFO("MQTT Ping timer started, ping period: %d" CR, pingPeriod);
     missedPings = 0;
     while (supervision) {
-        if (!(sysState->getOpStateBitmap() & OP_DISABLED) && (pingPeriod != 0)) {
+        if (reSubscribeReq && mqttClient->state() == MQTT_CONNECTED) {
+            reSubscribe();
+        }
+        if (reSubscribeReq) {
+            reSubscribeReq = false;
+        }
+        else if (!(sysState->getOpStateBitmap() & OP_DISABLED) && (pingPeriod != 0)) {
             if (++missedPings >= MAX_MQTT_LOST_PINGS) {
                 sysState->setOpStateByBitmap(OP_CLIEUNAVAILABLE);
                 panic("Lost maximum ping responses - bringing down MQTT");

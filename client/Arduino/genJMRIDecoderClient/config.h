@@ -137,7 +137,7 @@
 #define MQTT_BUFF_SIZE								50000
 #define MQTT_POLL_PERIOD_MS							50
 #define MQTT_CONNECT_TIMEOUT_S						60
-#define MAX_MQTT_CONNECT_ATTEMPTS					10
+#define MAX_MQTT_CONNECT_ATTEMPTS					60 //60xMQTT_POLL_PERIOD_MS = 3 sec
 
 // CPU execution parameters
 // ========================
