@@ -1787,7 +1787,7 @@ void globalCli::onCliGetWdt(cmd* p_cmd, cliCore* p_cliContext,
 		cmdHandled = true;
 	}
 	else if (p_cmdTable->commandFlags->isPresent("expiries")) {
-		printCli("%i", wdtDescr->wdtExpieries);
+		printCli("%i", wdtDescr->wdtExpiries);
 		cmdHandled = true;
 	}
 	else if (p_cmdTable->commandFlags->isPresent("closesedhit")) {
@@ -1839,7 +1839,7 @@ void globalCli::showWdt(uint16_t p_wdtId) {
 			-10, wdtDescr->isInhibited ? "True" : "False",
 			-13, wdtDescr->wdtTimeoutTicks * WD_TICK_MS,
 			-30, wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction),
-			-9, wdtDescr->wdtExpieries,
+			-9, wdtDescr->wdtExpiries,
 			-17, wdtDescr->closesedhit * WD_TICK_MS);
 		printCli("%s", wdtInfo);
 		return;
@@ -1856,7 +1856,7 @@ void globalCli::showWdt(uint16_t p_wdtId) {
 			-10, wdtDescr->isInhibited? "True" : "False",
 			-13, wdtDescr->wdtTimeoutTicks * WD_TICK_MS,
 			-30, wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction),
-			-9, wdtDescr->wdtExpieries,
+			-9, wdtDescr->wdtExpiries,
 			-17, wdtDescr->closesedhit * WD_TICK_MS);
 		printCli("%s", wdtInfo);
 	}

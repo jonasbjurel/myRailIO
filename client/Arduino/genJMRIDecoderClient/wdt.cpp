@@ -32,25 +32,22 @@
 
 /*==============================================================================================================================================*/
 /* Class: wdt                                                                                                                                   */
-/* Purpose:                                                                                                                                     */
-/* Methods:                                                                                                                                     */
-/* Data structures:                                                                                                                             */
+/* Purpose: See wdt.h                                                                                                                           */
+/* Methods: See wdt.h                                                                                                                           */
+/* Data structures: See wdt.h                                                                                                                   */
 /*==============================================================================================================================================*/
 DRAM_ATTR  SemaphoreHandle_t wdt::wdtProcessSemaphore = NULL;
-
 EXT_RAM_ATTR SemaphoreHandle_t wdt::wdtDescrListLock = NULL;
 EXT_RAM_ATTR TaskHandle_t wdt::backendTaskHandle = NULL;
 EXT_RAM_ATTR uint16_t wdt::wdtObjCnt = 0;
-
-//DRAM_ATTR  timer_config_t* wdt::wdtTimerConfig = NULL;
 DRAM_ATTR hw_timer_t* wdt::wdtTimer = NULL;
-
+EXT_RAM_ATTR const wdtCb_t* wdt::globalCb = NULL;
+EXT_RAM_ATTR const void* wdt::globalCbParams = NULL;
 EXT_RAM_ATTR const wdtCb_t* wdt::globalFailsafeCb = NULL;
 EXT_RAM_ATTR const void* wdt::globalFailsafeCbParams = NULL;
 EXT_RAM_ATTR const wdtCb_t* wdt::globalRebootCb = NULL;
 EXT_RAM_ATTR const void* wdt::globalRebootCbParams = NULL;
 EXT_RAM_ATTR wdtDescrList_t* wdt::wdtDescrList = NULL;
-
 DRAM_ATTR  uint32_t wdt::currentWdtTick = 0;
 DRAM_ATTR  uint32_t wdt::nextWdtTimeoutTick = UINT32_MAX - 1;
 DRAM_ATTR  bool wdt::outstandingWdtTimeout = false;
@@ -59,9 +56,9 @@ DRAM_ATTR  bool wdt::debug = false;
 
 
 wdt::wdt(uint32_t p_wdtTimeoutMs, char* p_wdtDescription, action_t p_wdtAction) {
-	if (wdtObjCnt++ == 0) {
+	if (wdtObjCnt++ == 0) {															//First Watchdog instance - set up all needed global/static functions and structures
 		LOG_INFO_NOFMT("Starting the watchdog base object" CR);
-		if (!(wdtProcessSemaphore = xSemaphoreCreateCounting(NO_OUTSTANDING_WDT_TIMEOUT_JOBS, 0))) {
+		if (!(wdtProcessSemaphore = xSemaphoreCreateCounting(NO_OF_OUTSTANDING_WDT_TIMEOUT_JOBS, 0))) {
 			panic("Could not create Watchdog semaphore object" CR);
 			return;
 		}
@@ -84,29 +81,30 @@ wdt::wdt(uint32_t p_wdtTimeoutMs, char* p_wdtDescription, action_t p_wdtAction) 
 			INTERNAL))) {															// Task stack attribute
 			panic("Failed to start the watchdog" CR);
 		}
-		if (!(wdtTimer = timerBegin(TIMER, (TIMER_BASE_CLK / 1000000), TIMER_COUNT_UP))) {
+		if (!(wdtTimer = timerBegin(WDT_TIMER, (TIMER_BASE_CLK / 1000000), TIMER_COUNT_UP))) {
 			panic("Could not initialize the watchdog timer");
 			return;
 		}
-		timerAttachInterrupt(wdtTimer, &wdtTimerIsrCb, true);
+		timerAttachInterrupt(wdtTimer, &wdtTimerIsr, true);
 		timerAlarmWrite(wdtTimer, WD_TICK_MS * 1000, TIMER_AUTORELOAD_EN);
 		timerAlarmEnable(wdtTimer);
 	}
 	LOG_INFO("Starting watchdog instance for %s" CR, p_wdtDescription);
-	if(!(wdtDescr = new wdt_t))					// Create and populate a watchdog instanse descriptor
+	if(!(wdtDescr = new wdt_t))
 		panic("Could not create the watchdog timer descriptor");
-		wdtDescr->id = wdtObjCnt;
+	wdtDescr->id = wdtObjCnt;
 	wdtDescr->handle = this;
 	wdtDescr->isActive = false;
 	wdtDescr->isInhibited = false;
-	wdtDescr->wdtTimeoutTicks = p_wdtTimeoutMs / WD_TICK_MS;
+	if (!(wdtDescr->wdtTimeoutTicks = p_wdtTimeoutMs / WD_TICK_MS))
+		wdtDescr->wdtTimeoutTicks = 1;
 	if (!(wdtDescr->wdtDescription = new (heap_caps_malloc(sizeof(char) * (strlen(p_wdtDescription) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(p_wdtDescription) + 1])) {
 		panic("Could not create the watchdog timer description buffer");
 	}
 	strcpy(wdtDescr->wdtDescription, p_wdtDescription);
 	wdtDescr->wdtAction = p_wdtAction;
 	wdtDescr->escalationCnt = 0;
-	wdtDescr->wdtExpieries = 0;
+	wdtDescr->wdtExpiries = 0;
 	wdtDescr->closesedhit = wdtDescr->wdtTimeoutTicks * WD_TICK_MS;
 	wdtDescr->localCb = NULL;
 	wdtDescr->localCbParams = NULL;
@@ -118,7 +116,7 @@ wdt::wdt(uint32_t p_wdtTimeoutMs, char* p_wdtDescription, action_t p_wdtAction) 
 	LOG_INFO("Watchdog instance started for %s" CR, p_wdtDescription);
 }
 
-wdt::~wdt(void) {																	// Destructor of a watchdog object/instance
+wdt::~wdt(void) {
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	wdtDescrList->clear(wdtDescrList->indexOf(wdtDescr));
 	nextWdtTimeoutTick = nextTickToHandle(false);
@@ -177,7 +175,7 @@ rc_t wdt::setActive(uint16_t p_id, bool p_active) {
 	return RC_NOT_FOUND_ERR;
 }
 
-void wdt::activate(bool p_lock) {															//Activates the watchdog object/instance
+void wdt::activate(bool p_lock) {
 	LOG_INFO("Activating watchdog instance for %s" CR, wdtDescr->wdtDescription);
 	if (p_lock)
 		xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
@@ -190,7 +188,7 @@ void wdt::activate(bool p_lock) {															//Activates the watchdog object/
 		xSemaphoreGive(wdtDescrListLock);
 }
 
-void wdt::inactivate(bool p_lock) {														//De-Activates the watchdog object/instance
+void wdt::inactivate(bool p_lock) {
 	LOG_INFO("In-activating watchdog instance for %s" CR, wdtDescr->wdtDescription);
 	if (p_lock)
 		xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
@@ -307,7 +305,7 @@ void wdt::clearExpiriesAll(void) {
 	LOG_INFO_NOFMT("Clearing all watchdog expireies counters" CR);
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter < wdtDescrList->size(); wdtDescrListItter++) {
-		wdtDescrList->at(wdtDescrListItter)->wdtExpieries = 0;
+		wdtDescrList->at(wdtDescrListItter)->wdtExpiries = 0;
 	}
 	xSemaphoreGive(wdtDescrListLock);
 }
@@ -317,7 +315,7 @@ rc_t wdt::clearExpiries(uint16_t p_id) {
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter < wdtDescrList->size(); wdtDescrListItter++) {
 		if (wdtDescrList->at(wdtDescrListItter)->id == p_id) {
-			wdtDescrList->at(wdtDescrListItter)->wdtExpieries = 0;
+			wdtDescrList->at(wdtDescrListItter)->wdtExpiries = 0;
 			xSemaphoreGive(wdtDescrListLock);
 			return RC_OK;
 		}
@@ -328,7 +326,7 @@ rc_t wdt::clearExpiries(uint16_t p_id) {
 }
 
 void wdt::clearExpiries(void) {
-	wdtDescr->wdtExpieries = 0;
+	wdtDescr->wdtExpiries = 0;
 }
 
 void wdt::clearClosesedHitAll(void) {
@@ -392,59 +390,72 @@ void wdt::inhibitWdtFeeds(bool p_inhibit) {
 	wdtDescr->isInhibited = p_inhibit;
 }
 
-void wdt::feed(void) {																// Feeds the wachdog with food enough for wdtTimeoutTicks
+void wdt::feed(void) {
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
-	if ((uint32_t)(wdtDescr->wdtUpcommingTimeoutTick - currentWdtTick) <			// Calculate closesed hit
+	if ((uint32_t)(wdtDescr->wdtUpcommingTimeoutTick - currentWdtTick) <
 		wdtDescr->closesedhit)
 		wdtDescr->closesedhit = (uint32_t)(wdtDescr->wdtUpcommingTimeoutTick - currentWdtTick);
-	if (!wdtDescr->ongoingWdtTimeout && wdtDescr->isActive &&						// If an ongoing Watchdog event is ongoing, too late, no food
-		!wdtDescr->isInhibited){													//    If inhibited, no food
+	if (!wdtDescr->ongoingWdtTimeout && wdtDescr->isActive &&
+		!wdtDescr->isInhibited){
 		wdtDescr->wdtUpcommingTimeoutTick = currentWdtTick + wdtDescr->wdtTimeoutTicks;
 		nextWdtTimeoutTick = nextTickToHandle(false);
 	}
 	xSemaphoreGive(wdtDescrListLock);
 }
 
-void wdt::regLocalWdtCb(const wdtCb_t* p_localWdtCb,								// Register the local callback handler for the watchdog object/instance
+void wdt::regLocalWdtCb(const wdtCb_t* p_localWdtCb,
 						const void* p_localWdtCbParms) {
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	wdtDescr->localCb = p_localWdtCb;
 	wdtDescr->localCbParams = (void*)p_localWdtCbParms;
 }
 
-void wdt::unRegLocalWdtCb(void) {													// Un-register the local callback handler for the watchdog object/instance
+void wdt::unRegLocalWdtCb(void) {
 	LOG_INFO_NOFMT("Un-registering local watchdog" CR);
 	wdtDescr->localCb = NULL;
 	wdtDescr->localCbParams = NULL;
 }
 
-void wdt::regGlobalFailsafeCb(const wdtCb_t* p_globalFailsafeCb,					// Register a global failsafe handler
+void wdt::regGlobalCb(const wdtCb_t* p_globalCb,
+	const void* p_globalParams) {
+	LOG_INFO("Registering global watchdog callback: 0x%x" CR, p_globalCb);
+	globalCb = p_globalCb;
+	globalCbParams = p_globalParams;
+}
+
+void wdt::unRegGlobalCb(void) {
+	LOG_INFO_NOFMT("Un-registering global watchdog callback" CR);
+	globalCb = NULL;
+	globalCbParams = NULL;
+}
+
+void wdt::regGlobalFailsafeCb(const wdtCb_t* p_globalFailsafeCb,
 							  const void* p_globalFailsafeCbParams) {
-	LOG_INFO("Registering failsafe watchdog callback: 0x%x" CR, p_globalFailsafeCb);
+	LOG_INFO("Registering global failsafe watchdog callback: 0x%x" CR, p_globalFailsafeCb);
 	globalFailsafeCb = p_globalFailsafeCb;
 	globalFailsafeCbParams = p_globalFailsafeCbParams;
 }
  
-void wdt::unRegGlobalFailsafeCb(void) {												// Un-register a global failsafe handler
+void wdt::unRegGlobalFailsafeCb(void) {
+	LOG_INFO_NOFMT("Un-registering global failsafe watchdog callback" CR);
 	globalFailsafeCb = NULL;
 	globalFailsafeCbParams = NULL;
-	LOG_INFO_NOFMT("Un-registering failsafe watchdog callback" CR);
 }
 
-void wdt::regGlobalRebootCb(const wdtCb_t* p_globalRebootCb,						// Register a global reboot handler
+void wdt::regGlobalRebootCb(const wdtCb_t* p_globalRebootCb,
 							const void* p_globalRebootCbParams) {
 	LOG_INFO("Registering global reboot watchdog callback: 0x%x" CR, p_globalRebootCb);
 	globalRebootCb = p_globalRebootCb;
 	globalRebootCbParams = p_globalRebootCbParams;
 }
 
-void wdt::unRegGlobalRebootCb(void) {												// Un-register a global reboot handler
+void wdt::unRegGlobalRebootCb(void) {
 	LOG_INFO_NOFMT("Un-registering global reboot watchdog callback" CR);
 	globalRebootCb = NULL;
 	globalRebootCbParams = NULL;
 }
 
-void IRAM_ATTR wdt::wdtTimerIsrCb(void) {											// Watchdog tick as defined by WD_TICK_MS elapsed.
+void IRAM_ATTR wdt::wdtTimerIsr(void) {												// Watchdog tick as defined by WD_TICK_MS elapsed.
 	bool handleBackend = false;														//   Running in ISR context - keep it short and do not use system calls not meant for ISR
 	if (++currentWdtTick == nextWdtTimeoutTick)										// We have a Watchdog timeout, needs to be handled by the backend task
 		handleBackend = true;
@@ -471,7 +482,7 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 			if ((wdtDescrList->at(wdtDescrListItter)->wdtUpcommingTimeoutTick == currentWdtTick || wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout) &&
 				wdtDescrList->at(wdtDescrListItter)->isActive){						// A Watch dog timeout has occured
 				if(!wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout)
-					wdtDescrList->at(wdtDescrListItter)->wdtExpieries++;			// Increase the history of watchdog expireies
+					wdtDescrList->at(wdtDescrListItter)->wdtExpiries++;				// Increase the history of watchdog expireies
 				outstandingWdtTimeout = true;										// Mark that we are currently treating an ongoing Watch dog timeout escalation
 				wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout = true;
 				bool escalationIntergapEnabled = wdtDescrList->at(wdtDescrListItter)->wdtAction & FAULTACTION_ESCALATE_INTERGAP;
@@ -520,15 +531,25 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 							break;
 						case 3:														// FAULTACTION_GLOBAL_FAILSAFE callback requested and is scheduled for this escalation step
 							LOG_ERROR("Watchdog timer has expired for %s, " \
+								"Escalation, calling FAULTACTION_GLOBAL0" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
+							if (!globalCb)											// No callback registered - escalate!
+								nextAction = ESCALATE;
+							else {													// Make the call, and let the receiver decide if further escalation is needed
+								nextAction = globalCb(3, globalFailsafeCbParams);
+							}
+							break;
+						case 4:														// FAULTACTION_GLOBAL_FAILSAFE callback requested and is scheduled for this escalation step
+							LOG_ERROR("Watchdog timer has expired for %s, " \
 								"Escalation, calling FAULTACTION_GLOBAL_FAILSAFE" CR,
 								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							if (!globalFailsafeCb)									// No callback registered - escalate!
 								nextAction = ESCALATE;
 							else{													// Make the call, and let the receiver decide if further escalation is needed
-								nextAction = globalFailsafeCb(3, globalFailsafeCbParams);
+								nextAction = globalFailsafeCb(4, globalFailsafeCbParams);
 							}
 							break;
-						case 4:														// FAULTACTION_GLOBAL_REBOOT callback requested and is scheduled for this escalation step
+						case 5:														// FAULTACTION_GLOBAL_REBOOT callback requested and is scheduled for this escalation step
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 									  "Escalation, calling FAULTACTION_GLOBAL_REBOOT" CR,
 								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
@@ -545,7 +566,7 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 								while (true);										// As a last resort - spin, hoping that the idle loop WD catches it
 							}
 							else{													// Call the registered callback/reboot handler - no way out from here
-								nextAction = globalRebootCb(4, globalRebootCbParams);
+								nextAction = globalRebootCb(5, globalRebootCbParams);
 								currentWdtTick = currentWdtTick / 0;				// If fail, try division by zero
 								while (true);										// As a last resort - spin, hoping that the idle loop WD catches it
 							}
@@ -574,7 +595,7 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 	}
 }
 
-bool wdt::isWdtTickAhead(uint32_t p_testWdtTick, uint32_t p_comparedWithWdtTick) {	//Is p_testWdtTick going to happen later than p_comparedWithWdtTick?
+bool wdt::isWdtTickAhead(uint32_t p_testWdtTick, uint32_t p_comparedWithWdtTick) {
 	bool curentWdtTickInbetween = ((p_testWdtTick >= currentWdtTick) &&
 								   (p_comparedWithWdtTick < p_comparedWithWdtTick)) ||
 								  ((p_testWdtTick <= p_comparedWithWdtTick) &&
@@ -629,6 +650,12 @@ char* wdt::actionToStr(char* p_actionStr, uint8_t p_size, action_t p_action) {
 }
 
 uint16_t wdt::maxId(void) {
+	uint16_t maxId = 0;
+	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter <
+		wdtDescrList->size(); wdtDescrListItter++) {
+		if (wdtDescrList->at(wdtDescrListItter)->id > maxId)
+			maxId = wdtDescrList->at(wdtDescrListItter)->id;
+	}
 	return wdtObjCnt;
 }
 /*==============================================================================================================================================*/
