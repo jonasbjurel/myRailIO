@@ -326,6 +326,9 @@ void lgLink::up(void) {
             CPU_UPDATE_STRIP_PRIO,                              // Priority 0-24, higher is more
             CPU_UPDATE_STRIP_SETUP_STACK_ATTR)){                // Task Stack attribute
         panic("%s: Could not start lglink scanning", logContextName);
+        linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(3000, "lgLink watchdog",
+            FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
+        linkScanWdt->activate();
         return;
     }
 }
@@ -602,6 +605,7 @@ void lgLink::updateStrip(void) {
     LOG_VERBOSE("%s: Starting sriphandler channel" CR, logContextName);
     uint32_t wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
     while (linkScan) {
+        linkScanWdt->feed();
         startTime = esp_timer_get_time();
         thisLoopTime = nextLoopTime;
         nextLoopTime += STRIP_UPDATE_MS * 1000;
@@ -666,6 +670,7 @@ void lgLink::updateStrip(void) {
         }
         avgIndex++;
     }
+    delete linkScanWdt;
     vTaskDelete(NULL);
 }
 

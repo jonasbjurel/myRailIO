@@ -33,6 +33,7 @@
 #include "panic.h"
 #include "taskWrapper.h"
 #include "logHelpers.h"
+#include "wdt.h"
 
 class flash;
 
@@ -82,6 +83,7 @@ private:
     //Private data structures
     static uint8_t flashInstanses;
     uint8_t flashInstanse;
+    wdt* flashWdt;
     uint32_t overRuns;
     uint32_t maxLatency;
     uint16_t maxAvgSamples;

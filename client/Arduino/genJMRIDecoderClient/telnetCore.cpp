@@ -59,7 +59,11 @@ rc_t telnetCore::start(void) {
 		onTelnetInput(str);
 		});
 	if (telnet.begin()) {
-		LOG_INFO_NOFMT("Telnet started" CR);
+		if (!(telnetWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(10000, "Telnet watchdog",
+			FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP))) {
+			panic("Failed to start Telnet watchdog");
+			return RC_GEN_ERR;
+		}
 		if (!eTaskCreate(
 			poll,																		// Task function
 			CPU_TELNET_TASKNAME,														// Task function name reference
@@ -68,11 +72,14 @@ rc_t telnetCore::start(void) {
 			CPU_TELNET_PRIO,															// Priority 0-24, higher is more
 			CPU_TELNET_STACK_ATTR)) {													// Task stack attribute
 			panic("Could not start Telnet polling task");
+			delete telnetWdt;
 			return RC_OUT_OF_MEM_ERR;
 		}
+		telnetWdt->activate();
+		LOG_INFO_NOFMT("Telnet started" CR);
 	}
 	else {
-		LOG_ERROR_NOFMT("Failed to start Telnet" CR);
+		panic("Failed to start Telnet");
 		return RC_GEN_ERR;
 	}
 	return RC_OK;
@@ -134,8 +141,6 @@ void telnetCore::print(const char* p_output) {
 
 void telnetCore::poll(void* dummy) {
 	LOG_INFO_NOFMT("Telnet polling started" CR);
-	telnetWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(10 * 1000, "Telnet watchdog",
-						FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
 	while (true) {
 		telnet.loop();
 		if (connections) {
@@ -146,6 +151,7 @@ void telnetCore::poll(void* dummy) {
 		}
 		telnetWdt->feed();
 	}
+	delete telnetWdt;
 	vTaskDelete(NULL);
 }
 /*==============================================================================================================================================*/

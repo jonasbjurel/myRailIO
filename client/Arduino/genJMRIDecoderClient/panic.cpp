@@ -54,7 +54,7 @@ void panic(const char* p_panicFmt, ...) {
     fileSys::putFile(FS_PATH "/" "panic", stackTraceBuff, strlen(stackTraceBuff) + 1, NULL);
     TimerHandle_t rebootTimer;
     rebootTimer = xTimerCreate("rebootTimer",                       // Just a text name, not used by the kernel.
-        (5000 / portTICK_PERIOD_MS),                                // The timer period in ticks.
+        (PANIC_REBOOT_DELAY_MS / portTICK_PERIOD_MS),               // The timer period in ticks.
         pdFALSE,                                                    // The timer will not auto-reload when expired.
         NULL,                                                       // param passing.
         reboot                                                      // Each timer calls the same callback when it expires.

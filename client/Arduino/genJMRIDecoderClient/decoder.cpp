@@ -43,6 +43,8 @@
 /*==============================================================================================================================================*/
 decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, NULL, true) {
     regPanicCb(onPanicHelper, this);
+    wdt::regGlobalFailsafeCb(onWdtFailsafeHelper, this);
+    wdt::regGlobalRebootCb(onWdtReboot);
     asprintf(&logContextName, "%s", "decoder-0");
     LOG_INFO("%s: Creating decoder" CR, logContextName);
     setSysStateObjName(logContextName);
@@ -1040,6 +1042,22 @@ void decoder::onPanic(void) {
     char opStateFail[50];
     LOG_FATAL("%s: Panic callback received - setting OP-state to: \"%s\"" CR, logContextName, getOpStateStrByBitmap(OP_INTFAIL, opStateFail));
     setOpStateByBitmap(OP_INTFAIL);
+}
+
+uint8_t decoder::onWdtFailsafeHelper(uint8_t escalationCnt, const void* p_metaData) {
+    return ((decoder*)p_metaData)->onWdtFailsafe();
+}
+
+uint8_t decoder::onWdtFailsafe(void) {
+    char opStateFail[50];
+    LOG_FATAL("%s: Watchdog timer expired, requesting global failsafe" CR, logContextName);
+    setOpStateByBitmap(OP_INTFAIL);
+    return DONT_ESCALATE;
+}
+
+uint8_t decoder::onWdtReboot(uint8_t escalationCnt, const void* p_metaData) {
+    panic("Watchdog timer expired, requesting reboot" CR);
+    return ESCALATE;
 }
 
 void decoder::onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {

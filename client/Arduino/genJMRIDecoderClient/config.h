@@ -138,6 +138,7 @@
 #define MQTT_POLL_PERIOD_MS							50
 #define MQTT_CONNECT_TIMEOUT_S						60
 #define MAX_MQTT_CONNECT_ATTEMPTS					60 //60xMQTT_POLL_PERIOD_MS = 3 sec
+#define MQTT_WD_MS									3000
 
 // CPU execution parameters
 // ========================
@@ -187,10 +188,10 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_SATLINK_PM_STACK_ATTR					INTERNAL
 
 // Flash
-#define FLASH_LOOP_PRIO								10
-#define FLASH_LOOP_STACKSIZE_1K						6
-#define FLASH_LOOP_TASKNAME							"FlashLoop %d"
-#define FLASH_LOOP_STACK_ATTR						INTERNAL
+#define CPU_FLASH_LOOP_PRIO							10
+#define CPU_FLASH_LOOP_STACKSIZE_1K					6
+#define CPU_FLASH_LOOP_TASKNAME						"FlashLoop %d"
+#define CPU_FLASH_LOOP_STACK_ATTR					INTERNAL
 
 // LgLink
 #define CPU_UPDATE_STRIP_PRIO						20

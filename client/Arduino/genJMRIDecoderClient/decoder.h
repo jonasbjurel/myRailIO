@@ -46,6 +46,7 @@
 #include "strHelpers.h"
 #include "xmlHelpers.h"
 #include "cpu.h"
+#include "wdt.h"
 
 class lgLink;
 class satLink;
@@ -242,6 +243,10 @@ public:
 	const char* getLogContextName(void);
 	static void onPanicHelper(void* p_metaData);
 	void onPanic(void);
+	static uint8_t onWdtFailsafeHelper(uint8_t escalationCnt, const void* p_metaData);
+	uint8_t onWdtFailsafe(void);
+	static uint8_t onWdtReboot(uint8_t escalationCnt, const void* p_metaData);
+
 	static void onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
 	void onReboot(void);
 

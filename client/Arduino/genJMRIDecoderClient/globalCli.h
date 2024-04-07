@@ -53,6 +53,7 @@
 #include "mqtt.h"
 #include "cpu.h"
 #include "ntpTime.h"
+#include "wdt.h"
 #include "strHelpers.h"
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
@@ -73,7 +74,6 @@ public:
     //Public methods
     globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIndex,           //globalCLI instance constructor, one for each MO instance
         globalCli* p_parent_context, bool p_root=false);                                //set root if top MO instance
-
     ~globalCli(void);                                                                   //globalCLI instance destructor
 
     void regGlobalNCommonCliMOCmds(void);                                               //Register global and common MOs and sub-MOs
@@ -85,9 +85,7 @@ public:
 private:
     //Private methods
     void regGlobalCliMOCmds(void);                                                      //Internal class procedure, register global MOs and sub-MOs
-
     void regCommonCliMOCmds(void);                                                      //Internal class procedure, register common MOs and sub-MOs
-
     virtual void regContextCliMOCmds(void);
 
     /* Global CLI decoration methods */
@@ -100,16 +98,18 @@ private:
     void onCliSetContext(cmd* p_cmd);                                                   //Set CLI-context
     static void onCliShowTopology(cmd* p_cmd, cliCore* p_cliContext,                    //Show CLI-context topology
                                   cliCmdTable_t* p_cmdTable);
-
     void printTopology(bool p_start = true);                                            //Print CLI topology
     static void onCliShowCommands(cmd* p_cmd, cliCore* p_cliContext,                    //Show CLI-context available commands
                            cliCmdTable_t* p_cmdTable);
     void processAvailCommands(bool p_all, bool p_help);                                 //Prints commands available from all or current context
-    void printCommand(const char* p_cmdType, const char* p_mo, const char* p_subMo, const char* p_flags, const char* p_helpStr, bool p_heading = false, bool p_all = false, bool p_showHelp = false);
+    void printCommand(const char* p_cmdType, const char* p_mo, const char* p_subMo,
+                      const char* p_flags, const char* p_helpStr,
+                      bool p_heading = false, bool p_all = false,
+                      bool p_showHelp = false);
     static void onCliReboot(cmd* p_cmd, cliCore* p_cliContext,                          //Reboot sub-MO command
                             cliCmdTable_t* p_cmdTable);
-    static void onCliGetCoreDump(cmd* p_cmd, cliCore* p_cliContext,                     //Fet Coredump sub-MO command
-            cliCmdTable_t* p_cmdTable);
+    static void onCliGetCoreDump(cmd* p_cmd, cliCore* p_cliContext,                     //Fetch Coredump sub-MO command
+                                cliCmdTable_t* p_cmdTable);
     static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,                       //Get decoder uptime sub-MO command
                                cliCmdTable_t* p_cmdTable);
     static void onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,                        //Start CPU sub-MO
@@ -125,9 +125,9 @@ private:
     static void onCliShowMem(cmd* p_cmd, cliCore* p_cliContext,                         //Show Mem sub-MO
                              cliCmdTable_t* p_cmdTable);
     static void onCliStartMem(cmd* p_cmd, cliCore* p_cliContext,                        //Stop Mem sub-MO
-        cliCmdTable_t* p_cmdTable);
+                              cliCmdTable_t* p_cmdTable);
     static void onCliStopMem(cmd* p_cmd, cliCore* p_cliContext,                         //Start Mem sub-MO
-        cliCmdTable_t* p_cmdTable);
+                             cliCmdTable_t* p_cmdTable);
     static void onCliSetNetwork(cmd* p_cmd, cliCore* p_cliContext,                      //Set Network sub-MO
                                 cliCmdTable_t* p_cmdTable);
     static void onCliGetNetwork(cmd* p_cmd, cliCore* p_cliContext,                      //Get Network sub-MO
@@ -135,6 +135,21 @@ private:
     static void onCliShowNetwork(cmd* p_cmd, cliCore* p_cliContext,                     //Show Network sub-MO
                                  cliCmdTable_t* p_cmdTable);
     static void showNetwork(void);                                                      //Show Network sub-MO
+    static void onCliSetWdt(cmd* p_cmd, cliCore* p_cliContext,                          //Set WDT sub-MO
+                            cliCmdTable_t* p_cmdTable);
+    static void onCliUnsetWdt(cmd* p_cmd, cliCore* p_cliContext,                        //UnSet WDT sub-MO
+                              cliCmdTable_t* p_cmdTable);
+    static void onCliGetWdt(cmd* p_cmd, cliCore* p_cliContext,                          //Get WDT sub-MO
+                            cliCmdTable_t* p_cmdTable);
+    static void onCliShowWdt(cmd* p_cmd, cliCore* p_cliContext,                         //Show WDT sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void showWdt(uint16_t p_wdtId = 0);
+    static void onCliClearWdt(cmd* p_cmd, cliCore* p_cliContext,                        //Clear WDT sub-MO
+                              cliCmdTable_t* p_cmdTable);
+    static void onCliStopWdt(cmd* p_cmd, cliCore* p_cliContext,                         //Stop WDT sub-MO
+                             cliCmdTable_t* p_cmdTable);
+    static void onCliStartWdt(cmd* p_cmd, cliCore* p_cliContext,                        //Start WDT sub-MO
+                              cliCmdTable_t* p_cmdTable);
     static void onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,                         //Set MQTT sub-MO
                              cliCmdTable_t* p_cmdTable);
     static void onCliClearMqtt(cmd* p_cmd, cliCore* p_cliContext,                       //Clear MQTT sub-MO

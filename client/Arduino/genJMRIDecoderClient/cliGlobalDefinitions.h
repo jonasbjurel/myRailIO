@@ -60,6 +60,7 @@ EXT_RAM_ATTR const char		CPUMEM_SUB_MO_NAME[] = "memory";						//Global MO Memor
 EXT_RAM_ATTR const char		NETWORK_SUB_MO_NAME[] = "network";						//Global Network MO sub-MO
 EXT_RAM_ATTR const char		TOPOLOGY_SUB_MO_NAME[] = "topology";					//Global MO topology sub-MO
 EXT_RAM_ATTR const char		COMMANDS_SUB_MO_NAME[] = "commands";					//Global Context available commands sub-MO
+EXT_RAM_ATTR const char		WDT_SUB_MO_NAME[] = "wdt";								//Global MO WDT sub-MO
 EXT_RAM_ATTR const char		MQTT_SUB_MO_NAME[] = "mqtt";							//Global MO MQTT sub-MO
 EXT_RAM_ATTR const char		PINGSUPERVISION_SUB_MO_NAME[] = "supervision";			//move to MQTT?????????
 EXT_RAM_ATTR const char		TIME_SUB_MO_NAME[] = "time";							//Global MO time sub-MO
@@ -271,10 +272,89 @@ EXT_RAM_ATTR const char GLOBAL_GET_NETWORK_HELP_TXT[] =				"Prints IP and WIFI n
 																		"	- \"-mask\": Prints the IPv4 network mask\n\r" \
 																		"	- \"-gw\": Prints the IPv4 network default gateway address\n\r" \
 																		"	- \"-dns\": Prints the IPv4 DNS address\n\r" \
-																		"	- \"opstate\": Prints current network operational state\n\r" \
-																		"	- \"scanap\": Scans availabe APs and prints the information about them\n\r";
+																		"	- \"-opstate\": Prints current network operational state\n\r" \
+																		"	- \"-scanap\": Scans availabe APs and prints the information about them\n\r";
 
 EXT_RAM_ATTR const char GLOBAL_SHOW_NETWORK_HELP_TXT[] =			"Shows a summary of network information. Identical to \"get network\" without flags.\n\r";
+
+
+
+/*==============================================================================================================================================*/
+/* Managed object (MO/Sub-MO): global/wdt																										*/
+/* Purpose: Defines global Watchdog managed objects																								*/
+/* Description:	Provides means to monitor and manage registered Watchdog objects																*/
+/*              such as:																														*/
+/*				- set wdt...																													*/
+/*				- unset wdt...																													*/
+/*				- get wdt...																													*/
+/*				- show wdt...																													*/
+/*				- clear wdt...																													*/
+/*				- stop wdt...																													*/
+/*				- start wdt...																													*/
+/*==============================================================================================================================================*/
+EXT_RAM_ATTR const char GLOBAL_SET_WDT_HELP_TXT[] =					"set wdt [-debug] | [-id [-timeout {timeout_ms}] | [-action {escalation_ladder_actions}] | [-active {\"true\"|\"false\"}]]\n\r" \
+																	"Sets various parameters of WDT given by the provided flags: \n\r" \
+																	"Available flags:\n\r" \
+																	"	- \"-debug\": Sets the debug flag, allowing intrusional Watchdog CLI commands\n\r" \
+																	"	- \"-id {watchdog_id}\": The watchdog identity to be altered\n\r" \
+																	"	- \"-timeout {timeout_ms}\": Sets the watchdog timeout in ms\n\r" \
+																	"	- \"-action {LOC0|LOC1|LOC2|GLB0|GLBFSF|REBOOT|ESC_GAP}\": Sets the Watchdog escalation ladder actions\n\r" \
+																	"				 \"LOC0\": Watchdog owner first local action\n\r" \
+																	"				 \"LOC1\": Watchdog owner second local action\n\r" \
+																	"				 \"LOC2\" Watchdog owner third local action\n\r" \
+																	"				 \"GLB1\": Watchdog global action\n\r" \
+																	"				 \"GLBFSF\": Watchdog global failsave action\n\r" \
+																	"				 \"REBOOT\": Watchdog global reboot action\n\r" \
+																	"				 \"ESC_GAP\": Escalation gap, each escalation action is intergaped by one watchdog timer tick\n\r" \
+																	"				 The escalation ladder actions can be combined in any way by separating them with \"|\"\n\r" \
+																	"				 but the escalation ladder order always remains the same - from \"LOC0\" towards \"REBOOT\" |\n\r" \
+																	"	- \"-active {\"True\"|\"False\"}\": activates or inactivates the Watchdog\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_UNSET_WDT_HELP_TXT[] =				"unset wdt -debug \n\r" \
+																	"Un-sets various parameters of WDT given by the provided flags: \n\r" \
+																	"Available flags:\n\r" \
+																		"	- \"-debug\": Un-sets the debug flag, dis-allowing intrusional Watchdog CLI commands";
+
+EXT_RAM_ATTR const char GLOBAL_GET_WDT_HELP_TXT[] =					"get wdt [-id [-description]|[-active]|[-inhibited]|[-timeout]|[-action]|[-expiries]|[-closesedhit]]\n\r" \
+																	"Prints Watchdog parameters and statistics. \"get wdt\" without flags is identical to \"show wdt\n\r" \
+																	"\"get wdt -id {wd_id}\" without any other flags shows all parameters and statistics for that specific Watchdog id\n\r" \
+																	"Available flags:\n\r" \
+																	"	- \"-id\": Specifies the WDT id for which information is requested\n\r" \
+																	"	- \"-description\": Prints the WDT description\n\r" \
+																	"	- \"-active\": Shows if the WDT is active or not\n\r" \
+																	"	- \"-inhibited\": Shows if the WDT is inhibited or not - I.e. fom a \"stop wdt\" command\n\r" \
+																	"	- \"-timeout\": Prints the WDT expiration value [ms]\n\r" \
+																	"	- \"-actions\": Shows requested and existing expiration actions {FAULTACTION_ESCALATE_INTERGAP | FAULTACTION_LOCAL0 | FAULTACTION_LOCAL1 | FAULTACTION_LOCAL2 | FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT\n\r" \
+																	"	- \"-expiries\": Number of WDT expireies\n\r" \
+																	"	- \"-closesedhit\": Closesed time to to a WDT expirey [ms]\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_WDT_HELP_TXT[] =				"show wdt\n\r" \
+																	"Shows a summary of the WDT information. Is identical to \"get wdt\" without flags\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_CLEAR_WDT_HELP_TXT[] =				"clear wdt [-id] -expireies|-closesedhit\n\r" \
+																	"Clears certain WDT statistics\n\r" \
+																	"	- \"-id\": Specifies the WDT id for which a statistics object should be cleared, if ommited the statistics object for all WDTs will be cleared" \
+																	"	- \"-expireies\": The WDT expireies counter will be cleared" \
+																	"	- \"-closesedhit\": The WDT closesed hit statistics will be cleared";
+
+EXT_RAM_ATTR const char GLOBAL_STOP_WDT_HELP_TXT[] =				"stop wdt [-id {wd_id}]\n\r" \
+																	"Stops the reception of WDT feeds, ultimately resulting in a WDT expirery and escalation ladder, \n\r"
+																	"this command requires the WDT debug flag to be set - see \"set wdt -debug\"\n\r" \
+																	"Available flags:\n\r" \
+																	"	- \"-id\": Specifies the WDT id for which the feeding should be stopped, if id is ommitted - \n\r" \
+																	"              all WDTs will starved";
+
+EXT_RAM_ATTR const char GLOBAL_START_WDT_HELP_TXT[] =				"start wdt [-id {wd_id}]\n\r" \
+																	"Starts the reception of WDT feeds when earlier stopped \n\r" \
+																	"this command requires the WDT debug flag to be set - see \"set wdt -debug\"\n\r" \
+																	"Available flags:\n\r" \
+																	"	- \"-id\": Specifies the WDT id for which the feeding should start, if id is ommitted - \n\r" \
+																	"              all WDTs will be started";
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* END Managed object (MO/Sub-MO): global/wdt																									*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
 
 EXT_RAM_ATTR const char GLOBAL_SET_MQTT_HELP_TXT[] =				"Sets MQTT parameters.\n\r" \
 																		"Available flags:\n\r" \

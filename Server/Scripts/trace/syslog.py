@@ -17,7 +17,7 @@
 # Python dependencies
 import socketserver
 import os
-from threading import Thread
+from threading import Thread 
 from threading import Lock
 import traceback
 import imp
@@ -36,7 +36,7 @@ class RSyslogUDPHandler(socketserver.BaseRequestHandler):
 			rSyslog.log("sysLog decode error")
 
 
-
+			 
 class rSyslog(socketserver.BaseRequestHandler):
 	@staticmethod
 	def start(p_host, p_port, p_fileBaseName = None, p_rotateNo = 5, p_fileSize = 500000000):

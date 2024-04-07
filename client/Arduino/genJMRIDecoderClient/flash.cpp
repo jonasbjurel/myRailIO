@@ -56,18 +56,21 @@ flash::flash(float p_freq, uint8_t p_duty) {
     maxLatency = 0;
     maxAvgSamples = p_freq * FLASH_LATENCY_AVG_TIME;
     latencyVect = new (heap_caps_malloc(sizeof(uint32_t) * maxAvgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[maxAvgSamples];
-    char flashTaskName[30];
-    sprintf(flashTaskName, CPU_SATLINK_PM_TASKNAME, flashInstanse);
+    char flashName[30];
+    sprintf(flashName, CPU_FLASH_LOOP_TASKNAME, flashInstanse);
+    flashWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt((float)(1 / (float)p_freq) * 10 * 1000, flashName,
+        FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     if (!eTaskCreate(
         flashLoopStartHelper,                   // Task function
-        flashTaskName,                          // Task function name reference
-        FLASH_LOOP_STACKSIZE_1K * 1024,         // Stack size
+        flashName,                              // Task function name reference
+        CPU_FLASH_LOOP_STACKSIZE_1K * 1024,     // Stack size
         this,                                   // Parameter passing
-        FLASH_LOOP_PRIO,                        // Priority 0-24, higher is more
-        FLASH_LOOP_STACK_ATTR)) {                // Task stack attribute
+        CPU_FLASH_LOOP_PRIO,                    // Priority 0-24, higher is more
+        CPU_FLASH_LOOP_STACK_ATTR)) {           // Task stack attribute
         panic("Could not start flash task");
         return;
     }
+    flashWdt->activate();
 }
 
 flash::~flash(void) {
@@ -127,6 +130,7 @@ void flash::flashLoop(void) {
     flashData->flashState = false;
     LOG_INFO("Starting flash object %d" CR, this);
     while (true) {
+        flashWdt->feed();
         thisLoopTime = nextLoopTime;
         if (flashData->flashState) {
             nextLoopTime += flashData->offTime;

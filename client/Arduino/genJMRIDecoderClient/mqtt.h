@@ -96,7 +96,6 @@ public:
     static void disConnect(void);
     static rc_t up(void);
     static void down(void);
-    static void wdtKicked(void* p_dummy);
     static rc_t subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback, const void* p_args);
     static rc_t unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback);
     static rc_t sendMsg(const char* p_topic, const char* p_payload, bool p_retain = defaultRetain);

@@ -71,6 +71,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(HELP_CLI_CMD, GLOBAL_MO_NAME, CLIHELP_SUB_MO_NAME, onCliHelp);
 	regCmdHelp(HELP_CLI_CMD, GLOBAL_MO_NAME, CLIHELP_SUB_MO_NAME, GLOBAL_FULL_CLI_HELP_TXT);
 
+
+
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: context																												*/
 /* Description: See cliGlobalDefinitions.h																										*/
@@ -93,6 +95,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, COMMANDS_SUB_MO_NAME, "help", 1, false);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, COMMANDS_SUB_MO_NAME, GLOBAL_SHOW_COMMANDS_HELP_TXT);
 
+
+
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: reboot																												*/
 /* Description: See cliGlobalDefinitions.h																										*/
@@ -103,6 +107,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(REBOOT_CLI_CMD, GLOBAL_MO_NAME, NULL, "exception", 0, false);
 	regCmdHelp(REBOOT_CLI_CMD, GLOBAL_MO_NAME, NULL, GLOBAL_REBOOT_HELP_TXT);
 
+
+
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: uptime																												*/
 /* Description: See cliGlobalDefinitions.h																										*/
@@ -111,6 +117,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 //global uptime SubMo
 	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, onCliGetUptime);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, GLOBAL_GET_UPTIME_HELP_TXT);
+
+
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: cpu																													*/
@@ -134,6 +142,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, onCliShowCpu);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, CPU_SUB_MO_NAME, GLOBAL_SHOW_CPU_HELP_TXT);
+
+
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: memory																													*/
@@ -162,6 +172,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(STOP_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, onCliStopMem);
 	regCmdFlagArg(STOP_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, "allocate", 1, false);
 	regCmdHelp(STOP_CLI_CMD, GLOBAL_MO_NAME, CPUMEM_SUB_MO_NAME, GLOBAL_STOP_CPUMEM_HELP_TXT);
+
+
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: network																												*/
@@ -199,6 +211,55 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, onCliShowNetwork);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, NETWORK_SUB_MO_NAME, GLOBAL_SHOW_NETWORK_HELP_TXT);
 
+
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: wdt																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliSetWdt);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "debug", 1, false);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "timeout", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "action", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "active", 1, true);
+	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_SET_WDT_HELP_TXT);
+
+	regCmdMoArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliUnsetWdt);
+	regCmdFlagArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "debug", 1, false);
+	regCmdHelp(UNSET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_UNSET_WDT_HELP_TXT);
+
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliGetWdt);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "description", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "active", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "inhibited", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "timeout", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "actions", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expiries", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesedhit", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_GET_WDT_HELP_TXT);
+
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliShowWdt);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_SHOW_WDT_HELP_TXT);
+
+	regCmdMoArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliClearWdt);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expiries", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesedhit", 1, false);
+	regCmdHelp(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_CLEAR_WDT_HELP_TXT);
+
+	regCmdMoArg(STOP_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliStopWdt);
+	regCmdFlagArg(STOP_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
+	regCmdHelp(STOP_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_STOP_WDT_HELP_TXT);
+
+	regCmdMoArg(START_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliStartWdt);
+	regCmdFlagArg(START_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
+	regCmdHelp(START_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_START_WDT_HELP_TXT);
+
+
+
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: mqtt																													*/
 /* Description: See cliGlobalDefinitions.h																										*/
@@ -233,6 +294,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_GET_MQTT_HELP_TXT);
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, onCliShowMqtt);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, MQTT_SUB_MO_NAME, GLOBAL_SHOW_MQTT_HELP_TXT);
+
+
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: time																												*/
@@ -282,6 +345,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, onCliShowTime);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, TIME_SUB_MO_NAME, GLOBAL_SHOW_TIME_HELP_TXT);
 
+
+
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: log																													*/
 /* Description: See cliGlobalDefinitions.h																										*/
@@ -328,6 +393,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, onCliShowLogHelper);
 	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, LOG_SUB_MO_NAME, GLOBAL_SHOW_LOG_HELP_TXT);
 
+
+
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: debug																													*/
 /* Description: See cliGlobalDefinitions.h																										*/
@@ -340,6 +407,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdHelp(UNSET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, COMMON_UNSET_DEBUG_HELP_TXT);
 	regCmdMoArg(GET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, onCliGetDebugHelper);
 	regCmdHelp(GET_CLI_CMD, COMMON_MO_NAME, DEBUG_SUB_MO_NAME, COMMON_GET_DEBUG_HELP_TXT);
+
+
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: failsafe																												*/
@@ -378,6 +447,8 @@ void globalCli::regContextCliMOCmds(void) {
 }
 
 /* Global CLI decoration methods */
+
+//-------------------- Commands and contexts --------------------
 void globalCli::onCliHelp(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_dummy) {
 	Command cmd(p_cmd);
 	char helpCmd[50];
@@ -502,7 +573,7 @@ void globalCli::printTopology(bool p_start) {
 		sprintf(contextNameIndex, "%s-%i", getCliContextDescriptor()->contextName, getCliContextDescriptor()->contextIndex);
 		if (p_start)
 			printCli("| %*s | %*s | %*s |", -50, "Context-path:", -20, "Context:",
-				-20, "System-name");
+				-20, "System-name:");
 		if(getCurrentContext() == this)
 			printCli("| %*s | %*s | %*s | <<<",
 				-50, contextPath,
@@ -608,6 +679,7 @@ void globalCli::printCommand(const char* p_cmdType, const char* p_mo, const char
 		printCli("| %*s | %*s |", -60, commandNFlags, -15, mo);
 }
 
+//-------------------- Reboot --------------------
 void globalCli::onCliReboot(cmd* p_cmd, cliCore* p_cliContext,
 							cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -656,6 +728,7 @@ void globalCli::onCliReboot(cmd* p_cmd, cliCore* p_cliContext,
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
 }
 
+//-------------------- Uptime --------------------
 void globalCli::onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,
 							   cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -667,6 +740,7 @@ void globalCli::onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,
 	}
 }
 
+//-------------------- CPU --------------------
 void globalCli::onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,
 							  cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -839,6 +913,7 @@ void globalCli::onCliShowCpu(cmd* p_cmd, cliCore* p_cliContext,
 	LOG_WARN_NOFMT("Not implemented" CR);
 }
 
+//-------------------- MEMORY --------------------
 void globalCli::onCliGetMem(cmd* p_cmd, cliCore* p_cliContext,
 							cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -1086,6 +1161,7 @@ void globalCli::onCliStopMem(cmd* p_cmd, cliCore* p_cliContext,
 	}
 }
 
+//-------------------- NETWORK --------------------
 void globalCli::onCliSetNetwork(cmd* p_cmd, cliCore* p_cliContext,
 	cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -1412,6 +1488,573 @@ void globalCli::showNetwork(void) {
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
+
+
+/*==============================================================================================================================================*/
+/* Managed object (MO/Sub-MO): global/wdt																										*/
+/* Purpose: Defines global Watchdog managed objects																								*/
+/* Description:	Provides means to monitor and manage registered Watchdog objects																*/
+/*              such as:																														*/
+/*				- set wdt...																													*/
+/*				- unset wdt...																													*/
+/*				- get wdt...																													*/
+/*				- show wdt...																													*/
+/*				- clear wdt...																													*/
+/*				- stop wdt...																													*/
+/*				- start wdt...																													*/
+/*==============================================================================================================================================*/
+void globalCli::onCliSetWdt(cmd* p_cmd, cliCore* p_cliContext,
+							cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("debug")) {
+		if (wdt::getDebug()) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Debug already set");
+			LOG_VERBOSE_NOFMT("Debug already set" CR);
+			return;
+		}
+		wdt::setDebug(true);
+		cmdHandled = true;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id")) {
+		if (p_cmdTable->commandFlags->isPresent("active")) {
+			bool active;
+			if (!strcmp(p_cmdTable->commandFlags->isPresent("active")->getValue(), "True"))
+				active = true;
+			else if (!strcmp(p_cmdTable->commandFlags->isPresent("active")->getValue(), "False"))
+				active = false;
+			else {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Invalid \"-active\" flag value: %s, is none of \"True\" or \"False\"", p_cmdTable->commandFlags->isPresent("active")->getValue());
+				LOG_VERBOSE_NOFMT("Invalid \"-active\" flag value" CR);
+				return;
+			}
+			if (wdt::setActiveAll(active) == RC_DEBUG_NOT_SET_ERR) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+				LOG_VERBOSE_NOFMT("debug flag not set" CR);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else {
+		uint16_t id = atoi(p_cmdTable->commandFlags->isPresent("id")->getValue());
+		if (id == 0) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog id not valid");
+			LOG_VERBOSE_NOFMT("Watchdog id not valid" CR);
+			return;
+		}
+		if (!(p_cmdTable->commandFlags->isPresent("timeout") || p_cmdTable->commandFlags->isPresent("action") || p_cmdTable->commandFlags->isPresent("active"))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog \"-id\" flag must be followed by any of \"-timeout\", \"-action\" \"-active\ flags");
+			LOG_VERBOSE_NOFMT("Watchdog \"-id\" flag must be followed by any of \"-timeout\", \"-action\" \"-active\ flags" CR);
+			return;
+		}
+		if (p_cmdTable->commandFlags->isPresent("timeout")) {
+			uint32_t timeout = atoi(p_cmdTable->commandFlags->isPresent("timeout")->getValue());
+			if (timeout == 0) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog timeout not valid");
+				LOG_VERBOSE_NOFMT("Watchdog timeout not valid" CR);
+				return;
+			}
+			if (rc_t rc = wdt::setTimeout(id, timeout)) {
+				if (rc == RC_NOT_FOUND_ERR) {
+					notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog id does not exist");
+					LOG_VERBOSE_NOFMT("Watchdog id does not exist" CR);
+					return;
+				}
+				else if (rc == RC_DEBUG_NOT_SET_ERR) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+					LOG_VERBOSE_NOFMT("debug flag not set" CR);
+					return;
+				}
+				else {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Watchdog timeout");
+					LOG_VERBOSE_NOFMT("Could not set Watchdog timeout" CR);
+					return;
+				}
+			}
+			cmdHandled = true;
+		}
+		if (p_cmdTable->commandFlags->isPresent("action")) {
+			char action[100];
+			strcpy(action, p_cmdTable->commandFlags->isPresent("action")->getValue());
+			if (rc_t rc = wdt::setActionsFromStr(id, action)) {
+				if (rc == RC_NOT_FOUND_ERR) {
+					notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog id does not exist");
+					LOG_VERBOSE_NOFMT("Watchdog id does not exist" CR);
+					return;
+				}
+				else if (rc == RC_PARAMETERVALUE_ERR) {
+					notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog escalation actions invalid");
+					LOG_VERBOSE_NOFMT("Watchdog escalation actions invalid" CR);
+					return;
+				}
+				else if (rc == RC_DEBUG_NOT_SET_ERR) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+					LOG_VERBOSE_NOFMT("debug flag not set" CR);
+					return;
+				}
+				else {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Watchdog escalation actions");
+					LOG_VERBOSE_NOFMT("Could not set Watchdog escalation actions" CR);
+					return;
+				}
+			}
+			cmdHandled = true;
+		}
+		if (p_cmdTable->commandFlags->isPresent("active")) {
+			bool active;
+			if (!strcmp(p_cmdTable->commandFlags->isPresent("active")->getValue(), "True"))
+				active = true;
+			else if (!strcmp(p_cmdTable->commandFlags->isPresent("active")->getValue(), "False"))
+				active = false;
+			else {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Invalid \"-active\" flag value: %s, is none of \"True\" or \"False\"", p_cmdTable->commandFlags->isPresent("active")->getValue());
+				LOG_VERBOSE_NOFMT("Invalid \"-active\" flag value" CR);
+				return;
+			}
+			if (rc_t rc = wdt::setActive(id, active)) {
+				if (rc == RC_NOT_FOUND_ERR) {
+					notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Watchdog id does not exist");
+					LOG_VERBOSE_NOFMT("Watchdog id does not exist" CR);
+					return;
+				}
+				else if (rc == RC_DEBUG_NOT_SET_ERR) {
+					notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+					LOG_VERBOSE_NOFMT("debug flag not set" CR);
+					return;
+				}
+				else {
+					notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Watchdog escalation actions");
+					LOG_VERBOSE_NOFMT("Could not set Watchdog escalation actions" CR);
+					return;
+				}
+			}
+			cmdHandled = true;
+		}
+	}
+	if (cmdHandled) {
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	}
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
+	}
+}
+
+void globalCli::onCliUnsetWdt(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("debug")) {
+		if (!wdt::getDebug()) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Debug already unset");
+			LOG_VERBOSE_NOFMT("Debug already unset" CR);
+			return;
+		}
+		wdt::setDebug(false);
+		cmdHandled = true;
+	}
+	if (cmdHandled) {
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	}
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
+	}
+}
+
+void globalCli::onCliGetWdt(cmd* p_cmd, cliCore* p_cliContext,
+							cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		showWdt();
+		cmdHandled = true;
+		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id")) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "Watchdog Id flag missing");
+		LOG_VERBOSE_NOFMT("Watchdog Id flag missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("id")->getValue() == NULL) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "watchdog Id value missing");
+		LOG_VERBOSE_NOFMT("Watchdog Id value missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->getAllPresent()->size() == 1) {
+		if (!atoi(p_cmdTable->commandFlags->isPresent("id")->getValue())) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Invalid Watchdog Id");
+			LOG_VERBOSE_NOFMT("Invalid Watchdog Id" CR);
+			return;
+		}
+		showWdt(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()));
+		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
+	}
+	if (p_cmdTable->commandFlags->getAllPresent()->size() > 2) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "Only one WDT parameter can be showed at a time, " \
+							  "use \"show wdt\" or \"get wdt\" to get a summary " \
+							  "of all parameters");
+		LOG_VERBOSE_NOFMT("Only one WDT parameter can be showed at a time, " \
+							  "use \"show wdt\" or \"get wdt\" to get a summary " \
+							  "of all parameters" CR);
+		return;
+	}
+	wdt_t* wdtDescr;
+	if (wdt::getWdtDescById( atoi(p_cmdTable->commandFlags->get("id")->getValue()), &wdtDescr)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "Watchdog ID does not exsist");
+		LOG_VERBOSE_NOFMT("Watchdog ID does not exist" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("description")) {
+		printCli(wdtDescr->wdtDescription);
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("active")) {
+		printCli(wdtDescr->isActive? "True" : "False");
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("inhibited")) {
+		printCli(wdtDescr->isInhibited ? "True" : "False");
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("timeout")) {
+		printCli("%i", wdtDescr->wdtTimeoutTicks * WD_TICK_MS);
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("actions")) {
+		char actionStr[31];
+		printCli(wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction));
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("expiries")) {
+		printCli("%i", wdtDescr->wdtExpieries);
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("closesedhit")) {
+		printCli("%i", wdtDescr->closesedhit * WD_TICK_MS);
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid argumentsg" CR);
+	}
+}
+
+void globalCli::onCliShowWdt(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		LOG_WARN_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	showWdt();
+	acceptedCliCommand(CLI_TERM_QUIET);
+	return;
+}
+
+void globalCli::showWdt(uint16_t p_wdtId) {
+	char wdtInfo[200];
+	sprintf(wdtInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
+		-3, "id:",
+		-20, "Description:",
+		-7, "Active:",
+		-10, "Inhibited:",
+		-13, "Timeout [ms]:",
+		-30, "Actions: ",
+		-9, "Expiries:",
+		-17, "Closesedhit [ms]:");
+	printCli("%s", wdtInfo);
+	if (p_wdtId != 0) {
+		char actionStr[31];
+		wdt_t* wdtDescr;
+		if (wdt::getWdtDescById(p_wdtId, &wdtDescr))
+			return;
+		sprintf(wdtInfo, "| %*i | %*s | %*s | %*s | %*i | %*s | %*i | %*i |",
+			-3, wdtDescr->id,
+			-20, wdtDescr->wdtDescription,
+			-7, wdtDescr->isActive ? "True" : "False",
+			-10, wdtDescr->isInhibited ? "True" : "False",
+			-13, wdtDescr->wdtTimeoutTicks * WD_TICK_MS,
+			-30, wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction),
+			-9, wdtDescr->wdtExpieries,
+			-17, wdtDescr->closesedhit * WD_TICK_MS);
+		printCli("%s", wdtInfo);
+		return;
+	}
+	for (uint16_t wdtItter = 0; wdtItter <= wdt::maxId(); wdtItter++) {
+		char actionStr[31];
+		wdt_t* wdtDescr;
+		if (wdt::getWdtDescById(wdtItter, &wdtDescr))
+			continue;
+		sprintf(wdtInfo, "| %*i | %*s | %*s | %*s | %*i | %*s | %*i | %*i |",
+			-3, wdtDescr->id,
+			-20, wdtDescr->wdtDescription,
+			-7, wdtDescr->isActive? "True" : "False",
+			-10, wdtDescr->isInhibited? "True" : "False",
+			-13, wdtDescr->wdtTimeoutTicks * WD_TICK_MS,
+			-30, wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction),
+			-9, wdtDescr->wdtExpieries,
+			-17, wdtDescr->closesedhit * WD_TICK_MS);
+		printCli("%s", wdtInfo);
+	}
+}
+
+void globalCli::onCliClearWdt(cmd* p_cmd, cliCore* p_cliContext,
+							  cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	bool allIds = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id"))
+		allIds = true;
+	else if (p_cmdTable->commandFlags->isPresent("id")->getValue() == NULL) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "watchdog Id value missing");
+		LOG_VERBOSE_NOFMT("Watchdog Id value missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("expiries")) {
+		if (allIds) {
+			wdt::clearExpiriesAll();
+			cmdHandled = true;
+		}
+		else if (wdt::clearExpiries(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+								  "Watchdog Id: %s does not exist", p_cmdTable->commandFlags->isPresent("id")->getValue());
+			LOG_VERBOSE("Watchdog Id: %s does not exist" CR, p_cmdTable->commandFlags->isPresent("id")->getValue());
+			return;
+		}
+		else
+			cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("closesedhit")) {
+		if (allIds) {
+			wdt::clearClosesedHitAll();
+			cmdHandled = true;
+		}
+		else if (wdt::clearClosesedHit(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Watchdog Id: %s does not exist", p_cmdTable->commandFlags->isPresent("id")->getValue());
+			LOG_VERBOSE("Watchdog Id: %s does not exist" CR, p_cmdTable->commandFlags->isPresent("id")->getValue());
+			return;
+		}
+		else
+			cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
+	}
+}
+
+void globalCli::onCliStartWdt(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		if (rc_t rc = wdt::inhibitAllWdtFeeds(false)) {
+			if (rc == RC_DEBUG_NOT_SET_ERR) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+				LOG_VERBOSE_NOFMT("debug flag not set" CR);
+				return;
+			}
+			else {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Watchdog could not be started");
+				LOG_VERBOSE_NOFMT("Watchdog could not be started" CR);
+				return;
+			}
+		}
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+		return;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id")){ 
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Watchdog id flag was expected but is missing");
+		LOG_VERBOSE_NOFMT("Watchdog id flag was expected but is missing" CR);
+		return;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("id")->getValue() == NULL) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "watchdog id value missing");
+		LOG_VERBOSE_NOFMT("Watchdog id value missing" CR);
+		return;
+	}
+	if (rc_t rc = wdt::inhibitWdtFeeds(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()), false)) {
+		if (rc == RC_NOT_FOUND_ERR) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"watchdog id does not exist");
+			LOG_VERBOSE_NOFMT("watchdog id does not exist" CR);
+			return;
+		}
+		else if (rc == RC_DEBUG_NOT_SET_ERR) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+			LOG_VERBOSE_NOFMT("debug flag not set" CR);
+			return;
+		}
+		else {
+			LOG_VERBOSE_NOFMT("watchdog could not be started" CR);
+			return;
+		}
+	}
+	acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+
+void globalCli::onCliStopWdt(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		if (rc_t rc = wdt::inhibitAllWdtFeeds(true)){
+			if (rc == RC_DEBUG_NOT_SET_ERR) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+					LOG_VERBOSE_NOFMT("debug flag not set" CR);
+					return;
+			}
+			else {
+				notAcceptedCliCommand(CLI_GEN_ERR, "Watchdog could not be started");
+					LOG_VERBOSE_NOFMT("Watchdog could not be started" CR);
+					return;
+			}
+		}
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+		return;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id")) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Watchdog id was expected but is missing");
+		LOG_VERBOSE_NOFMT("Watchdog id was expected but is missing" CR);
+		return;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("id")->getValue() == NULL) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+							  "watchdog id value missing");
+		LOG_VERBOSE_NOFMT("Watchdog id value missing" CR);
+		return;
+	}
+	if (rc_t rc = wdt::inhibitWdtFeeds(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()), true)) {
+		if (rc == RC_NOT_FOUND_ERR) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+								  "watchdog id does not exist");
+			LOG_VERBOSE_NOFMT("watchdog id does not exist" CR);
+		}
+		else if (rc == RC_DEBUG_NOT_SET_ERR) {
+			notAcceptedCliCommand(CLI_GEN_ERR, 
+								  "debug flag not set - see set wdt -debug");
+			LOG_VERBOSE_NOFMT("debug flag not set" CR);
+			return;
+		}
+		else {
+			LOG_VERBOSE_NOFMT("watchdog could not be stoped" CR);
+			return;
+		}
+	}
+	acceptedCliCommand(CLI_TERM_EXECUTED);
+}
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* END Managed object (MO/Sub-MO): global/wdt																									*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+
+//-------------------- MQTT --------------------
 void globalCli::onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,
 							 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -1695,6 +2338,8 @@ void globalCli::showMqtt(void) {
 	printCli("%s", mqttInfo);
 
 }
+
+//-------------------- TIME --------------------
 void globalCli::onCliAddTime(cmd* p_cmd, cliCore* p_cliContext,
 							 cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -2289,6 +2934,7 @@ void globalCli::showTime(void) {
 	acceptedCliCommand(CLI_TERM_QUIET);
 }
 
+//-------------------- LOG --------------------
 void globalCli::onCliSetLogHelper(cmd* p_cmd, cliCore* p_cliContext,
 								  cliCmdTable_t* p_cmdTable) {
 	Command cmd(p_cmd);
@@ -2747,6 +3393,7 @@ bool globalCli::getFailSafe(void){
 }
 
 /* Common CLI decoration methods */
+//-------------------- DEBUG --------------------
 void globalCli::onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
 									cliCmdTable_t* p_cmdTable) {
 	if (static_cast<globalCli*>(p_cliContext)->getDebug()) {
@@ -2789,6 +3436,7 @@ bool globalCli::getDebug(void) {
 	return false;
 }
 
+//-------------------- OPSTATE --------------------
 void globalCli::onCliGetOpStateHelper(cmd* p_cmd, cliCore* p_cliContext,
 									  cliCmdTable_t* p_cmdTable) {
 	static_cast<globalCli*>(p_cliContext)->onCliGetOpState(p_cmd);
@@ -2816,6 +3464,7 @@ rc_t globalCli::getOpStateStr(char* p_opStateStr){
 	return RC_NOTIMPLEMENTED_ERR;
 }
 
+//-------------------- MOM Sys, Usr, and Desc handling --------------------
 void globalCli::onCliGetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,
 									  cliCmdTable_t* p_cmdTable) {
 	static_cast<globalCli*>(p_cliContext)->onCliGetSysName(p_cmd);

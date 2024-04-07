@@ -86,7 +86,7 @@ void mqtt::create(void) {
 
 rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
     LOG_INFO("Initializing and starting MQTT client, BrokerURI: %s, BrokerPort: %i, User: %s, Password: %s, ClientId: %s" CR, p_brokerUri, p_brokerPort, p_brokerUser, p_brokerPass, p_clientId);
-    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(MQTT_POLL_PERIOD_MS * 3 * 1000, "MQTT watchdog", FAULTACTION_FAILSAFE_ALL | FAULTACTION_REBOOT);
+    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(3000, "MQTT watchdog", FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     missedPings = 0;
     opStateTopicSet = false;
     discovered = false;
@@ -122,10 +122,11 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
         CPU_MQTT_POLL_STACKSIZE_1K * 1024,                          // Stack size
         NULL,                                                       // Parameter passing
         CPU_MQTT_POLL_PRIO,                                         // Priority 0-24, higher is more
-        INTERNAL)) {                                                 // Task stack attribute'
+        INTERNAL)) {                                                // Task stack attribute
         panic("Could not start the MQTT poll task");
         return RC_OUT_OF_MEM_ERR;
     }
+    mqttWdt->activate();
     LOG_INFO_NOFMT("Waiting for MQTT client to connect (I.e. opState ~OP_DISCONNECTED)..." CR);
     while (true) {
         if (!(getOpStateBitmap() & OP_DISCONNECTED)) {
@@ -155,7 +156,6 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
         statusCallback(mqttStatus, statusCallbackArgs);
     }
     sysState->unSetOpStateByBitmap(OP_INIT);
-    wdt::wdtRegMqttDown(wdtKicked, NULL);
     return RC_OK;
 }
 
@@ -244,11 +244,6 @@ void mqtt::down(void) {
     LOG_INFO_NOFMT("Declaring Mqtt client down" CR);
     sysState->setOpStateByBitmap(OP_DISABLED);
     supervision = false;
-}
-
-void mqtt::wdtKicked(void* p_dummy) {
-    panic("Watch dog kicked");
-    down();
 }
 
 rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callback, const void* p_args) {
@@ -672,17 +667,13 @@ void mqtt::poll(void* dummy) {
     for (uint16_t i = 0; i < avgSamples; i++)
         latencyVect[i] = 0;
     int stat;
-    //esp_task_wdt_init(1, true); //enable panic so ESP32 restarts
-    //esp_task_wdt_add(NULL); //add current thread to WDT watch
     while (true) {
         if (sysState->getOpStateBitmap() & OP_INTFAIL)
             return;
         char op[200];
-        //Serial.println("POLL");
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
         mqttWdt->feed();
-        //esp_task_wdt_reset();
         mqttClient->loop();
         stat = mqttClient->state();
         switch (stat) {
@@ -705,7 +696,9 @@ void mqtt::poll(void* dummy) {
                 sysState->setOpStateByBitmap(OP_INTFAIL);
                 networking::reportNwFail();
                 panic("Max number of MQTT connect/reconnect attempts reached - stopping MQTT poll loop");
+                delete mqttWdt;
                 vTaskDelete(NULL);
+                Serial.printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Why did it return\n");
                 return;
             }
             LOG_INFO_NOFMT("Connecting to Mqtt" CR);
@@ -736,6 +729,7 @@ void mqtt::poll(void* dummy) {
             sysState->setOpStateByBitmap(OP_INTFAIL);
             networking::reportNwFail();
             panic("Fatal MQTT error, one of BAD_PROTOCOL, BAD_CLIENT_ID, UNAVAILABLE, BAD_CREDETIALS, UNOTHORIZED - stopping MQTT poll loop" CR);
+            delete mqttWdt;
             vTaskDelete(NULL);
             return;
         }
@@ -764,6 +758,7 @@ void mqtt::poll(void* dummy) {
             nextLoopTime = esp_timer_get_time();
         }
     }
+    delete mqttWdt;
     vTaskDelete(NULL);
 }
 

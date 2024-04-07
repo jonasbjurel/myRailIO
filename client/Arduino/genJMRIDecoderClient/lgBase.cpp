@@ -249,7 +249,6 @@ rc_t lgBase::start(void) {
         panic("%s: Failed to suscribe to opState topic: \"%s\"", logContextName, admopSubscribeTopic);
         return RC_GEN_ERR;
     }
-    wdt::wdtRegLgFailsafe(wdtKickedHelper, this);
     systemState::unSetOpStateByBitmap(OP_INIT);
     return RC_OK;
 }
@@ -328,14 +327,6 @@ void lgBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     }
     else
         LOG_ERROR("%s: lf got an invalid admstate message from server %s - doing nothing" CR, logContextName, p_payload);
-}
-
-void lgBase::wdtKickedHelper(void* lgBaseHandle) {
-    ((lgBase*)lgBaseHandle)->wdtKicked();
-}
-
-void lgBase::wdtKicked(void) {
-    systemState::setOpStateByBitmap(OP_INTFAIL);
 }
 
 rc_t lgBase::getOpStateStr(char* p_opStateStr) {

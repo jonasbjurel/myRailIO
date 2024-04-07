@@ -153,6 +153,7 @@ private:
     char* logContextName;
     uint8_t linkNo;
     bool linkScan;
+    wdt* linkScanWdt;
     sysState_t prevSysState;
     bool lgLinkScanDisabled;
     bool failsafeSet;
