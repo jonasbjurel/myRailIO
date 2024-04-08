@@ -57,8 +57,7 @@
 /*          Watchdog kick actions can eather be used to try to remedy the failure which caused the watchdog to be kicked, or to set a failsafe  */
 /*            operation.                                                                                                                        */
 /*          Every time a watchdog is kicked - an expirey counter is incremented for that specific watchdog, and every hour, that expirey        */
-/*            is decremented by one. Should the expiriey counter reach MAX_EXPIRIES defined below, the watchdog will start a global expiriry    */
-/*            ladder starting from FAULTACTION_GLOBAL_FAILSAFE moving towards FAULTACTION_GLOBAL_REBOOT                                         */
+/*            is decremented by one. Should the expiriey counter reach MAX_EXPIRIES defined below, the watchdog will immediatly reboot the      */
 /* Methods: See below.                                                                                                                          */
 /* Data structures: See below                                                                                                                   */
 /*==============================================================================================================================================*/
@@ -74,12 +73,14 @@ typedef uint8_t action_t ;                                                      
 #define FAULTACTION_ESCALATE_INTERGAP       1<<0                                    // If set, the escalation ladder from FAULTACTION_LOCAL0 to FAULTACTION_REBOOT will be intergapped with one WDT tick
 
 #define NO_OF_OUTSTANDING_WDT_TIMEOUT_JOBS  1                                       // Queue up to 1 outstanding jobs for the wdtHandlerBackend to keep up with
+#define WDT_MAX_EXPIRIES                    2                                       // Max number of watchdog expiries befor an unconditional reboot occurs
 
 #define CPU_WDT_BACKEND_TASKNAME            "Watchdog"                              // ISR Backend task
 #define CPU_WDT_BACKEND_STACKSIZE_1K        6                                       // ISR Backend task stack size, must be dimentioned to run the ISR backend + the action callbacks
 #define CPU_WDT_BACKEND_PRIO                24                                      // The ISR backend runs with the highest priority on the system
 
 #define WD_TICK_MS                          100                                     // Number of millis per wdt tick, highest resolution of the watchdog timeout.
+#define WDT_HOUR_TICK                       (60 * 60 * 1000 / WD_TICK_MS)           // Ticks for an hour
 #ifndef WDT_TIMER
 #define WDT_TIMER                           2                                       // Hardware timer No
 #endif WDT_TIMER
@@ -189,6 +190,7 @@ private:
     static uint32_t currentWdtTick;                                                 // Current watchdog tick
     static uint32_t nextWdtTimeoutTick;                                             // Next watchdog tick needing care
     static bool outstandingWdtTimeout;                                              // A watchdog timeout/kick is being handled
+    static bool ageExpiries;                                                        // Indicates need for expiry aging (decreasing watch dog expiries)
     static bool debug;                                                              // Watchdog debug flag
 };
 
