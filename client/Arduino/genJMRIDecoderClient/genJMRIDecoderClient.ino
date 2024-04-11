@@ -51,11 +51,11 @@ void setup() {
     Serial.printf("Starting Setup task\n");
     if (!eTaskCreate(                               // Spinning up a temporary setup task as wee need a bigger stack than set-up provides
             setupTask,                              // Task function
-            SETUP_TASKNAME,                         // Task function name reference
-            SETUP_STACKSIZE_1K * 1024,              // Stack size
+            CPU_SETUP_TASKNAME,                     // Task function name reference
+            CPU_SETUP_STACKSIZE_1K * 1024,          // Stack size
             NULL,                                   // Parameter passing
-            SETUP_PRIO,                             // Priority 0-24, higher is more
-            SETUP_STACK_ATTR)) {                    // Stack attibute
+            CPU_SETUP_PRIO,                         // Priority 0-24, higher is more
+            CPU_SETUP_STACK_ATTR)) {                // Stack attibute
         panic("Could not start setup task");
         return;
     }

@@ -37,6 +37,7 @@
 #include "libraries/tinyxml2/tinyxml2.h"
 #include "systemState.h"
 #include "wdt.h"
+#include "job.h"
 #include "networking.h"
 #include "strHelpers.h"
 #include "panic.h"
@@ -82,9 +83,15 @@ struct mqttTopic_t {
     QList<mqttSub_t*>* topicList;
 };
 
+struct mqttJobDesc_t {
+    char* topic;
+    char* payload;
+    unsigned int length;
+};
 
 
-class mqtt : public wdt{
+
+class mqtt{
 public:
     //Public methods
     static void create(void);
@@ -138,13 +145,15 @@ private:
     static void onDiscoverResponse(const char* p_topic, const char* p_payload, const void* p_dummy);
     static void poll(void* dummy);
     static void onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length);
+    static void dequeueMqttRxMsg(void* p_mqttJobDesc);
     static rc_t reSubscribe(void);
     static void mqttPingTimer(void* dummy);
     static void onMqttPing(const char* p_topic, const char* p_payload, const void* p_dummy);
+    static void onMqttJobOverload(void* p_dummy, bool p_overload);
 
     //Private data structures
-    static TaskHandle_t* supervisionTaskHandle;
     static systemState* sysState;
+    static job* mqttJobHandle;
     static SemaphoreHandle_t mqttLock;
     static WiFiClient espClient;
     static PubSubClient* mqttClient;

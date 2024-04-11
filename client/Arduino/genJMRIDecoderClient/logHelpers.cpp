@@ -55,7 +55,7 @@ EXT_RAM_ATTR char logg::timeStamp[35] = { '\0' };
 EXT_RAM_ATTR char logg::microSecTimeStamp[10] = { '\0' };
 EXT_RAM_ATTR tm* logg::tmTod;
 EXT_RAM_ATTR const char* logg::fileBaseNameStr = NULL;
-EXT_RAM_ATTR logJobDesc_t logg::logJobDesc[LOGJOBSLOTS + 1];
+EXT_RAM_ATTR logJobDesc_t logg::logJobDesc[LOG_JOB_SLOTS + 1];
 EXT_RAM_ATTR uint16_t logg::logJobDescIndex = 0;
 EXT_RAM_ATTR bool logg::overload = false;
 EXT_RAM_ATTR bool logg::overloadCeased = false;
@@ -77,15 +77,14 @@ logg::logg(void){
     tz.tz_minuteswest = 0;
     tz.tz_dsttime = 0;
     logLevel = GJMRI_DEBUG_INFO;
-    logJobHandle = new job(LOGJOBSLOTS, LOG_TASKNAME, LOG_STACKSIZE_1K * 1024, LOG_PRIO, false);
+//  logJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(LOGJOBSLOTS, LOG_TASKNAME, LOG_STACKSIZE_1K * 1024, LOG_PRIO, LOG_WDT_TIMEOUT_MS);
+    logJobHandle = new job(LOG_JOB_SLOTS, CPU_LOG_JOB_TASKNAME, CPU_LOG_JOB_STACKSIZE_1K * 1024, CPU_LOG_JOB_PRIO, false, LOG_JOB_WDT_TIMEOUT_MS);
     if (!logJobHandle){
-        panic("Could not reate the log job task" CR);
+        panic("Could not create the log job task" CR);
         return;
     }
-//    logJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(LOGJOBSLOTS, LOG_TASKNAME, LOG_STACKSIZE_1K * 1024, LOG_PRIO);
-    logJobHandle->setjobQueueUnsetOverloadLevel(LOGJOBSLOTS / 4);
+    logJobHandle->setOverloadLevelCease(LOG_JOB_SLOTS / 4);
     logJobHandle->regOverloadCb(onOverload, this);
-    return;
 }
 
 logg::~logg(void) {
@@ -447,8 +446,8 @@ void logg::enqueueLog(logSeverity_t p_logLevel, const char* p_file, const char* 
         logJobDesc[logJobDescIndex].format = false;
     }
     logJobDesc[logJobDescIndex].busy = true;
-    logJobHandle->enqueue(dequeueLog, &logJobDesc[logJobDescIndex], 0, p_purge);
-    if (++logJobDescIndex >= LOGJOBSLOTS + 1)
+    logJobHandle->enqueue(dequeueLog, &logJobDesc[logJobDescIndex], p_purge);
+    if (++logJobDescIndex >= LOG_JOB_SLOTS + 1)
         logJobDescIndex = 0;
     xSemaphoreGive(logLock);
 }

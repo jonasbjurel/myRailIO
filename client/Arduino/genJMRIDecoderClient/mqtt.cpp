@@ -36,8 +36,8 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-EXT_RAM_ATTR TaskHandle_t* mqtt::supervisionTaskHandle = NULL;
 EXT_RAM_ATTR systemState* mqtt::sysState = NULL;
+EXT_RAM_ATTR job* mqtt::mqttJobHandle = NULL;
 EXT_RAM_ATTR SemaphoreHandle_t mqtt::mqttLock = NULL;
 EXT_RAM_ATTR WiFiClient mqtt::espClient;
 EXT_RAM_ATTR PubSubClient* mqtt::mqttClient;
@@ -79,14 +79,23 @@ EXT_RAM_ATTR uint16_t mqtt::retryCnt = 0;
 void mqtt::create(void) {
     LOG_INFO_NOFMT("Creating MQTT client" CR);
     sysState = new (heap_caps_malloc(sizeof(systemState), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) systemState(NULL);
+    if (!sysState)
+        panic("systemState could not be created");
     sysState->setSysStateObjName("mqtt");
     sysState->setOpStateByBitmap(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_CLIEUNAVAILABLE);
+    mqttJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(MQTT_JOB_SLOTS, CPU_JOB_MQTT_TASKNAME, CPU_JOB_MQTT_STACKSIZE_1K * 1024, CPU_JOB_MQTT_PRIO, false, WDT_JOB_MQTT_TIMEOUT_MS);
+    if (!mqttJobHandle)
+        panic("MQTT job could not be created");
+    mqttJobHandle->setOverloadLevelCease(MQTT_JOB_SLOTS / 2);
+    mqttJobHandle->regOverloadCb(onMqttJobOverload, NULL);
     mqttLock = xSemaphoreCreateMutex();
+    if (!mqttLock)
+        panic("MQTT Lock could not be created");
 }
 
 rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
     LOG_INFO("Initializing and starting MQTT client, BrokerURI: %s, BrokerPort: %i, User: %s, Password: %s, ClientId: %s" CR, p_brokerUri, p_brokerPort, p_brokerUser, p_brokerPass, p_clientId);
-    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(3000, "MQTT watchdog", FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
+    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_MQTT_TIMEOUT_MS, "MQTT watchdog", FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     missedPings = 0;
     opStateTopicSet = false;
     discovered = false;
@@ -581,31 +590,49 @@ rc_t mqtt::reSubscribe(void) {
 }
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
-    bool subFound = false;
-    char* payload = new (heap_caps_malloc(sizeof(char) * (p_length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[p_length + 1];
-    if (!payload) {
-        panic("Failed to allocate a MQTT receive buffer");
+
+    LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, p_payload, p_length);
+    mqttJobDesc_t* mqttJobDesc;
+    mqttJobDesc = new (heap_caps_malloc(sizeof(mqttJobDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttJobDesc_t;
+    if (!mqttJobDesc) {
+        panic("Failed to allocate a MQTT receive job descriptor");
         return;
     }
-    memcpy(payload, p_payload, p_length);
-    payload[p_length] = '\0';
-    LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, payload, p_length);
+    mqttJobDesc->topic = new (heap_caps_malloc(sizeof(char) * (strlen(p_topic) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(p_topic) + 1];
+    if (!mqttJobDesc->topic) {
+        panic("Failed to allocate a MQTT topic job descriptor");
+        return;
+    }
+    strcpy(mqttJobDesc->topic, p_topic);
+    mqttJobDesc->payload = new (heap_caps_malloc(sizeof(char) * (p_length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[p_length + 1];
+    if (!mqttJobDesc->topic) {
+        panic("Failed to allocate a MQTT payload job descriptor");
+        return;
+    }
+    memcpy(mqttJobDesc->payload, p_payload, p_length);
+    mqttJobDesc->payload[p_length] = '\0';
+    mqttJobDesc->length = p_length;
+    LOG_VERBOSE("Enquing MQTT mesage, topic: %s to the MQTT job queue" CR, p_topic);
+    mqttJobHandle->enqueue(dequeueMqttRxMsg, &mqttJobDesc, false);
+}
+
+void mqtt::dequeueMqttRxMsg(void* p_mqttJobDesc){
+    bool subFound = false;
     for (int i = 0; i < mqttTopics.size(); i++) {
-        if (!strcmp(mqttTopics.at(i)->topic, p_topic)) {
+        if (!strcmp(mqttTopics.at(i)->topic, ((mqttJobDesc_t*)p_mqttJobDesc)->topic)) {
             for (int j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
                 subFound = true;
-                mqttTopics.at(i)->topicList->at(j)->mqttSubCallback(p_topic, payload, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs);
+                mqttTopics.at(i)->topicList->at(j)->mqttSubCallback(((mqttJobDesc_t*)p_mqttJobDesc)->topic, ((mqttJobDesc_t*)p_mqttJobDesc)->payload, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs);
             }
         }
     }
-    if (!subFound) {
-        LOG_ERROR("Could not find any subscription for received message topic: %s" CR, p_topic);
-        delete payload;
-        return;
-    }
-    delete payload;
-    return;
+    if (!subFound)
+        LOG_ERROR("Could not find any subscription for received message topic: %s" CR, ((mqttJobDesc_t*)p_mqttJobDesc)->topic);
+    delete ((mqttJobDesc_t*)p_mqttJobDesc)->topic;
+    delete ((mqttJobDesc_t*)p_mqttJobDesc)->payload;
+    delete p_mqttJobDesc;
 }
+
 
 uint32_t mqtt::getOverRuns(void) {
     return overRuns;
@@ -790,6 +817,12 @@ void mqtt::onMqttPing(const char* p_topic, const char* p_payload, const void* p_
             sysState->unSetOpStateByBitmap(OP_CLIEUNAVAILABLE);
     missedPings = 0;
 }
+
+void mqtt::onMqttJobOverload(void* p_dummy, bool p_overload) {
+    if (p_overload)
+    panic("Mqtt job buffer overloaded");
+}
+
 /*==============================================================================================================================================*/
 /* END Class mqtt                                                                                                                               */
 /*==============================================================================================================================================*/

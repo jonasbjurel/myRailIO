@@ -116,7 +116,7 @@ typedef QList<wdt_t*> wdtDescrList_t;                                           
 class wdt {
 public:
     //Methods
-    wdt(uint32_t p_wdtTimeoutMs, char* p_wdtDescription,                            // Watchdog class object constructor, defining: Watchdog timeout in ms, Watchdog description,
+    wdt(uint32_t p_wdtTimeoutMs, const char* p_wdtDescription,                      // Watchdog class object constructor, defining: Watchdog timeout in ms, Watchdog description,
         action_t p_wdtAction);                                                      //   and Watchdog kick actions as an action_t bitmap
     ~wdt(void);                                                                     // Watchdog class object destructor
     static rc_t setActiveAll(bool p_active);                                        // Activate/Deactivate all watchdogs

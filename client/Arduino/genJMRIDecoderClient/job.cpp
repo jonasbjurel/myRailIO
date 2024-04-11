@@ -37,11 +37,13 @@
 /*==============================================================================================================================================*/
 //job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSort = false) {
 
-job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting) {
+job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting, uint32_t p_wdtTimeoutMs) {
 	jobQueueDepth = p_jobQueueDepth;
 	processTaskName = p_processTaskName;
 	processTaskPrio = p_processTaskPrio;
 	taskSorting = p_taskSorting;
+	wdtTimeoutMs = p_wdtTimeoutMs;
+
 	if (!(jobLock = xSemaphoreCreateMutex())) {
 		panic("Could not create Lock objects");
 		return;
@@ -55,20 +57,21 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 		panic("Could not create lapse list object");
 		return;
 	}
-	//uint8_t jobProcessCore = ....
+	jobWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(wdtTimeoutMs, p_processTaskName, FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
 	if (!(jobTaskHandle = eTaskCreate(jobProcessHelper,					// Task function
 						p_processTaskName,								// Task function name reference
 						p_processTaskStackSize,							// Stack size
 						this,											// Parameter passing
 						p_processTaskPrio,								// Priority 0-24, higher is more
 						INTERNAL))){									// Task handle
-		panic("Could not create job task");
+		panic("Could not create job task %s", p_processTaskName);
 		return;
 	}
+	jobWdt->activate();
 	jobOverloadCb = NULL;
 	jobOverloadCbMetaData = NULL;
 	overloaded = false;
-	unsetOverloadLevel = 0;
+	unsetOverloadLevel = p_jobQueueDepth - 1;
 	bumpJobSlotPrio = 0;
 	purgeAllJobs = false;
 }
@@ -86,11 +89,11 @@ void job::unRegOverloadCb(void) {
 	jobOverloadCb = NULL;
 }
 
-void job::setjobQueueUnsetOverloadLevel(uint16_t p_unsetOverloadLevel) {
+void job::setOverloadLevelCease(uint16_t p_unsetOverloadLevel) {
 	unsetOverloadLevel = p_unsetOverloadLevel;
 }
 
-void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio, bool p_purgeAllJobs) {
+void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs) {
 	bool found = false;
 	xSemaphoreTake(jobLock, portMAX_DELAY);
 	jobdesc_t* jobDesc = new (heap_caps_malloc(sizeof(jobdesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) jobdesc_t;
@@ -172,7 +175,14 @@ void job::jobProcessHelper(void* p_objectHandle) {
 
 void job::jobProcess(void) {
 	while (true) {
-		xSemaphoreTake(jobSleepSemaphore, portMAX_DELAY);
+		if (!(xSemaphoreTake(jobSleepSemaphore, (wdtTimeoutMs /3) / portTICK_PERIOD_MS) == pdTRUE)) {
+			if (!wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
+				enqueue(jobWdtSuperviseHelper, this, false);
+				wdtSuperviseJobs++;
+			}
+			continue;
+		}
+		jobWdt->feed();
 		if (lapseDescList->size() == 0)
 			panic("Job buffer empty despite the jobSleepSemaphore was released" CR);
 		lapseDescList->front()->jobDescList->front()->jobCb(lapseDescList->front()->jobDescList->front()->jobCbMetaData);
@@ -200,4 +210,13 @@ void job::jobProcess(void) {
 		}
 	}
 	vTaskDelete(NULL);
+}
+
+void job::jobWdtSuperviseHelper(void* p_handle) {
+	((job*)p_handle)->jobWdtSupervise();
+	
+}
+
+void job::jobWdtSupervise(void) {
+	wdtSuperviseJobs--;
 }

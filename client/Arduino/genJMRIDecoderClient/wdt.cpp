@@ -56,7 +56,7 @@ DRAM_ATTR  bool wdt::debug = false;
 
 
 
-wdt::wdt(uint32_t p_wdtTimeoutMs, char* p_wdtDescription, action_t p_wdtAction) {
+wdt::wdt(uint32_t p_wdtTimeoutMs, const char* p_wdtDescription, action_t p_wdtAction) {
 	if (wdtObjCnt++ == 0) {															//First Watchdog instance - set up all needed global/static functions and structures
 		LOG_INFO_NOFMT("Starting the watchdog base object" CR);
 		if (!(wdtProcessSemaphore = xSemaphoreCreateCounting(NO_OF_OUTSTANDING_WDT_TIMEOUT_JOBS, 0))) {

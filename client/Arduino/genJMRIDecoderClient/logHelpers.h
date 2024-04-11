@@ -163,7 +163,7 @@ private:
 	static const char* fileBaseNameStr;
 	static char* logMsgOutput;
 	static tm* tmTod;
-	static logJobDesc_t logJobDesc[LOGJOBSLOTS + 1];
+	static logJobDesc_t logJobDesc[LOG_JOB_SLOTS + 1];
 	static uint16_t logJobDescIndex;
 	static bool overload;
 	static bool overloadCeased;

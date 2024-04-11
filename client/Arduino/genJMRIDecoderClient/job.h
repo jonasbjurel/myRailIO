@@ -36,6 +36,7 @@ class job;
 #include <freertos/task.h>
 #include "rc.h"
 #include "panic.h"
+#include "wdt.h"
 #include "config.h"
 #include "taskWrapper.h"
 #include "logHelpers.h"
@@ -72,16 +73,17 @@ struct lapseDesc_t {
 };
 
 
+class wdt;
 
 class job {
 public:
     //Public methods
-    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting);
+    job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting, uint32_t p_wdtTimeoutMs);
     ~job(void);
     void regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData);
     void unRegOverloadCb(void);
-    void setjobQueueUnsetOverloadLevel(uint16_t p_unsetOverloadLevel);
-    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, uint8_t p_prio, bool p_purge = false);
+    void setOverloadLevelCease(uint16_t p_unsetOverloadLevel);
+    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purge = false);
     void purge(void);
     bool getOverload(void);
     uint16_t getPendingJobSlots(void);
@@ -94,12 +96,16 @@ private:
     //Private methods
     static void jobProcessHelper(void* p_objectHandle);
     void jobProcess(void);
+    static void jobWdtSuperviseHelper(void* p_dummy);
+    void jobWdtSupervise(void);
 
     //Private data structures
     TaskHandle_t jobTaskHandle;
     const char* processTaskName;
     uint8_t processTaskPrio;
     bool taskSorting;
+    uint32_t wdtTimeoutMs;
+    uint8_t wdtSuperviseJobs;
     uint16_t jobQueueDepth;
     jobOverloadCb_t jobOverloadCb;
     void* jobOverloadCbMetaData;
@@ -110,6 +116,7 @@ private:
     QList<lapseDesc_t*>* lapseDescList;
     SemaphoreHandle_t jobLock;
     SemaphoreHandle_t jobSleepSemaphore;
+    wdt* jobWdt;
 };
 
 /*==============================================================================================================================================*/

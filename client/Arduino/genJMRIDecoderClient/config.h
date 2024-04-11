@@ -147,28 +147,35 @@
 #define EXTERNAL									false
 
 // Log job task
-#define LOGJOBSLOTS									10
-#define LOG_PRIO									5
-#define LOG_STACKSIZE_1K							6
-#define LOG_TASKNAME								"log"
-#define LOG_STACK_ATTR								EXTERNAL
-
+#define LOG_JOB_SLOTS								10
+#define CPU_LOG_JOB_PRIO							5
+#define CPU_LOG_JOB_STACKSIZE_1K					6
+#define CPU_LOG_JOB_TASKNAME						"logJob"
+#define CPU_LOG_JOB_STACK_ATTR						EXTERNAL
+#define LOG_JOB_WDT_TIMEOUT_MS						10000
 
 // Setup task
-#define SETUP_PRIO									4
-#define SETUP_STACKSIZE_1K							10
-#define SETUP_TASKNAME								"setup"
-#define SETUP_STACK_ATTR							INTERNAL
+#define CPU_SETUP_PRIO								4
+#define CPU_SETUP_STACKSIZE_1K						10
+#define CPU_SETUP_TASKNAME							"setup"
+#define CPU_SETUP_STACK_ATTR						INTERNAL
 
 // MQTT message polling
 #define CPU_MQTT_POLL_PRIO							15
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
+#define WDT_MQTT_TIMEOUT_MS							3000
+#define MQTT_JOB_SLOTS								10
+#define CPU_JOB_MQTT_TASKNAME						"mqttJob"
+#define CPU_JOB_MQTT_STACKSIZE_1K					6
+#define CPU_JOB_MQTT_PRIO							(CPU_MQTT_POLL_PRIO - 1)
+#define WDT_JOB_MQTT_TIMEOUT_MS						3000
 
 // System state job task
-#define CPU_SYSSTATE_JOB_PRIO						10
-#define CPU_SYSSTATE_JOB_STACKSIZE_1K				6
-#define CPU_SYSSTATE_JOB_TASKNAME					"sysStateJob"
+#define CPU_JOB_SYSSTATE_PRIO						10
+#define CPU_JOB_SYSSTATE_STACKSIZE_1K				6
+#define CPU_JOB_SYSSTATE_TASKNAME					"sysStateJob"
+#define WDT_JOB_SYSSTATE_TIMEOUT_MS					3000
 
 // MQTT message supervision
 #define CPU_MQTT_PING_PRIO							10
@@ -227,7 +234,7 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define WIFI_ESP_DEVICE_NAME						"ESP STATION"							// Not yet supported
 #define WIFI_ESP_HOSTNAME_PREFIX					"genJmriDec"							// Factory default decoder client hostname prefix, will be followed by "_<MAC address>" and can be modified through 
 #define WIFI_CONFIG_JSON_OBJ_SIZE					1024									// Config JSON document object size
-#define WIFI_CONFIG_JSON_SERIAL_SIZE				1024									// Config JSON document serialized size
+#define WIFI_CONFIG_JSON_SERIAL_SIZE				1024									// Config JSON document serial4eized size
 #define WIFI_CONFIG_STORE_FILENAME					FS_PATH "/" "WiFiConfig.json"			// Confiuration file path/name
 
 // File system parameters

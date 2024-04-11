@@ -36,8 +36,8 @@
 /*==============================================================================================================================================*/
 EXT_RAM_ATTR uint16_t systemState::sysStateIndex = 0;
 EXT_RAM_ATTR const char* systemState::OP_STR[14] = OP_ARR;
-//WHY IS NOT THIS WORKING: EXT_RAM_ATTR job* systemState::jobHandler = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, CPU_SYSSTATE_JOB_CORE);
-EXT_RAM_ATTR job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_SYSSTATE_JOB_TASKNAME, CPU_SYSSTATE_JOB_STACKSIZE_1K * 1024, CPU_SYSSTATE_JOB_PRIO, true);
+//WHY IS NOT THIS WORKING: EXT_RAM_ATTR job* systemState::jobHandler = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(JOB_QUEUE_SIZE, CPU_JOB_SYSSTATE_TASKNAME, CPU_JOB_SYSSTATE_STACKSIZE_1K * 1024, CPU_JOB_SYSSTATE_PRIO, CPU_SYSSTATE_JOB_CORE);
+EXT_RAM_ATTR job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_JOB_SYSSTATE_TASKNAME, CPU_JOB_SYSSTATE_STACKSIZE_1K * 1024, CPU_JOB_SYSSTATE_PRIO, true, WDT_JOB_SYSSTATE_TIMEOUT_MS);
 
 systemState::systemState(systemState* p_parent) {
     parent = p_parent;
