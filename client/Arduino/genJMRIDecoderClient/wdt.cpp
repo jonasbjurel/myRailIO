@@ -512,7 +512,7 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 				wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout = true;
 				if (wdtDescrList->at(wdtDescrListItter)->wdtExpiries >=				// Maximum wdt expiries occurred, unconditional reboot
 					WDT_MAX_EXPIRIES) {
-					panic("Maximum number of watchdog expiries reached");
+					panic("Maximum number of watchdog expiries reached for %s", wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 					currentWdtTick = currentWdtTick / 0;
 					return;
 				}
@@ -535,9 +535,13 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 					uint8_t nextAction = DONT_ESCALATE;
 					switch (escalationActionCnt) {
 						case 0:														// FAULTACTION_LOCAL0 callback requested and is scheduled for this escalation step
+							Serial.printf(">>> Watchdog timer has expired for %s, " \
+								"calling FAULTACTION_LOCAL0" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 									  "calling FAULTACTION_LOCAL0" CR, 
 								      wdtDescrList->at(wdtDescrListItter)->wdtDescription);
+
 							if (!wdtDescrList->at(wdtDescrListItter)->localCb)		// No callback registered - escalate!
 								nextAction = ESCALATE;
 							else													// Make the call, and let the receiver decide if further escalation is needed
@@ -545,6 +549,9 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 											 localCb(0, wdtDescrList->at(wdtDescrListItter)->localCbParams);
 							break;
 						case 1:														// FAULTACTION_LOCAL1 callback requested and is scheduled for this escalation step
+							Serial.printf(">>> Watchdog timer has expired for %s, " \
+								"Escalation, calling FAULTACTION_LOCAL1" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 									  "Escalation, calling FAULTACTION_LOCAL1" CR,
 									  wdtDescrList->at(wdtDescrListItter)->wdtDescription);
@@ -555,6 +562,9 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 											 localCb(1, wdtDescrList->at(wdtDescrListItter)->localCbParams);
 							break;
 						case 2:														// FAULTACTION_LOCAL2 callback requested and is scheduled for this escalation step
+							Serial.printf(">>> Watchdog timer has expired for %s, " \
+								"Escalation, calling FAULTACTION_LOCAL2" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 								"Escalation, calling FAULTACTION_LOCAL2" CR,
 								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
@@ -565,6 +575,9 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 											 localCb(2, wdtDescrList->at(wdtDescrListItter)->localCbParams);
 							break;
 						case 3:														// FAULTACTION_GLOBAL_FAILSAFE callback requested and is scheduled for this escalation step
+							Serial.printf(">>> Watchdog timer has expired for %s, " \
+								"Escalation, calling FAULTACTION_GLOBAL0" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 								"Escalation, calling FAULTACTION_GLOBAL0" CR,
 								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
@@ -575,6 +588,9 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 							}
 							break;
 						case 4:														// FAULTACTION_GLOBAL_FAILSAFE callback requested and is scheduled for this escalation step
+							Serial.printf(">>> Watchdog timer has expired for %s, " \
+								"Escalation, calling FAULTACTION_GLOBAL_FAILSAFE" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 								"Escalation, calling FAULTACTION_GLOBAL_FAILSAFE" CR,
 								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
@@ -585,10 +601,18 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 							}
 							break;
 						case 5:														// FAULTACTION_GLOBAL_REBOOT callback requested and is scheduled for this escalation step
+							Serial.printf(">>> Watchdog timer has expired for %s, " \
+								"Escalation, calling FAULTACTION_GLOBAL_REBOOT" CR,
+								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							LOG_ERROR("Watchdog timer has expired for %s, " \
 									  "Escalation, calling FAULTACTION_GLOBAL_REBOOT" CR,
 								wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 							if (!globalRebootCb) {									// No callback/reboot handler registered - reboot immediatly - no way out from here
+								Serial.printf(">>> Watchdog expired for %s but no global "		// Try an ordinary panic
+									"watchdog reboot handler registered, "
+									"rebooting..." CR,
+									wdtDescrList->at(wdtDescrListItter)->
+									wdtDescription);
 								panic("Watchdog expired for %s but no global "		// Try an ordinary panic
 									  "watchdog reboot handler registered, "		
 									  "rebooting..." CR,

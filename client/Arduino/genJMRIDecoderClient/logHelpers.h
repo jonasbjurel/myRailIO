@@ -94,18 +94,18 @@ struct logJobDesc_t {
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 #define __LOG_VA_ARGS__()
-#define LOG_VERBOSE(LOG_MSG_FMT, ...)			Log.enqueueLog(GJMRI_DEBUG_VERBOSE, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
-#define LOG_VERBOSE_NOFMT(LOG_MSG_FMT)			Log.enqueueLog(GJMRI_DEBUG_VERBOSE, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
-#define LOG_TERSE(LOG_MSG_FMT, ...)				Log.enqueueLog(GJMRI_DEBUG_TERSE, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
-#define LOG_TERSE_NOFMT(LOG_MSG_FMT)			Log.enqueueLog(GJMRI_DEBUG_TERSE, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
-#define LOG_INFO(LOG_MSG_FMT, ...)				Log.enqueueLog(GJMRI_DEBUG_INFO, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
-#define LOG_INFO_NOFMT(LOG_MSG_FMT)				Log.enqueueLog(GJMRI_DEBUG_INFO, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
-#define LOG_WARN(LOG_MSG_FMT, ...)				Log.enqueueLog(GJMRI_DEBUG_WARN, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
-#define LOG_WARN_NOFMT(LOG_MSG_FMT)				Log.enqueueLog(GJMRI_DEBUG_WARN, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
-#define LOG_ERROR(LOG_MSG_FMT, ...)				Log.enqueueLog(GJMRI_DEBUG_ERROR, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
-#define LOG_ERROR_NOFMT(LOG_MSG_FMT)			Log.enqueueLog(GJMRI_DEBUG_ERROR, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
-#define LOG_FATAL(LOG_MSG_FMT, ...)				Log.enqueueLog(GJMRI_DEBUG_FATAL, __FILE__, __FUNCTION__, __LINE__, true, true, LOG_MSG_FMT, ##__VA_ARGS__)
-#define LOG_FATAL_NOFMT(LOG_MSG_FMT)			Log.enqueueLog(GJMRI_DEBUG_FATAL, __FILE__, __FUNCTION__, __LINE__, true, false, LOG_MSG_FMT)
+#define LOG_VERBOSE(LOG_MSG_FMT, ...)			logg::enqueueLog(GJMRI_DEBUG_VERBOSE, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
+#define LOG_VERBOSE_NOFMT(LOG_MSG_FMT)			logg::enqueueLog(GJMRI_DEBUG_VERBOSE, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
+#define LOG_TERSE(LOG_MSG_FMT, ...)				logg::enqueueLog(GJMRI_DEBUG_TERSE, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
+#define LOG_TERSE_NOFMT(LOG_MSG_FMT)			logg::enqueueLog(GJMRI_DEBUG_TERSE, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
+#define LOG_INFO(LOG_MSG_FMT, ...)				logg::enqueueLog(GJMRI_DEBUG_INFO, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
+#define LOG_INFO_NOFMT(LOG_MSG_FMT)				logg::enqueueLog(GJMRI_DEBUG_INFO, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
+#define LOG_WARN(LOG_MSG_FMT, ...)				logg::enqueueLog(GJMRI_DEBUG_WARN, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
+#define LOG_WARN_NOFMT(LOG_MSG_FMT)				logg::enqueueLog(GJMRI_DEBUG_WARN, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
+#define LOG_ERROR(LOG_MSG_FMT, ...)				logg::enqueueLog(GJMRI_DEBUG_ERROR, __FILE__, __FUNCTION__, __LINE__, false, true, LOG_MSG_FMT, ##__VA_ARGS__)
+#define LOG_ERROR_NOFMT(LOG_MSG_FMT)			logg::enqueueLog(GJMRI_DEBUG_ERROR, __FILE__, __FUNCTION__, __LINE__, false, false, LOG_MSG_FMT)
+#define LOG_FATAL(LOG_MSG_FMT, ...)				logg::enqueueLog(GJMRI_DEBUG_FATAL, __FILE__, __FUNCTION__, __LINE__, true, true, LOG_MSG_FMT, ##__VA_ARGS__)
+#define LOG_FATAL_NOFMT(LOG_MSG_FMT)			logg::enqueueLog(GJMRI_DEBUG_FATAL, __FILE__, __FUNCTION__, __LINE__, true, false, LOG_MSG_FMT)
 
 
 
@@ -113,8 +113,7 @@ struct logJobDesc_t {
 class logg {
 public:
 	//Public methods
-	logg(void);
-	~logg(void);
+	static void start();
 	static rc_t setLogLevel(logSeverity_t p_loglevel);
 	static logSeverity_t getLogLevel(void);
 	static void setConsoleLog(bool p_consoleLog);
@@ -146,7 +145,7 @@ private:
 
 
 	//Private data structures
-	static logg* logInstance;
+	static bool logStarted;
 	static uint8_t instances;
 	static SemaphoreHandle_t logLock;
 	static SemaphoreHandle_t logDestinationLock;

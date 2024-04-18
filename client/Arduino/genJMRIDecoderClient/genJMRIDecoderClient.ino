@@ -46,7 +46,8 @@ void setup() {
     Serial.begin(115200);
     Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    Serial.printf("Provisioning network trigger\n");
+    logg::start();
+    Serial.printf("Starting provisioning network trigger\n");
     networking::provisioningConfigTrigger();
     Serial.printf("Starting Setup task\n");
     if (!eTaskCreate(                               // Spinning up a temporary setup task as wee need a bigger stack than set-up provides

@@ -1006,7 +1006,6 @@ void networking::saveConfigCb() {
 void networking::resetCb(void) {
     LOG_INFO_NOFMT("Reseting configuration to factory default ordered from UI" CR);
     factoryResetSettings(&networkConfig);
-    panic("Ordered factory default settings - rebooting...");
 }
 
 void networking::configurePortalConnectTimeoutCb(void) {

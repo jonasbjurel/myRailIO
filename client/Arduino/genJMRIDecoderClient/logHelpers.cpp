@@ -36,10 +36,9 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-EXT_RAM_ATTR logg Log = logg();
+EXT_RAM_ATTR bool logg::logStarted = false;
 EXT_RAM_ATTR const char* LOG_LEVEL_STR[NO_OF_LOG_LEVELS] = { "SILENT", "FATAL", "ERROR", "WARNING", "INFO", "TERSE", "VERBOSE" };
 EXT_RAM_ATTR uint8_t logg::instances = 0;
-EXT_RAM_ATTR logg* logg::logInstance;
 EXT_RAM_ATTR SemaphoreHandle_t logg::logLock = NULL;
 EXT_RAM_ATTR SemaphoreHandle_t logg::logDestinationLock = NULL;
 EXT_RAM_ATTR SemaphoreHandle_t logg::logCustomLock = NULL;
@@ -65,12 +64,11 @@ EXT_RAM_ATTR bool logg::consoleLog = true;
 
 
 
-logg::logg(void){
+void logg::start(void){
     if (instances++ > 0) {
         panic("Can not create more than one instance of logg" CR);
         return;
     }
-    logInstance = this;
     logLock = xSemaphoreCreateMutex();
     logDestinationLock = xSemaphoreCreateMutex();
     logCustomLock = xSemaphoreCreateMutex();
@@ -84,11 +82,8 @@ logg::logg(void){
         return;
     }
     logJobHandle->setOverloadLevelCease(LOG_JOB_SLOTS / 4);
-    logJobHandle->regOverloadCb(onOverload, this);
-}
-
-logg::~logg(void) {
-    panic("Destructing logg object not supported" CR);
+    logJobHandle->regOverloadCb(onOverload, NULL);
+    logStarted = true;
 }
 
 rc_t logg::setLogLevel(logSeverity_t p_loglevel) {
@@ -399,6 +394,9 @@ uint8_t logg::mapSeverityToSyslog(logSeverity_t p_logLevel) {
 }
 
 void logg::enqueueLog(logSeverity_t p_logLevel, const char* p_file, const char* p_classNFunction, size_t p_line, bool p_purge, bool p_format, const char* p_logMsgFmt, ...) {
+    if (!logStarted) {
+        return;
+    }
     if (overload) {
         if(shouldLog(p_logLevel, p_file, p_classNFunction)){
             missedLogs++;
@@ -424,7 +422,7 @@ void logg::enqueueLog(logSeverity_t p_logLevel, const char* p_file, const char* 
         xSemaphoreGive(logLock);
         return;
     }
-    assert(!logJobDesc[logJobDescIndex].busy);
+    assert(!logJobDesc[logJobDescIndex].busy);                              // Debug slots exhausted without having received backpressure from job, can we backpressure from here or do we need to dye?
     logJobDesc[logJobDescIndex].logJobIndex = logJobDescIndex;
     logJobDesc[logJobDescIndex].logLevel = p_logLevel;
     logJobDesc[logJobDescIndex].filePath = p_file;

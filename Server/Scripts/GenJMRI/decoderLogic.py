@@ -547,7 +547,7 @@ class decoder(systemState, schema):
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
             if not self.updated:
-                updateReq(self, self, uploadNReboot = True)
+                self.updateReq(self, self, uploadNReboot = True)
         if (((changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE])) or
             ((changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE])) or
             ((changedOpStateDetail & OP_NOIP[STATE]) and (opStateDetail & OP_NOIP[STATE])) or

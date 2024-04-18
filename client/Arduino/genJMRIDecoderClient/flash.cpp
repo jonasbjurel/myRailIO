@@ -58,7 +58,7 @@ flash::flash(float p_freq, uint8_t p_duty) {
     latencyVect = new (heap_caps_malloc(sizeof(uint32_t) * maxAvgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[maxAvgSamples];
     char flashName[30];
     sprintf(flashName, CPU_FLASH_LOOP_TASKNAME, flashInstanse);
-    flashWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt((float)(1 / (float)p_freq) * 10 * 1000, flashName,
+    flashWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_FLASH_LOOP_TIMEOUT_MS, flashName,
         FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     if (!eTaskCreate(
         flashLoopStartHelper,                   // Task function

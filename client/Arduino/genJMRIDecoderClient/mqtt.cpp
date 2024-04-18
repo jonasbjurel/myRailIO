@@ -95,7 +95,9 @@ void mqtt::create(void) {
 
 rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_brokerUser, const char* p_brokerPass, const char* p_clientId, uint8_t p_defaultQoS, uint8_t p_keepAlive, float p_pingPeriod, bool p_defaultRetain) {
     LOG_INFO("Initializing and starting MQTT client, BrokerURI: %s, BrokerPort: %i, User: %s, Password: %s, ClientId: %s" CR, p_brokerUri, p_brokerPort, p_brokerUser, p_brokerPass, p_clientId);
-    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_MQTT_TIMEOUT_MS, "MQTT watchdog", FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
+    mqttWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_MQTT_POLL_LOOP_TIMEOUT_MS, "mqttPollLoop", FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
+    if (!mqttWdt)
+        panic("Failed to create MQTT Watchdog");
     missedPings = 0;
     opStateTopicSet = false;
     discovered = false;
@@ -183,6 +185,7 @@ rc_t mqtt::regStatusCallback(const mqttStatusCallback_t p_statusCallback, const 
 }
 
 rc_t mqtt::reConnect(void){
+    Serial.printf("XXXXX Reconnecting MQTT\n");
     xSemaphoreTake(mqttLock, portMAX_DELAY);
     LOG_INFO("Re-connecting MQTT Client" CR);
     retryCnt = 0;
@@ -539,7 +542,7 @@ void mqtt::discover(void) {
 
 void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const void* p_dummy) {
     if (discovered) {
-        LOG_INFO("Discovery response receied several times - doing nothing ..." CR);
+        LOG_INFO("Discovery response received several times - doing nothing ..." CR);
         return;
     }
     LOG_INFO_NOFMT("Got a discover response, parsing and validating it..." CR);
@@ -591,7 +594,6 @@ rc_t mqtt::reSubscribe(void) {
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
 
-    LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d" CR, p_topic, p_payload, p_length);
     mqttJobDesc_t* mqttJobDesc;
     mqttJobDesc = new (heap_caps_malloc(sizeof(mqttJobDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttJobDesc_t;
     if (!mqttJobDesc) {
@@ -605,18 +607,19 @@ void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_
     }
     strcpy(mqttJobDesc->topic, p_topic);
     mqttJobDesc->payload = new (heap_caps_malloc(sizeof(char) * (p_length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[p_length + 1];
-    if (!mqttJobDesc->topic) {
+    if (!mqttJobDesc->payload) {
         panic("Failed to allocate a MQTT payload job descriptor");
         return;
     }
     memcpy(mqttJobDesc->payload, p_payload, p_length);
     mqttJobDesc->payload[p_length] = '\0';
     mqttJobDesc->length = p_length;
-    LOG_VERBOSE("Enquing MQTT mesage, topic: %s to the MQTT job queue" CR, p_topic);
-    mqttJobHandle->enqueue(dequeueMqttRxMsg, &mqttJobDesc, false);
+    LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d, enquing it to the job queue" CR, mqttJobDesc->topic, mqttJobDesc->payload, p_length);
+    mqttJobHandle->enqueue(dequeueMqttRxMsg, mqttJobDesc, false);
 }
 
 void mqtt::dequeueMqttRxMsg(void* p_mqttJobDesc){
+    Serial.printf("OOOOOOOOOOOOOOOO Starting MQTT Job: %s @%i\n", ((mqttJobDesc_t*)p_mqttJobDesc)->topic, esp_timer_get_time());
     bool subFound = false;
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, ((mqttJobDesc_t*)p_mqttJobDesc)->topic)) {
@@ -628,9 +631,12 @@ void mqtt::dequeueMqttRxMsg(void* p_mqttJobDesc){
     }
     if (!subFound)
         LOG_ERROR("Could not find any subscription for received message topic: %s" CR, ((mqttJobDesc_t*)p_mqttJobDesc)->topic);
+    Serial.printf("OOOOOOOOOOOOOOOO Ending MQTT Job: %s @%i\n", ((mqttJobDesc_t*)p_mqttJobDesc)->topic, esp_timer_get_time());
     delete ((mqttJobDesc_t*)p_mqttJobDesc)->topic;
     delete ((mqttJobDesc_t*)p_mqttJobDesc)->payload;
     delete p_mqttJobDesc;
+    Serial.printf("OOOOOOOOOOOOOOOO Returning\n");
+
 }
 
 
@@ -694,9 +700,16 @@ void mqtt::poll(void* dummy) {
     for (uint16_t i = 0; i < avgSamples; i++)
         latencyVect[i] = 0;
     int stat;
+    int printPoll = 0;
     while (true) {
-        if (sysState->getOpStateBitmap() & OP_INTFAIL)
+        if (!(printPoll++ % 20))
+            Serial.printf("XXXXXXX Poll\n");
+        if (sysState->getOpStateBitmap() & OP_INTFAIL) {
+            Serial.printf("XXXXXXX MQTT Exit 0\n");
+            delete mqttWdt;
+            vTaskDelete(NULL);
             return;
+        }
         char op[200];
         thisLoopTime = nextLoopTime;
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
@@ -723,14 +736,16 @@ void mqtt::poll(void* dummy) {
                 sysState->setOpStateByBitmap(OP_INTFAIL);
                 networking::reportNwFail();
                 panic("Max number of MQTT connect/reconnect attempts reached - stopping MQTT poll loop");
+                Serial.printf("XXXXXXX MQTT Exit 1\n");
                 delete mqttWdt;
                 vTaskDelete(NULL);
                 Serial.printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Why did it return\n");
                 return;
             }
-            LOG_INFO_NOFMT("Connecting to Mqtt" CR);
-            if (opStateTopicSet) {
-                LOG_INFO_NOFMT("Reconnecting with Last will" CR);
+            if (xSemaphoreTake(mqttLock, (TickType_t)0) == pdTRUE){
+                LOG_INFO("Re-connecting MQTT Client" CR);
+                Serial.printf("XXXXXXXXXXXX Poll reconnect start, %i\n", esp_timer_get_time());
+                retryCnt = 0;
                 mqttClient->connect(clientId,
                     brokerUser,
                     brokerPass,
@@ -738,12 +753,12 @@ void mqtt::poll(void* dummy) {
                     MQTT_DEFAULT_QOS,
                     true,
                     downPayload);
+                xSemaphoreGive(mqttLock);
+                Serial.printf("XXXXXXXXXXXX Poll reconnect end, %i\n", esp_timer_get_time());
             }
-            else {
-                mqttClient->connect(clientId,
-                    brokerUser,
-                    brokerPass);
-            }
+            else
+                Serial.printf("XXXXXXXXXXXX Poll could not reconnect - busy, %i\n", esp_timer_get_time());
+
             if (mqttStatus != stat) {
                 LOG_ERROR("MQTT connection not established or lost - opState set to OP_FAIL, cause: %d - retrying..." CR, stat); //This never times out but freezes
             }
@@ -756,6 +771,7 @@ void mqtt::poll(void* dummy) {
             sysState->setOpStateByBitmap(OP_INTFAIL);
             networking::reportNwFail();
             panic("Fatal MQTT error, one of BAD_PROTOCOL, BAD_CLIENT_ID, UNAVAILABLE, BAD_CREDETIALS, UNOTHORIZED - stopping MQTT poll loop" CR);
+            Serial.printf("XXXXXXX MQTT Exit 2\n");
             delete mqttWdt;
             vTaskDelete(NULL);
             return;
@@ -785,6 +801,7 @@ void mqtt::poll(void* dummy) {
             nextLoopTime = esp_timer_get_time();
         }
     }
+    Serial.printf("XXXXXXX MQTT Exit 3\n");
     delete mqttWdt;
     vTaskDelete(NULL);
 }

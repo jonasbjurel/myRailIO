@@ -37,10 +37,13 @@
 EXT_RAM_ATTR uint16_t systemState::sysStateIndex = 0;
 EXT_RAM_ATTR const char* systemState::OP_STR[14] = OP_ARR;
 //WHY IS NOT THIS WORKING: EXT_RAM_ATTR job* systemState::jobHandler = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(JOB_QUEUE_SIZE, CPU_JOB_SYSSTATE_TASKNAME, CPU_JOB_SYSSTATE_STACKSIZE_1K * 1024, CPU_JOB_SYSSTATE_PRIO, CPU_SYSSTATE_JOB_CORE);
-EXT_RAM_ATTR job* systemState::jobHandler = new job(JOB_QUEUE_SIZE, CPU_JOB_SYSSTATE_TASKNAME, CPU_JOB_SYSSTATE_STACKSIZE_1K * 1024, CPU_JOB_SYSSTATE_PRIO, true, WDT_JOB_SYSSTATE_TIMEOUT_MS);
+EXT_RAM_ATTR job* systemState::jobHandler = NULL;
 
 systemState::systemState(systemState* p_parent) {
     parent = p_parent;
+    jobObjName = new (heap_caps_malloc(sizeof(char) * 25, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[25];
+    sprintf(jobObjName, "sysStateJob-%d", sysStateIndex);
+    jobHandler = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(JOB_QUEUE_SIZE, jobObjName, CPU_JOB_SYSSTATE_STACKSIZE_1K * 1024, CPU_JOB_SYSSTATE_PRIO, true, WDT_JOB_SYSSTATE_TIMEOUT_MS);
     if (parent) {
         LOG_TERSE("Creating systemState object %s:sysStateObjIndex-%d to parent object %s" CR, parent->getSysStateObjName(), sysStateIndex, parent->getSysStateObjName());
         objName = new (heap_caps_malloc(sizeof(char) * (strlen(parent->getSysStateObjName()) + 25), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(parent->getSysStateObjName()) + 25];
@@ -69,6 +72,8 @@ systemState::~systemState(void) {
         LOG_WARN("SystemState object %s still have registered childs, the reference to those will be deleted" CR, getSysStateObjName());
     if (objName)
         delete objName;
+    if (jobObjName)
+        delete jobObjName;
 
     childList->clear();
     delete childList;

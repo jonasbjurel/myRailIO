@@ -77,7 +77,7 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 }
 
 job::~job(void) {
-	panic("Destruction not supported");
+	 panic("Destruction not supported");
 }
 
 void job::regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData) {
@@ -174,12 +174,17 @@ void job::jobProcessHelper(void* p_objectHandle) {
 }
 
 void job::jobProcess(void) {
+	wdtSuperviseJobs = 0;
 	while (true) {
-		if (!(xSemaphoreTake(jobSleepSemaphore, (wdtTimeoutMs /3) / portTICK_PERIOD_MS) == pdTRUE)) {
-			if (!wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
+		//xSemaphoreTake(jobSleepSemaphore, portMAX_DELAY);
+		if ((xSemaphoreTake(jobSleepSemaphore, wdtTimeoutMs / (portTICK_PERIOD_MS * 3)) == pdFALSE)) {
+			if (wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
 				enqueue(jobWdtSuperviseHelper, this, false);
 				wdtSuperviseJobs++;
+				Serial.printf("OOOOOOOOOO Starting a job WDT supervisor job\n");
 			}
+			else
+				Serial.printf("OOOOOOOOOOO Could not start a job WDT supervisor job, wdtTimeoutMs: %i, wdtSuperviseJobs: %i, overloaded: %i\n", wdtTimeoutMs, wdtSuperviseJobs, overloaded);
 			continue;
 		}
 		jobWdt->feed();
@@ -214,9 +219,9 @@ void job::jobProcess(void) {
 
 void job::jobWdtSuperviseHelper(void* p_handle) {
 	((job*)p_handle)->jobWdtSupervise();
-	
 }
 
 void job::jobWdtSupervise(void) {
+	Serial.printf("OOOOOOOOOO Ending a job WDT supervisor job\n");
 	wdtSuperviseJobs--;
 }

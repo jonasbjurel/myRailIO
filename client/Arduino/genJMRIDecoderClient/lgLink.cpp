@@ -317,6 +317,8 @@ void lgLink::up(void) {
     LOG_TERSE("%s: Starting lglink scanning" CR, logContextName);
     char taskName[30];
     sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
+    linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS, taskName,
+        FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     linkScan = true;
     if (!eTaskCreate(
             updateStripHelper,                                  // Task function
@@ -326,8 +328,6 @@ void lgLink::up(void) {
             CPU_UPDATE_STRIP_PRIO,                              // Priority 0-24, higher is more
             CPU_UPDATE_STRIP_SETUP_STACK_ATTR)){                // Task Stack attribute
         panic("%s: Could not start lglink scanning", logContextName);
-        linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(3000, "lgLink watchdog",
-            FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
         linkScanWdt->activate();
         return;
     }
@@ -603,15 +603,14 @@ void lgLink::updateStrip(void) {
     uint32_t maxAvgIndex = floor((float)(UPDATE_STRIP_LATENCY_AVG_TIME * 1000 / STRIP_UPDATE_MS));
     uint32_t loopTime = STRIP_UPDATE_MS * 1000;
     LOG_VERBOSE("%s: Starting sriphandler channel" CR, logContextName);
-    uint32_t wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
+    uint32_t wdtFeeed_cnt = 0;
     while (linkScan) {
-        linkScanWdt->feed();
         startTime = esp_timer_get_time();
         thisLoopTime = nextLoopTime;
         nextLoopTime += STRIP_UPDATE_MS * 1000;
         if (!wdtFeeed_cnt--) {
-            lgLinkWdt->feed();
-            wdtFeeed_cnt = 3000 / (STRIP_UPDATE_MS * 2);
+            linkScanWdt->feed();
+            wdtFeeed_cnt = WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS / (STRIP_UPDATE_MS * 3);
             //Serial.printf("Kick\n");
         }
         if (avgIndex >= maxAvgIndex) {
@@ -671,6 +670,7 @@ void lgLink::updateStrip(void) {
         avgIndex++;
     }
     delete linkScanWdt;
+    linkScanWdt = NULL;
     vTaskDelete(NULL);
 }
 

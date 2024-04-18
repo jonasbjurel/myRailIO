@@ -822,7 +822,7 @@ class topDecoder(systemState, schema):
             self.MQTTalarm.admEnableAlarm()
             self.RPCalarm.admEnableAlarm()
             if not self.updated:
-                updateReq(self, self, uploadNReboot = True)
+                self.updateReq(self, self, uploadNReboot = True)
             if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
                 self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
         if (changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE]):

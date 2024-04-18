@@ -121,6 +121,7 @@ private:
     static const char* OP_STR[14];
     systemState* parent;
     char* objName;
+    char* jobObjName;
     sysState_t opState;
     QList<cb_t*>* cbList;
     QList<systemState*>* childList;

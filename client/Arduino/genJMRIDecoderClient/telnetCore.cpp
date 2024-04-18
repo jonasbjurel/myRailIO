@@ -59,7 +59,7 @@ rc_t telnetCore::start(void) {
 		onTelnetInput(str);
 		});
 	if (telnet.begin()) {
-		if (!(telnetWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(10000, "Telnet watchdog",
+		if (!(telnetWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_TELNET_POLL_LOOP_TIMEOUT_MS, "Telnet/CLI",
 			FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP))) {
 			panic("Failed to start Telnet watchdog");
 			return RC_GEN_ERR;

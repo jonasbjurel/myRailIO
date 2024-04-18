@@ -270,11 +270,19 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         LOG_INFO("%s: RSyslog server URI not provided, will not start RSyslog" CR, logContextName);
     }
     LOG_TERSE("Setting up MQTT endpoints and properties" CR);
+    Serial.printf("XXXXXXXX Setting brocker\n");
     setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    Serial.printf("XXXXXXXX Setting port\n");
     setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    Serial.printf("XXXXXXXX Setting ping\n");
     setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
+    Serial.printf("XXXXXXXX Setting keepalive\n");
     setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
+
     LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
         LOG_TERSE("Setting up NTP server URI and Port from configuration - URI: %s Port: %s" CR, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
@@ -1040,6 +1048,7 @@ void decoder::onPanicHelper(void* p_metaData) {
 
 void decoder::onPanic(void) {
     char opStateFail[50];
+    Serial.printf(">>> %s: Panic callback received - setting OP-state to: \"%s\"" CR, logContextName, getOpStateStrByBitmap(OP_INTFAIL, opStateFail));
     LOG_FATAL("%s: Panic callback received - setting OP-state to: \"%s\"" CR, logContextName, getOpStateStrByBitmap(OP_INTFAIL, opStateFail));
     setOpStateByBitmap(OP_INTFAIL);
 }
@@ -1050,6 +1059,7 @@ uint8_t decoder::onWdtFailsafeHelper(uint8_t escalationCnt, const void* p_metaDa
 
 uint8_t decoder::onWdtFailsafe(void) {
     char opStateFail[50];
+    Serial.printf("%s: Watchdog timer expired, requesting global failsafe" CR, logContextName);
     LOG_FATAL("%s: Watchdog timer expired, requesting global failsafe" CR, logContextName);
     setOpStateByBitmap(OP_INTFAIL);
     return DONT_ESCALATE;

@@ -138,7 +138,6 @@
 #define MQTT_POLL_PERIOD_MS							50
 #define MQTT_CONNECT_TIMEOUT_S						60
 #define MAX_MQTT_CONNECT_ATTEMPTS					60 //60xMQTT_POLL_PERIOD_MS = 3 sec
-#define MQTT_WD_MS									3000
 
 // CPU execution parameters
 // ========================
@@ -147,12 +146,12 @@
 #define EXTERNAL									false
 
 // Log job task
-#define LOG_JOB_SLOTS								10
+#define LOG_JOB_SLOTS								20
 #define CPU_LOG_JOB_PRIO							5
 #define CPU_LOG_JOB_STACKSIZE_1K					6
 #define CPU_LOG_JOB_TASKNAME						"logJob"
 #define CPU_LOG_JOB_STACK_ATTR						EXTERNAL
-#define LOG_JOB_WDT_TIMEOUT_MS						10000
+#define LOG_JOB_WDT_TIMEOUT_MS						30000
 
 // Setup task
 #define CPU_SETUP_PRIO								4
@@ -164,18 +163,17 @@
 #define CPU_MQTT_POLL_PRIO							15
 #define CPU_MQTT_POLL_STACKSIZE_1K					6
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
-#define WDT_MQTT_TIMEOUT_MS							3000
+#define WDT_MQTT_POLL_LOOP_TIMEOUT_MS				5000
 #define MQTT_JOB_SLOTS								10
 #define CPU_JOB_MQTT_TASKNAME						"mqttJob"
 #define CPU_JOB_MQTT_STACKSIZE_1K					6
 #define CPU_JOB_MQTT_PRIO							(CPU_MQTT_POLL_PRIO - 1)
-#define WDT_JOB_MQTT_TIMEOUT_MS						3000
+#define WDT_JOB_MQTT_TIMEOUT_MS						30000
 
 // System state job task
 #define CPU_JOB_SYSSTATE_PRIO						10
 #define CPU_JOB_SYSSTATE_STACKSIZE_1K				6
-#define CPU_JOB_SYSSTATE_TASKNAME					"sysStateJob"
-#define WDT_JOB_SYSSTATE_TIMEOUT_MS					3000
+#define WDT_JOB_SYSSTATE_TIMEOUT_MS					10000
 
 // MQTT message supervision
 #define CPU_MQTT_PING_PRIO							10
@@ -188,7 +186,6 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_SATLINK_PRIO							20
 #define CPU_SATLINK_STACKSIZE_1K					6
 #define CPU_SATLINK_TASKNAME						"satLink %d"
-
 #define CPU_SATLINK_PM_PRIO							10
 #define CPU_SATLINK_PM_STACKSIZE_1K					6
 #define CPU_SATLINK_PM_TASKNAME						"satLinkPmPoll %d"
@@ -199,18 +196,22 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_FLASH_LOOP_STACKSIZE_1K					6
 #define CPU_FLASH_LOOP_TASKNAME						"FlashLoop %d"
 #define CPU_FLASH_LOOP_STACK_ATTR					INTERNAL
+#define WDT_FLASH_LOOP_TIMEOUT_MS					3000
 
 // LgLink
 #define CPU_UPDATE_STRIP_PRIO						20
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				3
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 #define CPU_UPDATE_STRIP_SETUP_STACK_ATTR			INTERNAL
+#define WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS			3000
 
 // Telnet
 #define CPU_TELNET_PRIO								5
 #define CPU_TELNET_STACKSIZE_1K						6
 #define CPU_TELNET_TASKNAME							"telnetPoll"
 #define CPU_TELNET_STACK_ATTR						INTERNAL
+#define WDT_TELNET_POLL_LOOP_TIMEOUT_MS				60000
+
 
 // CPU-PM
 #define CPU_PM_CORE									CORE_1
