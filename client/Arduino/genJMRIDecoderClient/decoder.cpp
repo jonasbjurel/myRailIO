@@ -1059,14 +1059,15 @@ uint8_t decoder::onWdtFailsafeHelper(uint8_t escalationCnt, const void* p_metaDa
 
 uint8_t decoder::onWdtFailsafe(void) {
     char opStateFail[50];
-    Serial.printf("%s: Watchdog timer expired, requesting global failsafe" CR, logContextName);
+    Serial.printf(">>> %s: Watchdog timer expired, requesting global failsafe" CR, logContextName);
     LOG_FATAL("%s: Watchdog timer expired, requesting global failsafe" CR, logContextName);
     setOpStateByBitmap(OP_INTFAIL);
     return DONT_ESCALATE;
 }
 
 uint8_t decoder::onWdtReboot(uint8_t escalationCnt, const void* p_metaData) {
-    panic("Watchdog timer expired, requesting reboot" CR);
+    Serial.printf(">>> Watchdog timer expired, requesting reboot" CR);
+    panic("Watchdog timer expired, requesting reboot");
     return ESCALATE;
 }
 
@@ -1075,6 +1076,7 @@ void decoder::onRebootHelper(const char* p_topic, const char* p_payload, const v
 }
 
 void decoder::onReboot(void) {
+    Serial.printf(">>> Ordered reboot");
     panic("Ordered reboot");
 }
 

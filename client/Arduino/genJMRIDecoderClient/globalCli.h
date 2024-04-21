@@ -51,6 +51,7 @@
 #include "config.h"
 #include "networking.h"
 #include "mqtt.h"
+#include "job.h"
 #include "cpu.h"
 #include "ntpTime.h"
 #include "wdt.h"
@@ -150,6 +151,20 @@ private:
                              cliCmdTable_t* p_cmdTable);
     static void onCliStartWdt(cmd* p_cmd, cliCore* p_cliContext,                        //Start WDT sub-MO
                               cliCmdTable_t* p_cmdTable);
+
+    static void onCliSetJob(cmd* p_cmd, cliCore* p_cliContext,                          //Set Job sub-MO
+        cliCmdTable_t* p_cmdTable);
+    static void onCliUnsetJob(cmd* p_cmd, cliCore* p_cliContext,                        //UnSet Job sub-MO
+        cliCmdTable_t* p_cmdTable);
+    static void onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,                          //Get Job sub-MO
+        cliCmdTable_t* p_cmdTable);
+    static void onCliShowJob(cmd* p_cmd, cliCore* p_cliContext,                         //Show Job sub-MO
+        cliCmdTable_t* p_cmdTable);
+    static void showJob(uint16_t p_jobId = 0);
+    static void onCliClearJob(cmd* p_cmd, cliCore* p_cliContext,                        //Clear Job sub-MO
+        cliCmdTable_t* p_cmdTable);
+
+
     static void onCliSetMqtt(cmd* p_cmd, cliCore* p_cliContext,                         //Set MQTT sub-MO
                              cliCmdTable_t* p_cmdTable);
     static void onCliClearMqtt(cmd* p_cmd, cliCore* p_cliContext,                       //Clear MQTT sub-MO

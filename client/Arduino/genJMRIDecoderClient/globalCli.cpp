@@ -261,6 +261,43 @@ void globalCli::regGlobalCliMOCmds(void) {
 
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: job																													*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+	regCmdMoArg(SET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliSetJob);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "debug", 1, false);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(SET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "priority", 1, true);
+	regCmdHelp(SET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_SET_JOB_HELP_TXT);
+
+	regCmdMoArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliUnsetJob);
+	regCmdFlagArg(UNSET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "debug", 1, false);
+	regCmdHelp(UNSET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_UNSET_JOB_HELP_TXT);
+
+	regCmdMoArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliGetJob);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "description", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "maxjobs", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "activejobs", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "priority", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "overloaded", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "overloadcnt", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "wdtid", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "tasksorting", 1, false);
+	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_GET_JOB_HELP_TXT);
+
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliShowJob);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_SHOW_JOB_HELP_TXT);
+
+	regCmdMoArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliClearJob);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "overloadcnt", 1, false);
+	regCmdHelp(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_CLEAR_JOB_HELP_TXT);
+
+
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: mqtt																													*/
 /* Description: See cliGlobalDefinitions.h																										*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -2050,6 +2087,349 @@ void globalCli::onCliStopWdt(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p
 }
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* END Managed object (MO/Sub-MO): global/wdt																									*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*==============================================================================================================================================*/
+/* Managed object (MO/Sub-MO): global/job																										*/
+/* Purpose: Defines global Job managed objects																									*/
+/* Description:	Provides means to monitor and manage registered Job objects																		*/
+/*              such as:																														*/
+/*				- set job...																													*/
+/*				- unset job...																													*/
+/*				- get job...																													*/
+/*				- show job...																													*/
+/*				- clear job...																													*/
+/*==============================================================================================================================================*/
+
+void globalCli::onCliSetJob(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("debug")) {
+		if (job::getDebug()) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Debug already set");
+			LOG_VERBOSE_NOFMT("Debug already set" CR);
+			return;
+		}
+		job::setDebug(true);
+		cmdHandled = true;
+	}
+	if (p_cmdTable->commandFlags->isPresent("id")) {
+		uint16_t id = atoi(p_cmdTable->commandFlags->isPresent("id")->getValue());
+		if (id == 0) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Job id not valid");
+			LOG_VERBOSE_NOFMT("Job id not valid" CR);
+			return;
+		}
+		job* jobHandle = job::getJobHandleById(id);
+		if (!jobHandle) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Job id does not exist");
+			LOG_VERBOSE_NOFMT("Job id does not exist" CR);
+			return;
+		}
+		if (p_cmdTable->commandFlags->isPresent("priority")) {
+			rc_t rc = jobHandle->setPriority(atoi(p_cmdTable->commandFlags->isPresent("priority")->getValue()));
+			if (rc == RC_DEBUG_NOT_SET_ERR) {
+				notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set - see set wdt -debug");
+				LOG_VERBOSE_NOFMT("debug flag not set" CR);
+				return;
+			}
+			else if (rc) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Invalid Priority");
+				LOG_VERBOSE_NOFMT("Invalid Priority" CR);
+				return;
+			}
+			else
+				cmdHandled = true;
+		}
+	}
+	if (cmdHandled) {
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	}
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
+	}
+}
+
+void globalCli::onCliUnsetJob(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("debug")) {
+		if (!job::getDebug()) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Debug already unset");
+			LOG_VERBOSE_NOFMT("Debug already unset" CR);
+			return;
+		}
+		job::setDebug(false);
+		cmdHandled = true;
+	}
+	if (cmdHandled) {
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	}
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
+	}
+}
+
+void globalCli::onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->getAllPresent()->size()) {
+		showJob();
+		cmdHandled = true;
+		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id")) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Job Id flag missing");
+		LOG_VERBOSE_NOFMT("Job Id flag missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("id")->getValue() == NULL) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Job Id value missing");
+		LOG_VERBOSE_NOFMT("Job Id value missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->getAllPresent()->size() == 1) {
+		if (!atoi(p_cmdTable->commandFlags->isPresent("id")->getValue())) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Invalid Job Id");
+			LOG_VERBOSE_NOFMT("Invalid Job Id" CR);
+			return;
+		}
+		showJob(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()));
+		acceptedCliCommand(CLI_TERM_QUIET);
+		return;
+	}
+	if (p_cmdTable->commandFlags->getAllPresent()->size() > 2) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Only one Job parameter can be showed at a time, " \
+			"use \"show job\" or \"get job\" to get a summary " \
+			"of all parameters");
+		LOG_VERBOSE_NOFMT("Only one Job parameter can be showed at a time, " \
+			"use \"show job\" or \"get job\" to get a summary " \
+			"of all parameters" CR);
+		return;
+	}
+	job* jobHandle;
+	if (!(jobHandle = job::getJobHandleById(atoi(p_cmdTable->commandFlags->get("id")->getValue())))) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Job ID does not exsist");
+		LOG_VERBOSE_NOFMT("Job ID does not exist" CR);
+		return;
+	}
+	Serial.printf("VVVVVVVVVV Jobhandle is %i\n", jobHandle);
+	if (p_cmdTable->commandFlags->isPresent("description")) {
+		printCli(jobHandle->getJobDescription());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("maxjobs")) {
+		printCli("%i", jobHandle->getJobSlots());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("activejobs")) {
+		printCli("%i", jobHandle->getPendingJobSlots());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("priority")) {
+		Serial.printf("%i\n", jobHandle->getPriority());
+		printCli("%i", jobHandle->getPriority());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("overloaded")) {
+		printCli("%s", jobHandle->getOverload()? "True" : "False");
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("overloadcnt")) {
+		printCli("%i", jobHandle->getOverloadCnt());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("wdtid")) {
+		printCli("%i", jobHandle->getWdtId());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("tasksorting")) {
+		printCli("%s", jobHandle->getTaskSorting() ? "True" : "False");
+		cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_QUIET);
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid argumentsg" CR);
+	}
+}
+
+void globalCli::onCliShowJob(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(0) || cmd.getArgument(1)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		LOG_WARN_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	showJob();
+	acceptedCliCommand(CLI_TERM_QUIET);
+	return;
+}
+
+void globalCli::showJob(uint16_t p_jobId) {
+	char jobInfo[200];
+	sprintf(jobInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
+		-5, "id:",
+		-20, "Description:",
+		-9, "Max Jobs:",
+		-12, "Active Jobs:",
+		-9,  "Priority:",
+		-11, "Overloaded:",
+		-13, "Overload Cnt:",
+		-7,  "Wdt Id:",
+		-13, "Task sorting:");
+	printCli("%s", jobInfo);
+	if (p_jobId != 0) {
+		if (!job::getJobHandleById(p_jobId)) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Job ID does not exsist");
+			LOG_VERBOSE_NOFMT("Job ID does not exist" CR);
+			return;
+		}
+		sprintf(jobInfo, "| %*i | %*s | %*i | %*i | %*i | %*s | %*i | %*i | %*s |",
+			-5, p_jobId,
+			-20, job::getJobHandleById(p_jobId)->getJobDescription(),
+			-9,  job::getJobHandleById(p_jobId)->getJobSlots(),
+			-12, job::getJobHandleById(p_jobId)->getPendingJobSlots(),
+			-9,  job::getJobHandleById(p_jobId)->getPriority(),
+			-11, job::getJobHandleById(p_jobId)->getOverload()? "Yes" : "No",
+			-13, job::getJobHandleById(p_jobId)->getOverloadCnt(),
+			-7,  job::getJobHandleById(p_jobId)->getWdtId(),
+			-13, job::getJobHandleById(p_jobId)->getTaskSorting()? "True" : "False");
+		printCli("%s", jobInfo);
+		return;
+	}
+	for (uint16_t jobItter = 0; jobItter <= job::maxId(); jobItter++) {
+		if (!job::getJobHandleById(jobItter))
+			continue;
+		Serial.printf("VVVVVVVVVVV %i\n", job::getJobHandleById(jobItter));
+		sprintf(jobInfo, "| %*i | %*s | %*i | %*i | %*i | %*s | %*i | %*i | %*s |",
+			-5, jobItter,
+			-20, job::getJobHandleById(jobItter)->getJobDescription(),
+			-9,  job::getJobHandleById(jobItter)->getJobSlots(),
+			-12, job::getJobHandleById(jobItter)->getPendingJobSlots(),
+			-9,  job::getJobHandleById(jobItter)->getPriority(),
+			-11, job::getJobHandleById(jobItter)->getOverload() ? "Yes" : "No",
+			-13, job::getJobHandleById(jobItter)->getOverloadCnt(),
+			-7,  job::getJobHandleById(jobItter)->getWdtId(),
+			-13, job::getJobHandleById(jobItter)->getTaskSorting() ? "True" : "False");
+		printCli("%s", jobInfo);
+	}
+}
+
+void globalCli::onCliClearJob(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	bool cmdHandled = false;
+	bool allIds = false;
+	if (!cmd.getArgument(0)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->parse(cmd)) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			p_cmdTable->commandFlags->getParsErrs());
+		LOG_VERBOSE("Flag parsing failed: %s" CR,
+			p_cmdTable->commandFlags->getParsErrs());
+		return;
+	}
+	if (!p_cmdTable->commandFlags->isPresent("id"))
+		allIds = true;
+	else if (p_cmdTable->commandFlags->isPresent("id")->getValue() == NULL) {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+			"Job Id value missing");
+		LOG_VERBOSE_NOFMT("Job Id value missing" CR);
+		return;
+	}
+	if (p_cmdTable->commandFlags->isPresent("overloadcnt")) {
+		if (allIds) {
+			job::clearOverloadCntAll();
+			cmdHandled = true;
+		}
+		else if (job::clearOverloadCnt(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
+			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+				"Job Id: %s does not exist", p_cmdTable->commandFlags->isPresent("id")->getValue());
+			LOG_VERBOSE("Job Id: %s does not exist" CR, p_cmdTable->commandFlags->isPresent("id")->getValue());
+			return;
+		}
+		else
+			cmdHandled = true;
+	}
+	if (cmdHandled)
+		acceptedCliCommand(CLI_TERM_EXECUTED);
+	else {
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
+	}
+}
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* END Managed object (MO/Sub-MO): global/job																									*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
 

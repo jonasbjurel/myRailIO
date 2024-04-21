@@ -121,6 +121,7 @@ public:
     ~wdt(void);                                                                     // Watchdog class object destructor
     static rc_t setActiveAll(bool p_active);                                        // Activate/Deactivate all watchdogs
     static rc_t setActive(uint16_t p_id, bool p_active);                            // Activate/Deactivate watchdog for watchdog id
+    uint16_t getId(void);                                                           // Returns WDT Id
     void activate(bool p_lock = true);                                              // Activate watchdog for current class object
     void inactivate(bool p_lock = true);                                            // In-Activate watchdog for current class object
     static rc_t setTimeout(uint16_t p_id,                                           // Set watchdog timeout (ms) for watchdog id

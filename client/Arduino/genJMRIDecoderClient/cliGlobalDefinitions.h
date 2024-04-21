@@ -61,6 +61,7 @@ EXT_RAM_ATTR const char		NETWORK_SUB_MO_NAME[] = "network";						//Global Networ
 EXT_RAM_ATTR const char		TOPOLOGY_SUB_MO_NAME[] = "topology";					//Global MO topology sub-MO
 EXT_RAM_ATTR const char		COMMANDS_SUB_MO_NAME[] = "commands";					//Global Context available commands sub-MO
 EXT_RAM_ATTR const char		WDT_SUB_MO_NAME[] = "wdt";								//Global MO WDT sub-MO
+EXT_RAM_ATTR const char		JOB_SUB_MO_NAME[] = "job";								//Global MO JOB sub-MO
 EXT_RAM_ATTR const char		MQTT_SUB_MO_NAME[] = "mqtt";							//Global MO MQTT sub-MO
 EXT_RAM_ATTR const char		PINGSUPERVISION_SUB_MO_NAME[] = "supervision";			//move to MQTT?????????
 EXT_RAM_ATTR const char		TIME_SUB_MO_NAME[] = "time";							//Global MO time sub-MO
@@ -354,6 +355,56 @@ EXT_RAM_ATTR const char GLOBAL_START_WDT_HELP_TXT[] =				"start wdt [-id {wd_id}
 /* END Managed object (MO/Sub-MO): global/wdt																									*/
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
+
+
+/*==============================================================================================================================================*/
+/* Managed object (MO/Sub-MO): global/job																										*/
+/* Purpose: Defines global Job managed objects																									*/
+/* Description:	Provides means to monitor and manage registered Job queue objects																*/
+/*              such as:																														*/
+/*				- set job...																													*/
+/*				- unset job...																													*/
+/*				- get job...																													*/
+/*				- show job...																													*/
+/*				- clear job...																													*/
+/*==============================================================================================================================================*/
+EXT_RAM_ATTR const char GLOBAL_SET_JOB_HELP_TXT[] = "set job [-debug] | [-id {jobId} [-priority {priority 1-24}]]\n\r" \
+"Sets various parameters of Job given by the provided flags: \n\r" \
+"Available flags:\n\r" \
+"	- \"-debug\": Sets the debug flag, allowing intrusional Job CLI commands\n\r" \
+"	- \"-id {jobId}\": The Job identity to be altered\n\r" \
+"	- \"-priority {jobTaskPriority 0-24}\": Sets the job task priority\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_UNSET_JOB_HELP_TXT[] = "unset job -debug \n\r" \
+"Un-sets various parameters of Job given by the provided flags: \n\r" \
+"Available flags:\n\r" \
+"	- \"-debug\": Un-sets the debug flag, dis-allowing intrusional Job CLI commands";
+
+EXT_RAM_ATTR const char GLOBAL_GET_JOB_HELP_TXT[] = "get job [-id {jobId} [-description]|[-active]|[-inhibited]|[-timeout]|[-action]|[-expiries]|[-closesedhit]]\n\r" \
+"Prints Job parameters and statistics. \"get job\" without flags is identical to \"show job\"\n\r" \
+"\"get job -id {jobId}\" without any other flags shows all parameters and statistics for that specific Job id\n\r" \
+"Available flags:\n\r" \
+"	- \"-id\": Specifies the Job id for which information is requested\n\r" \
+"	- \"-description\": Prints the Job description\n\r" \
+"	- \"-maxjobs\": Shows the maximum of Job slots/queue depth available\n\r" \
+"	- \"-activejobs\": Shows currently queued/pending Jobs\n\r" \
+"	- \"-priority\": Shows the Job task base priority\n\r" \
+"	- \"-overloaded\": Shows the current job queue overload status\n\r" \
+"	- \"-overloadcnt\": Shows the number of job queue overload instances\n\r" \
+"	- \"-wdtid\": Shows related Watchdog Id for the job supervision\n\r" \
+"	- \"-tasksorting\": Tasksorting - more information needed...\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_JOB_HELP_TXT[] = "show job\n\r" \
+"Shows a summary of the Job information. Is identical to \"get job\" without flags\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_CLEAR_JOB_HELP_TXT[] = "clear job [-id {jobId}] [-overloadcnt]\n\r" \
+"Clears certain Job statistics\n\r" \
+"	- \"-id\": Specifies the Job id for which a statistics object should be cleared, if ommited the statistics object for all Jobs will be cleared" \
+"	- \"-overloadcnt\": The Job overload counter will be cleared";
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* END Managed object (MO/Sub-MO): global/job																									*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
 
 
 EXT_RAM_ATTR const char GLOBAL_SET_MQTT_HELP_TXT[] =				"Sets MQTT parameters.\n\r" \

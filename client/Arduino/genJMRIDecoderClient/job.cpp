@@ -35,19 +35,38 @@
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
-//job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSort = false) {
+
+EXT_RAM_ATTR uint16_t job::jobCnt = 0;
+EXT_RAM_ATTR QList<job*> job::jobList;
+EXT_RAM_ATTR SemaphoreHandle_t job::jobListLock = NULL;
+EXT_RAM_ATTR bool job::debug = false;
+
+
 
 job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting, uint32_t p_wdtTimeoutMs) {
+	if (!(jobCnt++)) {
+		if (!(jobListLock = xSemaphoreCreateMutex())) {
+			panic("Could not create Lock objects");
+			return;
+		}
+	}
+	jobId = jobCnt;
 	jobQueueDepth = p_jobQueueDepth;
 	processTaskName = p_processTaskName;
+	Serial.printf("¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ Starting job Id: %i, description %s\n", jobId, processTaskName);
 	processTaskPrio = p_processTaskPrio;
 	taskSorting = p_taskSorting;
 	wdtTimeoutMs = p_wdtTimeoutMs;
-
+	overloaded = false;
+	overloadCnt = 0;
 	if (!(jobLock = xSemaphoreCreateMutex())) {
 		panic("Could not create Lock objects");
 		return;
 	}
+	xSemaphoreTake(jobListLock, portMAX_DELAY);
+	jobList.push_back(this);
+	xSemaphoreGive(jobListLock);
+
 	if (!(jobSleepSemaphore = xSemaphoreCreateCounting(p_jobQueueDepth, 0))){
 		panic("Could not create jobProcess sleep semaphore  objects");
 		return;
@@ -148,6 +167,7 @@ void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs) {
 	}
 	if (!overloaded && uxSemaphoreGetCount(jobSleepSemaphore) + 1 >= jobQueueDepth) {
 		overloaded = true;
+		overloadCnt++;
 		if (jobOverloadCb)
 			jobOverloadCb(jobOverloadCbMetaData, true);
 	}
@@ -161,12 +181,87 @@ void job::purge(void) {
 	vTaskPrioritySet(jobTaskHandle, uxTaskPriorityGet(NULL) >= ESP_TASK_PRIO_MAX - 1 ? ESP_TASK_PRIO_MAX - 1 : (uxTaskPriorityGet(NULL) >= PURGE_JOB_PRIO ? uxTaskPriorityGet(NULL) + 1 : PURGE_JOB_PRIO));
 }
 
+const char* job::getJobDescription(void) {
+	return processTaskName;
+}
+
+uint16_t job::getId(void) {
+	return jobId;
+}
+
+uint16_t job::getWdtId(void) {
+	return jobWdt->getId();
+}
+
 bool job::getOverload(void) {
 	return overloaded;
 }
 
+uint job::getOverloadCnt(void) {
+	return overloadCnt;
+}
+
+void job::clearOverloadCntAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		jobList.at(jobListItter)->clearOverloadCnt();
+}
+
+rc_t job::clearOverloadCnt(uint16_t p_id) {
+	if (!getJobHandleById(p_id))
+		return RC_NOT_FOUND_ERR;
+	getJobHandleById(p_id)->clearOverloadCnt();
+	return RC_OK;
+}
+
+void job::clearOverloadCnt(void) {
+	overloadCnt = 0;
+}
+
+uint16_t job::getJobSlots(void) {
+	return jobQueueDepth;
+}
+
 uint16_t job::getPendingJobSlots(void) {
 	return uxSemaphoreGetCount(jobSleepSemaphore);
+}
+
+rc_t job::setPriority(uint8_t p_priority) {
+	if (!debug)
+		return RC_DEBUG_NOT_SET_ERR;
+	if (p_priority > 24)
+		return RC_PARAMETERVALUE_ERR;
+	processTaskPrio = p_priority;
+	vTaskPrioritySet(jobTaskHandle, p_priority);
+	return RC_OK;
+}
+
+uint8_t job::getPriority(void) {
+	return processTaskPrio;
+}
+
+bool job::getTaskSorting(void) {
+	return taskSorting;
+}
+
+job* job::getJobHandleById(uint16_t p_jobId) {
+	xSemaphoreTake(jobListLock, portMAX_DELAY);
+	for (uint16_t jobIdItter = 0; jobIdItter < jobList.size(); jobIdItter++) {
+		if (jobList.at(jobIdItter)->jobId == p_jobId) {
+			xSemaphoreGive(jobListLock);
+			return jobList.at(jobIdItter);
+		}
+	}
+	xSemaphoreGive(jobListLock);
+	return NULL;
+}
+
+void job::setDebug(bool p_debug) {
+	LOG_INFO("%s" CR, p_debug ? "Setting job debug mode" : "Unsetting job debug mode");
+	debug = p_debug;
+}
+
+bool job::getDebug(void) {
+	return debug;
 }
 
 void job::jobProcessHelper(void* p_objectHandle) {
@@ -176,7 +271,6 @@ void job::jobProcessHelper(void* p_objectHandle) {
 void job::jobProcess(void) {
 	wdtSuperviseJobs = 0;
 	while (true) {
-		//xSemaphoreTake(jobSleepSemaphore, portMAX_DELAY);
 		if ((xSemaphoreTake(jobSleepSemaphore, wdtTimeoutMs / (portTICK_PERIOD_MS * 3)) == pdFALSE)) {
 			if (wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
 				enqueue(jobWdtSuperviseHelper, this, false);
@@ -224,4 +318,16 @@ void job::jobWdtSuperviseHelper(void* p_handle) {
 void job::jobWdtSupervise(void) {
 	Serial.printf("OOOOOOOOOO Ending a job WDT supervisor job\n");
 	wdtSuperviseJobs--;
+}
+
+uint16_t job::maxId(void) {
+	uint16_t maxId = 0;
+	xSemaphoreTake(jobListLock, portMAX_DELAY);
+	for (uint16_t jobListItter = 0; jobListItter <
+		jobList.size(); jobListItter++) {
+		if (jobList.at(jobListItter)->jobId > maxId)
+			maxId = jobList.at(jobListItter)->jobId;
+	}
+	xSemaphoreGive(jobListLock);
+	return maxId;
 }

@@ -202,6 +202,10 @@ void wdt::inactivate(bool p_lock) {
 		xSemaphoreGive(wdtDescrListLock);
 }
 
+uint16_t wdt::getId(void) {
+	return wdtDescr->id;
+}
+
 rc_t wdt::setTimeout(uint16_t p_id, uint32_t p_wdtTimeoutMs) {
 	if (!debug)
 		return RC_DEBUG_NOT_SET_ERR;
@@ -717,7 +721,7 @@ uint16_t wdt::maxId(void) {
 		if (wdtDescrList->at(wdtDescrListItter)->id > maxId)
 			maxId = wdtDescrList->at(wdtDescrListItter)->id;
 	}
-	return wdtObjCnt;
+	return maxId;
 }
 /*==============================================================================================================================================*/
 /* END Class wdt																																*/
