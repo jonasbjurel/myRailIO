@@ -246,6 +246,7 @@ void globalCli::regGlobalCliMOCmds(void) {
 
 	regCmdMoArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliClearWdt);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "allstats", 1, false);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expiries", 1, false);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesedhit", 1, false);
 	regCmdHelp(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_CLEAR_WDT_HELP_TXT);
@@ -279,12 +280,18 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "id", 1, true);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "description", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "maxjobs", 1, false);
-	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "activejobs", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "currentjobs", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "peakjobs", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "averagejobs", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "peaklatency", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "averagelatency", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "peakexecution", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "averageexecution", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "priority", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "overloaded", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "overloadcnt", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "wdtid", 1, false);
-	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "tasksorting", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "tasksort", 1, false);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_GET_JOB_HELP_TXT);
 
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliShowJob);
@@ -292,6 +299,13 @@ void globalCli::regGlobalCliMOCmds(void) {
 
 	regCmdMoArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, onCliClearJob);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "id", 1, true);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "allstats", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "peakjobs", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "averagejobs", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "peaklatency", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "averagelatency", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "peakexecution", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "averageexecution", 1, false);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, "overloadcnt", 1, false);
 	regCmdHelp(CLEAR_CLI_CMD, GLOBAL_MO_NAME, JOB_SUB_MO_NAME, GLOBAL_CLEAR_JOB_HELP_TXT);
 
@@ -1835,7 +1849,7 @@ void globalCli::onCliGetWdt(cmd* p_cmd, cliCore* p_cliContext,
 		acceptedCliCommand(CLI_TERM_QUIET);
 	else {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
-		LOG_VERBOSE_NOFMT("No valid argumentsg" CR);
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
 	}
 }
 
@@ -1924,7 +1938,12 @@ void globalCli::onCliClearWdt(cmd* p_cmd, cliCore* p_cliContext,
 		LOG_VERBOSE_NOFMT("Watchdog Id value missing" CR);
 		return;
 	}
-	if (p_cmdTable->commandFlags->isPresent("expiries")) {
+	if (p_cmdTable->commandFlags->isPresent("allstats")) {
+		wdt::clearExpiriesAll();
+		wdt::clearClosesedHitAll();
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("expiries")) {
 		if (allIds) {
 			wdt::clearExpiriesAll();
 			cmdHandled = true;
@@ -2285,8 +2304,36 @@ void globalCli::onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,
 		printCli("%i", jobHandle->getJobSlots());
 		cmdHandled = true;
 	}
-	else if (p_cmdTable->commandFlags->isPresent("activejobs")) {
+	else if (p_cmdTable->commandFlags->isPresent("currentjobs")) {
 		printCli("%i", jobHandle->getPendingJobSlots());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("peakjobs")) {
+		printCli("%i", jobHandle->getMaxJobSlotOccupancy());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averagejobs")) {
+		printCli("%i", jobHandle->getMeanJobSlotOccupancy());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("peaklatency")) {
+		printCli("%i", jobHandle->getMaxJobQueueLatency());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averagelatency")) {
+		printCli("%i", jobHandle->getMeanJobQueueLatency());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("peakexecution")) {
+		printCli("%i", jobHandle->getMaxJobExecutionTime());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averageexecution")) {
+		printCli("%i", jobHandle->getMeanJobExecutionTime());
+		cmdHandled = true;
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averageexecution")) {
+		printCli("%i", jobHandle->getMeanJobExecutionTime());
 		cmdHandled = true;
 	}
 	else if (p_cmdTable->commandFlags->isPresent("priority")) {
@@ -2306,7 +2353,7 @@ void globalCli::onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,
 		printCli("%i", jobHandle->getWdtId());
 		cmdHandled = true;
 	}
-	else if (p_cmdTable->commandFlags->isPresent("tasksorting")) {
+	else if (p_cmdTable->commandFlags->isPresent("tasksort")) {
 		printCli("%s", jobHandle->getTaskSorting() ? "True" : "False");
 		cmdHandled = true;
 	}
@@ -2314,7 +2361,7 @@ void globalCli::onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,
 		acceptedCliCommand(CLI_TERM_QUIET);
 	else {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "No valid arguments");
-		LOG_VERBOSE_NOFMT("No valid argumentsg" CR);
+		LOG_VERBOSE_NOFMT("No valid arguments" CR);
 	}
 }
 
@@ -2332,17 +2379,23 @@ void globalCli::onCliShowJob(cmd* p_cmd, cliCore* p_cliContext,
 }
 
 void globalCli::showJob(uint16_t p_jobId) {
-	char jobInfo[200];
-	sprintf(jobInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
+	char jobInfo[250];
+	sprintf(jobInfo, "| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |",
 		-5, "id:",
-		-20, "Description:",
+		-20, "Desc:",
 		-9, "Max Jobs:",
-		-12, "Active Jobs:",
-		-9,  "Priority:",
-		-11, "Overloaded:",
-		-13, "Overload Cnt:",
-		-7,  "Wdt Id:",
-		-13, "Task sorting:");
+		-10, "Curr Jobs:",
+		-10, "Peak Jobs:",
+		-9, "Avr Jobs:",
+		-13, "Peak lat(us):",
+		-12, "Avr lat(us):",
+		-12, "Peak ex(us):",
+		-11, "Avr ex(us):",
+		-5,  "Prio:",
+		-9, "O-loaded:",
+		-11, "O-load Cnt:",
+		-6, "WdtId:",
+		-10, "Task sort:");
 	printCli("%s", jobInfo);
 	if (p_jobId != 0) {
 		if (!job::getJobHandleById(p_jobId)) {
@@ -2351,33 +2404,44 @@ void globalCli::showJob(uint16_t p_jobId) {
 			LOG_VERBOSE_NOFMT("Job ID does not exist" CR);
 			return;
 		}
-		sprintf(jobInfo, "| %*i | %*s | %*i | %*i | %*i | %*s | %*i | %*i | %*s |",
+		sprintf(jobInfo, "| %*i | %*s | %*i | %*i | %*i | %*i | %*i | %*i | %*i | %*i | %*i | %*s | %*i | %*i | %*s |",
 			-5, p_jobId,
 			-20, job::getJobHandleById(p_jobId)->getJobDescription(),
 			-9,  job::getJobHandleById(p_jobId)->getJobSlots(),
-			-12, job::getJobHandleById(p_jobId)->getPendingJobSlots(),
-			-9,  job::getJobHandleById(p_jobId)->getPriority(),
-			-11, job::getJobHandleById(p_jobId)->getOverload()? "Yes" : "No",
-			-13, job::getJobHandleById(p_jobId)->getOverloadCnt(),
-			-7,  job::getJobHandleById(p_jobId)->getWdtId(),
-			-13, job::getJobHandleById(p_jobId)->getTaskSorting()? "True" : "False");
+			-10, job::getJobHandleById(p_jobId)->getPendingJobSlots(),
+			-10, job::getJobHandleById(p_jobId)->getMaxJobSlotOccupancy(),
+			-9, job::getJobHandleById(p_jobId)->getMeanJobSlotOccupancy(),
+			-13, job::getJobHandleById(p_jobId)->getMaxJobQueueLatency(),
+			-12, job::getJobHandleById(p_jobId)->getMeanJobQueueLatency(),
+			-12, job::getJobHandleById(p_jobId)->getMaxJobExecutionTime(),
+			-11, job::getJobHandleById(p_jobId)->getMeanJobExecutionTime(),
+			-5,  job::getJobHandleById(p_jobId)->getPriority(),
+			-9, job::getJobHandleById(p_jobId)->getOverload()? "Yes" : "No",
+			-11, job::getJobHandleById(p_jobId)->getOverloadCnt(),
+			-6,  job::getJobHandleById(p_jobId)->getWdtId(),
+			-10, job::getJobHandleById(p_jobId)->getTaskSorting()? "True" : "False");
 		printCli("%s", jobInfo);
 		return;
 	}
 	for (uint16_t jobItter = 0; jobItter <= job::maxId(); jobItter++) {
 		if (!job::getJobHandleById(jobItter))
 			continue;
-		Serial.printf("VVVVVVVVVVV %i\n", job::getJobHandleById(jobItter));
-		sprintf(jobInfo, "| %*i | %*s | %*i | %*i | %*i | %*s | %*i | %*i | %*s |",
+		sprintf(jobInfo, "| %*i | %*s | %*i | %*i | %*i | %*i | %*i | %*i | %*i | %*i | %*i | %*s | %*i | %*i | %*s |",
 			-5, jobItter,
 			-20, job::getJobHandleById(jobItter)->getJobDescription(),
-			-9,  job::getJobHandleById(jobItter)->getJobSlots(),
-			-12, job::getJobHandleById(jobItter)->getPendingJobSlots(),
-			-9,  job::getJobHandleById(jobItter)->getPriority(),
-			-11, job::getJobHandleById(jobItter)->getOverload() ? "Yes" : "No",
-			-13, job::getJobHandleById(jobItter)->getOverloadCnt(),
-			-7,  job::getJobHandleById(jobItter)->getWdtId(),
-			-13, job::getJobHandleById(jobItter)->getTaskSorting() ? "True" : "False");
+			-9, job::getJobHandleById(jobItter)->getJobSlots(),
+			-10, job::getJobHandleById(jobItter)->getPendingJobSlots(),
+			-10, job::getJobHandleById(jobItter)->getMaxJobSlotOccupancy(),
+			-9, job::getJobHandleById(jobItter)->getMeanJobSlotOccupancy(),
+			-13, job::getJobHandleById(jobItter)->getMaxJobQueueLatency(),
+			-12, job::getJobHandleById(jobItter)->getMeanJobQueueLatency(),
+			-12, job::getJobHandleById(jobItter)->getMaxJobExecutionTime(),
+			-11, job::getJobHandleById(jobItter)->getMeanJobExecutionTime(),
+			-5, job::getJobHandleById(jobItter)->getPriority(),
+			-9, job::getJobHandleById(jobItter)->getOverload() ? "Yes" : "No",
+			-11, job::getJobHandleById(jobItter)->getOverloadCnt(),
+			-6, job::getJobHandleById(jobItter)->getWdtId(),
+			-10, job::getJobHandleById(jobItter)->getTaskSorting() ? "True" : "False");
 		printCli("%s", jobInfo);
 	}
 }
@@ -2387,6 +2451,7 @@ void globalCli::onCliClearJob(cmd* p_cmd, cliCore* p_cliContext,
 	Command cmd(p_cmd);
 	bool cmdHandled = false;
 	bool allIds = false;
+	uint16_t id;
 	if (!cmd.getArgument(0)) {
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 		LOG_VERBOSE_NOFMT("Bad number of arguments" CR);
@@ -2407,19 +2472,139 @@ void globalCli::onCliClearJob(cmd* p_cmd, cliCore* p_cliContext,
 		LOG_VERBOSE_NOFMT("Job Id value missing" CR);
 		return;
 	}
-	if (p_cmdTable->commandFlags->isPresent("overloadcnt")) {
+	else
+		id = atoi(p_cmdTable->commandFlags->isPresent("id")->getValue());
+	if (p_cmdTable->commandFlags->isPresent("allstats")) {
+		if (allIds) {
+			job::clearMaxJobSlotOccupancyAll();
+			job::clearMeanJobSlotOccupancyAll();
+			job::clearMaxJobQueueLatencyAll();
+			job::clearMeanJobQueueLatencyAll();
+			job::clearMaxJobExecutionTimeAll();
+			job::clearMeanJobExecutionTimeAll();
+			job::clearOverloadCntAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMaxJobSlotOccupancy(id) ||
+				job::clearMeanJobSlotOccupancy(id) ||
+				job::clearMaxJobQueueLatency(id) ||
+				job::clearMeanJobQueueLatency(id) ||
+				job::clearMaxJobExecutionTime(id) ||
+				job::clearMeanJobExecutionTime(id) ||
+				job::clearOverloadCnt(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("peakjobs")) {
+		if (allIds) {
+			job::clearMaxJobSlotOccupancyAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMaxJobSlotOccupancy(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averagejobs")) {
+		if (allIds) {
+			job::clearMeanJobSlotOccupancyAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMeanJobSlotOccupancy(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("peaklatency")) {
+		if (allIds) {
+			job::clearMaxJobQueueLatencyAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMaxJobQueueLatency(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averagelatency")) {
+		if (allIds) {
+			job::clearMeanJobQueueLatencyAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMeanJobQueueLatency(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("peakexecution")) {
+		if (allIds) {
+			job::clearMaxJobExecutionTimeAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMaxJobExecutionTime(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("averageexecution")) {
+		if (allIds) {
+			job::clearMaxJobExecutionTimeAll();
+			cmdHandled = true;
+		}
+		else {
+			if (job::clearMaxJobExecutionTime(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
+			cmdHandled = true;
+		}
+	}
+	else if (p_cmdTable->commandFlags->isPresent("overloadcnt")) {
 		if (allIds) {
 			job::clearOverloadCntAll();
 			cmdHandled = true;
 		}
-		else if (job::clearOverloadCnt(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
-			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
-				"Job Id: %s does not exist", p_cmdTable->commandFlags->isPresent("id")->getValue());
-			LOG_VERBOSE("Job Id: %s does not exist" CR, p_cmdTable->commandFlags->isPresent("id")->getValue());
-			return;
-		}
-		else
+		else {
+			if (job::clearOverloadCnt(id)) {
+				notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
+					"Job Id: %s does not exist", id);
+				LOG_VERBOSE("Job Id: %s does not exist" CR, id);
+				return;
+			}
 			cmdHandled = true;
+		}
 	}
 	if (cmdHandled)
 		acceptedCliCommand(CLI_TERM_EXECUTED);

@@ -59,6 +59,13 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 	wdtTimeoutMs = p_wdtTimeoutMs;
 	overloaded = false;
 	overloadCnt = 0;
+	statCnt = 0;
+	memset(jobQueueLatency, 0, JOB_STAT_CNT * sizeof(uint));
+	maxJobQueueLatency = 0;
+	memset(jobExecutionTime, 0, JOB_STAT_CNT * sizeof(uint));
+	maxJobExecutionTime = 0;
+	memset(jobSlotOccupancy, 0, JOB_STAT_CNT * sizeof(uint16_t));
+	maxJobSlotOccupancy = 0;
 	if (!(jobLock = xSemaphoreCreateMutex())) {
 		panic("Could not create Lock objects");
 		return;
@@ -112,7 +119,7 @@ void job::setOverloadLevelCease(uint16_t p_unsetOverloadLevel) {
 	unsetOverloadLevel = p_unsetOverloadLevel;
 }
 
-void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs) {
+void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs, bool p_supervisionJob) {
 	bool found = false;
 	xSemaphoreTake(jobLock, portMAX_DELAY);
 	jobdesc_t* jobDesc = new (heap_caps_malloc(sizeof(jobdesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) jobdesc_t;
@@ -120,6 +127,8 @@ void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs) {
 	jobDesc->jobCb = p_jobCb;
 	jobDesc->jobCbMetaData = p_jobCbMetaData;
 	jobDesc->taskHandle = xTaskGetCurrentTaskHandle();
+	jobDesc->jobSupervision = p_supervisionJob;
+	jobDesc->jobEnqueTime = esp_timer_get_time();
 	if (lapseDescList->size() == 0) {
 		lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lapseDesc_t);
 		assert(lapseDescList->back() != NULL);
@@ -218,6 +227,8 @@ void job::clearOverloadCnt(void) {
 }
 
 uint16_t job::getJobSlots(void) {
+	Serial.printf("YYYYYYYYYYYYYY\n");
+	Serial.printf("XXXXXXXXXXXXXX Jobslots: %i\n", jobQueueDepth);
 	return jobQueueDepth;
 }
 
@@ -273,7 +284,7 @@ void job::jobProcess(void) {
 	while (true) {
 		if ((xSemaphoreTake(jobSleepSemaphore, wdtTimeoutMs / (portTICK_PERIOD_MS * 3)) == pdFALSE)) {
 			if (wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
-				enqueue(jobWdtSuperviseHelper, this, false);
+				enqueue(jobWdtSuperviseHelper, this, false, true);
 				wdtSuperviseJobs++;
 				Serial.printf("OOOOOOOOOO Starting a job WDT supervisor job\n");
 			}
@@ -284,7 +295,9 @@ void job::jobProcess(void) {
 		jobWdt->feed();
 		if (lapseDescList->size() == 0)
 			panic("Job buffer empty despite the jobSleepSemaphore was released" CR);
+		lapseDescList->front()->jobDescList->front()->jobStartTime = esp_timer_get_time();
 		lapseDescList->front()->jobDescList->front()->jobCb(lapseDescList->front()->jobDescList->front()->jobCbMetaData);
+		updateJobStats(lapseDescList->front()->jobDescList->front(), uxSemaphoreGetCount(jobSleepSemaphore) + 1);
 		xSemaphoreTake(jobLock, portMAX_DELAY);
 		delete lapseDescList->front()->jobDescList->front();
 		lapseDescList->front()->jobDescList->pop_front();
@@ -323,11 +336,187 @@ void job::jobWdtSupervise(void) {
 uint16_t job::maxId(void) {
 	uint16_t maxId = 0;
 	xSemaphoreTake(jobListLock, portMAX_DELAY);
-	for (uint16_t jobListItter = 0; jobListItter <
+	for (uint16_t jobListItter  = 0; jobListItter <
 		jobList.size(); jobListItter++) {
 		if (jobList.at(jobListItter)->jobId > maxId)
 			maxId = jobList.at(jobListItter)->jobId;
 	}
 	xSemaphoreGive(jobListLock);
 	return maxId;
+}
+
+void job::updateJobStats(jobdesc_t* p_jobDesc, uint16_t p_jobslotOccupancy) {
+	if (p_jobDesc->jobSupervision)
+		return;
+	jobSlotOccupancy[statCnt] = p_jobslotOccupancy;
+	if (p_jobslotOccupancy > maxJobSlotOccupancy)
+		maxJobSlotOccupancy = p_jobslotOccupancy;
+	uint now = esp_timer_get_time();
+	jobExecutionTime[statCnt] = now - p_jobDesc->jobStartTime;
+	if (jobExecutionTime[statCnt] > maxJobExecutionTime)
+		maxJobExecutionTime = jobExecutionTime[statCnt];
+	jobQueueLatency[statCnt] = now - p_jobDesc->jobEnqueTime - jobExecutionTime[statCnt];
+	if (jobQueueLatency[statCnt] > maxJobQueueLatency)
+		maxJobQueueLatency = jobQueueLatency[statCnt];
+	statCnt++;
+	if (statCnt >= JOB_STAT_CNT)
+		statCnt = 0;
+}
+
+uint16_t job::getMaxJobSlotOccupancy(void) {
+	return maxJobSlotOccupancy;
+}
+
+void job::clearMaxJobSlotOccupancyAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		jobList.at(jobListItter)->maxJobSlotOccupancy = 0;
+}
+
+rc_t job::clearMaxJobSlotOccupancy(uint16_t p_id) {
+	job* jobHandle;
+	if (!(jobHandle = getJobHandleById(p_id)))
+		return RC_NOT_FOUND_ERR;
+	jobHandle->maxJobSlotOccupancy = 0;
+	return RC_OK;
+}
+
+void job::clearMaxJobSlotOccupancy(void) {
+	maxJobSlotOccupancy = 0;
+}
+
+uint16_t job::getMeanJobSlotOccupancy(void) {
+	uint sum = 0;
+	uint16_t sampleCnt = 0;
+	for (uint16_t jobSlotOccupancyItter = 0; jobSlotOccupancyItter < JOB_STAT_CNT; jobSlotOccupancyItter++) {
+		if(jobSlotOccupancy[jobSlotOccupancyItter]){
+			sum += jobSlotOccupancy[jobSlotOccupancyItter];
+			sampleCnt++;
+		}
+	}
+	if (sampleCnt)
+		return sum / sampleCnt;
+	else 
+		return 0;
+}
+
+void job::clearMeanJobSlotOccupancyAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		memset(jobList.at(jobListItter)->jobSlotOccupancy, 0, JOB_STAT_CNT * sizeof(uint16_t));
+}
+
+rc_t job::clearMeanJobSlotOccupancy(uint16_t p_id) {
+	job* jobHandle;
+	if (!(jobHandle = getJobHandleById(p_id)))
+		return RC_NOT_FOUND_ERR;
+	memset(jobHandle->jobSlotOccupancy, 0, JOB_STAT_CNT * sizeof(uint16_t));
+	return RC_OK;
+}
+
+void job::clearMeanJobSlotOccupancy(void) {
+	memset(jobSlotOccupancy, 0, JOB_STAT_CNT * sizeof(uint16_t));
+}
+
+uint job::getMaxJobQueueLatency(void) {
+	return maxJobQueueLatency;
+}
+
+void job::clearMaxJobQueueLatencyAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		jobList.at(jobListItter)->maxJobQueueLatency = 0;
+}
+
+rc_t job::clearMaxJobQueueLatency(uint16_t p_id) {
+	job* jobHandle;
+	if (!(jobHandle = getJobHandleById(p_id)))
+		return RC_NOT_FOUND_ERR;
+	jobHandle->maxJobQueueLatency = 0;
+	return RC_OK;
+}
+
+void job::clearMaxJobQueueLatency(void) {
+	maxJobQueueLatency = 0;
+}
+uint job::getMeanJobQueueLatency(void) {
+	uint sum = 0;
+	uint16_t sampleCnt = 0;
+	for (uint16_t jobQueueLatencyItter = 0; jobQueueLatencyItter < JOB_STAT_CNT; jobQueueLatencyItter++) {
+		if (jobQueueLatency[jobQueueLatencyItter]){
+			sum += jobQueueLatency[jobQueueLatencyItter];
+			sampleCnt++;
+		}
+	}
+	if (sampleCnt)
+		return sum / sampleCnt;
+	else
+		return 0;
+}
+
+void job::clearMeanJobQueueLatencyAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		memset(jobList.at(jobListItter)->jobQueueLatency, 0, JOB_STAT_CNT * sizeof(uint));
+}
+
+rc_t job::clearMeanJobQueueLatency(uint16_t p_id) {
+	job* jobHandle;
+	if (!(jobHandle = getJobHandleById(p_id)))
+		return RC_NOT_FOUND_ERR;
+	memset(jobHandle->jobQueueLatency, 0, JOB_STAT_CNT * sizeof(uint));
+	return RC_OK;
+}
+
+void job::clearMeanJobQueueLatency(void) {
+	memset(jobQueueLatency, 0, JOB_STAT_CNT * sizeof(uint));
+}
+
+uint job::getMaxJobExecutionTime(void) {
+	return maxJobExecutionTime;
+}
+
+void job::clearMaxJobExecutionTimeAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		jobList.at(jobListItter)->maxJobExecutionTime = 0;
+}
+
+rc_t job::clearMaxJobExecutionTime(uint16_t p_id) {
+	job* jobHandle;
+	if (!(jobHandle = getJobHandleById(p_id)))
+		return RC_NOT_FOUND_ERR;
+	jobHandle->maxJobExecutionTime = 0;
+	return RC_OK;
+}
+
+void job::clearMaxJobExecutionTime(void) {
+	maxJobExecutionTime = 0;
+}
+
+uint job::getMeanJobExecutionTime(void) {
+	uint sum = 0;
+	uint16_t sampleCnt = 0;
+	for (uint16_t jobExecutionTimeItter = 0; jobExecutionTimeItter < JOB_STAT_CNT; jobExecutionTimeItter++) {
+		if (jobExecutionTime[jobExecutionTimeItter]){
+			sum += jobExecutionTime[jobExecutionTimeItter];
+			sampleCnt++;
+		}
+	}
+	if (sampleCnt)
+		return sum / sampleCnt;
+	else
+		return 0;
+}
+
+void job::clearMeanJobExecutionTimeAll(void) {
+	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
+		memset(jobList.at(jobListItter)->jobExecutionTime, 0, JOB_STAT_CNT * sizeof(uint));
+}
+
+rc_t job::clearMeanJobExecutionTime(uint16_t p_id) {
+	job* jobHandle;
+	if (!(jobHandle = getJobHandleById(p_id)))
+		return RC_NOT_FOUND_ERR;
+	memset(jobHandle->jobExecutionTime, 0, JOB_STAT_CNT * sizeof(uint));
+	return RC_OK;
+}
+
+void job::clearMeanJobExecutionTime(void) {
+	memset(jobExecutionTime, 0, JOB_STAT_CNT * sizeof(uint));
 }

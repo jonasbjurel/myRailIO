@@ -58,13 +58,17 @@ typedef void (*jobOverloadCb_t)(void* jobOverloadCbMetaData, bool p_overload);
 typedef void(*jobCb_t)(void* jobCbMetaData);
 
 //Definitions
-#define PURGE_JOB_PRIO                              ESP_TASK_PRIO_MAX - 3
+#define PURGE_JOB_PRIO                              (ESP_TASK_PRIO_MAX - 3)
+#define JOB_STAT_CNT                                10
+#define JOB_STAT_CNT_STR                            "10"
 
 struct jobdesc_t {
     TaskHandle_t taskHandle;
     jobCb_t jobCb;
     void* jobCbMetaData;
-    uint8_t jobPrio;
+    bool jobSupervision;
+    uint jobEnqueTime;
+    uint jobStartTime;
 };
 
 struct lapseDesc_t {
@@ -83,7 +87,7 @@ public:
     void regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData);
     void unRegOverloadCb(void);
     void setOverloadLevelCease(uint16_t p_unsetOverloadLevel);
-    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purge = false);
+    void enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purge = false, bool p_supervisionJob = false);
     void purge(void);
     const char* getJobDescription(void);
     uint16_t getId(void);
@@ -102,7 +106,30 @@ public:
     static void setDebug(bool p_debug);
     static bool getDebug(void);
     static uint16_t maxId(void);
-
+    uint16_t getMaxJobSlotOccupancy(void);
+    static void clearMaxJobSlotOccupancyAll(void);
+    static rc_t clearMaxJobSlotOccupancy(uint16_t p_id);
+    void clearMaxJobSlotOccupancy(void);
+    uint16_t getMeanJobSlotOccupancy(void);
+    static void clearMeanJobSlotOccupancyAll(void);
+    static rc_t clearMeanJobSlotOccupancy(uint16_t p_id);
+    void clearMeanJobSlotOccupancy(void);
+    uint getMaxJobQueueLatency(void);
+    static void clearMaxJobQueueLatencyAll(void);
+    static rc_t clearMaxJobQueueLatency(uint16_t p_id);
+    void clearMaxJobQueueLatency(void);
+    uint getMeanJobQueueLatency(void);
+    static void clearMeanJobQueueLatencyAll(void);
+    static rc_t clearMeanJobQueueLatency(uint16_t p_id);
+    void clearMeanJobQueueLatency(void);
+    uint getMaxJobExecutionTime(void);
+    static void clearMaxJobExecutionTimeAll(void);
+    static rc_t clearMaxJobExecutionTime(uint16_t p_id);
+    void clearMaxJobExecutionTime(void);
+    uint getMeanJobExecutionTime(void);
+    static void clearMeanJobExecutionTimeAll(void);
+    static rc_t clearMeanJobExecutionTime(uint16_t p_id);
+    void clearMeanJobExecutionTime(void);
 
     //Public data structures
     //--
@@ -113,6 +140,7 @@ private:
     void jobProcess(void);
     static void jobWdtSuperviseHelper(void* p_dummy);
     void jobWdtSupervise(void);
+    void updateJobStats(jobdesc_t* p_jobDesc, uint16_t p_jobslotOccupancy);
 
     //Private data structures
     static uint16_t jobCnt;
@@ -138,6 +166,14 @@ private:
     SemaphoreHandle_t jobSleepSemaphore;
     wdt* jobWdt;
     static bool debug;
+    uint16_t statCnt;
+    uint jobQueueLatency[JOB_STAT_CNT];
+    uint maxJobQueueLatency;
+    uint jobExecutionTime[JOB_STAT_CNT];
+    uint maxJobExecutionTime;
+    uint16_t jobSlotOccupancy[JOB_STAT_CNT];
+    uint16_t maxJobSlotOccupancy;
+
 };
 
 /*==============================================================================================================================================*/

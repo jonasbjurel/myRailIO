@@ -316,7 +316,7 @@ EXT_RAM_ATTR const char GLOBAL_UNSET_WDT_HELP_TXT[] =				"unset wdt -debug \n\r"
 																	"Available flags:\n\r" \
 																		"	- \"-debug\": Un-sets the debug flag, dis-allowing intrusional Watchdog CLI commands";
 
-EXT_RAM_ATTR const char GLOBAL_GET_WDT_HELP_TXT[] =					"get wdt [-id [-description]|[-active]|[-inhibited]|[-timeout]|[-action]|[-expiries]|[-closesedhit]]\n\r" \
+EXT_RAM_ATTR const char GLOBAL_GET_WDT_HELP_TXT[] =					"get wdt [-id {wd-id}[-description]|[-active]|[-inhibited]|[-timeout]|[-action]|[-expiries]|[-closesedhit]]\n\r" \
 																	"Prints Watchdog parameters and statistics. \"get wdt\" without flags is identical to \"show wdt\n\r" \
 																	"\"get wdt -id {wd_id}\" without any other flags shows all parameters and statistics for that specific Watchdog id\n\r" \
 																	"Available flags:\n\r" \
@@ -332,9 +332,10 @@ EXT_RAM_ATTR const char GLOBAL_GET_WDT_HELP_TXT[] =					"get wdt [-id [-descript
 EXT_RAM_ATTR const char GLOBAL_SHOW_WDT_HELP_TXT[] =				"show wdt\n\r" \
 																	"Shows a summary of the WDT information. Is identical to \"get wdt\" without flags\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_CLEAR_WDT_HELP_TXT[] =				"clear wdt [-id] -expireies|-closesedhit\n\r" \
+EXT_RAM_ATTR const char GLOBAL_CLEAR_WDT_HELP_TXT[] =				"clear wdt [-id {wd_id}]|-allstats|-expireies|-closesedhit\n\r" \
 																	"Clears certain WDT statistics\n\r" \
 																	"	- \"-id\": Specifies the WDT id for which a statistics object should be cleared, if ommited the statistics object for all WDTs will be cleared" \
+																	"	- \"-allstats\": Clears all statistics\n\r" \
 																	"	- \"-expireies\": The WDT expireies counter will be cleared" \
 																	"	- \"-closesedhit\": The WDT closesed hit statistics will be cleared";
 
@@ -380,27 +381,42 @@ EXT_RAM_ATTR const char GLOBAL_UNSET_JOB_HELP_TXT[] = "unset job -debug \n\r" \
 "Available flags:\n\r" \
 "	- \"-debug\": Un-sets the debug flag, dis-allowing intrusional Job CLI commands";
 
-EXT_RAM_ATTR const char GLOBAL_GET_JOB_HELP_TXT[] = "get job [-id {jobId} [-description]|[-active]|[-inhibited]|[-timeout]|[-action]|[-expiries]|[-closesedhit]]\n\r" \
+EXT_RAM_ATTR const char GLOBAL_GET_JOB_HELP_TXT[] = "get job [-id {jobId} [-description]|[-maxjobs]|[-currentjobs]|[-peakjobs]|[-averagejobs]|[-peaklatency]|[-averagelatency]|[-peakexecution]|[-averageexecution]|[-priority]|[-priority]|[-overloaded]|[-overloadcnt]|[-wdtid]|[-tasksort]]\n\r" \
 "Prints Job parameters and statistics. \"get job\" without flags is identical to \"show job\"\n\r" \
 "\"get job -id {jobId}\" without any other flags shows all parameters and statistics for that specific Job id\n\r" \
 "Available flags:\n\r" \
 "	- \"-id\": Specifies the Job id for which information is requested\n\r" \
-"	- \"-description\": Prints the Job description\n\r" \
-"	- \"-maxjobs\": Shows the maximum of Job slots/queue depth available\n\r" \
-"	- \"-activejobs\": Shows currently queued/pending Jobs\n\r" \
+"	- \"-description\": Prints the Job description, same as the job task name\n\r" \
+"	- \"-maxjobs\": Shows the total maximum of Job slots/queue depth available\n\r" \
+"	- \"-currentjobs\": Shows currently queued/pending Jobs\n\r" \
+"	- \"-peakjobs\": Shows the peak/maximum number of jobs that has ever been pending in the job queue\n\r" \
+"	- \"-averagejobs\": Shows the average number of jobs that has been pending in the job queue for the past " JOB_STAT_CNT_STR " job invocations\n\r" \
+"	- \"-peaklatency\": Shows the peak/maximum latency(uS) that a job has been in queue until start of execution\n\r" \
+"	- \"-averagelatency\": Shows the average latency time(uS) that jobs has been in queue until start of execution for the past " JOB_STAT_CNT_STR " job invocations\n\r" \
+"	- \"-peakexecution\": Shows the peak/maximum job execution time(uS) from when a job was dequeued from the job buffer until finished\n\r" \
+"	- \"-averageexecution\": Shows the average job execution time(uS) from when a job was dequeued from the job buffer until finished for the past " JOB_STAT_CNT_STR " job invocations\n\r" \
 "	- \"-priority\": Shows the Job task base priority\n\r" \
 "	- \"-overloaded\": Shows the current job queue overload status\n\r" \
 "	- \"-overloadcnt\": Shows the number of job queue overload instances\n\r" \
 "	- \"-wdtid\": Shows related Watchdog Id for the job supervision\n\r" \
-"	- \"-tasksorting\": Tasksorting - more information needed...\n\r";
+"	- \"-tasksort\": Tasksorting - when task sorting is disabled (\"False\") strict first-in first-served global policy applies\n\r" \
+"					 if not, a sorting policy keeping jobs enqued from same tasks is applied: I.e. strict first-in first-served per\n\r" \
+"					 job enqueueing origin task\n\r";
 
 EXT_RAM_ATTR const char GLOBAL_SHOW_JOB_HELP_TXT[] = "show job\n\r" \
 "Shows a summary of the Job information. Is identical to \"get job\" without flags\n\r";
 
-EXT_RAM_ATTR const char GLOBAL_CLEAR_JOB_HELP_TXT[] = "clear job [-id {jobId}] [-overloadcnt]\n\r" \
+EXT_RAM_ATTR const char GLOBAL_CLEAR_JOB_HELP_TXT[] = "clear job [-id {jobId}] [-allStats]|[-peakjobs]|[-averagejobs]|[-peaklatency]|[-averagelatency]|[-peakexecution]|[-averageexecution]|[-overloadcnt]]\n\r" \
 "Clears certain Job statistics\n\r" \
 "	- \"-id\": Specifies the Job id for which a statistics object should be cleared, if ommited the statistics object for all Jobs will be cleared" \
-"	- \"-overloadcnt\": The Job overload counter will be cleared";
+"	- \"-allstats\": Clears all statistics\n\r" \
+"	- \"-peakjobs\": Clears stats of the peak/maximum number of jobs that has ever been pending in the job queue\n\r" \
+"	- \"-averagejobs\": Clears stats of the average number of jobs that has been pending in the job queue for the past " JOB_STAT_CNT_STR " job invocations\n\r" \
+"	- \"-peaklatency\": Clears stats of the peak/maximum latency(uS) that a job has been in queue until start of execution\n\r" \
+"	- \"-averagelatency\": Clears stats of the average latency time(uS) that jobs has been in queue until start of execution for the past " JOB_STAT_CNT_STR " job invocations\n\r" \
+"	- \"-peakexecution\": Clears stats of the peak/maximum job execution time(uS) from when a job was dequeued from the job buffer until finished\n\r" \
+"	- \"-averageexecution\": Clears stats of the average job execution time(uS) from when a job was dequeued from the job buffer until finished for the past " JOB_STAT_CNT_STR " job invocations\n\r" \
+"	- \"-overloadcnt\": Clears stats of the number of job queue overload instances\n\r";
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* END Managed object (MO/Sub-MO): global/job																									*/
