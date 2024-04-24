@@ -661,7 +661,7 @@ void globalCli::onCliShowCommands(cmd* p_cmd, cliCore* p_cliContext,
 	
 void globalCli::processAvailCommands(bool p_all, bool p_help) {
 	QList<cliCmdTable_t*>* commandTable = getCliCommandTable();
-	char flags[200];
+	char flags[300];
 	printCommand(NULL, NULL, NULL, NULL, NULL, true, p_all, p_help);
 	char* helpStr = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
 	//First find all global MO sub-MOs

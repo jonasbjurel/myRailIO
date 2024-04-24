@@ -24,6 +24,7 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
+class wdt;
 #include <stdlib.h>
 #include <cstddef>
 #include <stdio.h>
@@ -61,8 +62,6 @@
 /* Methods: See below.                                                                                                                          */
 /* Data structures: See below                                                                                                                   */
 /*==============================================================================================================================================*/
-class wdt;
-
 typedef uint8_t action_t ;                                                          // Watchdog action/escalation ladder bitmap, the escalations goes from FAULTACTION_LOCAL0 towards FAULTACTION_GLOBAL_REBOOT
 #define FAULTACTION_GLOBAL_REBOOT           1<<7                                    // Reboots the entire decoder, first calls the globalRebootCb, and when it returns a divide by 0 exemption is created
 #define FAULTACTION_GLOBAL_FAILSAFE         1<<6                                    // Failsafe the entire decoder, calls the globalFailsafeCb responsible for failsafing the decoder.

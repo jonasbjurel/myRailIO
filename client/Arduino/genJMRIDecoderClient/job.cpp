@@ -1,7 +1,7 @@
 /*==============================================================================================================================================*/
 /* License                                                                                                                                      */
 /*==============================================================================================================================================*/
-// Copyright (c)2022 Jonas Bjurel (jonasbjurel@hotmail.com)
+// Copyright (c)2023 Jonas Bjurel (jonasbjurel@hotmail.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,9 +31,9 @@
 
 
 /*==============================================================================================================================================*/
-/* Class: "job(job)"																															*/
-/* Purpose:                                                                                                                                     */
-/* Methods:                                                                                                                                     */
+/* Class: job																																	*/
+/* Purpose: See job.h																															*/
+/* Methods: See job.h																															*/
 /*==============================================================================================================================================*/
 
 EXT_RAM_ATTR uint16_t job::jobCnt = 0;
@@ -41,9 +41,9 @@ EXT_RAM_ATTR QList<job*> job::jobList;
 EXT_RAM_ATTR SemaphoreHandle_t job::jobListLock = NULL;
 EXT_RAM_ATTR bool job::debug = false;
 
-
-
-job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_processTaskStackSize, uint8_t p_processTaskPrio, bool p_taskSorting, uint32_t p_wdtTimeoutMs) {
+job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName,
+		 uint p_processTaskStackSize, uint8_t p_processTaskPrio,
+		 bool p_taskSorting, uint32_t p_wdtTimeoutMs) {
 	if (!(jobCnt++)) {
 		if (!(jobListLock = xSemaphoreCreateMutex())) {
 			panic("Could not create Lock objects");
@@ -78,18 +78,28 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 		panic("Could not create jobProcess sleep semaphore  objects");
 		return;
 	}
-	//if (!(lapseDescList = new (heap_caps_malloc(sizeof(QList<lapseDesc_t*>), MALLOC_CAP_SPIRAM)) QList<lapseDesc_t*>))
-	if (!(lapseDescList = new QList<lapseDesc_t*>)){
+	lapseDescList = new QList<lapseDesc_t*>;
+	if (!lapseDescList) {
 		panic("Could not create lapse list object");
 		return;
 	}
-	jobWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(wdtTimeoutMs, p_processTaskName, FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
-	if (!(jobTaskHandle = eTaskCreate(jobProcessHelper,					// Task function
-						p_processTaskName,								// Task function name reference
-						p_processTaskStackSize,							// Stack size
-						this,											// Parameter passing
-						p_processTaskPrio,								// Priority 0-24, higher is more
-						INTERNAL))){									// Task handle
+	jobWdt = new (heap_caps_malloc(sizeof(wdt),
+						MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT))
+						wdt(wdtTimeoutMs, p_processTaskName,
+							FAULTACTION_GLOBAL_FAILSAFE |
+							FAULTACTION_GLOBAL_REBOOT |
+							FAULTACTION_ESCALATE_INTERGAP);
+	if (!jobWdt){
+		panic("Could not create job watchdog");
+		return;
+	}
+	processJobs = true;
+	if (!(jobTaskHandle = eTaskCreate(jobProcessHelper,								// Task function
+						p_processTaskName,											// Task function name reference
+						p_processTaskStackSize,										// Stack size
+						this,														// Parameter passing
+						p_processTaskPrio,											// Priority 0-24, higher is more
+						INTERNAL))){												// Task handle
 		panic("Could not create job task %s", p_processTaskName);
 		return;
 	}
@@ -98,12 +108,29 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName, uint p_process
 	jobOverloadCbMetaData = NULL;
 	overloaded = false;
 	unsetOverloadLevel = p_jobQueueDepth - 1;
-	bumpJobSlotPrio = 0;
 	purgeAllJobs = false;
 }
 
 job::~job(void) {
 	 panic("Destruction not supported");
+	 jobWdt->inactivate();
+	 processJobs = false;
+	 vTaskDelay(500 / portTICK_PERIOD_MS);											// Wait for the job process task to complete
+	 delete jobWdt;
+	 uint16_t lapseDescListSize = lapseDescList->size();
+	 for (uint16_t lapseDescListItter = 0; lapseDescListItter < lapseDescListSize; lapseDescListItter++) {
+		 uint16_t taskDescListSize = lapseDescList->back()->jobDescList->size();
+		 for (uint16_t taskDescListItter = 0; taskDescListItter < taskDescListSize; taskDescListItter++) {
+			 delete lapseDescList->back()->jobDescList->back();
+			 lapseDescList->back()->jobDescList->pop_back();
+		 }
+		 delete lapseDescList->back()->jobDescList;
+		 delete lapseDescList->back();
+		 lapseDescList->pop_back();
+	 }
+	 delete lapseDescList;
+	 jobList.clear(jobList.indexOf(this));
+
 }
 
 void job::regOverloadCb(jobOverloadCb_t p_jobOverloadCb, void* p_metaData) {
@@ -119,75 +146,94 @@ void job::setOverloadLevelCease(uint16_t p_unsetOverloadLevel) {
 	unsetOverloadLevel = p_unsetOverloadLevel;
 }
 
-void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs, bool p_supervisionJob) {
-	bool found = false;
+void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs,
+				  bool p_supervisionJob) {
+	if (p_purgeAllJobs)
+		purgeAllJobs = p_purgeAllJobs;
 	xSemaphoreTake(jobLock, portMAX_DELAY);
-	jobdesc_t* jobDesc = new (heap_caps_malloc(sizeof(jobdesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) jobdesc_t;
-	assert(jobDesc != NULL);
+	jobdesc_t* jobDesc = new (heap_caps_malloc(sizeof(jobdesc_t),
+		MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) jobdesc_t;
+	if (!jobDesc){
+		panic("Could not create a job descriptor");
+		return;
+	}
 	jobDesc->jobCb = p_jobCb;
 	jobDesc->jobCbMetaData = p_jobCbMetaData;
 	jobDesc->taskHandle = xTaskGetCurrentTaskHandle();
 	jobDesc->jobSupervision = p_supervisionJob;
 	jobDesc->jobEnqueTime = esp_timer_get_time();
 	if (lapseDescList->size() == 0) {
-		lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lapseDesc_t);
-		assert(lapseDescList->back() != NULL);
+		lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t),
+									  MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT))
+									  lapseDesc_t);
+		if (!lapseDescList->back()) {
+			panic("Could not create a lapse descriptor");
+			return;
+		}
 		lapseDescList->back()->jobDescList = new QList<jobdesc_t*>;
-		assert(lapseDescList->back()->jobDescList != NULL);
+		if (!lapseDescList->back()->jobDescList){
+			panic("Could not create a job descriptor");
+			return;
+		}
 		lapseDescList->back()->jobDescList->push_back(jobDesc);
 		if(taskSorting)
 			lapseDescList->back()->taskHandle = jobDesc->taskHandle;
 		else
 			lapseDescList->back()->taskHandle = NULL;
-		found = true;
 	}
-	else if (!taskSorting) {
+	else if (!taskSorting) {														// If not taskSorting, queue all jobs under the same lapse
 		lapseDescList->back()->jobDescList->push_back(jobDesc);
-		found = true;
 	}
-	else{
-		for (uint16_t lapseItter = 0; lapseItter < lapseDescList->size(); lapseItter++) {
+	else{																			// If taskSorting collect jobs under respective lapse based on origin task
+		for (uint16_t lapseItter = 0; lapseItter < lapseDescList->size();
+			 lapseItter++) {
 			if (lapseDescList->at(lapseItter)->taskHandle == jobDesc->taskHandle) {
 				lapseDescList->at(lapseItter)->jobDescList->push_back(jobDesc);
-				found = true;
 				break;
 			}
 			if (lapseItter + 1 == lapseDescList->size()) {
-				lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) lapseDesc_t);
-				assert(lapseDescList->back() != NULL);
+				lapseDescList->push_back(new (heap_caps_malloc(sizeof(lapseDesc_t),
+										 MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT))
+										 lapseDesc_t);
+				if (!lapseDescList->back()){
+					panic("Could not create a lapse descriptor");
+					return;
+				}
 				lapseDescList->back()->jobDescList = new QList<jobdesc_t*>;
-				assert(lapseDescList->back()->jobDescList != NULL);
+				if(!lapseDescList->back()->jobDescList){
+					panic("Could not create a job descriptor");
+					return;
+				}
 				lapseDescList->back()->jobDescList->push_back(jobDesc);
 				lapseDescList->back()->taskHandle = jobDesc->taskHandle;
-				found = true;
 				break;
 			}
 		}
 	}
-	assert(found == true);
-	if (p_purgeAllJobs) {
-		purgeAllJobs = p_purgeAllJobs;
-		bumpJobSlotPrio = 0;
-		vTaskPrioritySet(jobTaskHandle, uxTaskPriorityGet(NULL) >= ESP_TASK_PRIO_MAX - 1? ESP_TASK_PRIO_MAX - 1 : (uxTaskPriorityGet(NULL) >= PURGE_JOB_PRIO? uxTaskPriorityGet(NULL) + 1 : PURGE_JOB_PRIO));
-	}
-	else if (uxSemaphoreGetCount(jobSleepSemaphore) + 1 >= jobQueueDepth && !purgeAllJobs) {
-		bumpJobSlotPrio++;
-		vTaskPrioritySet(jobTaskHandle, uxTaskPriorityGet(NULL) >= ESP_TASK_PRIO_MAX - 1? ESP_TASK_PRIO_MAX - 1 : uxTaskPriorityGet(NULL) + 1);
-	}
-	if (!overloaded && uxSemaphoreGetCount(jobSleepSemaphore) + 1 >= jobQueueDepth) {
+	if (!overloaded && uxSemaphoreGetCount(jobSleepSemaphore) + 1					// No more job slots, we are overloaded
+		>= jobQueueDepth) {
 		overloaded = true;
 		overloadCnt++;
 		if (jobOverloadCb)
 			jobOverloadCb(jobOverloadCbMetaData, true);
 	}
 	xSemaphoreGive(jobLock);
-	xSemaphoreGive(jobSleepSemaphore);
+	xSemaphoreGive(jobSleepSemaphore);												// Send the job to the scheduler backend
+	if (purgeAllJobs) {																// If purgeAllJobs active, bump scheduler priority to above the originating enqueuer, effectively blocking the enqueuer her until the scheduler is empty
+		if (uxSemaphoreGetCount(jobSleepSemaphore)){
+			vTaskPrioritySet(jobTaskHandle, (uxTaskPriorityGet(NULL) >=
+											ESP_TASK_PRIO_MAX - 1) ?
+											  ESP_TASK_PRIO_MAX - 1 :
+											  (uxTaskPriorityGet(NULL) >=
+											  PURGE_JOB_PRIO_MAX ?
+											    uxTaskPriorityGet(NULL) + 1 :
+											    PURGE_JOB_PRIO_MAX));
+		}
+	}
 }
 
 void job::purge(void) {
 	purgeAllJobs = true;
-	bumpJobSlotPrio = 0;
-	vTaskPrioritySet(jobTaskHandle, uxTaskPriorityGet(NULL) >= ESP_TASK_PRIO_MAX - 1 ? ESP_TASK_PRIO_MAX - 1 : (uxTaskPriorityGet(NULL) >= PURGE_JOB_PRIO ? uxTaskPriorityGet(NULL) + 1 : PURGE_JOB_PRIO));
 }
 
 const char* job::getJobDescription(void) {
@@ -227,8 +273,6 @@ void job::clearOverloadCnt(void) {
 }
 
 uint16_t job::getJobSlots(void) {
-	Serial.printf("YYYYYYYYYYYYYY\n");
-	Serial.printf("XXXXXXXXXXXXXX Jobslots: %i\n", jobQueueDepth);
 	return jobQueueDepth;
 }
 
@@ -281,8 +325,10 @@ void job::jobProcessHelper(void* p_objectHandle) {
 
 void job::jobProcess(void) {
 	wdtSuperviseJobs = 0;
-	while (true) {
+	while (processJobs) {
 		if ((xSemaphoreTake(jobSleepSemaphore, wdtTimeoutMs / (portTICK_PERIOD_MS * 3)) == pdFALSE)) {
+			if (!processJobs)
+				break;
 			if (wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
 				enqueue(jobWdtSuperviseHelper, this, false, true);
 				wdtSuperviseJobs++;
@@ -295,10 +341,15 @@ void job::jobProcess(void) {
 		jobWdt->feed();
 		if (lapseDescList->size() == 0)
 			panic("Job buffer empty despite the jobSleepSemaphore was released" CR);
-		lapseDescList->front()->jobDescList->front()->jobStartTime = esp_timer_get_time();
-		lapseDescList->front()->jobDescList->front()->jobCb(lapseDescList->front()->jobDescList->front()->jobCbMetaData);
-		updateJobStats(lapseDescList->front()->jobDescList->front(), uxSemaphoreGetCount(jobSleepSemaphore) + 1);
+		lapseDescList->front()->jobDescList->front()->jobStartTime =
+			esp_timer_get_time();
+		lapseDescList->front()->jobDescList->front()->jobCb(lapseDescList->
+															front()->jobDescList->
+															front()->jobCbMetaData);
+
 		xSemaphoreTake(jobLock, portMAX_DELAY);
+		updateJobStats(lapseDescList->front()->jobDescList->front(),
+					   uxSemaphoreGetCount(jobSleepSemaphore) + 1);
 		delete lapseDescList->front()->jobDescList->front();
 		lapseDescList->front()->jobDescList->pop_front();
 		if (lapseDescList->front()->jobDescList->size() == 0) {
@@ -307,18 +358,13 @@ void job::jobProcess(void) {
 			lapseDescList->pop_front();
 		}
 		xSemaphoreGive(jobLock);
-		if (purgeAllJobs && !uxSemaphoreGetCount(jobSleepSemaphore)) {
-			bumpJobSlotPrio = 0;
-			purgeAllJobs = false;
-			vTaskPrioritySet(NULL, processTaskPrio);
-		}
-		else if (bumpJobSlotPrio) {
-			if (!(--bumpJobSlotPrio))
-				vTaskPrioritySet(NULL, processTaskPrio);
-		}
 		if (overloaded && uxSemaphoreGetCount(jobSleepSemaphore) <= unsetOverloadLevel) {
 			overloaded = false;
 			jobOverloadCb(jobOverloadCbMetaData, false);
+		}
+		if (!uxSemaphoreGetCount(jobSleepSemaphore)) {
+			vTaskPrioritySet(NULL, processTaskPrio);
+			purgeAllJobs = false;
 		}
 	}
 	vTaskDelete(NULL);
@@ -355,7 +401,8 @@ void job::updateJobStats(jobdesc_t* p_jobDesc, uint16_t p_jobslotOccupancy) {
 	jobExecutionTime[statCnt] = now - p_jobDesc->jobStartTime;
 	if (jobExecutionTime[statCnt] > maxJobExecutionTime)
 		maxJobExecutionTime = jobExecutionTime[statCnt];
-	jobQueueLatency[statCnt] = now - p_jobDesc->jobEnqueTime - jobExecutionTime[statCnt];
+	jobQueueLatency[statCnt] = now - p_jobDesc->jobEnqueTime -
+							   jobExecutionTime[statCnt];
 	if (jobQueueLatency[statCnt] > maxJobQueueLatency)
 		maxJobQueueLatency = jobQueueLatency[statCnt];
 	statCnt++;
@@ -387,7 +434,8 @@ void job::clearMaxJobSlotOccupancy(void) {
 uint16_t job::getMeanJobSlotOccupancy(void) {
 	uint sum = 0;
 	uint16_t sampleCnt = 0;
-	for (uint16_t jobSlotOccupancyItter = 0; jobSlotOccupancyItter < JOB_STAT_CNT; jobSlotOccupancyItter++) {
+	for (uint16_t jobSlotOccupancyItter = 0; jobSlotOccupancyItter < JOB_STAT_CNT;
+		 jobSlotOccupancyItter++) {
 		if(jobSlotOccupancy[jobSlotOccupancyItter]){
 			sum += jobSlotOccupancy[jobSlotOccupancyItter];
 			sampleCnt++;
@@ -401,7 +449,8 @@ uint16_t job::getMeanJobSlotOccupancy(void) {
 
 void job::clearMeanJobSlotOccupancyAll(void) {
 	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
-		memset(jobList.at(jobListItter)->jobSlotOccupancy, 0, JOB_STAT_CNT * sizeof(uint16_t));
+		memset(jobList.at(jobListItter)->jobSlotOccupancy, 0,
+			   JOB_STAT_CNT * sizeof(uint16_t));
 }
 
 rc_t job::clearMeanJobSlotOccupancy(uint16_t p_id) {
@@ -439,7 +488,8 @@ void job::clearMaxJobQueueLatency(void) {
 uint job::getMeanJobQueueLatency(void) {
 	uint sum = 0;
 	uint16_t sampleCnt = 0;
-	for (uint16_t jobQueueLatencyItter = 0; jobQueueLatencyItter < JOB_STAT_CNT; jobQueueLatencyItter++) {
+	for (uint16_t jobQueueLatencyItter = 0; jobQueueLatencyItter < JOB_STAT_CNT;
+		 jobQueueLatencyItter++) {
 		if (jobQueueLatency[jobQueueLatencyItter]){
 			sum += jobQueueLatency[jobQueueLatencyItter];
 			sampleCnt++;
@@ -453,7 +503,8 @@ uint job::getMeanJobQueueLatency(void) {
 
 void job::clearMeanJobQueueLatencyAll(void) {
 	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
-		memset(jobList.at(jobListItter)->jobQueueLatency, 0, JOB_STAT_CNT * sizeof(uint));
+		memset(jobList.at(jobListItter)->jobQueueLatency, 0,
+			   JOB_STAT_CNT * sizeof(uint));
 }
 
 rc_t job::clearMeanJobQueueLatency(uint16_t p_id) {
@@ -492,7 +543,8 @@ void job::clearMaxJobExecutionTime(void) {
 uint job::getMeanJobExecutionTime(void) {
 	uint sum = 0;
 	uint16_t sampleCnt = 0;
-	for (uint16_t jobExecutionTimeItter = 0; jobExecutionTimeItter < JOB_STAT_CNT; jobExecutionTimeItter++) {
+	for (uint16_t jobExecutionTimeItter = 0; jobExecutionTimeItter < JOB_STAT_CNT;
+		 jobExecutionTimeItter++) {
 		if (jobExecutionTime[jobExecutionTimeItter]){
 			sum += jobExecutionTime[jobExecutionTimeItter];
 			sampleCnt++;
@@ -506,7 +558,8 @@ uint job::getMeanJobExecutionTime(void) {
 
 void job::clearMeanJobExecutionTimeAll(void) {
 	for (uint16_t jobListItter = 0; jobListItter < jobList.size(); jobListItter++)
-		memset(jobList.at(jobListItter)->jobExecutionTime, 0, JOB_STAT_CNT * sizeof(uint));
+		memset(jobList.at(jobListItter)->jobExecutionTime, 0,
+			   JOB_STAT_CNT * sizeof(uint));
 }
 
 rc_t job::clearMeanJobExecutionTime(uint16_t p_id) {
