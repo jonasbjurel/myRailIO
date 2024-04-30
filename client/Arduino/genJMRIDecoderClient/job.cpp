@@ -230,6 +230,7 @@ void job::enqueue(jobCb_t p_jobCb, void* p_jobCbMetaData, bool p_purgeAllJobs,
 											    PURGE_JOB_PRIO_MAX));
 		}
 	}
+	taskYIELD();
 }
 
 void job::purge(void) {

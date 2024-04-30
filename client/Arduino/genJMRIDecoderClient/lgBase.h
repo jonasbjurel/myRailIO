@@ -143,15 +143,15 @@ private:
 	//--
 
 	//Private data structures
-	char* logContextName;
-	uint8_t lgAddress;
-	uint8_t lgLinkNo;
-	char* xmlconfig[9];
-	bool debug;
-	uint16_t stripOffset;
-	void* extentionLgClassObj;
+	EXT_RAM_ATTR char* logContextName;
+	EXT_RAM_ATTR uint8_t lgAddress;
+	EXT_RAM_ATTR uint8_t lgLinkNo;
+	EXT_RAM_ATTR char* xmlconfig[9];
+	EXT_RAM_ATTR bool debug;
+	EXT_RAM_ATTR uint16_t stripOffset;
+	EXT_RAM_ATTR void* extentionLgClassObj;
 	SemaphoreHandle_t lgBaseLock;
-	sysState_t prevSysState;
+	EXT_RAM_ATTR sysState_t prevSysState;
 };
 
 #endif /*LGBASE_H*/

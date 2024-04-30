@@ -20,6 +20,7 @@
 # Dependencies
 #################################################################################################################################################
 import os
+from pickle import NONE
 import sys
 import time
 import threading
@@ -84,7 +85,8 @@ class lightGroup(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
-        self.updated = True
+        self.updating = False
+        self.pendingBoot = False
         if name:
             self.jmriLgSystemName.value = name
         else:
@@ -168,16 +170,23 @@ class lightGroup(systemState, schema):
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
         self.mqttLgReqTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHTGROUPREQ_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
         self.mqttLgTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHTGROUP_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
+        print("XXXXXXXXXXXXXX Subscribing to Lg MQTT Topic: " + self.mqttLgReqTopic + " to serve Lg MQTT requests")
         trace.notify(DEBUG_TERSE, "Subscribing to Lg MQTT Topic: " + self.mqttLgReqTopic + " to serve Lg MQTT requests")
         self.mqttClient.subscribeTopic(self.mqttLgReqTopic, self.__LgMqttReqListener)
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        if uploadNReboot: 
-            self.updated = True
-        else:
-            self.updated = False
-        return self.parent.updateReq(self, source, uploadNReboot)
+        if source == self:
+            if self.updating:
+                return rc.ALREADY_EXISTS
+            if uploadNReboot: 
+                self.updating = True
+            else:
+                self.updating = False
+        res = self.parent.updateReq(self, source, uploadNReboot)
+        self.updating = False
+        return res
+
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration validate()")
@@ -295,6 +304,7 @@ class lightGroup(systemState, schema):
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
+            self.pendingBoot = True
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + trace.getErrStr(res))
             return res
@@ -316,9 +326,12 @@ class lightGroup(systemState, schema):
     def __setConfig(self):
         trace.notify(DEBUG_INFO, "Creating SIGNAL MAST - System name " + self.jmriLgSystemName.value)
         if self.lgType.value == "SIGNAL MAST":
+            state = self.rpcClient.getStateBySysName(jmriObj.MASTS, self.jmriLgSystemName.value)
             if self.rpcClient.createObject(jmriObj.MASTS, self.jmriLgSystemName.value) != rc.OK:
                 trace.notify(DEBUG_ERROR, "Could not create JMRI instance " + self.nameKey.value)
                 return rc.GEN_ERR
+            if state != None:
+                self.rpcClient.setStateBySysName(jmriObj.MASTS, self.jmriLgSystemName.value, state)
         else:
             trace.notify(DEBUG_INFO, "Could not create Light group type " + self.lgType.value + " for " + self.nameKey.value +" , type not supported")
             return rc.PARAM_ERR
@@ -375,8 +388,11 @@ class lightGroup(systemState, schema):
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
-            if not self.updated:
+            if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
+                self.pendingBoot = False
+            else:
+                self.updateReq(self, self, uploadNReboot = False)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.raiseAlarm("Light-group has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):

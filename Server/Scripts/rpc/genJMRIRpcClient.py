@@ -941,7 +941,7 @@ class jmriRpcClient():
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not set state for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", result: " + rc.getErrStr(res))
             return res
-        jmriObjDict[sysName].state = state
+        self.jmriObjDict[sysName].state = state
         trace.notify(DEBUG_INFO, "Successfully set state to: " + state + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         return rc.OK
 
@@ -1092,7 +1092,6 @@ class jmriRpcClient():
             else:
                 trace.notify(DEBUG_ERROR, "Got RPC CB garbage: " + str(callBackDict))
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR DIED>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
 
     def startKeepAliveHandler(self):
         self.stopKeepAliveHandler()

@@ -150,34 +150,33 @@ private:
     void updateStrip(void);
 
     //Private data structures
-    char* logContextName;
-    uint8_t linkNo;
+    EXT_RAM_ATTR char* logContextName;
+    EXT_RAM_ATTR uint8_t linkNo;
     bool linkScan;
-    wdt* linkScanWdt;
-    sysState_t prevSysState;
-    bool lgLinkScanDisabled;
-    bool failsafeSet;
-    char* xmlconfig[5];
+    EXT_RAM_ATTR wdt* linkScanWdt;
+    EXT_RAM_ATTR sysState_t prevSysState;
+    EXT_RAM_ATTR bool lgLinkScanDisabled;
+    EXT_RAM_ATTR bool failsafeSet;
+    EXT_RAM_ATTR char* xmlconfig[5];
     SemaphoreHandle_t lgLinkLock;
     SemaphoreHandle_t dirtyPixelLock;
-    wdt* lgLinkWdt;
     uint32_t overRuns;
     uint32_t maxLatency;
     uint32_t maxRuntime;
     uint16_t avgSamples;
-    uint32_t* latencyVect;
-    uint32_t* runtimeVect;
-    uint8_t pin;
+    EXT_RAM_ATTR uint32_t* latencyVect;
+    EXT_RAM_ATTR uint32_t* runtimeVect;
+    EXT_RAM_ATTR uint8_t pin;
     QList<dirtyPixel_t*> dirtyPixelList;
-    tinyxml2::XMLElement* lightGroupXmlElement;
+    EXT_RAM_ATTR tinyxml2::XMLElement* lightGroupXmlElement;
     Adafruit_NeoPixel* strip;
     uint8_t* stripWritebuff;
-    flash* FLASHSLOW;
-    flash* FLASHNORMAL;
-    flash* FLASHFAST;
-    signalMastAspects* signalMastAspectsObject;
-    lgBase* lgs[MAX_LGS];
-    bool debug;
+    EXT_RAM_ATTR flash* FLASHSLOW; 
+    EXT_RAM_ATTR flash* FLASHNORMAL;
+    EXT_RAM_ATTR flash* FLASHFAST;
+    EXT_RAM_ATTR signalMastAspects* signalMastAspectsObject;
+    EXT_RAM_ATTR lgBase* lgs[MAX_LGS];
+    EXT_RAM_ATTR bool debug;
 };
 
 /*==============================================================================================================================================*/

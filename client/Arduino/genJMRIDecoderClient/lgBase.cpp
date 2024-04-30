@@ -518,9 +518,11 @@ rc_t lgBase::getShowing(char* p_showing, bool p_force) {
         return RC_NOT_CONFIGURED_ERR;
     }
     if(extentionLgClassObj){
+        Serial.printf("YYYYYYYYYYYYYY Calling extention class object\n");
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getShowing(p_showing));
         return RC_OK;
     }
+    strcpy(p_showing, "-");
     return RC_NOT_CONFIGURED_ERR;
 }
 
@@ -568,7 +570,7 @@ void lgBase::onCliGetAddressHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg address, return code: %i", rc);
         return;
     }
-    printCli("Lightgroup-address: %i", address);
+    printCli("%i", address);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -598,7 +600,7 @@ void lgBase::onCliGetLedCntHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg Led-cnt, return code: %i", rc);
         return;
     }
-    printCli("Lightgroup-Ledcnt: %i", cnt);
+    printCli("%i", cnt);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -622,7 +624,7 @@ void lgBase::onCliGetLedOffsetHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Lightgroup-offset: %i", static_cast<lgBase*>(p_cliContext)->getStripOffset());
+    printCli("%i", static_cast<lgBase*>(p_cliContext)->getStripOffset());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -688,9 +690,9 @@ void lgBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    char* showing = NULL;
+    char showing[50];
     static_cast<lgBase*>(p_cliContext)->getShowing(showing);
-    printCli("Lightgroup-showing: %s", showing);
+    printCli("%s", showing);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -700,8 +702,23 @@ void lgBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    static_cast<lgBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str());
-    acceptedCliCommand(CLI_TERM_ORDERED);
+    rc_t rc;
+    rc = static_cast<lgBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str());
+    switch (rc){
+    case RC_DEBUG_NOT_SET_ERR:
+        notAcceptedCliCommand(CLI_GEN_ERR, "debug flag not set, see: \"set debug\"");
+        return;
+        break;
+    case RC_NOT_CONFIGURED_ERR:
+        notAcceptedCliCommand(CLI_GEN_ERR, "Lightgroup not configured");
+        return;
+        break;
+    case RC_OK:
+        acceptedCliCommand(CLI_TERM_ORDERED);
+        return;
+        break;
+    }
+    notAcceptedCliCommand(CLI_GEN_ERR, "A unknown error occurred");
 }
 
 /*==============================================================================================================================================*/

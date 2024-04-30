@@ -137,7 +137,7 @@
 #define MQTT_BUFF_SIZE								50000
 #define MQTT_POLL_PERIOD_MS							50
 #define MQTT_CONNECT_TIMEOUT_S						60
-#define MAX_MQTT_CONNECT_ATTEMPTS					60 //60xMQTT_POLL_PERIOD_MS = 3 sec
+#define MAX_MQTT_CONNECT_ATTEMPTS					60								//60xMQTT_POLL_PERIOD_MS = 3 sec
 
 // CPU execution parameters
 // ========================
@@ -146,7 +146,7 @@
 #define EXTERNAL									false
 
 // Log job task
-#define LOG_JOB_SLOTS								20
+#define LOG_JOB_SLOTS								10
 #define CPU_LOG_JOB_PRIO							5
 #define CPU_LOG_JOB_STACKSIZE_1K					6
 #define CPU_LOG_JOB_TASKNAME						"logJob"

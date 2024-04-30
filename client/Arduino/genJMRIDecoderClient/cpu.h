@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <QList.h>
+#include <esp_heap_caps.h>
 #include "rc.h"
 #include "panic.h"
 #include "config.h"
@@ -91,6 +92,8 @@ public:
     static uint getHeapMemTrendTxt(char* p_heapMemTxt, char* p_heapHeadingTxt,          //Get a pre-defined Heap memory trend report
                                    bool p_internal = false);
     static uint getMaxAllocMemBlockSize(bool p_internal = false);                       //Get the maximum memory block size that can be allocated from the Heap
+    static void startHeapSupervision(bool p_rebootOnHeapFail);
+    static void heap_caps_alloc_failed_hook(size_t requested_size, uint32_t caps, const char* function_name);
 
 
     //Data structures
@@ -112,6 +115,8 @@ private:
     static uint maxCpuLoad;                                                             //Maximum overall CPU load (%)
     static QList<const char*> taskNameList;                                             //List of monitored tasks names
     static QList<taskPmDesc_t*> taskPmDescList;                                         //List of task descriptors
+    static char stackTraceBuff[4096];
+    static bool rebootOnHeapFail;
 };
 /*==============================================================================================================================================*/
 /* END Class cpu                                                                                                                                */

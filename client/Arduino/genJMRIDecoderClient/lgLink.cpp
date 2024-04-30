@@ -152,6 +152,17 @@ rc_t lgLink::init(void) {
 }
 
 void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
+    /*
+    Serial.printf("MMMMMMMMMMMMMM Configuring LGLink\n");
+    Serial.printf("LgLink: Free Heap: %i\n", esp_get_free_heap_size());
+    Serial.printf("LgLink: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    Serial.printf("Internal Heap:\n");
+    heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
+    Serial.printf("External Heap:\n");
+    heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
+    Serial.printf("Default Heap:\n");
+    heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
+    */
     if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)) {
         panic("lgLink received a configuration, while the it was already configured, dynamic re-configuration not supported");
         return;

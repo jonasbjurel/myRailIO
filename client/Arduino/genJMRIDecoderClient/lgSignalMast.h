@@ -79,7 +79,7 @@ public:
     void onSysStateChange(sysState_t p_sysState);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
     rc_t getNoOffLeds(uint8_t* p_noOfLeds, bool p_force = false);
-    void getShowing(const char* p_showing);
+    void getShowing(char* p_showing);
     void setShowing(const char* p_showing);
     rc_t parseProperties(void);
     rc_t setProperties(void);
@@ -98,18 +98,19 @@ private:
     rc_t parseXmlAppearance(const char* p_aspectXml, char* p_aspect); //Parses a new aspect from *p_aspectXml and provides clear text aspect text in p_aspect, Returns RC_OK if successful
 
     //Private data structures
-    char* logContextName;
-    mastDesc_t mastDesc;
-    bool failsafeSet;
-    char* xmlConfig[5];
-    bool debug;
+    EXT_RAM_ATTR char* logContextName;
+    EXT_RAM_ATTR mastDesc_t mastDesc;
+    EXT_RAM_ATTR bool failsafeSet;
+    EXT_RAM_ATTR bool waitForUpdate;
+    EXT_RAM_ATTR char* xmlConfig[5];
+    EXT_RAM_ATTR bool debug;
     SemaphoreHandle_t lgSignalMastLock;             //Mutex to protect common object datastructures from multi thread parallel access
     SemaphoreHandle_t lgSignalMastReentranceLock;   //Mutex to avoid re-entrance caused by new aspects or flash events
-    char aspect[80];                                //Curren mastDecoder aspect - clear text name
-    uint8_t* appearance;                            //Holds the Appearance signatures for all heads in the mast (LIT, UNLIT, FLASH, UNUSED..), See definitions in the mastaspect class
-    uint8_t* tmpAppearance;                         //Temporarrily stores the appearance as received from the lgs decoder [SM_MAXHEADS]
-    uint8_t* appearanceWriteBuff;                   //Holds the wanted raw led wanted values to be passed to the lgLink for rendering
-    bool flashOn;                                   //Holds the flash state for all heads in the mast currently flashing
+    EXT_RAM_ATTR char aspect[80];                    //Curren mastDecoder aspect - clear text name
+    EXT_RAM_ATTR uint8_t* appearance;                //Holds the Appearance signatures for all heads in the mast (LIT, UNLIT, FLASH, UNUSED..), See definitions in the mastaspect class
+    EXT_RAM_ATTR uint8_t* tmpAppearance;             //Temporarrily stores the appearance as received from the lgs decoder [SM_MAXHEADS]
+    EXT_RAM_ATTR uint8_t* appearanceWriteBuff;       //Holds the wanted raw led wanted values to be passed to the lgLink for rendering
+    EXT_RAM_ATTR bool flashOn;                       //Holds the flash state for all heads in the mast currently flashing
 };
 
 /*==============================================================================================================================================*/

@@ -34,7 +34,7 @@ QList<panicCbReg_t*>* panicCbList = new QList<panicCbReg_t*>;
 void panic(const char* p_panicFmt, ...) {
     if (ongoingPanic) {
         LOG_FATAL_NOFMT("A secondary panic occured, will not be handled..." CR);
-        Serial.printf("A secondary panic occured, will not be handled..." CR);
+        Serial.printf(">>> A secondary panic occured, will not be handled..." CR);
         return; 
     }
     ongoingPanic = true;
@@ -45,11 +45,11 @@ void panic(const char* p_panicFmt, ...) {
     // format message
     vsnprintf(panicLogMsg, len + 1, p_panicFmt, args);
     LOG_FATAL("%s - rebooting..." CR, panicLogMsg);
-    Serial.printf("%s - rebooting..." CR, panicLogMsg);
+    Serial.printf(">>> %s - rebooting..." CR, panicLogMsg);
     va_end(args);
 //    decoderHandle->setOpStateByBitmap(OP_INTFAIL);
     LOG_FATAL("%s" CR, stackTraceBuff);
-    Serial.printf("%s" CR, stackTraceBuff);
+    Serial.printf(">>> %s" CR, stackTraceBuff);
     LOG_FATAL_NOFMT("Waiting 5 seconds before restarting - enabling spool-out of syslog, fail-safe settings, etc" CR);
     fileSys::putFile(FS_PATH "/" "panic", stackTraceBuff, strlen(stackTraceBuff) + 1, NULL);
     TimerHandle_t rebootTimer;

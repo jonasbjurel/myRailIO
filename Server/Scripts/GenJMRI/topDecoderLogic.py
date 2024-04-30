@@ -105,7 +105,6 @@ class topDecoder(systemState, schema):
         self.mqttClientId = MQTT_CLIENT_ID
         self.rpcClient = None
         self.schemaDirty = False
-        childsSchemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
         self.setSchema(schema.TOP_DECODER_SCHEMA)
@@ -116,7 +115,8 @@ class topDecoder(systemState, schema):
         self.appendSchema(schema.SERVICES_SCHEMA)
         self.appendSchema(schema.ADM_STATE_SCHEMA)
         self.appendSchema(schema.CHILDS_SCHEMA)
-        self.updated = True
+        self.updating = False
+        self.pendingBoot = False
         self.decoders.value = []
         self.pendingDecoderRestartList = []
         self.childs.value = self.decoders.candidateValue
@@ -376,10 +376,13 @@ class topDecoder(systemState, schema):
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        if uploadNReboot: 
-            self.updated = True
-        else:
-            self.updated = False
+        if source == self:
+            if self.updating:
+                return rc.ALREADY_EXISTS
+            if uploadNReboot: 
+                self.updating = True
+            else:
+                self.updating = False
         if self.nestedUpdate == 0:
             self.pendingDecoderRestartList.clear()
         if uploadNReboot:
@@ -390,7 +393,9 @@ class topDecoder(systemState, schema):
         self.nestedUpdate -= 1
         if self.nestedUpdate == 0:
             for decoder in self.pendingDecoderRestartList:
-                decoder.decoderRestart()
+                if decoder != self:
+                    decoder.decoderRestart()
+            self.updating = False
         return res
 
     def validate(self):
@@ -474,6 +479,7 @@ class topDecoder(systemState, schema):
             except Exception:
                 traceback.print_exc() 
                 trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
+                res = rc.GEN_ERR
 
             if res != rc.OK:
                 trace.notify(DEBUG_ERROR, "topDecoder Could not set validated configuration")
@@ -695,6 +701,7 @@ class topDecoder(systemState, schema):
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
+            self.pendingBoot = True
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + self.nameKey.candidateValue + ", return code: " + rc.getErrStr(res))
             return res
@@ -719,7 +726,7 @@ class topDecoder(systemState, schema):
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(self.logVerbosity.value))
         self.rpcClient.setRpcServerDebugLevel(self.logVerbosity.value)
         trace.notify(DEBUG_VERBOSE, "Starting/Restarting RSyslog server")
-        rSyslog.start(self.rsyslogUrl.value, self.rsyslogPort.value, self.logFile.value, self.logRotateNoFiles.value, self.logFileSize.value * 1000)
+        rSyslog.start("localhost", 514, self.logFile.value, self.logRotateNoFiles.value, self.logFileSize.value * 1000)
         trace.notify(DEBUG_INFO, "Starting/re-starting local RSyslog producer")
         trace.startSyslog(self.rsyslogUrl.value, self.rsyslogPort.value)
         # Set MQTT parameters
@@ -821,8 +828,11 @@ class topDecoder(systemState, schema):
         elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
             self.MQTTalarm.admEnableAlarm()
             self.RPCalarm.admEnableAlarm()
-            if not self.updated:
+            if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
+                self.pendingBoot = False
+            else:
+                self.updateReq(self, self, uploadNReboot = False)
             if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
                 self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
         if (changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE]):

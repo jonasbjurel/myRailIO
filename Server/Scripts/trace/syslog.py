@@ -53,8 +53,8 @@ class rSyslog(socketserver.BaseRequestHandler):
 			rSyslog.udpPollHandle = Thread(target=rSyslog.server.serve_forever)
 			rSyslog.udpPollHandle.start()
 		except (IOError, SystemExit):
+			rSyslog.server = None
 			raise
-
 	@staticmethod
 	def stop():
 		try:
@@ -105,7 +105,6 @@ class rSyslog(socketserver.BaseRequestHandler):
 	def openFileBaseName(p_dontTakeLock = False):
 		if not p_dontTakeLock:
 			rSyslog.logLock.acquire()
-
 		if rSyslog.logFileHandle != None:
 			rSyslog.logFileHandle.close()
 			rSyslog.logFileHandle = None

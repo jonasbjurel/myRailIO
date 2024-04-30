@@ -126,12 +126,17 @@ rc_t logg::addLogServer(const char* p_host, const char* p_server, uint16_t p_por
         }
     }
     sysLogServers->push_back(new (heap_caps_malloc(sizeof(rSyslog_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) rSyslog_t);
+    if (!sysLogServers->back()) {
+        panic("Could not add a new syslog descriptor");
+        xSemaphoreGive(logDestinationLock);
+        return RC_OUT_OF_MEM_ERR;
+    }
     strcpy(sysLogServers->back()->server, p_server);
     sysLogServers->back()->port = p_port;
+
     sysLogServers->back()->syslogDest = new SimpleSyslog(p_host, "genJMRIDecoder", p_server, p_port);
     if (!sysLogServers->back()->syslogDest) {
-        LOG_ERROR_NOFMT("Failed to create a syslog destination" CR);
-        sysLogServers->pop_back();
+        panic("Could not create a syslog instance");
         xSemaphoreGive(logDestinationLock);
         return RC_OUT_OF_MEM_ERR;
     }

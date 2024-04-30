@@ -164,7 +164,9 @@ class satLink(systemState, schema):
             self.updated = True
         else:
             self.updated = False
-        return self.parent.updateReq(self, source, uploadNReboot)
+        res = self.parent.updateReq(self, source, uploadNReboot)
+        self.updated = False
+        return res
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Satelite link " + self.satLinkSystemName.candidateValue + " received configuration validate()")

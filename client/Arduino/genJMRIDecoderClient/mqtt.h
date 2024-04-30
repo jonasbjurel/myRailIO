@@ -154,6 +154,7 @@ private:
     //Private data structures
     static systemState* sysState;
     static job* mqttJobHandle;
+    static SemaphoreHandle_t pubSubLock;
     static SemaphoreHandle_t mqttLock;
     static WiFiClient espClient;
     static PubSubClient* mqttClient;

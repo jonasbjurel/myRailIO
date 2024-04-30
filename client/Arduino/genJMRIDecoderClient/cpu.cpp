@@ -50,6 +50,10 @@ EXT_RAM_ATTR uint* cpu::intHeapFreeHistory = NULL;
 EXT_RAM_ATTR QList<const char*> cpu::taskNameList;
 EXT_RAM_ATTR QList<taskPmDesc_t*> cpu::taskPmDescList;
 EXT_RAM_ATTR SemaphoreHandle_t cpu::cpuPMLock = xSemaphoreCreateMutex();
+EXT_RAM_ATTR char cpu::stackTraceBuff[4096];
+EXT_RAM_ATTR bool cpu::rebootOnHeapFail = false;
+
+
 
 void cpu::startPm(void) {
 	cpuPmEnable = true;
@@ -430,12 +434,39 @@ uint cpu::getHeapMemTrendTxt(char* p_heapMemTxt, char* p_heapHeadingTxt, bool p_
 }
 
 uint cpu::getMaxAllocMemBlockSize(bool p_internal) {
-	if(p_internal)
+	if (p_internal)
 		return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
 	if (heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM) > heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL))
 		return heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
 	else
 		return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+}
+
+void cpu::startHeapSupervision(bool p_rebootOnHeapFail) {
+	rebootOnHeapFail = p_rebootOnHeapFail;
+	heap_caps_register_failed_alloc_callback(heap_caps_alloc_failed_hook);
+}
+
+void cpu::heap_caps_alloc_failed_hook(size_t requested_size, uint32_t caps, const char* function_name){
+	Serial.printf(">>> ERROR: %s was called but failed to allocate %d bytes with 0x%X capabilities. Max allocatable block with the caps: %i\n", function_name, requested_size, caps, heap_caps_get_largest_free_block(caps));
+	Serial.printf(">>> Requested Heap:\n");
+	heap_caps_print_heap_info(caps);
+	Serial.printf(">>> Internal Heap:\n");
+	heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
+	Serial.printf(">>> External Heap:\n");
+	heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
+	esp_backtrace_buff(20, stackTraceBuff);
+	if (heap_caps_check_integrity_all(false)) {
+		Serial.printf(">>> Heap corruption detected:\n");
+		heap_caps_check_integrity_all(true);
+	}
+	else {
+		Serial.printf(">>> No Heap corruption detected\n");
+	}
+	Serial.printf(">>> Call-stack:\n");
+	Serial.printf("%s\n", stackTraceBuff);
+	if (rebootOnHeapFail)
+		ESP.restart();
 }
 /*==============================================================================================================================================*/
 /* END class cpu                                                                                                                                */

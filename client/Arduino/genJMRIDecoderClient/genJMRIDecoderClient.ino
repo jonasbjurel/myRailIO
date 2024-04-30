@@ -42,10 +42,12 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 void setup() {
+    heap_caps_malloc_extmem_enable(0);
     setupRunning = true;
     Serial.begin(115200);
     Serial.printf("setup: Free Heap: %i\n", esp_get_free_heap_size());
     Serial.printf("setup: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
+    cpu::startHeapSupervision(true);
     logg::start();
     Serial.printf("Starting provisioning network trigger\n");
     networking::provisioningConfigTrigger();

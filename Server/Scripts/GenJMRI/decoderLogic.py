@@ -101,7 +101,8 @@ class decoder(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
-        self.updated = True
+        self.updating = False
+        self.pendingBoot = False
         self.lgLinks.value = []
         self.satLinks.value = []
         self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
@@ -202,11 +203,16 @@ class decoder(systemState, schema):
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        if uploadNReboot:
-            self.updated = True
-        else:
-            self.updated = False
-        return self.parent.updateReq(self, source, uploadNReboot)
+        if source == self:
+            if self.updating:
+                return rc.ALREADY_EXISTS
+            if uploadNReboot:
+                self.updating = True
+            else:
+                self.updating = False
+        res = self.parent.updateReq(self, source, uploadNReboot)
+        self.updating = False
+        return res
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.candidateValue + " received configuration validate()")
@@ -442,6 +448,7 @@ class decoder(systemState, schema):
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
+            self.pendingBoot = True
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + rc.getErrStr(res))
             return res
@@ -524,6 +531,8 @@ class decoder(systemState, schema):
     def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
+        print("XXXXXXXXXXXXXXX Got a new sysStateAllListener OP-state: " + self.getOpStateDetailStrFromBitMap(opStateDetail))
+        traceback.print_stack()
         if opStateDetail & OP_DISABLED[STATE]:
             self.win.inactivateMoMObj(self.item)
         elif opStateDetail & OP_CBL[STATE]:
@@ -546,8 +555,11 @@ class decoder(systemState, schema):
             self.CLIENT_UNAVAILalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
-            if not self.updated:
+            if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
+                self.pendingBoot = False
+            else:
+                self.updateReq(self, self, uploadNReboot = False)
         if (((changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE])) or
             ((changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE])) or
             ((changedOpStateDetail & OP_NOIP[STATE]) and (opStateDetail & OP_NOIP[STATE])) or
@@ -586,12 +598,21 @@ class decoder(systemState, schema):
         except:
             trace.notify(DEBUG_ERROR, "Decoder " + self.nameKey.value + " received OP State not recognized, there is likely a missmatch beween server and client assumed OP States")
             return
-        self.setOpStateDetail(opBitMap & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
-        self.unSetOpStateDetail(~opBitMap & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
-        self.mqttClient.publish(self.decoderOpDownStreamTopic, self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & (OP_SERVUNAVAILABLE[STATE] | OP_CBL[STATE])))
+        self.setOpStateDetail(opBitMap & ~OP_SERVUNAVAILABLE[STATE])
+        self.unSetOpStateDetail(~opBitMap & ~OP_SERVUNAVAILABLE[STATE])
+
+        #self.setOpStateDetail(opBitMap & ~OP_SERVUNAVAILABLE[STATE])
+        #self.unSetOpStateDetail(~OP_SERVUNAVAILABLE[STATE] )
+
+        #self.setOpStateDetail(opBitMap & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        #self.unSetOpStateDetail(~opBitMap & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
+        #self.mqttClient.publish(self.decoderOpDownStreamTopic, self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & (OP_SERVUNAVAILABLE[STATE] | OP_CBL[STATE])))
 
     def __decoderRestart(self):
         trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " requested will be restarted")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        traceback.print_stack()
+
         self.mqttClient.publish(self.decoderRebootTopic, REBOOT_PAYLOAD)
         self.restart = True
 

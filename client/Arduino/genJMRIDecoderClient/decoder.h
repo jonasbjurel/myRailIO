@@ -261,15 +261,15 @@ private:
 	//Private methods
 
 	//Private data structures
-	char* logContextName;
-	satLink* satLinks[MAX_SATLINKS];
-	lgLink* lgLinks[MAX_LGLINKS];
+	EXT_RAM_ATTR char* logContextName;
+	EXT_RAM_ATTR satLink* satLinks[MAX_SATLINKS];
+	EXT_RAM_ATTR lgLink* lgLinks[MAX_LGLINKS];
 	SemaphoreHandle_t decoderLock;
-	tinyxml2::XMLDocument* xmlConfigDoc;
-	tinyxml2::XMLElement* satLinkXmlElement;
-	tinyxml2::XMLElement* lgLinkXmlElement;
-	sysState_t prevSysState;
-	bool debug;
+	EXT_RAM_ATTR tinyxml2::XMLDocument* xmlConfigDoc;
+	EXT_RAM_ATTR tinyxml2::XMLElement* satLinkXmlElement;
+	EXT_RAM_ATTR tinyxml2::XMLElement* lgLinkXmlElement;
+	EXT_RAM_ATTR sysState_t prevSysState;
+	EXT_RAM_ATTR bool debug;
 };
 
 /*==============================================================================================================================================*/

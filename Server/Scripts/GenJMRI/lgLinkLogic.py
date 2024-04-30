@@ -76,7 +76,8 @@ class lgLink(systemState, schema):
         self.mqttClient = mqttClient
         self.lightGroups.value = []
         self.childs.value = self.lightGroups.candidateValue
-        self.updated = True
+        self.updating = False
+        self.pendingBoot = False
         if name:
             self.lgLinkSystemName.value = name
         else:
@@ -147,18 +148,23 @@ class lgLink(systemState, schema):
             trace.notify(DEBUG_INFO, self.nameKey.value + " Successfully configured")
         for lightGroupXml in xmlConfig:
             if lightGroupXml.tag == "LightGroup":
-                res = self.addChild(LIGHT_GROUP, config=False, configXml=lightGroupXml, demo=False)
+                res = self.addChild(LIGHT_GROUP, config = False, configXml = lightGroupXml, demo = False)
                 if res != rc.OK:
                     trace.notify(DEBUG_ERROR, "Failed to add Light group to " + lgLinkXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
                     return res
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        if uploadNReboot: 
-            self.updated = True
-        else:
-            self.updated = False
-        return self.parent.updateReq(self, source, uploadNReboot)
+        if source == self:
+            if self.updating:
+                return rc.ALREADY_EXISTS
+            if uploadNReboot: 
+                self.updating = True
+            else:
+                self.updating = False
+        res = self.parent.updateReq(self, source, uploadNReboot)
+        self.updating = False
+        return res
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "Light group link " + self.lgLinkSystemName.candidateValue + " received configuration validate()")
@@ -364,6 +370,7 @@ class lgLink(systemState, schema):
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
+            self.pendingBoot = True
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + rc.getErrStr(res))
             return res
@@ -450,8 +457,11 @@ class lgLink(systemState, schema):
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
-            if not self.updated:
+            if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
+                self.pendingBoot = False
+            else:
+                self.updateReq(self, self, uploadNReboot = False)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.raiseAlarm("Light-group link has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):

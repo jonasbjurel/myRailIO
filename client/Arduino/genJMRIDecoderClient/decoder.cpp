@@ -269,6 +269,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     else {
         LOG_INFO("%s: RSyslog server URI not provided, will not start RSyslog" CR, logContextName);
     }
+    /* Temporarilly out for stability
     LOG_TERSE("Setting up MQTT endpoints and properties" CR);
     Serial.printf("XXXXXXXX Setting brocker\n");
     setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
@@ -281,8 +282,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
     Serial.printf("XXXXXXXX Setting keepalive\n");
+    */
     setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
-
     LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
         LOG_TERSE("Setting up NTP server URI and Port from configuration - URI: %s Port: %s" CR, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
@@ -514,7 +515,7 @@ void decoder::onSysStateChange(sysState_t p_sysState) {
         return;
     }
     if (newSysState & OP_INIT) {
-        LOG_TERSE("%s: The decoder is initializing..." CR, logContextName);
+        LOG_INFO("%s: The decoder is initializing..." CR, logContextName);
         prevSysState = newSysState;
         return;
     }
@@ -523,11 +524,12 @@ void decoder::onSysStateChange(sysState_t p_sysState) {
         prevSysState = newSysState;
     }
     if ((sysStateChange & OP_INIT) && !(newSysState & OP_DISABLED)) {
-        LOG_TERSE("%s: The decoder have been initialized and is enabled - enabling decoder supervision" CR, logContextName);
-        mqtt::up();
+        LOG_INFO("%s: The decoder have been initialized and is enabled - enabling decoder supervision" CR, logContextName);
+        if (mqtt::up())
+            panic("Could not start MQTT supervision");
     }
     else if ((sysStateChange & OP_INIT) && (newSysState & OP_DISABLED)) {
-        LOG_TERSE("%s: The decoder have been initialized but is disabled - will not enable decoder supervision" CR, logContextName);
+        LOG_INFO("%s: The decoder have been initialized but is disabled - will not enable decoder supervision" CR, logContextName);
         mqtt::down();
     }
     if ((sysStateChange & OP_DISABLED) && (newSysState & OP_DISABLED)) {
@@ -536,7 +538,8 @@ void decoder::onSysStateChange(sysState_t p_sysState) {
     }
     else if ((sysStateChange & OP_DISABLED) && !(newSysState & OP_DISABLED)) {
         LOG_INFO("%s: decocoder has been enabled by server, enabling decoder supervision" CR, logContextName);
-        mqtt::up();
+        if (mqtt::up())
+            panic("Could not start MQTT supervision");
     }
     if ((sysStateChange & OP_SERVUNAVAILABLE) && !(newSysState & OP_SERVUNAVAILABLE)) {
         LOG_INFO("%s: Server is reporting recieved MQTT Pings from the decoder" CR, logContextName);

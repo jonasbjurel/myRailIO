@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <dummy.h>
+#include <esp_heap_caps.h>
 #include "globalCli.h"
 #include "networking.h"
 #include "systemState.h"

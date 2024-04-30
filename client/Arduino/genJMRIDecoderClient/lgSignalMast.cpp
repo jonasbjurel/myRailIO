@@ -39,6 +39,7 @@
 lgSignalMast::lgSignalMast(const lgBase* p_lgBaseObjHandle) {
     asprintf(&logContextName, "%s/%s", ((lgBase*)p_lgBaseObjHandle)->getLogContextName(), "sm");
     failsafeSet = false;
+    waitForUpdate = true;
     mastDesc.lgBaseObjHandle = (lgBase*)p_lgBaseObjHandle;
     mastDesc.lgLinkHandle = (lgLink*)mastDesc.lgBaseObjHandle->lgLinkHandle;
     mastDesc.lgLinkHandle->getLink(&mastDesc.lgLinkNo);
@@ -123,8 +124,8 @@ void lgSignalMast::onSysStateChange(sysState_t p_sysState) {
         LOG_INFO("%s: sm has received Opstate %X - seting fail-safe aspect" CR, logContextName, p_sysState);
     }
     else {
+        LOG_INFO("%s:sm has received a WORKING Opstate - requesting current aspect from server" CR, logContextName);
         failSafe(false);
-        LOG_INFO("%s:sm has received a WORKING Opstate - Unseting fail-safe aspect and getting current aspect from server" CR, logContextName);
         char publishTopic[300];
         sprintf(publishTopic, "%s%s%s%s%s", MQTT_ASPECT_REQUEST_TOPIC, "/", mqtt::getDecoderUri(), "/", mastDesc.lgSysName);
         mqtt::sendMsg(publishTopic, MQTT_GETASPECT_PAYLOAD, false);
@@ -144,8 +145,8 @@ rc_t lgSignalMast::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
     return RC_OK;
 }
 
-void lgSignalMast::getShowing(const char* p_showing){
-    p_showing = aspect;
+void lgSignalMast::getShowing(char* p_showing){
+    strcpy(p_showing, aspect);;
 }
 
 void lgSignalMast::setShowing(const char* p_showing) {
@@ -238,12 +239,13 @@ void lgSignalMast::onAspectChangeHelper(const char* p_topic, const char* p_paylo
 }
 
 void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
+    Serial.printf("XXXXXXXXXXXXXXXXX Got a new aspect %s\n", p_payload);
     xSemaphoreTake(lgSignalMastLock, portMAX_DELAY);
     xSemaphoreTake(lgSignalMastReentranceLock, portMAX_DELAY);
-    if (mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap()) {
+    if (mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap() || failsafeSet) {
         xSemaphoreGive(lgSignalMastLock);
         xSemaphoreGive(lgSignalMastReentranceLock);
-        LOG_WARN("%s: A new aspect received, but mast decoder opState is not OP_WORKING - doing nothing..." CR, logContextName);
+        LOG_WARN("%s: A new aspect received, but mast decoder opState is not OP_WORKING or FailSafe set - doing nothing..." CR, logContextName);
         return;
     }
     xSemaphoreGive(lgSignalMastLock);
@@ -258,6 +260,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
         LOG_ERROR("%s: Failed to get mast aspect" CR, logContextName);
         return;
     }
+    waitForUpdate = false;
     if (Log.getLogLevel() == GJMRI_DEBUG_VERBOSE) {
         char apearanceStr[100];
         strcpy(apearanceStr, "");
@@ -279,7 +282,7 @@ void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
                 strcat(apearanceStr, "<ERROR>");
             }
         }
-    LOG_VERBOSE("%s sm appearance change: %s" CR, logContextName, apearanceStr);
+    LOG_VERBOSE("%s sm appearance change/update: %s" CR, logContextName, apearanceStr);
     }
     for (uint8_t i = 0; i < mastDesc.lgNoOfLed; i++) {
         switch (appearance[i]) {
@@ -318,8 +321,10 @@ void lgSignalMast::failSafe(bool p_set) {
         }
         mastDesc.lgLinkHandle->updateLg(mastDesc.lgBaseObjHandle->getStripOffset(), mastDesc.lgNoOfLed, appearanceWriteBuff, mastDesc.smDimTime);
     }
-    else if (failsafeSet && !p_set)
+    else if (failsafeSet && !p_set) {
         failsafeSet = false;
+        waitForUpdate = true;
+    }
 }
 
 rc_t lgSignalMast::parseXmlAppearance(const char* p_aspectXml, char* p_aspect) {
@@ -340,7 +345,7 @@ void lgSignalMast::onFlashHelper(bool p_flashState, void* p_flashObj) {
 }
 
 void lgSignalMast::onFlash(bool p_flashState) {
-    if (mastDesc.lgBaseObjHandle->getOpStateBitmap() != OP_WORKING) {
+    if (mastDesc.lgBaseObjHandle->getOpStateBitmap() != OP_WORKING || failsafeSet || waitForUpdate) {
         LOG_VERBOSE("%s: Got a flash call while not in a working OP state - doing nothing" CR, logContextName);
         return;
     }
