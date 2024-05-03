@@ -202,21 +202,21 @@ private:
     static QList<cliCmdTable_t*>* cliCmdTable;                                          //Global CLI command table
     static char* clientIp;                                                              //Telnet/CLI client IP-address
     static QList<cliCore*> allContexts;                                                 //List of all CLI contexts
-    Command helpCliCmd;                                                                 //CLI main type/operator commands, CAN WE MOVE THESE DEFINITIONS TO cliGlobalDefinitions.h
-    Command rebootCliCmd;
-    Command showCliCmd;
-    Command getCliCmd;
-    Command setCliCmd;
-    Command unsetCliCmd;
-    Command clearCliCmd;
-    Command addCliCmd;
-    Command deleteCliCmd;
-    Command copyCliCmd;
-    Command pasteCliCmd;
-    Command moveCliCmd;
-    Command startCliCmd;
-    Command stopCliCmd;
-    Command restartCliCmd;
+    EXT_RAM_ATTR Command helpCliCmd;                                                    //CLI main type/operator commands, CAN WE MOVE THESE DEFINITIONS TO cliGlobalDefinitions.h
+    EXT_RAM_ATTR Command rebootCliCmd;
+    EXT_RAM_ATTR Command showCliCmd;
+    EXT_RAM_ATTR Command getCliCmd;
+    EXT_RAM_ATTR Command setCliCmd;
+    EXT_RAM_ATTR Command unsetCliCmd;
+    EXT_RAM_ATTR Command clearCliCmd;
+    EXT_RAM_ATTR Command addCliCmd;
+    EXT_RAM_ATTR Command deleteCliCmd;
+    EXT_RAM_ATTR Command copyCliCmd;
+    EXT_RAM_ATTR Command pasteCliCmd;
+    EXT_RAM_ATTR Command moveCliCmd;
+    EXT_RAM_ATTR Command startCliCmd;
+    EXT_RAM_ATTR Command stopCliCmd;
+    EXT_RAM_ATTR Command restartCliCmd;
 };
 /*==============================================================================================================================================*/
 /* END Class cliCore                                                                                                                            */

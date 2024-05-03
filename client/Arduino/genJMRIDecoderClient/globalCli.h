@@ -260,11 +260,11 @@ private:
     //Private data structures
     static char decoderSysName[50];
     static globalCli* rootHandle;                                                       //root context handle
-    const char* moType;
-    const char* moName;
-    uint16_t moIndex;;
-    globalCli* parentContext;
-    static char* testBuff;                                                              //memory allocation test buffer
+    EXT_RAM_ATTR const char* moType;
+    EXT_RAM_ATTR const char* moName;
+    EXT_RAM_ATTR uint16_t moIndex;;
+    EXT_RAM_ATTR globalCli* parentContext;
+    EXT_RAM_ATTR static char* testBuff;                                                 //memory allocation test buffer
 };
 /*==============================================================================================================================================*/
 /* END Class globalCli                                                                                                                          */

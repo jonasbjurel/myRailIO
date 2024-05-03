@@ -36,7 +36,7 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-uint8_t flash::flashInstanses = 0;
+EXT_RAM_ATTR uint8_t flash::flashInstanses = 0;
 
 flash::flash(float p_freq, uint8_t p_duty) {
     flashInstanse = flashInstanses++;

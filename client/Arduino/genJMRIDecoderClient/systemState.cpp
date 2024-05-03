@@ -158,7 +158,6 @@ char* systemState::getOpStateStrByBitmap(sysState_t p_opStateBitmap, char* p_opS
             LOG_ERROR("opStateBitmap 0x%X is invalid\n", p_opStateBitmap);
             return NULL;
         }
-
     }
     p_opStateStrBuff[strlen(p_opStateStrBuff) - 1] = '\0';
     return p_opStateStrBuff;
@@ -369,7 +368,6 @@ void systemState::sysCbHelper(void* p_jobCbDesc) {
     //if (!heap_caps_check_integrity_all(true))
     delete (sysStateJobDesc_t*)p_jobCbDesc;
 }
-
 
 /*==============================================================================================================================================*/
 /* END Class systemState                                                                                                                        */

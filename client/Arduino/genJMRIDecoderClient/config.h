@@ -35,7 +35,7 @@
 #define PROVISIONING_TIMEOUT_S						5
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								0	//2
-#define MAX_LGLINKS									1	//2
+#define MAX_LGLINKS									2	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
@@ -108,7 +108,7 @@
 
 // Light group configuration
 // =========================
-#define MAX_LGS										1	//16
+#define MAX_LGS										8
 
 // Signal mast Light group configuration
 #define SM_DIM_NORMAL_MS							75
@@ -148,20 +148,20 @@
 // Log job task
 #define LOG_JOB_SLOTS								10
 #define CPU_LOG_JOB_PRIO							5
-#define CPU_LOG_JOB_STACKSIZE_1K					6
+#define CPU_LOG_JOB_STACKSIZE_1K					4			//Verified 4k
 #define CPU_LOG_JOB_TASKNAME						"logJob"
 #define CPU_LOG_JOB_STACK_ATTR						EXTERNAL
 #define LOG_JOB_WDT_TIMEOUT_MS						30000
 
 // Setup task
 #define CPU_SETUP_PRIO								4
-#define CPU_SETUP_STACKSIZE_1K						10
+#define CPU_SETUP_STACKSIZE_1K						5			//Verified 5k
 #define CPU_SETUP_TASKNAME							"setup"
 #define CPU_SETUP_STACK_ATTR						INTERNAL
 
 // MQTT message polling
 #define CPU_MQTT_POLL_PRIO							15
-#define CPU_MQTT_POLL_STACKSIZE_1K					6
+#define CPU_MQTT_POLL_STACKSIZE_1K					4			//Verified 4k
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 #define WDT_MQTT_POLL_LOOP_TIMEOUT_MS				5000
 #define MQTT_JOB_SLOTS								10
@@ -172,12 +172,12 @@
 
 // System state job task
 #define CPU_JOB_SYSSTATE_PRIO						10
-#define CPU_JOB_SYSSTATE_STACKSIZE_1K				6
+#define CPU_JOB_SYSSTATE_STACKSIZE_1K				4		//Verified 4K
 #define WDT_JOB_SYSSTATE_TIMEOUT_MS					10000
 
 // MQTT message supervision
 #define CPU_MQTT_PING_PRIO							10
-#define CPU_MQTT_PING_STACKSIZE_1K					6
+#define CPU_MQTT_PING_STACKSIZE_1K					4		//Verified 4K
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 #define CPU_MQTT_PING_STACK_ATTR					INTERNAL
 
@@ -193,21 +193,21 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 
 // Flash
 #define CPU_FLASH_LOOP_PRIO							10
-#define CPU_FLASH_LOOP_STACKSIZE_1K					6
+#define CPU_FLASH_LOOP_STACKSIZE_1K					3		//Verified 3K
 #define CPU_FLASH_LOOP_TASKNAME						"FlashLoop %d"
 #define CPU_FLASH_LOOP_STACK_ATTR					INTERNAL
 #define WDT_FLASH_LOOP_TIMEOUT_MS					3000
 
 // LgLink
 #define CPU_UPDATE_STRIP_PRIO						20
-#define CPU_UPDATE_STRIP_STACKSIZE_1K				3
+#define CPU_UPDATE_STRIP_STACKSIZE_1K				2		//Verified 2K
 #define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
 #define CPU_UPDATE_STRIP_SETUP_STACK_ATTR			INTERNAL
 #define WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS			3000
 
 // Telnet
 #define CPU_TELNET_PRIO								5
-#define CPU_TELNET_STACKSIZE_1K						6
+#define CPU_TELNET_STACKSIZE_1K						6		//Verified 6K
 #define CPU_TELNET_TASKNAME							"telnetPoll"
 #define CPU_TELNET_STACK_ATTR						INTERNAL
 #define WDT_TELNET_POLL_LOOP_TIMEOUT_MS				60000

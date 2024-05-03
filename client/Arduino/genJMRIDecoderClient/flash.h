@@ -82,13 +82,13 @@ private:
 
     //Private data structures
     static uint8_t flashInstanses;
-    uint8_t flashInstanse;
-    wdt* flashWdt;
-    uint32_t overRuns;
-    uint32_t maxLatency;
-    uint16_t maxAvgSamples;
-    uint32_t* latencyVect;
-    flash_t* flashData;
+    EXT_RAM_ATTR uint8_t flashInstanse;
+    EXT_RAM_ATTR wdt* flashWdt;
+    EXT_RAM_ATTR uint32_t overRuns;
+    EXT_RAM_ATTR uint32_t maxLatency;
+    EXT_RAM_ATTR uint16_t maxAvgSamples;
+    EXT_RAM_ATTR uint32_t* latencyVect;
+    EXT_RAM_ATTR flash_t* flashData;
     SemaphoreHandle_t flashLock;
 };
 
