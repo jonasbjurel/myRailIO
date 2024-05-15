@@ -324,8 +324,10 @@ class mqttPubEvents():
         trace.notify(DEBUG_VERBOSE, "Emmiting an MQTT message for JMRI MQTT object event publisher: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", New JMRI object state: " + str(event.newValue) + ", Previous JMRI object state: " + str(event.oldValue) + ", MQTT Topic:" + self.topic + ", MQTT Payload: " + str(self.payloadMap.get(state2stateStr(self.type, self.sysName, event.newValue))))
         try:
            self.payloadMap["*"]
+           print("XXXXXXXX Sending topic: " + self.topic)
            MQTT.publish(self.topic, state2stateStr(self.type, self.sysName, event.newValue))
         except:
+            print("YYYYYYY Sending topic: " + self.topic)
             MQTT.publish(self.topic, self.payloadMap.get(state2stateStr(self.type, self.sysName, self.payloadMap[event.newValue])))
 
     def __del__(self):
@@ -423,6 +425,11 @@ class jmriRpcShimAPI(jmriAPIShim):
 
     @staticmethod
     def rpcRegMqttPub(type, sysName, topic, payloadMap):
+        try:
+            del jmriRpcShimAPI.mqttPubRecordDict[sysName]
+            print("XXXXXXXXXXXX Object did exist, deleted it")
+        except:
+            print("XXXXXXXXXXXX Object didn't exists, creating it")
         jmriRpcShimAPI.mqttPubRecordDict[sysName] = mqttPubEvents(type, sysName, topic, payloadMap)
         return rc.OK
 

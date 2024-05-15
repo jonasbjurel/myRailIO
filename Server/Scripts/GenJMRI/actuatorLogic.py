@@ -85,7 +85,8 @@ class actuator(systemState, schema):
         self.appendSchema(schema.CHILDS_SCHEMA)
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
-        self.updated = True
+        self.updating = False
+        self.pendingBoot = False
         if name:
             self.jmriActSystemName.value = name
         else:
@@ -153,19 +154,22 @@ class actuator(systemState, schema):
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "Validation of, or setting of configuration failed - initiated by configuration change of: " + actuatorXmlConfig.get("JMRISystemName") + ", return code: " + trace.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Validation of, or setting of configuration failed - initiated by configuration change of: " + actuatorXmlConfig.get("JMRISystemName") + ", return code: " + rc.getErrStr(res))
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        if uploadNReboot: 
-            self.updated = True
-        else:
-            self.updated = False
+        if source == self:
+            if self.updating:
+                return rc.ALREADY_EXISTS
+            if uploadNReboot:
+                self.updating = True
+            else:
+                self.updating = False
         res = self.parent.updateReq(self, source, uploadNReboot)
-        self.updated = False
+        self.updating = False
         return res
 
     def validate(self):
@@ -288,8 +292,9 @@ class actuator(systemState, schema):
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
+            self.pendingBoot = True
         if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + trace.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + rc.getErrStr(res))
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Configured")
@@ -384,13 +389,16 @@ class actuator(systemState, schema):
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
-            if not self.updated:
+            if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
+                self.pendingBoot = False
+            else:
+                self.updateReq(self, self, uploadNReboot = False)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.raiseAlarm("Actuator has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.ceaseAlarm("Actuator has now successfully connected")
-        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
+        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.raiseAlarm("Actuator has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.ceaseAlarm("Actuator is now successfully configured")

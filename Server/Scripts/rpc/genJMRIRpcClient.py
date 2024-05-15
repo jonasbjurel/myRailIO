@@ -540,6 +540,7 @@ class jmriRpcClient():
         return rc.OK
 
     def regMqttPub(self, type, sysName, topic, payloadMap):
+        print(DEBUG_INFO, "XXXXXXXXXXXX Registering MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         trace.notify(DEBUG_INFO, "Registering MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
             trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")

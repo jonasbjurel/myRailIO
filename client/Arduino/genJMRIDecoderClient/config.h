@@ -34,8 +34,8 @@
 #define FACTORY_RESET_PROVISIONING_TIMEOUT_S		30
 #define PROVISIONING_TIMEOUT_S						5
 #define DECODER_DISCOVERY_TIMEOUT_S					60
-#define MAX_SATLINKS								0	//2
-#define MAX_LGLINKS									2	//2
+#define MAX_SATLINKS								1	//2
+#define MAX_LGLINKS									0	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
@@ -61,7 +61,7 @@
 
 // Satelite link configuration
 // ===========================
-#define MAX_SATELITES								0 //8 Max satelites for each Satelite link
+#define MAX_SATELITES								1 //8 Max satelites for each Satelite link
 #define SATLINK_LINKERR_HIGHTRES					10 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 #define SATLINK_LINKERR_LOWTRES						0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 
@@ -74,13 +74,13 @@
 // Sensor configuration
 // ====================
 #define DEFAULT_SENS_FILTER_TIME					5	// Digital sensor filter (ms)
-#define MAX_SENS									0	//8 Maximum sensors // Maximum satelites per satelite link
+#define MAX_SENS									1	//8 Maximum sensors // Maximum satelites per satelite link
 #define SATLINK_UPDATE_MS							5	// Satelite scan period (ms)
 #define SENSDIGITAL_DEFAULT_FAILSAFE				true
 
 // Actuator configuration
 // ======================
-#define MAX_ACT										0	//4 Maximum actuators per satelite
+#define MAX_ACT										2	//4 Maximum actuators per satelite
 
 // General servo configuration
 #define SERVO_LEFT_PWM_VAL							26
@@ -166,7 +166,7 @@
 #define WDT_MQTT_POLL_LOOP_TIMEOUT_MS				5000
 #define MQTT_JOB_SLOTS								10
 #define CPU_JOB_MQTT_TASKNAME						"mqttJob"
-#define CPU_JOB_MQTT_STACKSIZE_1K					6
+#define CPU_JOB_MQTT_STACKSIZE_1K					8
 #define CPU_JOB_MQTT_PRIO							(CPU_MQTT_POLL_PRIO - 1)
 #define WDT_JOB_MQTT_TIMEOUT_MS						30000
 
@@ -185,23 +185,25 @@
 const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_SATLINK_PRIO							20
 #define CPU_SATLINK_STACKSIZE_1K					6
-#define CPU_SATLINK_TASKNAME						"satLink %d"
+#define CPU_SATLINK_TASKNAME						"satLink-%d"
 #define CPU_SATLINK_PM_PRIO							10
 #define CPU_SATLINK_PM_STACKSIZE_1K					6
-#define CPU_SATLINK_PM_TASKNAME						"satLinkPmPoll %d"
+#define CPU_SATLINK_PM_TASKNAME						"satLinkPmPoll-%d"
 #define CPU_SATLINK_PM_STACK_ATTR					INTERNAL
+#define WDT_SAT_LINKSCAN_WDT_TIMEOUT_MS				3000
+#define CPU_SAT_LINKSCAN_WDT_TASKNAME				"satLinkWdt-%d"
 
 // Flash
 #define CPU_FLASH_LOOP_PRIO							10
 #define CPU_FLASH_LOOP_STACKSIZE_1K					3		//Verified 3K
-#define CPU_FLASH_LOOP_TASKNAME						"FlashLoop %d"
+#define CPU_FLASH_LOOP_TASKNAME						"FlashLoop-%d"
 #define CPU_FLASH_LOOP_STACK_ATTR					INTERNAL
 #define WDT_FLASH_LOOP_TIMEOUT_MS					3000
 
 // LgLink
 #define CPU_UPDATE_STRIP_PRIO						20
 #define CPU_UPDATE_STRIP_STACKSIZE_1K				2		//Verified 2K
-#define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler %d"
+#define CPU_UPDATE_STRIP_TASKNAME					"lgLinkStripHandler-%d"
 #define CPU_UPDATE_STRIP_SETUP_STACK_ATTR			INTERNAL
 #define WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS			3000
 

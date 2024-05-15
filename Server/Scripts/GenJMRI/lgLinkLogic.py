@@ -158,7 +158,7 @@ class lgLink(systemState, schema):
         if source == self:
             if self.updating:
                 return rc.ALREADY_EXISTS
-            if uploadNReboot: 
+            if uploadNReboot:
                 self.updating = True
             else:
                 self.updating = False

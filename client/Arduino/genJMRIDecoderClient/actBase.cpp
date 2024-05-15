@@ -41,6 +41,7 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     LOG_INFO("%s: Creating actBase stem-object" CR, logContextName);
     satHandle = p_satHandle;
     actPort = p_actPort;
+    //Serial.printf("YYYYYYYYYYYYY Creating actport: %i, for object: %i\n", actPort, this);
     satAddr = satHandle->getAddr();
     satLinkNo = satHandle->linkHandle->getLink();
     char sysStateObjName[20];
@@ -96,7 +97,7 @@ rc_t actBase::init(void) {
     return RC_OK;
 }
 
-void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
+void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement, bool p_twin) {
     if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)){
         panic("%s Received a configuration, while the it was already configured, dynamic re-configuration not supported", logContextName);
         return;
@@ -138,6 +139,14 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
         panic("%s: Type missing", logContextName);
         return;
     }
+    if (!xmlconfig[XML_ACT_SUBTYPE]) {
+        panic("%s: Sub-type missing", logContextName);
+        return;
+    }
+    if (p_twin){
+        xmlconfig[XML_ACT_PORT] = itoa(atoi(xmlconfig[XML_ACT_PORT]) + 1, xmlconfig[XML_ACT_PORT], 10);
+        LOG_ERROR("Twin actuator is being created" CR);
+    }
     if (atoi((const char*)xmlconfig[XML_ACT_PORT]) != actPort) {
         panic("%s: Port No inconsistant", logContextName);
         return;
@@ -163,6 +172,7 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     LOG_INFO("%s: Description: %s" CR, logContextName, xmlconfig[XML_ACT_DESC]);
     LOG_INFO("%s: Port: %s" CR, logContextName, xmlconfig[XML_ACT_PORT]);
     LOG_INFO("%s: Type: %s" CR, logContextName, xmlconfig[XML_ACT_TYPE]);
+    LOG_INFO("%s: Sub-type: %s" CR, logContextName, xmlconfig[XML_ACT_SUBTYPE]);
     LOG_INFO("%s: act admin state: %s" CR, logContextName, xmlconfig[XML_ACT_ADMSTATE]);
 
     //CONFIFIGURING ACTUATORS
@@ -171,7 +181,7 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
         LOG_INFO("%s: actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR, logContextName);
             extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
-        }
+    }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "LIGHT")) {
         LOG_INFO("%s: actuator type is light - programing act-stem object by creating an lightAct extention class object" CR, logContextName);
         extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actLight), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actLight(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
@@ -192,6 +202,15 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement) {
     //else
     //    LOG_INFO("No properties provided for base stem-object" CR);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
+
+    if (!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) && !(actPort % 2)) {
+        LOG_INFO("%s: Actuator base object has a twin actuator base object - configuring it" CR, logContextName);
+        //Serial.printf("YYYYYYYYYYYYYYYYY Port: %i\n", actPort + 1);
+        actBase* twinActBaseObject = satHandle->getActHandleByPort(actPort + 1);
+        if (!twinActBaseObject)
+            panic("Could not get twin actBase object");
+        twinActBaseObject->onConfig(p_actXmlElement, true);
+    }
     LOG_INFO("%s: Configuration successfully finished" CR, logContextName);
 }
 
@@ -224,11 +243,19 @@ rc_t actBase::start(void) {
     //wdt::wdtRegActuatorFailsafe(wdtKickedHelper, this);
     unSetOpStateByBitmap(OP_INIT);
     LOG_INFO("%s: actuator has started" CR, logContextName);
+    if (!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) && !(actPort % 2)) {
+        LOG_INFO("%s: Actuator base object has a twin actuator base object - starting it" CR, logContextName);
+        actBase* twinActBaseObject = satHandle->getActHandleByPort(actPort + 1);
+        if (!twinActBaseObject)
+            return RC_NOT_FOUND_ERR;
+        twinActBaseObject->start();
+    }
     return RC_OK;
 }
 
 void actBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
-    LOG_INFO("%s: actuatorcdiscovered" CR, logContextName);
+    //Serial.printf("YYYYYYYYYYYYYYY %s actBase %i discovered\n", logContextName, this);
+    LOG_INFO("%s: actuator discovered" CR, logContextName);
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
         systemState::unSetOpStateByBitmap(OP_UNDISCOVERED);
@@ -301,7 +328,7 @@ void actBase::onAdmStateChange(const char* p_topic, const char* p_payload) {
     }
     else if (!strcmp(p_payload, MQTT_ADM_OFF_LINE_PAYLOAD)) {
         setOpStateByBitmap(OP_DISABLED);
-        LOG_INFO("%s: actuator got off-line message from server %s" CR, actPort, satAddr, satLinkNo, p_payload);
+        LOG_INFO("%s: actuator got off-line message from server %s" CR, logContextName, p_payload);
     }
     else
         LOG_ERROR("%s: actuator got an invalid admstate message from server %s - doing nothing" CR, logContextName, p_payload);

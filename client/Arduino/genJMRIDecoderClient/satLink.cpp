@@ -85,6 +85,11 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     rxSymbolErr = 0;
     rxDataSizeErr = 0;
     wdErr = 0;
+    satLinkLibHandle->satLinkRegScanCb(onSatLinkScanHelper, this);
+    char taskName[30];
+    sprintf(taskName, CPU_SAT_LINKSCAN_WDT_TASKNAME, linkNo);
+    linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_SAT_LINKSCAN_WDT_TIMEOUT_MS, taskName,
+        FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
 }
 
 satLink::~satLink(void) {
@@ -290,31 +295,26 @@ rc_t satLink::start(void) {
     return RC_OK;
 }
 
-void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
-    if (p_satLink != ((satLink*)p_satLinkHandle)->linkNo){
-        panic("Inconsistant link number, expected %i, got %i", ((satLink*)p_satLinkHandle)->linkNo, p_satLink);
-        return;
-    }
-    if ((p_satAddr >= MAX_SATELITES) && p_exists) {
-        panic("More than maximum (%i) allowed satelites discovered (%i) on the link", MAX_SATELITES, p_satAddr + 1);
-        return;
-    }
-    if(p_satAddr < MAX_SATELITES)
-        ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
-}
-
 void satLink::up(void) {
     if (!satLinkScanDisabled) {
-        LOG_INFO("%s: satLink already enabled" CR, logContextName);
+        LOG_WARN("%s: satLink already enabled" CR, logContextName);
         return;
     }
-    satLinkScanDisabled = false;
     LOG_INFO("%s: satLink link- and PM- scanning starting" CR, logContextName);
     satErr_t rc = satLinkLibHandle->enableSatLink();
     if (rc != 0){
         panic("%s: satLink scannig could not be started, return code: 0x%llx", logContextName, rc);
         return;
     }
+    int t = 0;
+    while (satLinkLibHandle->getOpState() & SAT_OP_INIT) {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        if(t++ > 400){
+            panic("Link wasnt enable in due time");
+            return;
+        }
+    }
+    satLinkScanDisabled = false;
     char satlinkPmTaskName[30];
     sprintf(satlinkPmTaskName, CPU_SATLINK_PM_TASKNAME, linkNo);
     pmPoll = true;
@@ -328,6 +328,23 @@ void satLink::up(void) {
         panic("%s: Could not start pm poll task", logContextName);
         return;
     }
+	linkScanWdt->activate();
+}
+
+void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
+    //Serial.printf("VVVVVVVVVVVVVVVV Discovered satelite adress: %i, belonging to satelite object %i, exists: %i\n", p_satAddr, ((satLink*)p_satLinkHandle)->sats[p_satAddr], p_exists);
+    if (p_satLink != ((satLink*)p_satLinkHandle)->linkNo) {
+        panic("Inconsistant link number, expected %i, got %i", ((satLink*)p_satLinkHandle)->linkNo, p_satLink);
+        return;
+    }
+    if ((p_satAddr >= MAX_SATELITES) && p_exists) {
+        panic("More than maximum (%i) allowed satelites discovered (%i) on the link", MAX_SATELITES, p_satAddr + 1);
+        return;
+    }
+    if (p_exists) {
+    //Serial.printf("VVVVVVVVVVVVVVVV Discovered satelite, calling satelite object %i\n", ((satLink*)p_satLinkHandle)->sats[p_satAddr]);
+    ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
+    }
 }
 
 void satLink::down(void) {
@@ -336,11 +353,20 @@ void satLink::down(void) {
         return;
     }
     LOG_INFO("%s: satLink link- and PM- scanning stopping" CR, logContextName);
-    satLinkScanDisabled = true;
+	linkScanWdt->inactivate();
     pmPoll = false;
     satErr_t rc = satLinkLibHandle->disableSatLink();
+    satLinkScanDisabled = true;
     if (rc)
         LOG_ERROR("%s: Could not disable satLink link scanning, return code: %llx" CR, logContextName, rc);
+}
+
+void satLink::onSatLinkScanHelper(void* p_metaData) {
+    ((satLink*)p_metaData)->onSatLinkScan();
+}
+
+void satLink::onSatLinkScan(void) {
+    linkScanWdt->feed();
 }
 
 void satLink::pmPollHelper(void* p_metaData) {

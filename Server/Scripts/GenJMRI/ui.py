@@ -1545,7 +1545,7 @@ class UI_satLinkDialog(QDialog):
         self.rxSymErrLineEdit.setEnabled(False)
         self.rxSizeErrLineEdit.setEnabled(False)
         self.wdErrLineEdit.setEnabled(False)
-        self.clearStatsPushButton.setEnabled(False)
+        self.clearStatsPushButton.setEnabled(True)
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):

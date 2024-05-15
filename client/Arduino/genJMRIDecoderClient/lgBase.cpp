@@ -518,7 +518,6 @@ rc_t lgBase::getShowing(char* p_showing, bool p_force) {
         return RC_NOT_CONFIGURED_ERR;
     }
     if(extentionLgClassObj){
-        Serial.printf("YYYYYYYYYYYYYY Calling extention class object\n");
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getShowing(p_showing));
         return RC_OK;
     }

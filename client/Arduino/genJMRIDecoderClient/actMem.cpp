@@ -233,13 +233,13 @@ void actMem::setActMem(void) {
 void actMem::failsafe(bool p_failSafe) {
     xSemaphoreTake(actMemLock, portMAX_DELAY);
     if (failSafe) {
-        LOG_INFO("%s: Fail-safe set for memory actuator %s" CR, logContextName);
+        LOG_INFO("%s: Fail-safe set for memory actuator" CR, logContextName);
         actMemPos = actMemFailsafePos;
         setActMem();
         failSafe = p_failSafe;
     }
     else {
-        LOG_INFO("%s: Fail-safe un-set for memory actuator %s" CR, logContextName);
+        LOG_INFO("%s: Fail-safe un-set for memory actuator" CR, logContextName);
         failSafe = p_failSafe;
         actMemPos = orderedActMemPos;
         setActMem();

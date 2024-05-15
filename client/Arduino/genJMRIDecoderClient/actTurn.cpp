@@ -35,6 +35,7 @@
 /*==============================================================================================================================================*/
 actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     asprintf(&logContextName, "%s/%s-%s", p_actBaseHandle->getLogContextName(), "turn", p_subType);
+    //Serial.printf("YYYYYYYYYYYYYYY %s creating turn\n", logContextName);
     actBaseHandle = p_actBaseHandle;
     actPort = actBaseHandle->getPort(true);
     satAddr = actBaseHandle->satHandle->getAddr();
@@ -59,9 +60,11 @@ actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) 
         panic("%s: Could not create Lock objects", logContextName);
         return;
     }
-    turnOutPos = TURN_DEFAULT_FAILSAFE;
+    TURN_DEFAULT_FAILSAFE == TURN_CLOSED_POS ? currentPwmVal = TURN_CLOSED_PWM_VAL : currentPwmVal = TURN_THROWN_PWM_VAL;
     orderedTurnOutPos = TURN_DEFAULT_FAILSAFE;
     turnOutFailsafePos = TURN_DEFAULT_FAILSAFE;
+    failsafe(true);
+    //Serial.printf("YYYYYYYYYYYYYYY %s turn created\n", logContextName);
 }
 
 actTurn::~actTurn(void) {
@@ -83,10 +86,12 @@ rc_t actTurn::start(void) {
 }
 
 void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+    //Serial.printf("YYYYYYYYYYYYYYY %s turn discovered\n", logContextName);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_TURN_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
     if(p_exists){
         satLibHandle = p_sateliteLibHandle;
+        //Serial.printf("YYYYYYYYYYYYYYY %s Object %i is subscribing to turn orders\n", logContextName, this);
         LOG_INFO("%s: Subscribing to turn-out orders" CR, logContextName);
         if (mqtt::subscribeTopic(subscribeTopic, onActTurnChangeHelper, this)){
             panic("%s: Failed to suscribe to turn-out order topic \"%s\"", logContextName, subscribeTopic);
@@ -107,7 +112,9 @@ void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
         else if (turnType == TURN_TYPE_SERVO) {
             LOG_INFO("%s: Startings servo turn-out" CR, logContextName);
             satLibHandle->setSatActMode(SATMODE_PWM100, actPort);
-            pwmIncrements = abs((TURN_CLOSED_PWM_VAL + closedTrim) - (TURN_THROWN_PWM_VAL + thrownTrim)) * throwtime / TURN_PWM_UPDATE_TIME_MS;
+            (TURN_CLOSED_PWM_VAL + closedTrim) > (TURN_THROWN_PWM_VAL + thrownTrim) ?
+                pwmIncrements = ((TURN_CLOSED_PWM_VAL + closedTrim) - (TURN_THROWN_PWM_VAL + thrownTrim)) * TURN_PWM_UPDATE_TIME_MS / throwtime :
+                pwmIncrements = ((TURN_THROWN_PWM_VAL + thrownTrim) - (TURN_CLOSED_PWM_VAL + closedTrim)) * TURN_PWM_UPDATE_TIME_MS / throwtime;
             turnServoPwmTimerArgs.arg = this;
             turnServoPwmTimerArgs.callback = reinterpret_cast<esp_timer_cb_t>(&actTurn::turnServoMoveHelper);
             turnServoPwmTimerArgs.dispatch_method = ESP_TIMER_TASK;
@@ -128,22 +135,28 @@ void actTurn::onSysStateChange(const uint16_t p_sysState) {
 }
 
 void actTurn::onActTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle) {
+    //Serial.printf("YYYYYYYYYYYYYYY onActTurnChangeHelper\n");
     ((actTurn*)p_actTurnHandle)->onActTurnChange(p_topic, p_payload);
 }
 
 void actTurn::onActTurnChange(const char* p_topic, const char* p_payload) {
+    //Serial.printf("YYYYYYYYYYYYYYY %s onActTurnChange\n", logContextName);
     xSemaphoreTake(actTurnLock, portMAX_DELAY);
     if (!strcmp(p_payload, MQTT_TURN_CLOSED_PAYLOAD)) {
         LOG_INFO("%s: Got a close turnout change order" CR, logContextName);
         orderedTurnOutPos = TURN_CLOSED_POS;
-        if (!failSafe)
+        if (!failSafe && !moving){
             turnOutPos = TURN_CLOSED_POS;
+            moving = true;
+        }
     }
     else if (!strcmp(p_payload, MQTT_TURN_THROWN_PAYLOAD)) {
         LOG_INFO("%s: Got a throw turnout change order" CR, logContextName);
         orderedTurnOutPos = TURN_THROWN_POS;
-        if (!failSafe)
+        if (!failSafe && !moving) {
             turnOutPos = TURN_THROWN_POS;
+            moving = true;
+        }
     }
     else
         LOG_ERROR("%s: Got an invalid turnout change order" CR, logContextName);
@@ -156,12 +169,18 @@ void actTurn::setTurn(void) {
         if (turnType == TURN_TYPE_SOLENOID) {
             if (turnOutPos ^ turnOutInvert ^ turnSolenoidPushPort) {
                 satLibHandle->setSatActVal(throwtime, actPort);
-                LOG_INFO("%s: Turnout change order fininished" CR, logContextName);
+                if (turnOutPos != orderedTurnOutPos) {
+                    turnOutPos = orderedTurnOutPos;
+                    setTurn();
+                    moving = false;
+                    return;
+                }
             }
+            moving = false;
+            LOG_INFO("%s: Turnout change order fininished" CR, logContextName);
         }
-        else if (turnType == TURN_TYPE_SERVO) {
+        else if (turnType == TURN_TYPE_SERVO)
             turnServoMove();
-        }
     }
 }
 
@@ -180,7 +199,7 @@ void actTurn::turnServoMove(void) {
             }
         }
         else {
-            currentPwmVal += TURN_CLOSED_PWM_VAL + closedTrim;
+            currentPwmVal += pwmIncrements;
             if (currentPwmVal >= TURN_CLOSED_PWM_VAL + closedTrim) {
                 currentPwmVal = TURN_CLOSED_PWM_VAL + closedTrim;
                 continueTurnServo = false;
@@ -188,16 +207,16 @@ void actTurn::turnServoMove(void) {
         }
     }
     if (turnOutPos == TURN_THROWN_POS) {
-        if (currentPwmVal > TURN_THROWN_PWM_VAL + thrownTrim) {
-            currentPwmVal -= pwmIncrements;
-            if (currentPwmVal <= TURN_THROWN_PWM_VAL + thrownTrim) {
+        if (currentPwmVal < TURN_THROWN_PWM_VAL + thrownTrim) {
+            currentPwmVal += pwmIncrements;
+            if (currentPwmVal >= TURN_THROWN_PWM_VAL + thrownTrim) {
                 currentPwmVal = TURN_THROWN_PWM_VAL + thrownTrim;
                 continueTurnServo = false;
             }
         }
         else {
-            currentPwmVal += TURN_THROWN_PWM_VAL + thrownTrim;
-            if (currentPwmVal >= TURN_THROWN_PWM_VAL + thrownTrim) {
+            currentPwmVal -= pwmIncrements;
+            if (currentPwmVal <= TURN_THROWN_PWM_VAL + thrownTrim) {
                 currentPwmVal = TURN_THROWN_PWM_VAL + thrownTrim;
                 continueTurnServo = false;
             }
@@ -206,6 +225,15 @@ void actTurn::turnServoMove(void) {
     satLibHandle->setSatActVal(currentPwmVal, actPort);
     if (continueTurnServo)
         esp_timer_start_once(turnServoPwmIncrementTimerHandle, TURN_PWM_UPDATE_TIME_MS * 1000);
+    else{
+        if (turnOutPos != orderedTurnOutPos) {
+            turnOutPos = orderedTurnOutPos;
+            turnServoMove();
+            moving = false;
+            return;
+        }
+    moving = false;
+    }
 }
 
 void actTurn::failsafe(bool p_failSafe) {

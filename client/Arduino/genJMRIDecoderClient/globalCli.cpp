@@ -2295,7 +2295,6 @@ void globalCli::onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,
 		LOG_VERBOSE_NOFMT("Job ID does not exist" CR);
 		return;
 	}
-	Serial.printf("VVVVVVVVVV Jobhandle is %i\n", jobHandle);
 	if (p_cmdTable->commandFlags->isPresent("description")) {
 		printCli(jobHandle->getJobDescription());
 		cmdHandled = true;
@@ -2337,7 +2336,6 @@ void globalCli::onCliGetJob(cmd* p_cmd, cliCore* p_cliContext,
 		cmdHandled = true;
 	}
 	else if (p_cmdTable->commandFlags->isPresent("priority")) {
-		Serial.printf("%i\n", jobHandle->getPriority());
 		printCli("%i", jobHandle->getPriority());
 		cmdHandled = true;
 	}

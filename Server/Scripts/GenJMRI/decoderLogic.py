@@ -184,7 +184,7 @@ class decoder(systemState, schema):
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of: " + decoderXmlConfig.get("SystemName") + ", return code: " + trace.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of: " + decoderXmlConfig.get("SystemName") + ", return code: " + rc.getErrStr(res))
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
@@ -531,8 +531,6 @@ class decoder(systemState, schema):
     def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
-        print("XXXXXXXXXXXXXXX Got a new sysStateAllListener OP-state: " + self.getOpStateDetailStrFromBitMap(opStateDetail))
-        traceback.print_stack()
         if opStateDetail & OP_DISABLED[STATE]:
             self.win.inactivateMoMObj(self.item)
         elif opStateDetail & OP_CBL[STATE]:
@@ -610,9 +608,6 @@ class decoder(systemState, schema):
 
     def __decoderRestart(self):
         trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " requested will be restarted")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        traceback.print_stack()
-
         self.mqttClient.publish(self.decoderRebootTopic, REBOOT_PAYLOAD)
         self.restart = True
 

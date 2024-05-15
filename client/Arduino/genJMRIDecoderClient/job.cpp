@@ -333,10 +333,7 @@ void job::jobProcess(void) {
 			if (wdtTimeoutMs && !wdtSuperviseJobs && !overloaded) {
 				enqueue(jobWdtSuperviseHelper, this, false, true);
 				wdtSuperviseJobs++;
-				Serial.printf("OOOOOOOOOO Starting a job WDT supervisor job\n");
 			}
-			else
-				Serial.printf("OOOOOOOOOOO Could not start a job WDT supervisor job, wdtTimeoutMs: %i, wdtSuperviseJobs: %i, overloaded: %i\n", wdtTimeoutMs, wdtSuperviseJobs, overloaded);
 			continue;
 		}
 		jobWdt->feed();
@@ -376,7 +373,6 @@ void job::jobWdtSuperviseHelper(void* p_handle) {
 }
 
 void job::jobWdtSupervise(void) {
-	Serial.printf("OOOOOOOOOO Ending a job WDT supervisor job\n");
 	wdtSuperviseJobs--;
 }
 

@@ -187,7 +187,6 @@ rc_t mqtt::regStatusCallback(const mqttStatusCallback_t p_statusCallback, const 
 }
 
 rc_t mqtt::reConnect(void){
-    Serial.printf("XXXXX Reconnecting MQTT\n");
     xSemaphoreTake(mqttLock, portMAX_DELAY);
     LOG_INFO("Re-connecting MQTT Client" CR);
     retryCnt = 0;
@@ -274,7 +273,8 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
     char* topic = new (heap_caps_malloc(strlen(p_topic) + strlen(mqttTopicPrefix) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char;
     strcpy(topic, mqttTopicPrefix);
     strcat(topic, p_topic);
-    uint16_t state = sysState->getOpStateBitmap();
+    Serial.printf("XXXXXXXXXXXX Subscribing to topic: %s, with callback: %i, and cbArgs* %i\n", topic, p_callback, p_args);
+    //uint16_t state = sysState->getOpStateBitmap();
     /*if (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
         sysState->setOpStateByBitmap(OP_INTFAIL);
         panic("Could not subscribe to topic as the MQTT client is not running");
@@ -284,12 +284,14 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
     LOG_INFO("Subscribing to topic %s" CR, topic);
     for (i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, topic)) {
+            Serial.printf("XXXXXXXXXXXX Topic %s has already been subscribed to\n", topic);
             found = true;
             break;
         }
     }
     if (!found) {
         LOG_VERBOSE("Adding new subscription topic %s with related callback" CR, topic);
+        Serial.printf("XXXXXXXXXXXX Topic %s has not been subscribed to, subscribing to it\n", topic);
         mqttTopics.push_back(new (heap_caps_malloc(sizeof(mqttTopic_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttTopic_t);
         mqttTopics.back()->topic = topic;
         mqttTopics.back()->topicList = new QList<mqttSub_t*>;
@@ -300,10 +302,11 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
         xSemaphoreTake(pubSubLock, portMAX_DELAY);
         bool rc = mqttClient->subscribe(topic, defaultQoS);
         xSemaphoreGive(pubSubLock);
-        if (!rc) {
+/*      if (!rc) {//IS THIS LOGIC REALLY CORRECT WOULDNT RESUBSCRIBE AND CONNECTIVITY MONITORING SOLVE THIS
+            Serial.printf("XXXXXXXXXXXX Could not subscribe to Topic %s\n", topic);
             sysState->setOpStateByBitmap(OP_INTFAIL);
             int conStat;
-            if (conStat = mqttClient->state()){
+            if (conStat = mqttClient->state()){ 
                 //panic("Could not subscribe to topic from broker as client is not connected, status: %d", conStat);
                 LOG_WARN("Could not subscribe to topic from broker as client is not connected, status: %d - continuing...", conStat);
                 xSemaphoreGive(mqttLock);
@@ -314,17 +317,20 @@ rc_t mqtt::subscribeTopic(const char* p_topic, const mqttSubCallback_t p_callbac
                 xSemaphoreGive(mqttLock);
                 return RC_GEN_ERR;
             }
-
         }
+*/
+
         xSemaphoreGive(mqttLock);
         return RC_OK;
     }
     else {
+        Serial.printf("XXXXXXXXXXXX Topic %s has already been subscribed to, adding new cb subscription\n", topic);
         for (j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
-            if (mqttTopics.at(i)->topicList->at(j)->mqttSubCallback == p_callback) {
-                LOG_WARN("MQTT-subscribeTopic: subscribeTopic was called, but the callback 0x%x for Topic %s already exists - doing nothing" CR, (int)p_callback, topic);
+            if (mqttTopics.at(i)->topicList->at(j)->mqttSubCallback == p_callback && mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs == p_args) {
+                Serial.printf("XXXXXXXXXXXX subscriber CB: %i and CBArgs %i already registered - skipping\n", p_callback, p_args);
+                LOG_WARN("MQTT-subscribeTopic: subscribeTopic was called, but the callback 0x%x and the args 0x%x for Topic %s already exists - doing nothing" CR, (int)p_callback, p_args, topic);
                 xSemaphoreGive(mqttLock);
-                return RC_OK;
+                return RC_OK; //SHOULD WE ISSUE AN ALLREADY EXIST ERROR?
             }
         }
         LOG_VERBOSE("Adding new callback to existing topic %s" CR, topic);
@@ -615,7 +621,6 @@ rc_t mqtt::reSubscribe(void) {
 }
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
-
     mqttJobDesc_t* mqttJobDesc;
     mqttJobDesc = new (heap_caps_malloc(sizeof(mqttJobDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttJobDesc_t;
     if (!mqttJobDesc) {
@@ -634,7 +639,6 @@ void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_
         return;
     }
     memcpy(mqttJobDesc->payload, p_payload, p_length);
-    xSemaphoreGive(pubSubLock);
     mqttJobDesc->payload[p_length] = '\0';
     mqttJobDesc->length = p_length;
     LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d, enquing it to the job queue" CR, mqttJobDesc->topic, mqttJobDesc->payload, p_length);
@@ -642,24 +646,23 @@ void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_
 }
 
 void mqtt::dequeueMqttRxMsg(void* p_mqttJobDesc){
-    Serial.printf("OOOOOOOOOOOOOOOO Starting MQTT Job: %s @%i\n", ((mqttJobDesc_t*)p_mqttJobDesc)->topic, esp_timer_get_time());
     bool subFound = false;
     for (int i = 0; i < mqttTopics.size(); i++) {
         if (!strcmp(mqttTopics.at(i)->topic, ((mqttJobDesc_t*)p_mqttJobDesc)->topic)) {
+            Serial.printf("YYYYYYYYYYYY Received an MQTT message topic %s with payload %s, There Are %i subscribers to this topic\n", mqttTopics.at(i)->topic, ((mqttJobDesc_t*)p_mqttJobDesc)->payload, mqttTopics.at(i)->topicList->size());
             for (int j = 0; j < mqttTopics.at(i)->topicList->size(); j++) {
                 subFound = true;
+                Serial.printf("YYYYYYYYYYYY Sending MQTT Callback to helper %i, with callback Arg* %i\n", mqttTopics.at(i)->topicList->at(j)->mqttSubCallback, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs);
                 mqttTopics.at(i)->topicList->at(j)->mqttSubCallback(((mqttJobDesc_t*)p_mqttJobDesc)->topic, ((mqttJobDesc_t*)p_mqttJobDesc)->payload, mqttTopics.at(i)->topicList->at(j)->mqttCallbackArgs);
+                Serial.printf("YYYYYYYYYYYY Sent MQTT Callback to helper %i\n", mqttTopics.at(i)->topicList->at(j)->mqttSubCallback);
             }
         }
     }
     if (!subFound)
         LOG_ERROR("Could not find any subscription for received message topic: %s" CR, ((mqttJobDesc_t*)p_mqttJobDesc)->topic);
-    Serial.printf("OOOOOOOOOOOOOOOO Ending MQTT Job: %s @%i\n", ((mqttJobDesc_t*)p_mqttJobDesc)->topic, esp_timer_get_time());
     delete ((mqttJobDesc_t*)p_mqttJobDesc)->topic;
     delete ((mqttJobDesc_t*)p_mqttJobDesc)->payload;
     delete p_mqttJobDesc;
-    Serial.printf("OOOOOOOOOOOOOOOO Returning\n");
-
 }
 
 
@@ -725,10 +728,9 @@ void mqtt::poll(void* dummy) {
     int stat;
     int printPoll = 0;
     while (true) {
-        if (!(printPoll++ % 20))
-            Serial.printf("XXXXXXX Poll\n");
+        //if (!(printPoll++ % 20))
+            //Serial.printf("XXXXXXX Poll\n");
         if (sysState->getOpStateBitmap() & OP_INTFAIL) {
-            Serial.printf("XXXXXXX MQTT Exit 0\n");
             delete mqttWdt;
             vTaskDelete(NULL);
             return;
@@ -739,9 +741,7 @@ void mqtt::poll(void* dummy) {
         mqttWdt->feed();
         xSemaphoreTake(pubSubLock, portMAX_DELAY);
         mqttClient->loop();
-        if (xSemaphoreGetMutexHolder(pubSubLock)) {
-            xSemaphoreGive(pubSubLock);
-        }
+        xSemaphoreGive(pubSubLock);
         stat = mqttClient->state();
         switch (stat) {
         case MQTT_CONNECTED:
@@ -771,7 +771,6 @@ void mqtt::poll(void* dummy) {
             }
             if (xSemaphoreTake(mqttLock, (TickType_t)0) == pdTRUE){
                 LOG_INFO("Re-connecting MQTT Client" CR);
-                Serial.printf("XXXXXXXXXXXX Poll reconnect start, %i\n", esp_timer_get_time());
                 retryCnt = 0;
                 xSemaphoreTake(pubSubLock, portMAX_DELAY);
                 mqttClient->connect(clientId,
@@ -783,11 +782,7 @@ void mqtt::poll(void* dummy) {
                     downPayload);
                 xSemaphoreGive(pubSubLock);
                 xSemaphoreGive(mqttLock);
-                Serial.printf("XXXXXXXXXXXX Poll reconnect end, %i\n", esp_timer_get_time());
             }
-            else
-                Serial.printf("XXXXXXXXXXXX Poll could not reconnect - busy, %i\n", esp_timer_get_time());
-
             if (mqttStatus != stat) {
                 LOG_ERROR("MQTT connection not established or lost - opState set to OP_FAIL, cause: %d - retrying..." CR, stat); //This never times out but freezes
             }
@@ -837,10 +832,8 @@ void mqtt::poll(void* dummy) {
 
 void mqtt::mqttPingTimer(void* dummy) {
     LOG_INFO("MQTT Ping timer started, ping period: %d" CR, pingPeriod);
-    Serial.printf("MMMMMMMMMMMMMMMMMM Starting timer\n");
     missedPings = 0;
     while (supervision) {
-        Serial.printf("MMMMMMMMMMMMMMMMMM PingTimer\n");
         if (reSubscribeReq && mqttClient->state() == MQTT_CONNECTED) {
             reSubscribe();
             reSubscribeReq = false;
@@ -850,12 +843,10 @@ void mqtt::mqttPingTimer(void* dummy) {
                 sysState->setOpStateByBitmap(OP_CLIEUNAVAILABLE);
                 panic("Lost maximum ping responses - bringing down MQTT");
             }
-            Serial.printf("MMMMMMMMMMMMMMMMMM Sending Ping\n");
             sendMsg(mqttPingUpstreamTopic, MQTT_PING_PAYLOAD, false);
         }
         vTaskDelay(pingPeriod * 1000 / portTICK_PERIOD_MS);
     }
-    Serial.printf("MMMMMMMMMMMMMMMMMM Leaving Ping timer\n");
     vTaskDelete(NULL);
 }
 

@@ -332,7 +332,7 @@ class topDecoder(systemState, schema):
         else:
             res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of topDecoder, return code: " + trace.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of topDecoder, return code: " + rc.getErrStr(res))
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Configured")

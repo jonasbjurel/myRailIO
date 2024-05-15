@@ -63,7 +63,7 @@ sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), 
 }
 
 sat::~sat(void) {
-    panic("%s: sat destructior not supported" CR, logContextName);
+    panic("%s: sat destructor not supported" CR, logContextName);
 }
 
 rc_t sat::init(void) {
@@ -229,7 +229,7 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
 
     //CONFIFIGURING SENSORS
     LOG_INFO("%s: Configuring sensors" CR, logContextName);
-    tinyxml2::XMLElement* sensXmlElement;
+    tinyxml2::XMLElement* sensXmlElement = NULL;
     if (sensXmlElement = ((tinyxml2::XMLElement*)p_satXmlElement)->FirstChildElement("Sensor")) {
         const char* sensSearchTags[5];
         sensSearchTags[XML_SENS_SYSNAME] = NULL;
@@ -303,7 +303,7 @@ rc_t sat::start(void) {
 
 void sat::up(void) {
     if (systemState::getOpStateBitmap() & OP_UNDISCOVERED){
-        LOG_WARN("%s: Could not enable satas it has not been discovered" CR, logContextName);
+        LOG_WARN("%s: Could not enable sats it has not been discovered" CR, logContextName);
         return;
     }
     LOG_INFO("%s: Enabling sat" CR, logContextName);
@@ -313,6 +313,30 @@ void sat::up(void) {
         return;
     }
     satLibHandle->satRegSenseCb(onSenseChangeHelper, this);
+}
+
+void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists) {
+    uint8_t link;
+    link = linkHandle->getLink();
+    LOG_INFO("%s: sat discovered" CR, logContextName);
+    if (p_satAddr != satAddr) {
+        panic("%s: Inconsistent satelite address provided", logContextName);
+        return;
+    }
+    if (p_exists) {
+        satLibHandle = p_sateliteLibHandle;
+        satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
+        satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
+        unSetOpStateByBitmap(OP_UNDISCOVERED);
+    }
+    else {
+        satLibHandle = NULL;
+        setOpStateByBitmap(OP_UNDISCOVERED);
+    }
+    for (uint16_t actItter = 0; actItter < MAX_ACT; actItter++)
+        acts[actItter]->onDiscovered(satLibHandle, p_exists);
+    for (uint16_t sensItter = 0; sensItter < MAX_SENS; sensItter++)
+        senses[sensItter]->onDiscovered(satLibHandle, p_exists);
 }
 
 void sat::down(void) {
@@ -338,30 +362,6 @@ void sat::failsafe(bool p_failsafe) {
         if (senses[sensItter])
             senses[sensItter]->failsafe(p_failsafe);
     }
-}
-
-void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists) {
-    uint8_t link;
-    link = linkHandle->getLink();
-    LOG_INFO("%s: sat discovered" CR, logContextName);
-    if (p_satAddr != satAddr){
-        panic("%s: Inconsistent satelite address provided", logContextName);
-        return;
-    }
-    if (p_exists) {
-        satLibHandle = p_sateliteLibHandle;
-        satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
-        satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
-        unSetOpStateByBitmap(OP_UNDISCOVERED);
-    }
-    else{
-        satLibHandle = NULL;
-        setOpStateByBitmap(OP_UNDISCOVERED);
-    }
-    for (uint16_t actItter = 0; actItter < MAX_ACT; actItter++)
-        acts[actItter]->onDiscovered(satLibHandle, p_exists);
-    for (uint16_t sensItter = 0; sensItter < MAX_SENS; sensItter++)
-        senses[sensItter]->onDiscovered(satLibHandle, p_exists);
 }
 
 void sat::onPmPoll(void) {
@@ -470,7 +470,7 @@ void sat::onSysStateChange(sysState_t p_sysState) {
         LOG_INFO("%s: sat has following additional failures in addition to what has been reported above (if any): %s - informing server if not already done" CR, logContextName, systemState::getOpStateStrByBitmap(newSysState & ~(OP_INTFAIL | OP_INIT | OP_UNUSED | OP_DISABLED | OP_CBL), opStateStr));
     }
     if (satDisableScan && !satScanDisabled) {
-        LOG_INFO("%s: Disabling sat scanning" CR, satAddr);
+        LOG_INFO("%s: Disabling sat scanning" CR, logContextName);
         down();
         satScanDisabled = true;
     }
@@ -517,6 +517,34 @@ void sat::onAdmStateChange(const char* p_topic, const char* p_payload) {
     }
     else
         LOG_ERROR("%s sat got an invalid admstate message from server: \"%s\" - doing nothing" CR, logContextName, p_payload);
+} 
+
+
+actBase* sat::getActHandleByPort(uint8_t p_port) {
+    if (p_port >= MAX_ACT) {
+        LOG_INFO("%s: Port does not exist - outside of maximum actuators limit", logContextName);
+        return NULL;
+    }
+    for (uint8_t actItter = 0; actItter < MAX_ACT; actItter++) {
+        //Serial.printf("YYYYYYYYYYYYYYY Itterating port: %i belonging to object: %i\n", acts[actItter]->getPort(true), acts[actItter]);
+        if (acts[actItter]->getPort(true) == p_port)
+            return acts[actItter];
+    }
+    LOG_INFO("%s: Port does not exist - not found", logContextName);
+    return NULL;
+}
+
+senseBase* sat::getSenseHandleByPort(uint8_t p_port) {
+    if (p_port >= MAX_SENS) {
+        LOG_INFO("%s: Port does not exist - outside of maximum sense limit", logContextName);
+        return NULL;
+    }
+    for (uint8_t senseItter = 0; senseItter < MAX_SENS; senseItter++) {
+        if (senses[senseItter]->getPort(true) == p_port)
+            return senses[senseItter];
+    }
+    LOG_INFO("%s: Port does not exist - not found", logContextName);
+    return NULL;
 }
 
 rc_t sat::getOpStateStr(char* p_opStateStr) {

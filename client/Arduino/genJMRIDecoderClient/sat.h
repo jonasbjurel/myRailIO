@@ -74,9 +74,9 @@ public:
 	void onConfig(tinyxml2::XMLElement* p_satXmlElement);
 	rc_t start(void);
 	void up(void);
+	void onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists);
 	void down(void);
 	void failsafe(bool p_failsafe);
-	void onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists);
 	void onPmPoll(void);
 	static void onSatLibStateChangeHelper(satelite* p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle);
 	void onSatLibStateChange(satOpState_t p_satOpState);
@@ -89,6 +89,8 @@ public:
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkHandle);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
 	rc_t getOpStateStr(char* p_opStateStr);
+	actBase* getActHandleByPort(uint8_t p_port);
+	senseBase* getSenseHandleByPort(uint8_t p_port);
 	rc_t setSystemName(const char* p_systemName, bool p_force = false);
 	const char* getSystemName(bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, bool p_force = false);

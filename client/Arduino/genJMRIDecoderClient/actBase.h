@@ -100,7 +100,7 @@ public:
 	actBase(uint8_t p_actPort, sat* p_satHandle);
 	~actBase(void);
 	rc_t init(void);
-	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement);
+	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement, bool p_twin = false);
 	rc_t start(void);
 	void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
 	static void onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sysState);

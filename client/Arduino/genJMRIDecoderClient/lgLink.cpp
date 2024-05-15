@@ -80,6 +80,10 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
         latencyVect[i] = 0;
         runtimeVect[i] = 0;
     }
+    char taskName[30];
+    sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
+    linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS, taskName,
+        FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
 }
 
 lgLink::~lgLink(void) {
@@ -152,17 +156,6 @@ rc_t lgLink::init(void) {
 }
 
 void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
-    /*
-    Serial.printf("MMMMMMMMMMMMMM Configuring LGLink\n");
-    Serial.printf("LgLink: Free Heap: %i\n", esp_get_free_heap_size());
-    Serial.printf("LgLink: Heap watermark: %i\n", esp_get_minimum_free_heap_size());
-    Serial.printf("Internal Heap:\n");
-    heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
-    Serial.printf("External Heap:\n");
-    heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-    Serial.printf("Default Heap:\n");
-    heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
-    */
     if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED)) {
         panic("lgLink received a configuration, while the it was already configured, dynamic re-configuration not supported");
         return;
@@ -326,10 +319,6 @@ rc_t lgLink::start(void) {
 void lgLink::up(void) {
     BaseType_t rc;
     LOG_TERSE("%s: Starting lglink scanning" CR, logContextName);
-    char taskName[30];
-    sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
-    linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS, taskName,
-        FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     linkScan = true;
     if (!eTaskCreate(
             updateStripHelper,                                  // Task function
@@ -346,6 +335,7 @@ void lgLink::up(void) {
 
 void lgLink::down(void) {
     LOG_TERSE("%s: Stoping lgLink scanning for lgLink %d" CR, logContextName);
+    linkScanWdt->inactivate();
     linkScan = false;
 }
 
@@ -622,7 +612,6 @@ void lgLink::updateStrip(void) {
         if (!wdtFeeed_cnt--) {
             linkScanWdt->feed();
             wdtFeeed_cnt = WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS / (STRIP_UPDATE_MS * 3);
-            //Serial.printf("Kick\n");
         }
         if (avgIndex >= maxAvgIndex) {
             avgIndex = 0;

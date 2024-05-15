@@ -239,7 +239,6 @@ void lgSignalMast::onAspectChangeHelper(const char* p_topic, const char* p_paylo
 }
 
 void lgSignalMast::onAspectChange(const char* p_topic, const char* p_payload) {
-    Serial.printf("XXXXXXXXXXXXXXXXX Got a new aspect %s\n", p_payload);
     xSemaphoreTake(lgSignalMastLock, portMAX_DELAY);
     xSemaphoreTake(lgSignalMastReentranceLock, portMAX_DELAY);
     if (mastDesc.lgBaseObjHandle->systemState::getOpStateBitmap() || failsafeSet) {

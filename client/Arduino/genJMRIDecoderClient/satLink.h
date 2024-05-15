@@ -24,6 +24,8 @@
 /*==============================================================================================================================================*/
 /* Include files                                                                                                                                */
 /*==============================================================================================================================================*/
+#include "Arduino.h"
+#include "freertos/FreeRTOS.h"
 #include <stdlib.h>
 #include <cstddef>
 #include <stdio.h>
@@ -77,8 +79,10 @@ public:
 	void onConfig(tinyxml2::XMLElement* p_satLinkXmlElement);
 	rc_t start(void);
 	void up(void);
-	void down(void);
 	static void onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle);
+	void down(void);
+	static void onSatLinkScanHelper(void* p_metaData);
+	void onSatLinkScan(void);
 	static void pmPollHelper(void* p_metaData);
 	void onPmPoll(void);
 	static void onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandler, uint8_t p_linkAddr, satOpState_t p_satOpState, void* p_satLinkHandler);
@@ -171,6 +175,7 @@ private:
 	uint32_t rxSymbolErr;
 	uint32_t rxDataSizeErr;
 	uint32_t wdErr;
+	wdt* linkScanWdt;
 };
 /*==============================================================================================================================================*/
 /* END Class satLink                                                                                                                            */
