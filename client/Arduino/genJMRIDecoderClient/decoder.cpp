@@ -269,7 +269,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     else {
         LOG_INFO("%s: RSyslog server URI not provided, will not start RSyslog" CR, logContextName);
     }
-    /* Temporarilly out for stability
+    ///* Temporarilly out for stability
     LOG_TERSE("Setting up MQTT endpoints and properties" CR);
     Serial.printf("XXXXXXXX Setting brocker\n");
     setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
@@ -282,7 +282,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
     Serial.printf("XXXXXXXX Setting keepalive\n");
-    */
+    //*/
     setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
     LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {

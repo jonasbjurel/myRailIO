@@ -119,7 +119,7 @@ rc_t mqtt::init(const char* p_brokerUri, uint16_t p_brokerPort, const char* p_br
     pingPeriod = p_pingPeriod;
     defaultRetain = p_defaultRetain;
     strcpy(mqttTopicPrefix, MQTT_PRE0_TOPIC_DEFAULT_FRAGMENT);
-    avgSamples = int(MQTT_POLL_LATENCY_AVG_TIME_MS * 1000 / MQTT_POLL_PERIOD_MS);
+    avgSamples = int(MQTT_POLL_LATENCY_AVG_TIME_MS / MQTT_POLL_PERIOD_MS);
     latencyVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples];
     for (uint16_t i = 0; i < avgSamples; i++)
         latencyVect[i] = 0;
@@ -711,23 +711,17 @@ void mqtt::clearOverRuns(void) {
 uint32_t mqtt::getMeanLatency(void) {
     if (avgSamples == 0)
         return 0;
-    uint32_t* tmpLatencyVect = new (heap_caps_malloc(sizeof(uint32_t) * avgSamples, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) uint32_t[avgSamples]; //Wee need to fix all latencies to type int32_t, and all other performance metrics to int....
     uint32_t accLatency = 0;
     uint32_t meanLatency = 0;
-    //TAKE A LOCK BLOCKING latencyVect access
-    memcpy(tmpLatencyVect, latencyVect, avgSamples);
-    //RELEASE THE LOCK
     for (uint16_t latencyIndex = 0; latencyIndex < avgSamples; latencyIndex++) {
-        accLatency += tmpLatencyVect[latencyIndex];
+        accLatency += latencyVect[latencyIndex];
     }
     meanLatency = accLatency / avgSamples;
-    delete tmpLatencyVect;
     return meanLatency;
 }
 
 uint32_t mqtt::getMaxLatency(void) {
-    uint32_t tmpMaxLatency = maxLatency;
-    return tmpMaxLatency;
+    return maxLatency;
 }
 
 void mqtt::clearMaxLatency(void) {
@@ -756,7 +750,7 @@ void mqtt::poll(void* dummy) {
     int64_t  nextLoopTime = esp_timer_get_time();
     int64_t thisLoopTime;
     uint16_t latencyIndex = 0;
-    int32_t latency = 0;
+    uint32_t latency = 0;
     for (uint16_t i = 0; i < avgSamples; i++)
         latencyVect[i] = 0;
     int stat;
@@ -770,7 +764,7 @@ void mqtt::poll(void* dummy) {
             return;
         }
         char op[200];
-        thisLoopTime = nextLoopTime;
+        thisLoopTime = esp_timer_get_time();
         nextLoopTime += MQTT_POLL_PERIOD_MS * 1000;
         mqttWdt->feed();
         xSemaphoreTake(pubSubLock, portMAX_DELAY);
@@ -849,7 +843,6 @@ void mqtt::poll(void* dummy) {
             maxLatency = latency;
         }
         int64_t delay = nextLoopTime - esp_timer_get_time();
-        int64_t now = esp_timer_get_time();
         if ((int)delay > 0) {
             vTaskDelay((delay / 1000) / portTICK_PERIOD_MS);
         }

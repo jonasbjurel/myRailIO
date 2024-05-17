@@ -305,17 +305,20 @@ void satLink::up(void) {
     if (!satLinkScanDisabled) {
         LOG_WARN("%s: satLink already enabled" CR, logContextName);
         Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @1\n");
+        xSemaphoreGive(upDownLock);
         return;
     }
     LOG_INFO("%s: satLink link- and PM- scanning starting" CR, logContextName);
     satErr_t rc = satLinkLibHandle->enableSatLink();
     if (rc == SAT_ERR_WRONG_STATE_ERR) {
         LOG_WARN("%s: satLink reported SAT_ERR_WRONG_STATE_ERR while it should be good, probably an ongoing job transaction ongoing - doing nothing" CR, logContextName);
+        xSemaphoreGive(upDownLock);
         return;
     }
     if (rc != 0){
         panic("%s: satLink scannig could not be started, return code: 0x%llx", logContextName, rc);
         Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @2\n");
+        xSemaphoreGive(upDownLock);
         return;
     }
     int t = 0;
@@ -324,6 +327,7 @@ void satLink::up(void) {
         if(t++ > 400){
             panic("Link wasnt enable in due time");
             Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @3\n");
+            xSemaphoreGive(upDownLock);
             return;
         }
     }
@@ -339,6 +343,7 @@ void satLink::up(void) {
         CPU_SATLINK_PM_PRIO,                                                            // Priority 0-24, higher is more
         CPU_SATLINK_PM_STACK_ATTR)) {                                                     // Task stack atribute
         panic("%s: Could not start pm poll task", logContextName);
+        xSemaphoreGive(upDownLock);
         return;
     }
 	linkScanWdt->activate();
@@ -367,6 +372,7 @@ void satLink::down(void) {
     Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Starting DOWN\n");
     if (satLinkScanDisabled) {
         LOG_INFO("%s: satLink already disabled" CR, logContextName);
+        xSemaphoreGive(upDownLock);
         return;
     }
     LOG_INFO("%s: satLink link- and PM- scanning stopping" CR, logContextName);
@@ -374,6 +380,7 @@ void satLink::down(void) {
     satErr_t rc = satLinkLibHandle->disableSatLink();
     if (rc == SAT_ERR_WRONG_STATE_ERR) {
         LOG_WARN("%s: satLink reported SAT_ERR_WRONG_STATE_ERR while it should be good, probably an ongoing job transaction ongoing - doing nothing" CR, logContextName);
+        xSemaphoreGive(upDownLock);
         return;
     }
     if (rc)

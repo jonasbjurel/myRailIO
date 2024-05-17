@@ -63,7 +63,7 @@
 /* Methods:                                                                                                                                     */
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
-#define MQTT_POLL_LATENCY_AVG_TIME_MS       10
+#define MQTT_POLL_LATENCY_AVG_TIME_MS       10000
 #define MQTT_QOS_0                          0
 #define MQTT_QOS_1                          1
 #define MQTT_RETAIN                         true
@@ -154,44 +154,44 @@ private:
     static void onMqttJobOverload(void* p_dummy, bool p_overload);
 
     //Private data structures
-    static systemState* sysState;
-    static job* mqttRxJobHandle;
-    static job* mqttTxJobHandle;
+    EXT_RAM_ATTR static systemState* sysState;
+    EXT_RAM_ATTR static job* mqttRxJobHandle;
+    EXT_RAM_ATTR static job* mqttTxJobHandle;
     static SemaphoreHandle_t pubSubLock;
     static SemaphoreHandle_t mqttLock;
-    static WiFiClient espClient;
-    static PubSubClient* mqttClient;
-    static uint32_t overRuns;
-    static uint32_t maxLatency;
-    static uint16_t avgSamples;
-    static uint32_t* latencyVect;
-    static char* decoderUri;
-    static char* brokerUri;
-    static uint16_t brokerPort;
-    static char* brokerUser;
-    static char* brokerPass;
-    static char* clientId;
-    static uint8_t defaultQoS;
-    static uint8_t keepAlive;
-    static bool opStateTopicSet;
-    static char* opStateTopic;
-    static char mqttTopicPrefix[50];
-    static char* mqttPingUpstreamTopic;
-    static char* upPayload;
-    static char* downPayload;
-    static uint8_t missedPings;
-    static int mqttStatus;
-    static uint8_t qos;
-    static bool defaultRetain;
-    static float pingPeriod;
-    static bool discovered;
-    static bool reSubscribeReq;
+    EXT_RAM_ATTR static WiFiClient espClient;
+    EXT_RAM_ATTR static PubSubClient* mqttClient;
+    EXT_RAM_ATTR static uint32_t overRuns;
+    EXT_RAM_ATTR static uint32_t maxLatency;
+    EXT_RAM_ATTR static uint16_t avgSamples;
+    EXT_RAM_ATTR static uint32_t* latencyVect;
+    EXT_RAM_ATTR static char* decoderUri;
+    EXT_RAM_ATTR static char* brokerUri;
+    EXT_RAM_ATTR static uint16_t brokerPort;
+    EXT_RAM_ATTR static char* brokerUser;
+    EXT_RAM_ATTR static char* brokerPass;
+    EXT_RAM_ATTR static char* clientId;
+    EXT_RAM_ATTR static uint8_t defaultQoS;
+    EXT_RAM_ATTR static uint8_t keepAlive;
+    EXT_RAM_ATTR static bool opStateTopicSet;
+    EXT_RAM_ATTR static char* opStateTopic;
+    EXT_RAM_ATTR static char mqttTopicPrefix[50];
+    EXT_RAM_ATTR static char* mqttPingUpstreamTopic;
+    EXT_RAM_ATTR static char* upPayload;
+    EXT_RAM_ATTR static char* downPayload;
+    EXT_RAM_ATTR static uint8_t missedPings;
+    EXT_RAM_ATTR static int mqttStatus;
+    EXT_RAM_ATTR static uint8_t qos;
+    EXT_RAM_ATTR static bool defaultRetain;
+    EXT_RAM_ATTR static float pingPeriod;
+    EXT_RAM_ATTR static bool discovered;
+    EXT_RAM_ATTR static bool reSubscribeReq;
     static QList<mqttTopic_t*> mqttTopics;
-    static mqttStatusCallback_t statusCallback;
-    static void* statusCallbackArgs;
-    static wdt* mqttWdt;
-    static bool supervision;
-    static uint16_t retryCnt;
+    EXT_RAM_ATTR static mqttStatusCallback_t statusCallback;
+    EXT_RAM_ATTR static void* statusCallbackArgs;
+    EXT_RAM_ATTR static wdt* mqttWdt;
+    EXT_RAM_ATTR static bool supervision;
+    EXT_RAM_ATTR static uint16_t retryCnt;
 };
 
 /*==============================================================================================================================================*/
