@@ -119,6 +119,17 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, UPTIME_SUB_MO_NAME, GLOBAL_GET_UPTIME_HELP_TXT);
 
 
+	
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+/* CLI Sub-Managed object: coredump																												*/
+/* Description: See cliGlobalDefinitions.h																										*/
+/*----------------------------------------------------------------------------------------------------------------------------------------------*/
+
+//global uptime SubMo
+	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, COREDUMP_SUB_MO_NAME, onCliShowCoreDump);
+	regCmdHelp(SHOW_CLI_CMD, GLOBAL_MO_NAME, COREDUMP_SUB_MO_NAME, GLOBAL_SHOW_COREDUMP_HELP_TXT);
+
+
 
 /*----------------------------------------------------------------------------------------------------------------------------------------------*/
 /* CLI Sub-Managed object: cpu																													*/
@@ -787,6 +798,27 @@ void globalCli::onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,
 		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
 	else {
 		printCli("Uptime: %i seconds", (uint32_t)(esp_timer_get_time()/1000000));
+		acceptedCliCommand(CLI_TERM_QUIET);
+	}
+}
+
+//-------------------- CoreDump --------------------
+void globalCli::onCliShowCoreDump(cmd* p_cmd, cliCore* p_cliContext,
+	cliCmdTable_t* p_cmdTable) {
+	Command cmd(p_cmd);
+	if (!cmd.getArgument(0) || cmd.getArgument(1))
+		notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
+	else {
+		char* stackTraceBuff = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
+		uint readBytes;
+		if (fileSys::getFile(FS_PATH "/" "panic", stackTraceBuff, 10000, &readBytes)) {
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not read core dump file");
+			LOG_WARN_NOFMT("Could not read core dump file" CR);
+			delete stackTraceBuff;
+			return;
+		}
+		printCli("%s", stackTraceBuff);
+		delete stackTraceBuff;
 		acceptedCliCommand(CLI_TERM_QUIET);
 	}
 }

@@ -269,7 +269,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     else {
         LOG_INFO("%s: RSyslog server URI not provided, will not start RSyslog" CR, logContextName);
     }
-    ///* Temporarilly out for stability
+    // START DONT REINIT MQTT IF NOT NEEDED
     LOG_TERSE("Setting up MQTT endpoints and properties" CR);
     Serial.printf("XXXXXXXX Setting brocker\n");
     setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
@@ -282,7 +282,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
     Serial.printf("XXXXXXXX Setting keepalive\n");
-    //*/
+    // END DONT REINIT MQTT IF NOT NEEDED
     setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
     LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
@@ -459,12 +459,18 @@ rc_t decoder::start(void) {
         return RC_GEN_ERR;
     }
 
+    LOG_INFO("%s: Subscribing to reboot topic" CR, logContextName);
     sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_REBOOT_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
     if (mqtt::subscribeTopic(subscribeTopic, onRebootHelper, this)) {
         panic("%s: Failed to suscribe to reboot topic \"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
     }
-
+    LOG_INFO("%s: Subscribing to fetch coredump topic" CR, logContextName);
+	sprintf(subscribeTopic, "%s/%s", MQTT_DECODER_FETCHCOREDUMP_TOPIC, mqtt::getDecoderUri());
+    if (mqtt::subscribeTopic(subscribeTopic, onGetCoreDumpHelper, this)) {
+		panic("%s: Failed to suscribe to fetch coredump topic \"%s\"", logContextName, subscribeTopic);
+	    return RC_GEN_ERR;
+    }
     LOG_INFO("Starting lightgroup link Decoders" CR);
     for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
         LOG_TERSE("%s: Starting LgLink-%d" CR, logContextName, lgLinkItter);
@@ -1081,6 +1087,29 @@ void decoder::onRebootHelper(const char* p_topic, const char* p_payload, const v
 void decoder::onReboot(void) {
     Serial.printf(">>> Ordered reboot");
     panic("Ordered reboot");
+}
+
+void decoder::onGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onGetCoreDump();
+}
+
+void decoder::onGetCoreDump(void) {
+	char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+	sprintf(topic, "%s/%s", MQTT_DECODER_COREDUMP_UPSTREAM_TOPIC, mqtt::getDecoderUri());
+    char* payload = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
+    char* coreDumpBuff = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
+    uint readBytes;
+	if (fileSys::getFile(FS_PATH "/" "panic", coreDumpBuff, 10000, &readBytes)) {
+        sprintf(payload, "<%s>\n\r   %s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, "-", DELIVERCOREDUMP_XMLTAG_PAYLOAD);
+		mqtt::sendMsg(topic, payload, false);
+	}
+	else {
+		sprintf(payload, "<%s>\n\r   %s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, coreDumpBuff, DELIVERCOREDUMP_XMLTAG_PAYLOAD);
+		mqtt::sendMsg(topic, payload, false);
+	}
+    delete coreDumpBuff;
+    delete payload;
+    delete topic;
 }
 
 /* CLI decoration methods */

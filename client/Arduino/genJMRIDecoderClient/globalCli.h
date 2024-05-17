@@ -109,10 +109,10 @@ private:
                       bool p_showHelp = false);
     static void onCliReboot(cmd* p_cmd, cliCore* p_cliContext,                          //Reboot sub-MO command
                             cliCmdTable_t* p_cmdTable);
-    static void onCliGetCoreDump(cmd* p_cmd, cliCore* p_cliContext,                     //Fetch Coredump sub-MO command
-                                cliCmdTable_t* p_cmdTable);
     static void onCliGetUptime(cmd* p_cmd, cliCore* p_cliContext,                       //Get decoder uptime sub-MO command
                                cliCmdTable_t* p_cmdTable);
+    static void onCliShowCoreDump(cmd* p_cmd, cliCore* p_cliContext,                    //Fetch Coredump sub-MO command
+                                cliCmdTable_t* p_cmdTable);
     static void onCliStartCpu(cmd* p_cmd, cliCore* p_cliContext,                        //Start CPU sub-MO
                               cliCmdTable_t* p_cmdTable);
     static void onCliStopCpu(cmd* p_cmd, cliCore* p_cliContext,                         //Stop CPU sub-MO

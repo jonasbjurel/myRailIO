@@ -26,6 +26,7 @@
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
 EXT_RAM_ATTR char stackTraceBuff[4096];
+EXT_RAM_ATTR char coreDumpBuff[4096];
 EXT_RAM_ATTR char panicLogMsg[512];
 EXT_RAM_ATTR bool ongoingPanic = false;
 QList<panicCbReg_t*>* panicCbList = new QList<panicCbReg_t*>;
@@ -51,7 +52,14 @@ void panic(const char* p_panicFmt, ...) {
     LOG_FATAL("%s" CR, stackTraceBuff);
     Serial.printf(">>> Saving call-back stack to local %s/panic" CR, FS_PATH);
     LOG_FATAL("Saving call-back stack to local %s/panic" CR, FS_PATH);
-    fileSys::putFile(FS_PATH "/" "panic", stackTraceBuff, strlen(stackTraceBuff) + 1, NULL);
+    time_t rawTime;
+    time_t now = time(&rawTime);
+    tm* tmTod = gmtime(&now);
+    strftime(coreDumpBuff, 25, "UTC: %Y-%m-%d %H:%M:%S", tmTod);
+    strcat(coreDumpBuff, "\n\r");
+    strcat(coreDumpBuff, stackTraceBuff);
+    uint writeSize;
+    fileSys::putFile(FS_PATH "/" "panic", coreDumpBuff, strlen(stackTraceBuff) + 1, &writeSize);
     Serial.printf(">>> Sending panic callbacks to those who have subscribed to it" CR);
     LOG_FATAL("Sending panic callbacks to those who have subscribed to it" CR);
     sendPanicCb();

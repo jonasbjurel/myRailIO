@@ -133,7 +133,6 @@ rc_t logg::addLogServer(const char* p_host, const char* p_server, uint16_t p_por
     }
     strcpy(sysLogServers->back()->server, p_server);
     sysLogServers->back()->port = p_port;
-
     sysLogServers->back()->syslogDest = new SimpleSyslog(p_host, "genJMRIDecoder", p_server, p_port);
     if (!sysLogServers->back()->syslogDest) {
         panic("Could not create a syslog instance");

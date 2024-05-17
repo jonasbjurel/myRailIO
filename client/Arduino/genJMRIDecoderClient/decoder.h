@@ -246,9 +246,10 @@ public:
 	static uint8_t onWdtFailsafeHelper(uint8_t escalationCnt, const void* p_metaData);
 	uint8_t onWdtFailsafe(void);
 	static uint8_t onWdtReboot(uint8_t escalationCnt, const void* p_metaData);
-
 	static void onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
 	void onReboot(void);
+	static void onGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onGetCoreDump(void);
 
 	/* CLI decoration methods */
 	// No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.

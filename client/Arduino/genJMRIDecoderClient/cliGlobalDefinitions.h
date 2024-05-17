@@ -55,6 +55,7 @@ EXT_RAM_ATTR const char		CLIHELP_SUB_MO_NAME[] = "cli";							//Only for help, w
 EXT_RAM_ATTR const char		HELP_SUB_MO_NAME[] = "help";							//Print help text, see help text definitions below
 EXT_RAM_ATTR const char		CONTEXT_SUB_MO_NAME[] = "context";						//Global MO instance context sub-MO
 EXT_RAM_ATTR const char		UPTIME_SUB_MO_NAME[] = "uptime";						//Global MO Decoder up-time sub-MO
+EXT_RAM_ATTR const char		COREDUMP_SUB_MO_NAME[] = "coredump";					//Global MO Decoder coredump sub-MO
 EXT_RAM_ATTR const char		CPU_SUB_MO_NAME[] = "cpu";								//Global MO CPU sub-MO
 EXT_RAM_ATTR const char		CPUMEM_SUB_MO_NAME[] = "memory";						//Global MO Memory sub-MO
 EXT_RAM_ATTR const char		NETWORK_SUB_MO_NAME[] = "network";						//Global Network MO sub-MO
@@ -200,6 +201,8 @@ EXT_RAM_ATTR const char GLOBAL_SHOW_COMMANDS_HELP_TXT[] =			"Shows available com
 EXT_RAM_ATTR const char GLOBAL_REBOOT_HELP_TXT[] =					"Reboots the decoder.\n\r";
 
 EXT_RAM_ATTR const char GLOBAL_GET_UPTIME_HELP_TXT[] =				"Prints the time in seconds sinse the previous boot.\n\r";
+
+EXT_RAM_ATTR const char GLOBAL_SHOW_COREDUMP_HELP_TXT[] =			"Prints the the previously stored coredump.\n\r";
 
 EXT_RAM_ATTR const char GLOBAL_START_CPU_HELP_TXT[] =				"Starts a CPU activity.\n\r" \
 																		"	- If the \"-stats\" flag is provided, the collection of CPU- and Memory- statistics is started\n\r" \

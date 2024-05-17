@@ -112,6 +112,18 @@
 // Payload examples:
 #define REBOOT_PAYLOAD							"<REBOOT/>"
 
+// Decoder fetch coredump
+#define MQTT_DECODER_FETCHCOREDUMP_TOPIC		MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/coredumprequest"
+
+// Payload examples:
+#define FETCHCOREDUMP_PAYLOAD					"<FETCHCOREDUMP/>"
+
+// Decoder deliver coredump
+#define MQTT_DECODER_COREDUMP_UPSTREAM_TOPIC	MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/coredumpdelivery"
+
+// Payload examples:
+#define DELIVERCOREDUMP_XMLTAG_PAYLOAD		"COREDUMP"
+
 // MQTT Object resource business logic topics and payloads
 // Sensors
 #define MQTT_SENS_TOPIC							MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_SENS_TOPIC_FRAGMENT "/state"										///followed by /sysname
