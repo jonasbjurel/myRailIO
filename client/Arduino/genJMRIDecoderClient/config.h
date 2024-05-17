@@ -165,10 +165,17 @@
 #define CPU_MQTT_POLL_TASKNAME						"mqttPoll"
 #define WDT_MQTT_POLL_LOOP_TIMEOUT_MS				5000
 #define MQTT_JOB_SLOTS								10
-#define CPU_JOB_MQTT_TASKNAME						"mqttJob"
-#define CPU_JOB_MQTT_STACKSIZE_1K					8
-#define CPU_JOB_MQTT_PRIO							(CPU_MQTT_POLL_PRIO - 1)
-#define WDT_JOB_MQTT_TIMEOUT_MS						30000
+#define CPU_JOB_MQTT_RX_TASKNAME					"mqttRxJob"
+#define CPU_JOB_MQTT_RX_STACKSIZE_1K				8
+#define CPU_JOB_MQTT_RX_PRIO						(CPU_MQTT_POLL_PRIO - 1)
+#define WDT_JOB_MQTT_RX_TIMEOUT_MS					30000
+
+// MQTT message sending
+#define MQTT_TX_JOB_SLOTS							10
+#define CPU_JOB_MQTT_TX_TASKNAME					"mqttTxJob"
+#define CPU_JOB_MQTT_TX_STACKSIZE_1K				8
+#define CPU_JOB_MQTT_TX_PRIO						(CPU_MQTT_POLL_PRIO - 1)
+#define WDT_JOB_MQTT_TX_TIMEOUT_MS					30000
 
 // System state job task
 #define CPU_JOB_SYSSTATE_PRIO						10

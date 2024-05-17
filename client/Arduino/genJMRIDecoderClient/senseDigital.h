@@ -83,18 +83,17 @@ private:
     //--
 
     //Private data structures
-    char* logContextName;
-    senseBase* senseBaseHandle;
-    uint8_t sensPort;
-    uint8_t satAddr;
-    uint8_t satLinkNo;
-    satelite* satLibHandle;
-    bool failSafe;
-    const char* sensSysName;
-    SemaphoreHandle_t senseDigitalLock;
-    uint16_t sysState;
-    bool filteredSenseVal;
-    bool debug;
+    EXT_RAM_ATTR char* logContextName;
+    EXT_RAM_ATTR senseBase* senseBaseHandle;
+    EXT_RAM_ATTR uint8_t sensPort;
+    EXT_RAM_ATTR uint8_t satAddr;
+    EXT_RAM_ATTR uint8_t satLinkNo;
+    EXT_RAM_ATTR satelite* satLibHandle;
+    EXT_RAM_ATTR bool failSafe;
+    EXT_RAM_ATTR const char* sensSysName;
+    EXT_RAM_ATTR uint16_t sysState;
+    EXT_RAM_ATTR bool filteredSenseVal;
+    EXT_RAM_ATTR bool debug;
 };
 
 /*==============================================================================================================================================*/

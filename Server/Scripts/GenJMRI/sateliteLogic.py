@@ -181,8 +181,6 @@ class satelite(systemState, schema):
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        print("XXXXXXXXXXXXXXXXXXXX Satelite Entering update req")
-        traceback.print_stack()
         if source == self:
             print("XXXXXXXXXXXXXXXXXXXX Satelite update req Triggered by self")
             if self.updating:

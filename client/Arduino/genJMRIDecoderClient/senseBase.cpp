@@ -46,10 +46,6 @@ senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHa
     char sysStateObjName[20];
     sprintf(sysStateObjName, "sens-%d", p_sensPort);
     setSysStateObjName(sysStateObjName);
-    if (!(sensLock = xSemaphoreCreateMutex())){
-        panic("%s: Could not create Lock objects", logContextName);
-        return;
-    }
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSystateChangeHelper);

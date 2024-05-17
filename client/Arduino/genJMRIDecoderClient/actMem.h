@@ -84,21 +84,21 @@ private:
     void setActMem(void);
 
     //Private data structures
-    char* logContextName;
-    actBase* actBaseHandle;
-    const char* sysName;
-    uint8_t actPort;
-    uint8_t satAddr;
-    uint8_t satLinkNo;
-    satelite* satLibHandle;
+    EXT_RAM_ATTR char* logContextName;
+    EXT_RAM_ATTR actBase* actBaseHandle;
+    EXT_RAM_ATTR const char* sysName;
+    EXT_RAM_ATTR uint8_t actPort;
+    EXT_RAM_ATTR uint8_t satAddr;
+    EXT_RAM_ATTR uint8_t satLinkNo;
+    EXT_RAM_ATTR satelite* satLibHandle;
     SemaphoreHandle_t actMemLock;
-    actMemType_t actMemType;
-    uint8_t actMemPos;
-    uint8_t orderedActMemPos;
-    uint8_t actMemFailsafePos;
-    bool actMemSolenoidPushPort;
-    uint8_t actMemSolenoidActivationTime;
-    bool failSafe;
+    EXT_RAM_ATTR actMemType_t actMemType;
+    EXT_RAM_ATTR uint8_t actMemPos;
+    EXT_RAM_ATTR uint8_t orderedActMemPos;
+    EXT_RAM_ATTR uint8_t actMemFailsafePos;
+    EXT_RAM_ATTR bool actMemSolenoidPushPort;
+    EXT_RAM_ATTR uint8_t actMemSolenoidActivationTime;
+    EXT_RAM_ATTR bool failSafe;
 };
 
 /*==============================================================================================================================================*/

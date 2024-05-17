@@ -87,6 +87,7 @@ struct mqttJobDesc_t {
     char* topic;
     char* payload;
     unsigned int length;
+    bool retain;
 };
 
 
@@ -145,7 +146,8 @@ private:
     static void onDiscoverResponse(const char* p_topic, const char* p_payload, const void* p_dummy);
     static void poll(void* dummy);
     static void onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length);
-    static void dequeueMqttRxMsg(void* p_mqttJobDesc);
+    static void dequeueMqttTxMsg(void* p_mqttTxJobDesc);
+    static void dequeueMqttRxMsg(void* p_mqttRxJobDesc);
     static rc_t reSubscribe(void);
     static void mqttPingTimer(void* dummy);
     static void onMqttPing(const char* p_topic, const char* p_payload, const void* p_dummy);
@@ -153,7 +155,8 @@ private:
 
     //Private data structures
     static systemState* sysState;
-    static job* mqttJobHandle;
+    static job* mqttRxJobHandle;
+    static job* mqttTxJobHandle;
     static SemaphoreHandle_t pubSubLock;
     static SemaphoreHandle_t mqttLock;
     static WiFiClient espClient;

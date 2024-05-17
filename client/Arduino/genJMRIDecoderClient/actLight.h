@@ -74,18 +74,18 @@ private:
     void setActLight(void);
 
     //Private data structures
-    char* logContextName;
-    actBase* actBaseHandle;
-    const char* sysName;
-    uint8_t actPort;
-    uint8_t satAddr;
-    uint8_t satLinkNo;
-    satelite* satLibHandle;
+    EXT_RAM_ATTR char* logContextName;
+    EXT_RAM_ATTR actBase* actBaseHandle;
+    EXT_RAM_ATTR const char* sysName;
+    EXT_RAM_ATTR uint8_t actPort;
+    EXT_RAM_ATTR uint8_t satAddr;
+    EXT_RAM_ATTR uint8_t satLinkNo;
+    EXT_RAM_ATTR satelite* satLibHandle;
     SemaphoreHandle_t actLightLock;
-    uint8_t actLightPos;
-    uint8_t orderedActLightPos;
-    uint8_t actLightFailsafePos;
-    bool failSafe;
+    EXT_RAM_ATTR uint8_t actLightPos;
+    EXT_RAM_ATTR uint8_t orderedActLightPos;
+    EXT_RAM_ATTR uint8_t actLightFailsafePos;
+    EXT_RAM_ATTR bool failSafe;
 };
 
 /*==============================================================================================================================================*/

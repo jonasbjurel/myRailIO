@@ -65,7 +65,7 @@ typedef uint16_t sysState_t;
 #define NO_OPSTATES                     14
 #define OP_ARR                          {"WO", "INIT", "DISC", "NOIP", "UDISC", \
                                          "UCONF", "DABL", "SUAVL", "CUAVL", \
-                                         "ESEC", "ERR", "FAIL", "CBL", "UUSED"};
+                                         "ESEC", "GENERR", "FAIL", "CBL", "UUSED"};
 
 //Call-back prototypes
 typedef void (*sysStateCb_t)(const void* p_miscCbData, sysState_t p_sysState);

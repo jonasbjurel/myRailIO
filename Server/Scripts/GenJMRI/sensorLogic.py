@@ -158,14 +158,14 @@ class sensor(systemState, schema):
 
     def updateReq(self, child, source, uploadNReboot = True):
         if source == self:
-            if self.updating:
+            if self.updated:
                 return rc.ALREADY_EXISTS
             if uploadNReboot:
-                self.updating = True
+                self.updated = True
             else:
-                self.updating = False
+                self.updated = False
         res = self.parent.updateReq(self, source, uploadNReboot)
-        self.updating = False
+        self.updated = False
         return res
 
     def validate(self):
@@ -368,7 +368,7 @@ class sensor(systemState, schema):
             self.NOT_CONNECTEDalarm.raiseAlarm("Sensor has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):
             self.NOT_CONNECTEDalarm.ceaseAlarm("Sensor has now successfully connected")
-        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
+        elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.raiseAlarm("Sensor has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
             self.NOT_CONFIGUREDalarm.ceaseAlarm("Sensor is now successfully configured")

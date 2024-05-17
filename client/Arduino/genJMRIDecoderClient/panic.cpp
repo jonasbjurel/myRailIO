@@ -33,8 +33,8 @@ QList<panicCbReg_t*>* panicCbList = new QList<panicCbReg_t*>;
 
 void panic(const char* p_panicFmt, ...) {
     if (ongoingPanic) {
-        LOG_FATAL_NOFMT("A secondary panic occured, will not be handled..." CR);
         Serial.printf(">>> A secondary panic occured, will not be handled..." CR);
+        LOG_FATAL_NOFMT("A secondary panic occured, will not be handled..." CR);
         return; 
     }
     ongoingPanic = true;
@@ -44,27 +44,34 @@ void panic(const char* p_panicFmt, ...) {
     int len = vsnprintf(NULL, 0, p_panicFmt, args);
     // format message
     vsnprintf(panicLogMsg, len + 1, p_panicFmt, args);
-    LOG_FATAL("%s - rebooting..." CR, panicLogMsg);
-    Serial.printf(">>> %s - rebooting..." CR, panicLogMsg);
+    Serial.printf(">>> PANIC!: %s - rebooting..." CR, panicLogMsg);
+    LOG_FATAL("PANIC!: %s - rebooting..." CR, panicLogMsg);
     va_end(args);
-//    decoderHandle->setOpStateByBitmap(OP_INTFAIL);
-    LOG_FATAL("%s" CR, stackTraceBuff);
     Serial.printf(">>> %s" CR, stackTraceBuff);
-    LOG_FATAL_NOFMT("Waiting 5 seconds before restarting - enabling spool-out of syslog, fail-safe settings, etc" CR);
+    LOG_FATAL("%s" CR, stackTraceBuff);
+    Serial.printf(">>> Saving call-back stack to local %s/panic" CR, FS_PATH);
+    LOG_FATAL("Saving call-back stack to local %s/panic" CR, FS_PATH);
     fileSys::putFile(FS_PATH "/" "panic", stackTraceBuff, strlen(stackTraceBuff) + 1, NULL);
+    Serial.printf(">>> Sending panic callbacks to those who have subscribed to it" CR);
+    LOG_FATAL("Sending panic callbacks to those who have subscribed to it" CR);
+    sendPanicCb();
+    Serial.printf(">>> Waiting 5 seconds before restarting - enabling spool-out of syslog, fail-safe settings, etc" CR);
+    LOG_FATAL("Waiting %i seconds before restarting - enabling spool-out of syslog, fail-safe settings, etc" CR, PANIC_REBOOT_DELAY_MS / 1000);
     TimerHandle_t rebootTimer;
-    rebootTimer = xTimerCreate("rebootTimer",                       // Just a text name, not used by the kernel.
+    rebootTimer = xTimerCreate("panicRebootTimer",                  // Just a text name, not used by the kernel.
         (PANIC_REBOOT_DELAY_MS / portTICK_PERIOD_MS),               // The timer period in ticks.
         pdFALSE,                                                    // The timer will not auto-reload when expired.
         NULL,                                                       // param passing.
         reboot                                                      // Each timer calls the same callback when it expires.
     );
     if (rebootTimer == NULL) {
-        Serial.printf("panic: Could not create reboot timer - rebooting immediatly..." CR);
-        reboot(NULL);
+        Serial.printf(">>> panic!: Could not create panic reboot timer - rebooting immediatly..." CR);
+		LOG_FATAL_NOFMT("panic!: Could not create panic reboot timer - rebooting immediatly..." CR);
+		reboot(NULL);
     }
     if (xTimerStart(rebootTimer, 0) != pdPASS) {
-        Serial.printf("panic: Could not start reboot timer - rebooting immediatly..." CR);
+        Serial.printf(">>> panic!: Could not start panic reboot timer - rebooting immediatly..." CR);
+        LOG_FATAL_NOFMT("panic!: Could not start panic reboot timer - rebooting immediatly..." CR);
         reboot(NULL);
     }
 }
@@ -129,6 +136,6 @@ rc_t IRAM_ATTR esp_backtrace_buff(int depth, char* p_stackBuff){
 }
 
 void reboot(void* p_dummy){
-    Serial.printf("Ordered reboot..." CR);
+    Serial.printf("Panic reboot..." CR);
     ESP.restart();
 }

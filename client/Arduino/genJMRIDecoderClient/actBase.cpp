@@ -50,10 +50,6 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_UNDISCOVERED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSysStateChangeHelper);
-    if (!(actLock = xSemaphoreCreateMutex())){
-        panic("%s: Could not create Lock objects", logContextName);
-        return;
-    }
     xmlconfig[XML_ACT_SYSNAME] = NULL;
     xmlconfig[XML_ACT_USRNAME] = NULL;
     xmlconfig[XML_ACT_DESC] = NULL;
@@ -203,7 +199,7 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement, bool p_twin)
     //    LOG_INFO("No properties provided for base stem-object" CR);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
 
-    if (!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) && !(actPort % 2)) {
+    if ((!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) || !strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_MEM_SOLENOID_PAYLOAD)) && !(actPort % 2)) {
         LOG_INFO("%s: Actuator base object has a twin actuator base object - configuring it" CR, logContextName);
         //Serial.printf("YYYYYYYYYYYYYYYYY Port: %i\n", actPort + 1);
         actBase* twinActBaseObject = satHandle->getActHandleByPort(actPort + 1);
@@ -243,7 +239,7 @@ rc_t actBase::start(void) {
     //wdt::wdtRegActuatorFailsafe(wdtKickedHelper, this);
     unSetOpStateByBitmap(OP_INIT);
     LOG_INFO("%s: actuator has started" CR, logContextName);
-    if (!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) && !(actPort % 2)) {
+    if ((!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) || !strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_MEM_SOLENOID_PAYLOAD)) && !(actPort % 2)) {
         LOG_INFO("%s: Actuator base object has a twin actuator base object - starting it" CR, logContextName);
         actBase* twinActBaseObject = satHandle->getActHandleByPort(actPort + 1);
         if (!twinActBaseObject)

@@ -66,6 +66,10 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
         panic("%s: Could not create Lock objects", logContextName);
         return;
     }
+    if (!(upDownLock = xSemaphoreCreateMutex())) {
+        panic("%s: Could not create Lock objects", logContextName);
+        return;
+    }
     prevSysState = OP_WORKING;
     setOpStateByBitmap(OP_INIT | OP_UNCONFIGURED | OP_DISABLED | OP_UNUSED);
     regSysStateCb(this, &onSysStateChangeHelper);
@@ -296,14 +300,22 @@ rc_t satLink::start(void) {
 }
 
 void satLink::up(void) {
+    xSemaphoreTake(upDownLock, portMAX_DELAY);
+    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Starting UP\n");
     if (!satLinkScanDisabled) {
         LOG_WARN("%s: satLink already enabled" CR, logContextName);
+        Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @1\n");
         return;
     }
     LOG_INFO("%s: satLink link- and PM- scanning starting" CR, logContextName);
     satErr_t rc = satLinkLibHandle->enableSatLink();
+    if (rc == SAT_ERR_WRONG_STATE_ERR) {
+        LOG_WARN("%s: satLink reported SAT_ERR_WRONG_STATE_ERR while it should be good, probably an ongoing job transaction ongoing - doing nothing" CR, logContextName);
+        return;
+    }
     if (rc != 0){
         panic("%s: satLink scannig could not be started, return code: 0x%llx", logContextName, rc);
+        Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @2\n");
         return;
     }
     int t = 0;
@@ -311,6 +323,7 @@ void satLink::up(void) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
         if(t++ > 400){
             panic("Link wasnt enable in due time");
+            Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @3\n");
             return;
         }
     }
@@ -329,6 +342,8 @@ void satLink::up(void) {
         return;
     }
 	linkScanWdt->activate();
+    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Ending UP\n");
+	xSemaphoreGive(upDownLock);
 }
 
 void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
@@ -348,17 +363,25 @@ void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t 
 }
 
 void satLink::down(void) {
+	xSemaphoreTake(upDownLock, portMAX_DELAY);
+    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Starting DOWN\n");
     if (satLinkScanDisabled) {
         LOG_INFO("%s: satLink already disabled" CR, logContextName);
         return;
     }
     LOG_INFO("%s: satLink link- and PM- scanning stopping" CR, logContextName);
 	linkScanWdt->inactivate();
-    pmPoll = false;
     satErr_t rc = satLinkLibHandle->disableSatLink();
-    satLinkScanDisabled = true;
+    if (rc == SAT_ERR_WRONG_STATE_ERR) {
+        LOG_WARN("%s: satLink reported SAT_ERR_WRONG_STATE_ERR while it should be good, probably an ongoing job transaction ongoing - doing nothing" CR, logContextName);
+        return;
+    }
     if (rc)
         LOG_ERROR("%s: Could not disable satLink link scanning, return code: %llx" CR, logContextName, rc);
+    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Ending DOWN\n");
+    pmPoll = false;
+    satLinkScanDisabled = true;
+    xSemaphoreGive(upDownLock);
 }
 
 void satLink::onSatLinkScanHelper(void* p_metaData) {
@@ -430,6 +453,7 @@ void satLink::onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandl
 }
 
 void satLink::onSatLinkLibStateChange(const satOpState_t p_satOpState) {
+    Serial.printf("EEEEEEEEEEEEEEEEEEE Got a new OP-state from the satelite-link lib: 0x%X\n", p_satOpState);
     if(p_satOpState & (SAT_OP_INIT | SAT_OP_FAIL | SAT_OP_CONTROLBOCK))
         systemState::setOpStateByBitmap(OP_GENERR);
     else

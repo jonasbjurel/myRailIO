@@ -37,7 +37,8 @@
 /* Data structures:                                                                                                                             */
 /*==============================================================================================================================================*/
 EXT_RAM_ATTR systemState* mqtt::sysState = NULL;
-EXT_RAM_ATTR job* mqtt::mqttJobHandle = NULL;
+EXT_RAM_ATTR job* mqtt::mqttRxJobHandle = NULL;
+EXT_RAM_ATTR job* mqtt::mqttTxJobHandle = NULL;
 EXT_RAM_ATTR SemaphoreHandle_t mqtt::mqttLock = NULL;
 EXT_RAM_ATTR SemaphoreHandle_t mqtt::pubSubLock = NULL;
 EXT_RAM_ATTR WiFiClient mqtt::espClient;
@@ -84,11 +85,14 @@ void mqtt::create(void) {
         panic("systemState could not be created");
     sysState->setSysStateObjName("mqtt");
     sysState->setOpStateByBitmap(OP_INIT | OP_DISABLED | OP_DISCONNECTED | OP_UNDISCOVERED | OP_CLIEUNAVAILABLE);
-    mqttJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(MQTT_JOB_SLOTS, CPU_JOB_MQTT_TASKNAME, CPU_JOB_MQTT_STACKSIZE_1K * 1024, CPU_JOB_MQTT_PRIO, false, WDT_JOB_MQTT_TIMEOUT_MS);
-    if (!mqttJobHandle)
-        panic("MQTT job could not be created");
-    mqttJobHandle->setOverloadLevelCease(MQTT_JOB_SLOTS / 2);
-    mqttJobHandle->regOverloadCb(onMqttJobOverload, NULL);
+    mqttRxJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(MQTT_JOB_SLOTS, CPU_JOB_MQTT_RX_TASKNAME, CPU_JOB_MQTT_RX_STACKSIZE_1K * 1024, CPU_JOB_MQTT_RX_PRIO, false, WDT_JOB_MQTT_RX_TIMEOUT_MS);
+    if (!mqttRxJobHandle)
+        panic("MQTT Rx job handler could not be created");
+    mqttTxJobHandle = new (heap_caps_malloc(sizeof(job), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) job(MQTT_TX_JOB_SLOTS, CPU_JOB_MQTT_TX_TASKNAME, CPU_JOB_MQTT_TX_STACKSIZE_1K * 1024, CPU_JOB_MQTT_TX_PRIO, false, WDT_JOB_MQTT_TX_TIMEOUT_MS);
+    if (!mqttTxJobHandle)
+        panic("MQTT Tx job handler could not be created");
+    mqttRxJobHandle->setOverloadLevelCease(MQTT_JOB_SLOTS / 2);
+    mqttRxJobHandle->regOverloadCb(onMqttJobOverload, NULL);
     mqttLock = xSemaphoreCreateMutex();
     pubSubLock = xSemaphoreCreateMutex();
     if (!mqttLock || !pubSubLock)
@@ -400,23 +404,53 @@ rc_t mqtt::unSubscribeTopic(const char* p_topic, const mqttSubCallback_t p_callb
 }
 
 rc_t mqtt::sendMsg(const char* p_topic, const char* p_payload, bool p_retain) {
-    LOG_VERBOSE("Sending MQTT message, Topic: %s, Payload: %s" CR, p_topic, p_payload);
+    LOG_VERBOSE("Request for sending of an MQTT mesage received, topic: %s, payload: %s, enquing it to the MQTT transmit job queue" CR, p_topic, p_payload);
+	char sysStateStr[200];
+    if ((sysState->getOpStateBitmap() & OP_DISCONNECTED)) {
+        LOG_ERROR("Could not send message, topic: %s, payload: %s , either the MQTT OP-state: %s doesnt allow it, or there was an internal MQTT error" CR, p_topic, p_payload, sysState->getOpStateStr(sysStateStr));
+        Serial.printf("EEEEEEEEEEEEEEEEEEEEE 1\n");
+        return RC_GEN_ERR;
+    }
+    mqttJobDesc_t* mqttTxJobDesc;
+    mqttTxJobDesc = new (heap_caps_malloc(sizeof(mqttJobDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttJobDesc_t;
+    if (!mqttTxJobDesc) {
+        Serial.printf("EEEEEEEEEEEEEEEEEEEEE 2\n");
+        return RC_OUT_OF_MEM_ERR;
+    }
+    mqttTxJobDesc->topic = new (heap_caps_malloc(sizeof(char) * (strlen(p_topic) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(p_topic) + 1];
+    if (!mqttTxJobDesc->topic) {
+        Serial.printf("EEEEEEEEEEEEEEEEEEEEE 3\n");
+        return RC_OUT_OF_MEM_ERR;
+    }
+    strcpy(mqttTxJobDesc->topic, p_topic);
+    mqttTxJobDesc->payload = new (heap_caps_malloc(strlen(p_payload) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(p_payload) + 1];
+    if (!mqttTxJobDesc->payload) {
+        Serial.printf("EEEEEEEEEEEEEEEEEEEEE 4\n");
+        return RC_OUT_OF_MEM_ERR;
+    }
+    strcpy(mqttTxJobDesc->payload, p_payload);
+    mqttTxJobDesc->length = strlen(p_payload) + 1;
+	mqttTxJobDesc->retain = p_retain;
+    mqttTxJobHandle->enqueue(dequeueMqttTxMsg, mqttTxJobDesc, false);
+    return RC_OK;
+}
+
+void mqtt::dequeueMqttTxMsg(void* p_mqttTxJobDesc) {
+    LOG_VERBOSE("Sending MQTT message, Topic: %s, Payload: %s" CR, ((mqttJobDesc_t*)p_mqttTxJobDesc)->topic, ((mqttJobDesc_t*)p_mqttTxJobDesc)->payload);
+
     char topic[300];
     char sysStateStr[200];
     strcpy(topic, mqttTopicPrefix);
-    strcat(topic, p_topic);
+    strcat(topic, ((mqttJobDesc_t*)p_mqttTxJobDesc)->topic);
     xSemaphoreTake(pubSubLock, portMAX_DELAY);
-    bool rc = mqttClient->publish(topic, p_payload, p_retain);
+    bool rc = mqttClient->publish(topic, ((mqttJobDesc_t*)p_mqttTxJobDesc)->payload, ((mqttJobDesc_t*)p_mqttTxJobDesc)->retain);
     xSemaphoreGive(pubSubLock);
     if ((sysState->getOpStateBitmap() & OP_DISCONNECTED) || !rc) {
-        LOG_ERROR("Could not send message, topic: %s, payload: %s , either the MQTT OP-state: %s doesnt allow it, or there was an internal MQTT error" CR, topic, p_payload, sysState->getOpStateStr(sysStateStr));
-        return RC_GEN_ERR;
+        LOG_ERROR("Could not send message, topic: %s, payload: %s , either the MQTT OP-state: %s doesnt allow it, or there was an internal MQTT error" CR, ((mqttJobDesc_t*)p_mqttTxJobDesc)->topic, ((mqttJobDesc_t*)p_mqttTxJobDesc)->payload, sysState->getOpStateStr(sysStateStr));
     }
-    else {
-        LOG_VERBOSE("Sent a message, topic: %s, payload: %s" CR, p_topic, p_payload);
-        return RC_OK;
-    }
-    return RC_GEN_ERR;                                      // We should never come here
+    delete ((mqttJobDesc_t*)p_mqttTxJobDesc)->topic;
+	delete ((mqttJobDesc_t*)p_mqttTxJobDesc)->payload;
+	delete (mqttJobDesc_t*)p_mqttTxJobDesc;
 }
 
 rc_t mqtt::setDecoderUri(const char* p_decoderUri) {        //Lock btw set and get needed
@@ -621,28 +655,28 @@ rc_t mqtt::reSubscribe(void) {
 }
 
 void mqtt::onMqttMsg(const char* p_topic, const byte* p_payload, unsigned int p_length) {
-    mqttJobDesc_t* mqttJobDesc;
-    mqttJobDesc = new (heap_caps_malloc(sizeof(mqttJobDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttJobDesc_t;
-    if (!mqttJobDesc) {
+    mqttJobDesc_t* mqttRxJobDesc;
+    mqttRxJobDesc = new (heap_caps_malloc(sizeof(mqttJobDesc_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) mqttJobDesc_t;
+    if (!mqttRxJobDesc) {
         panic("Failed to allocate a MQTT receive job descriptor");
         return;
     }
-    mqttJobDesc->topic = new (heap_caps_malloc(sizeof(char) * (strlen(p_topic) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(p_topic) + 1];
-    if (!mqttJobDesc->topic) {
-        panic("Failed to allocate a MQTT topic job descriptor");
+    mqttRxJobDesc->topic = new (heap_caps_malloc(sizeof(char) * (strlen(p_topic) + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(p_topic) + 1];
+    if (!mqttRxJobDesc->topic) {
+        panic("Failed to allocate a MQTT receive topic job descriptor");
         return;
     }
-    strcpy(mqttJobDesc->topic, p_topic);
-    mqttJobDesc->payload = new (heap_caps_malloc(sizeof(char) * (p_length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[p_length + 1];
-    if (!mqttJobDesc->payload) {
-        panic("Failed to allocate a MQTT payload job descriptor");
+    strcpy(mqttRxJobDesc->topic, p_topic);
+    mqttRxJobDesc->payload = new (heap_caps_malloc(sizeof(char) * (p_length + 1), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[p_length + 1];
+    if (!mqttRxJobDesc->payload) {
+        panic("Failed to allocate a MQTT receive payload job descriptor");
         return;
     }
-    memcpy(mqttJobDesc->payload, p_payload, p_length);
-    mqttJobDesc->payload[p_length] = '\0';
-    mqttJobDesc->length = p_length;
-    LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d, enquing it to the job queue" CR, mqttJobDesc->topic, mqttJobDesc->payload, p_length);
-    mqttJobHandle->enqueue(dequeueMqttRxMsg, mqttJobDesc, false);
+    memcpy(mqttRxJobDesc->payload, p_payload, p_length);
+    mqttRxJobDesc->payload[p_length] = '\0';
+    mqttRxJobDesc->length = p_length;
+    LOG_VERBOSE("Received an MQTT mesage, topic: %s, payload: %s, length: %d, enquing it to the MQTT Rx job queue" CR, mqttRxJobDesc->topic, mqttRxJobDesc->payload, p_length);
+    mqttRxJobHandle->enqueue(dequeueMqttRxMsg, mqttRxJobDesc, false);
 }
 
 void mqtt::dequeueMqttRxMsg(void* p_mqttJobDesc){

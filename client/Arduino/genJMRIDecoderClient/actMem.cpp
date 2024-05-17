@@ -156,9 +156,16 @@ void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
     LOG_INFO("%s: Got a change order - new value %s" CR, logContextName, p_payload);
     xSemaphoreTake(actMemLock, portMAX_DELAY);
     if (!strcmp(p_payload, "ON")) {
-        orderedActMemPos = 255;
-        if (!failSafe)
-            actMemPos = 255;
+        if (actMemType == ACTMEM_TYPE_SOLENOID) {
+            orderedActMemPos = 1;
+            if (!failSafe)
+                actMemPos = 1;
+        }
+		else {
+			orderedActMemPos = 255;
+			if (!failSafe)
+				actMemPos = 255;
+		}
     }
     else if (!strcmp(p_payload, "OFF")) {
         orderedActMemPos = 0;
@@ -166,8 +173,13 @@ void actMem::onActMemChange(const char* p_topic, const char* p_payload) {
             actMemPos = 0;
     }
     else {
-        orderedActMemPos = (atoi(p_payload) > 255? 255 : (atoi(p_payload)));
-        orderedActMemPos = (orderedActMemPos < 0 ? 0 : orderedActMemPos);
+        if (actMemType == ACTMEM_TYPE_SOLENOID) {
+            orderedActMemPos = 0;
+        }
+        else {
+            orderedActMemPos = (atoi(p_payload) > 255 ? 255 : (atoi(p_payload)));
+            orderedActMemPos = (orderedActMemPos < 0 ? 0 : orderedActMemPos);
+        }
         if (!failSafe)
             actMemPos = orderedActMemPos;
     }

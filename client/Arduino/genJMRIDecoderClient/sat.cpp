@@ -404,6 +404,7 @@ void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_li
 }
 
 void sat::onSatLibStateChange(satOpState_t p_satOpState) {
+    Serial.printf("EEEEEEEEEEEEEEEEEEE Got a new OP-state from the satelite lib: 0x%X\n", p_satOpState);
     if (p_satOpState & (SAT_OP_INIT | SAT_OP_FAIL | SAT_OP_CONTROLBOCK))
         systemState::setOpStateByBitmap(OP_GENERR);
     else

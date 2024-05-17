@@ -46,12 +46,6 @@ senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     failSafe = false;
     filteredSenseVal = SENSDIGITAL_DEFAULT_FAILSAFE;
     debug = false;
-
-    senseDigitalLock = xSemaphoreCreateMutex();
-    if (senseDigitalLock == NULL){
-        panic("%s: Could not create Lock objects", logContextName);
-        return;
-    }
 }
 
 senseDigital::~senseDigital(void) {

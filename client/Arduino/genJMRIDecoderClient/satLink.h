@@ -156,25 +156,25 @@ private:
 	//-
 
 	//Private data structures
-	char* logContextName;
-	uint8_t linkNo;
-	char* xmlconfig[5];
-	bool debug;
-	bool pmPoll;
-	sysState_t prevSysState;
-	bool satLinkScanDisabled;
-	SemaphoreHandle_t satLinkPmPollLock;
-	wdt* satLinkWdt;
-	sateliteLink* satLinkLibHandle;
-	sat* sats[MAX_SATELITES];
-	uint32_t txUnderunErr;
-	uint32_t rxOverRunErr;
-	uint32_t scanTimingViolationErr;
-	uint32_t rxCrcErr;
-	uint32_t remoteCrcErr;
-	uint32_t rxSymbolErr;
-	uint32_t rxDataSizeErr;
-	uint32_t wdErr;
+	EXT_RAM_ATTR char* logContextName;
+	EXT_RAM_ATTR uint8_t linkNo;
+	EXT_RAM_ATTR char* xmlconfig[5];
+	EXT_RAM_ATTR bool debug;
+	EXT_RAM_ATTR bool pmPoll;
+	EXT_RAM_ATTR sysState_t prevSysState;
+	EXT_RAM_ATTR bool satLinkScanDisabled;
+	EXT_RAM_ATTR SemaphoreHandle_t satLinkPmPollLock;
+	EXT_RAM_ATTR SemaphoreHandle_t upDownLock;
+	EXT_RAM_ATTR sateliteLink* satLinkLibHandle;
+	EXT_RAM_ATTR sat* sats[MAX_SATELITES];
+	EXT_RAM_ATTR uint32_t txUnderunErr;
+	EXT_RAM_ATTR uint32_t rxOverRunErr;
+	EXT_RAM_ATTR uint32_t scanTimingViolationErr;
+	EXT_RAM_ATTR uint32_t rxCrcErr;
+	EXT_RAM_ATTR uint32_t remoteCrcErr;
+	EXT_RAM_ATTR uint32_t rxSymbolErr;
+	EXT_RAM_ATTR uint32_t rxDataSizeErr;
+	EXT_RAM_ATTR uint32_t wdErr;
 	wdt* linkScanWdt;
 };
 /*==============================================================================================================================================*/

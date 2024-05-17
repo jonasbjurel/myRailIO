@@ -90,29 +90,29 @@ private:
     void turnServoMove(void);
 
     //Private data structures
-    char* logContextName;
-    actBase* actBaseHandle;
+    EXT_RAM_ATTR char* logContextName;
+    EXT_RAM_ATTR actBase* actBaseHandle;
     esp_timer_handle_t turnServoPwmIncrementTimerHandle;
     esp_timer_create_args_t turnServoPwmTimerArgs;
-    const char* sysName;
-    uint8_t actPort;
-    uint8_t satAddr;
-    uint8_t satLinkNo;
-    satelite* satLibHandle;
+    EXT_RAM_ATTR const char* sysName;
+    EXT_RAM_ATTR uint8_t actPort;
+    EXT_RAM_ATTR uint8_t satAddr;
+    EXT_RAM_ATTR uint8_t satLinkNo;
+    EXT_RAM_ATTR satelite* satLibHandle;
     SemaphoreHandle_t actTurnLock;
-    turnType_t turnType;
-    uint8_t turnOutPos;
-    uint8_t orderedTurnOutPos;
-    uint8_t turnOutFailsafePos;
-    bool turnOutInvert;
-    bool turnSolenoidPushPort;
-    throwtime_t throwtime;
-    uint8_t currentPwmVal;
-    pwm_t thrownTrim;
-    pwm_t closedTrim;
-    pwm_t pwmIncrements;
-    bool failSafe;
-    bool moving;
+    EXT_RAM_ATTR turnType_t turnType;
+    EXT_RAM_ATTR uint8_t turnOutPos;
+    EXT_RAM_ATTR uint8_t orderedTurnOutPos;
+    EXT_RAM_ATTR uint8_t turnOutFailsafePos;
+    EXT_RAM_ATTR bool turnOutInvert;
+    EXT_RAM_ATTR bool turnSolenoidPushPort;
+    EXT_RAM_ATTR throwtime_t throwtime;
+    EXT_RAM_ATTR uint8_t currentPwmVal;
+    EXT_RAM_ATTR pwm_t thrownTrim;
+    EXT_RAM_ATTR pwm_t closedTrim;
+    EXT_RAM_ATTR pwm_t pwmIncrements;
+    EXT_RAM_ATTR bool failSafe;
+    EXT_RAM_ATTR bool moving;
 };
 
 /*==============================================================================================================================================*/

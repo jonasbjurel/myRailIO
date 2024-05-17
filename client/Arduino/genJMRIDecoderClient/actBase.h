@@ -146,16 +146,15 @@ private:
 	//--
 
 	//Private data structures
-	char* logContextName;
-	uint8_t actPort;
-	uint8_t satAddr;
-	uint8_t satLinkNo;
-	sysState_t prevSysState;
-	char* xmlconfig[7];
-	bool debug;
-	satelite* satLibHandle;
-	void* extentionActClassObj;
-	SemaphoreHandle_t actLock;
+	EXT_RAM_ATTR char* logContextName;
+	EXT_RAM_ATTR uint8_t actPort;
+	EXT_RAM_ATTR uint8_t satAddr;
+	EXT_RAM_ATTR uint8_t satLinkNo;
+	EXT_RAM_ATTR sysState_t prevSysState;
+	EXT_RAM_ATTR char* xmlconfig[7];
+	EXT_RAM_ATTR bool debug;
+	EXT_RAM_ATTR satelite* satLibHandle;
+	EXT_RAM_ATTR void* extentionActClassObj;
 };
 
 #endif /*ACTBASE_H*/

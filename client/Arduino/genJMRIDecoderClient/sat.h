@@ -121,33 +121,32 @@ public:
 	static void onCliClearWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable);
 
 	//Public data structures
-	satLink* linkHandle;
+	EXT_RAM_ATTR satLink* linkHandle;
 
 private:
 	//Private methods
 	//-
 
 	//Private data structures
-	char* logContextName;
-	uint8_t satAddr;
-	uint8_t satLinkNo;
-	//bool pendingStart;
-	char* xmlconfig[5];
-	bool debug;
-	sysState_t prevSysState;
-	bool satScanDisabled;
-	SemaphoreHandle_t satLock;
-	satelite* satLibHandle;
-	actBase* acts[MAX_ACT];
-	senseBase* senses[MAX_SENS];
-	uint32_t txUnderunErr;
-	uint32_t rxOverRunErr;
-	uint32_t scanTimingViolationErr;
-	uint32_t rxCrcErr;
-	uint32_t remoteCrcErr;
-	uint32_t rxSymbolErr;
-	uint32_t rxDataSizeErr;
-	uint32_t wdErr;
+	EXT_RAM_ATTR char* logContextName;
+	EXT_RAM_ATTR uint8_t satAddr;
+	EXT_RAM_ATTR uint8_t satLinkNo;
+	EXT_RAM_ATTR char* xmlconfig[5];
+	EXT_RAM_ATTR bool debug;
+	EXT_RAM_ATTR sysState_t prevSysState;
+	EXT_RAM_ATTR bool satScanDisabled;
+	EXT_RAM_ATTR SemaphoreHandle_t satLock;
+	EXT_RAM_ATTR satelite* satLibHandle;
+	EXT_RAM_ATTR actBase* acts[MAX_ACT];
+	EXT_RAM_ATTR senseBase* senses[MAX_SENS];
+	EXT_RAM_ATTR uint32_t txUnderunErr;
+	EXT_RAM_ATTR uint32_t rxOverRunErr;
+	EXT_RAM_ATTR uint32_t scanTimingViolationErr;
+	EXT_RAM_ATTR uint32_t rxCrcErr;
+	EXT_RAM_ATTR uint32_t remoteCrcErr;
+	EXT_RAM_ATTR uint32_t rxSymbolErr;
+	EXT_RAM_ATTR uint32_t rxDataSizeErr;
+	EXT_RAM_ATTR uint32_t wdErr;
 };
 /*==============================================================================================================================================*/
 /* END Class sat                                                                                                                                */

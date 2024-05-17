@@ -133,16 +133,15 @@ private:
 	//--
 
 	//Private data structures
-	char* logContextName;
-	uint8_t sensPort;
-	uint8_t satAddr;
-	uint8_t satLinkNo;
-	sysState_t prevSysState;
-	char* xmlconfig[6];
-	bool debug;
-	satelite* satLibHandle;
-	void* extentionSensClassObj;
-	SemaphoreHandle_t sensLock;
+	EXT_RAM_ATTR char* logContextName;
+	EXT_RAM_ATTR uint8_t sensPort;
+	EXT_RAM_ATTR uint8_t satAddr;
+	EXT_RAM_ATTR uint8_t satLinkNo;
+	EXT_RAM_ATTR sysState_t prevSysState;
+	EXT_RAM_ATTR char* xmlconfig[6];
+	EXT_RAM_ATTR bool debug;
+	EXT_RAM_ATTR satelite* satLibHandle;
+	EXT_RAM_ATTR void* extentionSensClassObj;
 };
 
 #endif /*SENSBASE_H*/
