@@ -318,10 +318,20 @@ class mqttPubEvents():
         self.topic = topic
         self.payloadMap = payloadMap
         trace.notify(DEBUG_INFO, "Creating an MQTT publisher for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
+        print("XXXXXXXXXXXX Checking if cb exists");
+        for cb in getObjType(type).getBySystemName(sysName).getPropertyChangeListeners():
+            print ("XXXXXXXXXXX" + str(cb))
+            print ("YYYYYYYYYYY" + str(self.onStateChange))
+            if str(cb) == str(self.onStateChange):
+                    trace.notify(DEBUG_INFO, "JMRI MQTT publisher not added for: " + jmriObj.getObjTypeStr(type) + ":" + sysName + " - already existing")
+                    return rc.OK
         getObjType(type).getBySystemName(sysName).addPropertyChangeListener(self.onStateChange)
+        print("XXXXXXXXXXX")
+        for cb in getObjType(type).getBySystemName(sysName).getPropertyChangeListeners():
+            print ("XXXXXXXXXXX" + str(cb))
 
     def onStateChange(self, event):
-        trace.notify(DEBUG_VERBOSE, "Emmiting an MQTT message for JMRI MQTT object event publisher: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", New JMRI object state: " + str(event.newValue) + ", Previous JMRI object state: " + str(event.oldValue) + ", MQTT Topic:" + self.topic + ", MQTT Payload: " + str(self.payloadMap.get(state2stateStr(self.type, self.sysName, event.newValue))))
+        trace.notify(DEBUG_VERBOSE, "Sending an MQTT message for JMRI MQTT object event publisher: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", New JMRI object state: " + str(event.newValue) + ", Previous JMRI object state: " + str(event.oldValue) + ", MQTT Topic:" + self.topic + ", MQTT Payload: " + str(self.payloadMap.get(state2stateStr(self.type, self.sysName, event.newValue))))
         try:
            self.payloadMap["*"]
            print("XXXXXXXX Sending topic: " + self.topic)
@@ -337,11 +347,11 @@ class mqttPubEvents():
 
 
 
-################################################################################################################################################## Class: mqttListener
+##################################################################################################################################################
 # Class: mqttListener
 # Purpose:  Listen and dispatches incomming mqtt mesages
 # Data structures: None
-#################################################################################################################################################class mqttListener(jmri.jmrix.mqtt.MqttEventListener):
+#################################################################################################################################################
 class mqttListener(jmri.jmrix.mqtt.MqttEventListener):
     def __init__(self, cb):
         self.cb = cb

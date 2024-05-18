@@ -388,7 +388,6 @@ class jmriRpcClient():
         trace.notify(DEBUG_INFO, "Reconnecting to RPC server")
         self.stopKeepAliveHandler()
         self.running = False
-
         try:
             self.rpc.rpcOnStateChangeRelease()
             #self.rpc.rpcOnStateChangePurge()
