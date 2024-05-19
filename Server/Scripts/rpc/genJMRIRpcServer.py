@@ -313,22 +313,22 @@ class jmriAPIShim(object):
 #################################################################################################################################################
 class mqttPubEvents():
     def __init__(self, type, sysName, topic, payloadMap):
+        print("#################################### INIT")
         self.type = type
         self.sysName = sysName
         self.topic = topic
         self.payloadMap = payloadMap
         trace.notify(DEBUG_INFO, "Creating an MQTT publisher for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
-        print("XXXXXXXXXXXX Checking if cb exists");
-        for cb in getObjType(type).getBySystemName(sysName).getPropertyChangeListeners():
-            print ("XXXXXXXXXXX" + str(cb))
-            print ("YYYYYYYYYYY" + str(self.onStateChange))
-            if str(cb) == str(self.onStateChange):
-                    trace.notify(DEBUG_INFO, "JMRI MQTT publisher not added for: " + jmriObj.getObjTypeStr(type) + ":" + sysName + " - already existing")
-                    return rc.OK
         getObjType(type).getBySystemName(sysName).addPropertyChangeListener(self.onStateChange)
-        print("XXXXXXXXXXX")
-        for cb in getObjType(type).getBySystemName(sysName).getPropertyChangeListeners():
-            print ("XXXXXXXXXXX" + str(cb))
+
+    def update(self, type, sysName, topic, payloadMap):
+        trace.notify(DEBUG_INFO, "Updating the MQTT publisher for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
+        #getObjType(type).getBySystemName(self.sysName).removePropertyChangeListener(self.sysName, self.onStateChange) ISSUE #99
+        self.type = type
+        self.sysName = sysName
+        self.topic = topic
+        self.payloadMap = payloadMap
+        #getObjType(type).getBySystemName(sysName).addPropertyChangeListener(self.onStateChange) ISSUE #99
 
     def onStateChange(self, event):
         trace.notify(DEBUG_VERBOSE, "Sending an MQTT message for JMRI MQTT object event publisher: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", New JMRI object state: " + str(event.newValue) + ", Previous JMRI object state: " + str(event.oldValue) + ", MQTT Topic:" + self.topic + ", MQTT Payload: " + str(self.payloadMap.get(state2stateStr(self.type, self.sysName, event.newValue))))
@@ -340,9 +340,9 @@ class mqttPubEvents():
             print("YYYYYYY Sending topic: " + self.topic)
             MQTT.publish(self.topic, self.payloadMap.get(state2stateStr(self.type, self.sysName, self.payloadMap[event.newValue])))
 
-    def __del__(self):
+    def __del__(self): #ISSUE #99
         trace.notify(DEBUG_INFO, "Deleting MQTT publisher for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
-        getObjType(type).getBySystemName(sysName).removePropertyChangeListener(self.onStateChange)
+        getObjType(type).getBySystemName(sysName).removePropertyChangeListener(self.onStateChange) #ISSUE #99
 # END <mqttPubEvents> ---------------------------------------------------------------------------------------------------------------------------
 
 
@@ -381,8 +381,20 @@ class mqttSubEvents():
         trace.notify(DEBUG_INFO, "Creating an MQTT listener for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
         self.myMqttListener = mqttListener(self.onStateChange)
         MQTT.subscribe(topic, self.myMqttListener)
+        
+    def update(self, type, sysName, topic, payloadMap):
+        self.type = type
+        self.sysName = sysName
+        self.topic = topic
+        self.payloadMap = payloadMap
+        trace.notify(DEBUG_INFO, "Updating the MQTT listener for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
+        MQTT.unsubscribe(topic, self.myMqttListener)
+        del self.myMqttListener
+        self.myMqttListener = mqttListener(self.onStateChange)
+        MQTT.subscribe(topic, self.myMqttListener)
 
     def onStateChange(self, topic, message):
+        print("XXXXXXXX " + str(message))
         trace.notify(DEBUG_VERBOSE, "Received an MQTT event - topic: " + str(topic) + ", message: " + str(message) +
                                     " for JMRI Object:" + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName +
                                     " - Setting JMRI object state according to payload map: " +
@@ -394,10 +406,11 @@ class mqttSubEvents():
         else:
             jmriAPIShim.setStateBySysName(self.type, self.sysName, message)
 
-
-    def __del__(self):
+    def __del__(self): #ISSUE #100
         trace.notify(DEBUG_INFO, "Deleting MQTT listener for JMRI object: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", Topic:" + self.topic + ", payload map: " + str(self.payloadMap))
         MQTT.unsubscribe(topic, self.myMqttListener)
+        del self.myMqttListener
+        
 # END <mqttSubEvents> ---------------------------------------------------------------------------------------------------------------------------
 
 
@@ -435,27 +448,41 @@ class jmriRpcShimAPI(jmriAPIShim):
 
     @staticmethod
     def rpcRegMqttPub(type, sysName, topic, payloadMap):
+        print("XXXXXXXXXXXX sysnameDict" + str(jmriRpcShimAPI.mqttPubRecordDict))
         try:
-            del jmriRpcShimAPI.mqttPubRecordDict[sysName]
-            print("XXXXXXXXXXXX Object did exist, deleted it")
+            jmriRpcShimAPI.mqttPubRecordDict[sysName]
+            print("XXXXXXXXXXXX Object did exist, updating it")
+            jmriRpcShimAPI.mqttPubRecordDict[sysName].update(type, sysName, topic, payloadMap)
         except:
             print("XXXXXXXXXXXX Object didn't exists, creating it")
-        jmriRpcShimAPI.mqttPubRecordDict[sysName] = mqttPubEvents(type, sysName, topic, payloadMap)
+            jmriRpcShimAPI.mqttPubRecordDict[sysName] = mqttPubEvents(type, sysName, topic, payloadMap)
         return rc.OK
 
     @staticmethod
-    def rpcUnRegMqttPub(type, sysName):
-        del jmriRpcShimAPI.mqttPubRecordDict[sysName]
+    def rpcUnRegMqttPub(type, sysName): #ISSUE #99
+        try:
+            del jmriRpcShimAPI.mqttPubRecordDict[sysName]
+        except:
+            pass
         return rc.OK
 
     @staticmethod
     def rpcRegMqttSub(type, sysName, topic, payloadMap):
-        jmriRpcShimAPI.mqttSubRecordDict[sysName] = mqttSubEvents(type, sysName, topic, payloadMap)
+        try:
+            jmriRpcShimAPI.mqttSubRecordDict[sysName]
+            print("XXXXXXXXXXXX Object did exist, updating it")
+            jmriRpcShimAPI.mqttSubRecordDict[sysName].update(type, sysName, topic, payloadMap)
+        except:
+            print("XXXXXXXXXXXX Object didn't exists, creating it")
+            jmriRpcShimAPI.mqttSubRecordDict[sysName] = mqttSubEvents(type, sysName, topic, payloadMap)
         return rc.OK
 
     @staticmethod
-    def rpcUnRegMqttSub(type, sysName):
-        del jmriRpcShimAPI.mqttSubRecordDict[sysName]
+    def rpcUnRegMqttSub(type, sysName): #ISSUE #100
+        try:
+            del jmriRpcShimAPI.mqttSubRecordDict[sysName]
+        except:
+            pass
         return rc.OK
 
     @staticmethod
