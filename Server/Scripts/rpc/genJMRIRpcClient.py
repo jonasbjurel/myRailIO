@@ -34,11 +34,28 @@
 #                        str:sysName: JMRI object system name
 #                        fun:cb: Call-back function reference
 #
+#       reRegEventCbs(): returns genJMRIRc.rc
+#           Description: Re-registers previously registered events
+#           Parameters: -
+#
 #       unRegEventCb(type, sysName, cb, allCb=False): returns genJMRIRc.rc
 #           Description: Un Registers a client call-back function for JMRI object state changes
 #           Parameters:  type: JMRI object type: genJMRIObj.x
 #                        str:sysName: JMRI object system name
 #                        fun:cb: Call-back function reference
+#                        allCb: if set to true - all duplicate callback references will be removed
+#
+#       regMqttStatusEventCb(cb): returns genJMRIRc.rc
+#           Description: Registers a callback for RPC server MQTT status
+#           Parameters:  callback
+#
+#       reRegMqttStatusEventCb(): returns genJMRIRc.rc
+#           Description: Re-registers previously registered MQTT status callbacks
+#           Parameters: -
+#
+#       unRegMqttStatusEventCb(cb, allCb=False): returns genJMRIRc.rc
+#           Description: Un Registers a client call-back function for MQTT status callbacks
+#           Parameters:  fun:cb: Call-back function reference
 #                        allCb: if set to true - all duplicate callback references will be removed
 #
 #       regMqttPub(type, sysName, topic, payloadMap): returns genJMRIRc.rc
@@ -175,10 +192,10 @@
 #################################################################################################################################################
 # Module/Library dependance
 #################################################################################################################################################
-#import dataclasses
-#from genericpath import samestat
+
 import os
 import sys
+import time
 #import copy
 sys.path.append(os.path.realpath('..'))
 import traceback
@@ -271,6 +288,18 @@ def getCallBackNewState(checkDict):
     try:
         return checkDict.get("stateChange").get("newState")
     except:
+        return 
+
+def isMqttStateChange(checkDict):
+    if "mqttstateChange" in checkDict: return True
+    else: return False
+
+def getMQTTCallbackState(checkDict):
+    if not isMqttStateChange(checkDict):
+        return None
+    try:
+        return checkDict.get("mqttstateChange").get("state")
+    except:
         return None
 # END <Helper class and fuctions> ---------------------------------------------------------------------------------------------------------------
 
@@ -324,8 +353,8 @@ class jmriRpcClient():
         self.mqttPubRecordDict = {}
         self.mqttSubRecordDict = {}
         self.jmriObjDict = {}
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>STARTING THE CB GENERATOR>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        self.running = True
+        self.cbLoopRunning = False
+        self.runCbLoop = True
         self.jmriRpcCbThread = threading.Thread(target=self.cbGenerator)
         self.jmriRpcCbThread.start()
         if self.errCb != None:
@@ -356,7 +385,7 @@ class jmriRpcClient():
         if self.mqttSubRecordDict != {}:
             trace.notify(DEBUG_ERROR, "Failed to unregister all MQTT sub events when stopping RPC client - following MQTT reccords remain: " + str(self.mqttSubRecordDict))
         self.stopKeepAliveHandler()
-        self.running = False
+        self.runCbLoop = False
         self.rpc.rpcOnStateChangeRelease()
         self.jmriRpcCbThread.join(timeout=1)
         self.rpc.rpcOnStateChangePurge()
@@ -384,27 +413,27 @@ class jmriRpcClient():
         return self.portBase
 
     def _tryReconnect(self):
-        print("#############################_tryReconnect()")
         trace.notify(DEBUG_INFO, "Reconnecting to RPC server")
         self.stopKeepAliveHandler()
-        self.running = False
-        try:
-            self.rpc.rpcOnStateChangeRelease()
-            #self.rpc.rpcOnStateChangePurge()
-        except:
-            pass
-        try:
-            self.jmriRpcCbThread.join(timeout=1)
-        except:
-            pass
-        if self.jmriRpcCbThread.is_alive():
-            trace.notify(DEBUG_ERROR, "Failed to stop RPC client - " + rc.getErrStr(rc.GEN_ERR))
-            return rc.GEN_ERR
+        if self.cbLoopRunning == True:
+            try:
+                self.rpc.rpcOnStateChangePurge()
+                self.rpc.rpcOnStateChangeRelease()
+                self.runCbLoop = False
+                time.sleep(5)
+            except:
+                pass
+            try:
+                self.jmriRpcCbThread.join(timeout=1)
+            except:
+                pass
+            if self.jmriRpcCbThread.is_alive():
+                trace.notify(DEBUG_ERROR, "Failed to stop RPC client - " + rc.getErrStr(rc.GEN_ERR))
+                return rc.GEN_ERR
         trace.notify(DEBUG_INFO, "RPC client stoped")
         try:
             self.rpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(self.portBase) + "/")
             self.cbRpc = xmlrpc.client.ServerProxy("http://" + self.uri + ":" + str(self.portBase + 1) + "/")
-            print("#####################Restarted RPC")
         except xmlrpc.client.ProtocolError as err:
             trace.notify(DEBUG_ERROR, "Failed to start RPC client - " + err.errmsg)
             return rc.GEN_COM_ERR
@@ -414,38 +443,33 @@ class jmriRpcClient():
         if self.setRpcServerDebugLevel(self.globalDebugLevelStr) != rc.OK:
             trace.notify(DEBUG_ERROR, "Failed to set debug level")
             return rc.GEN_COM_ERR
-        print("#####################ReSet debug level")
         self.missedKeepAlive = 0
         if self.setKeepaliveInterval(self.keepAliveInterval) != rc.OK:
             trace.notify(DEBUG_ERROR, "Failed to set keepAlive interval")
             return rc.GEN_COM_ERR
-        print("#####################ReSet keepAlive")
-
-        print(">>>>>>>>>>>>>>>>>>>>>>>>STARTING KEEPALIVE AND CBGEN>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         self.startKeepAliveHandler()
-        self.running = True
+        self.rpc.rpcOnStateChangePurge()
+
+        self.runCbLoop = True
         self.jmriRpcCbThread = threading.Thread(target=self.cbGenerator)
         self.jmriRpcCbThread.start()
         trace.notify(DEBUG_INFO, "RPC client restarted, re-populating JMRI objects, MQTT subscriptions- and publication requests as well as RPC call-backs")
         if self.reCreateObjects() != rc.OK:
             trace.notify(DEBUG_ERROR, "RPC client failed to re-populating JMRI objects...")
             return rc.GEN_COM_ERR
-        print("#####################ReCreated objects")
-
         if self.reRegMqttPubs() != rc.OK:
             trace.notify(DEBUG_ERROR, "RPC client failed to re-registrate MQTT publications...")
             return rc.GEN_COM_ERR
-        print("#####################Re registered MQTT PUBs")
-
         if self.reRegMqttSubs() != rc.OK:
             rc.notify(DEBUG_ERROR, "RPC client failed to re-registrate MQTT subscriptions...")
             return rc.GEN_COM_ERR
-        print("#####################Re registered MQTT SUBs")
         if self.reRegEventCbs() != rc.OK:
-            trace.notify(DEBUG_ERROR, "RPC client failed to re-register RPC call-backs...")
+            trace.notify(DEBUG_ERROR, "RPC client failed to re-register JMRI state RPC call-backs...")
             return rc.GEN_COM_ERR
-        print("#####################Re registered Event CBs")
-        trace.notify(DEBUG_INFO, "RPC has successfully connected...")
+        if self.reRegMqttStatusEventCb() != rc.OK:
+            trace.notify(DEBUG_ERROR, "RPC client failed to re-register JMRI MQTT state RPC call-backs...")
+            return rc.GEN_COM_ERR
+        trace.notify(DEBUG_INFO, "RPC client has successfully connected...")
         return rc.OK
 
     def regEventCb(self, type, sysName, cb):
@@ -492,13 +516,14 @@ class jmriRpcClient():
             trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
         for rpcCbTypeItter in self.regCbs:
+            if rpcCbTypeItter == "mqttStateChange":                 # Not so nice, but the easiest way out
+                continue
             for rpcCbSysNameItter in self.regCbs[rpcCbTypeItter]:
                 try:
                     self.rpc.rpcUnListen(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
                 except:
                     pass
                 try:
-                    print("#################Listening to CB for Type:SystemName " + str(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter)) + ":" + str(rpcCbSysNameItter))
                     res = self.rpc.rpcListen(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
                 except xmlrpc.client.ProtocolError as err:
                     trace.notify(DEBUG_ERROR, "Re-registering RPC client callback failed - rc: " + err.errmsg)
@@ -538,8 +563,67 @@ class jmriRpcClient():
             pass
         return rc.OK
 
+    def regMqttStatusEventCb(self, cb):
+        trace.notify(DEBUG_INFO, "Registering MQTT status RPC client callback")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+
+        if self.regCbs.get("mqttStateChange") == None:
+            self.regCbs["mqttStateChange"] = [cb]
+        else:
+            self.regCbs["mqttStateChange"].append(cb)
+        try:
+            res = self.rpc.rpcMqttStateChangeListen()
+        except xmlrpc.client.ProtocolError as err:
+            trace.notify(DEBUG_ERROR, "Registering MQTT status RPC client callback failed - rc: " + err.errmsg)
+            return rc.GEN_COM_ERR
+        except Exception as err:
+            trace.notify(DEBUG_ERROR, "Registering MQTT status RPC client callback failed - rc: " + str(err))
+            return rc.GEN_ERR
+        if res != rc.OK:
+            self.unRegMqttStatusEventCb(cb)
+            trace.notify(DEBUG_ERROR, "Registering MQTT status RPC client callback failed - rc: " + rc.getErrStr(res))
+            return res
+
+        trace.notify(DEBUG_INFO, "MQTT status RPC client callback successfully registered : " + str(cb.__name__))
+        return rc.OK
+
+    def reRegMqttStatusEventCb(self):
+        trace.notify(DEBUG_TERSE, "Re-registering MQTT status RPC client callback")
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+        try:
+            self.rpc.rpcMqttStateChangeUnListen()
+        except:
+            pass
+        try:
+           if self.regCbs["mqttStateChange"]:
+               self.rpc.rpcMqttStateChangeListen()
+        except:
+            return rc.GEN_COM_ERR
+        return rc.OK
+
+    def unRegMqttStatusEventCb(self, cb, allCb=False):
+        if allCb:
+            trace.notify(DEBUG_TERSE, "Un-Registering ALL MQTT status RPC client callbacks")
+        else:
+            trace.notify(DEBUG_TERSE, "Un-Registering MQTT status RPC client callback: " + str(cb.__name__))
+        if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
+            trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
+            return rc.GEN_COM_ERR
+        try:
+            if allCb:
+                self.regCbs["mqttStateChange"] = []
+            else:
+                self.regCbs["mqttStateChange"].remove(cb)
+        except:
+            trace.notify(DEBUG_INFO, "Un-Registering RPC client callback: " + str(cb.__name__) + " - failed - " + rc.getErrStr(rc.DOES_NOT_EXIST))
+            return rc.DOES_NOT_EXIST
+        return rc.OK
+
     def regMqttPub(self, type, sysName, topic, payloadMap):
-        print(DEBUG_INFO, "XXXXXXXXXXXX Registering MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         trace.notify(DEBUG_INFO, "Registering MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
             trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
@@ -576,7 +660,6 @@ class jmriRpcClient():
             trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
             return rc.GEN_COM_ERR
         for sysNameItter in self.mqttPubRecordDict:
-            print("############################## UnReging PUB Type:SysName " + str(self.mqttPubRecordDict[sysNameItter].type) + ":" + str(self.mqttPubRecordDict[sysNameItter].sysName) + "With payloadmap: " + str(self.mqttPubRecordDict[sysNameItter].payloadMap))
             try:
                 self.rpc.rpcUnRegMqttPub(self.mqttPubRecordDict[sysNameItter].type, self.mqttPubRecordDict[sysNameItter].sysName)
             except:
@@ -702,7 +785,6 @@ class jmriRpcClient():
         return rc.OK
 
     def createObject(self, type, sysName):
-        print(">>>>>>>>>>>>>>>>>>>>Creating object: " + str(sysName))
         trace.notify(DEBUG_TERSE, "Creating JMRI object for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
             trace.notify(DEBUG_ERROR, "RPC connection failed - connection lost")
@@ -778,8 +860,6 @@ class jmriRpcClient():
                 return res
             if self.jmriObjDict[sysNameItter].state != None:
                 try:
-                    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>Setting state by system name Type:%s, sysName: %s, state: %s", str(self.jmriObjDict[sysNameItter].type), self.jmriObjDict[sysNameItter].sysName, str(self.jmriObjDict[sysNameItter].state))
-
                     res = self.rpc.rpcSetStateBySysName(self.jmriObjDict[sysNameItter].type, self.jmriObjDict[sysNameItter].sysName, self.jmriObjDict[sysNameItter].state)
                 except xmlrpc.client.ProtocolError as err:
                     trace.notify(DEBUG_ERROR, "Could not Re-consiliate State for JMRI object \"" + sysNameItter + "\" - rc: " + err.errmsg)
@@ -885,7 +965,6 @@ class jmriRpcClient():
         if res != rc.OK:
             trace.notify(DEBUG_ERROR, "Could not set userName for systemName \"" + sysName + "\" - rc: " + rc.getErrStr(res))
             return res
-        print(">>>>>>>>>>>>>>>>>>>>>>> jmriObjDict:" + str(self.jmriObjDict))
         self.jmriObjDict[sysName].userName = userName
         trace.notify(DEBUG_INFO, "Successfully set user name: " + userName + " for: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName))
         return rc.OK
@@ -1055,14 +1134,11 @@ class jmriRpcClient():
             return None
 
     def cbGenerator(self):
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR INIT>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        while self.running:
-            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR WAIT>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        self.cbLoopRunning = True
+        while self.runCbLoop:
             trace.notify(DEBUG_VERBOSE, "Waiting for call-back")
             try:
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>WAITING FOR CB>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 callBackDict = dictEscapeing.dictUnEscape(xmltodict.parse(self.cbRpc.rpcOnStateChange()))
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>GOT CB>>>>>>>>>>>>>>>>>>>>>>>>>>")
             except:
                 trace.notify(DEBUG_ERROR, "CB Generator failed to communicate with server - reconnecting...")
                 self._reConnect(rc.SOCK_ERR)
@@ -1073,8 +1149,6 @@ class jmriRpcClient():
                 break
             if isKeepAlive(callBackDict):
                 trace.notify(DEBUG_VERBOSE, "Got a Keep-alive message")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>GOT PING>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
                 self._stopRetryConnect()
                 self.missedKeepAlive = 0
             elif isStateChange(callBackDict):
@@ -1089,9 +1163,17 @@ class jmriRpcClient():
                         cb(cbEvent)
                 except:
                     pass
+            elif isMqttStateChange(callBackDict):
+                trace.notify(DEBUG_VERBOSE, "Got an MQTT state change message")
+                try:
+                    for cb in self.regCbs["mqttStateChange"]:
+                        cb(getMQTTCallbackState(callBackDict))
+
+                except:
+                    pass
             else:
                 trace.notify(DEBUG_ERROR, "Got RPC CB garbage: " + str(callBackDict))
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CB GENERATOR DIED>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        self.cbLoopRunning = False
 
     def startKeepAliveHandler(self):
         self.stopKeepAliveHandler()
@@ -1124,7 +1206,7 @@ class jmriRpcClient():
 
     def _reConnect(self, err):
         if not self.retry:
-            self.running = False
+            self.runCbLoop = False
             self.retry = True
             self.retryStateMachine = RPC_NOT_CONNECTED
             self.connected = False

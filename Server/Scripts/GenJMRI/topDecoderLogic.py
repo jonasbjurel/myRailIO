@@ -84,8 +84,9 @@ from config import *
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
-MQTT_DISCONNECTED_FAILURE = 0b00000001
-RPC_DISCONNECTED_FAILURE =  0b00000010
+MQTT_DISCONNECTED_FAILURE =             0b00000001
+RPC_DISCONNECTED_FAILURE =              0b00000010
+RPC_SERVER_MQTT_DISCONNECTED_FAILURE =  0b00000100
 
 
 #TODO:
@@ -166,9 +167,9 @@ class topDecoder(systemState, schema):
         self.commitAll()
         self.MQTTalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "MQTT client disconnected")
         self.RPCalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "RPC client disconnected")
+        self.RPCServerMQTTalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "RPC Server MQTT client disconnected")
         self.LOGLEVELalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "High log-level enabled, this may lead to extensive system load and excessive performance degradation")
-        self.subConnectionOpState = MQTT_DISCONNECTED_FAILURE
-        self.subConnectionOpState = MQTT_DISCONNECTED_FAILURE | RPC_DISCONNECTED_FAILURE
+        self.subConnectionOpState = MQTT_DISCONNECTED_FAILURE | RPC_DISCONNECTED_FAILURE | RPC_SERVER_MQTT_DISCONNECTED_FAILURE
         self.topItem = self.win.registerMoMObj(self, 0, "topDecoder", TOP_DECODER, displayIcon=SERVER_ICON)
         self.win.inactivateMoMObj(self.topItem)
         systemState.__init__(self)
@@ -184,6 +185,7 @@ class topDecoder(systemState, schema):
             self.rpcClient = jmriRpcClient()
             self.rpcClient.start(uri = self.jmriRpcURI.value, portBase=self.jmriRpcPortBase.value, errCb=self.__onRpcErr)
             self.mqttClient = mqtt(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId=MQTT_CLIENT_ID)
+            self.rpcClient.regMqttStatusEventCb(self.__onRpcServerMqttErr)
             self.commitAll()
 
     def onXmlConfig(self, xmlConfig):
@@ -721,7 +723,6 @@ class topDecoder(systemState, schema):
             self.rpcClient.setRpcUri(self.jmriRpcURI.value)
             self.rpcClient.setRpcPortBase(self.jmriRpcPortBase.value)
         self.rpcClient.setKeepaliveInterval(self.JMRIRpcKeepAlivePeriod.value)
-        self.rpcClient.setRpcServerDebugLevel(self.logVerbosity.value)
         # Set Syslog parameters
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(self.logVerbosity.value))
         self.rpcClient.setRpcServerDebugLevel(self.logVerbosity.value)
@@ -743,9 +744,12 @@ class topDecoder(systemState, schema):
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         #self.mqttClient.unSubscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_REQUEST_TOPIC, self.__onDiscoveryReq)
+        self.rpcClient.unRegMqttStatusEventCb(self.__onRpcServerMqttErr)
+        self.rpcClient.regMqttStatusEventCb(self.__onRpcServerMqttErr)
         # Update alarm source names
         self.MQTTalarm.updateAlarmSrc(self.nameKey.value)
         self.RPCalarm.updateAlarmSrc(self.nameKey.value)
+        self.RPCServerMQTTalarm.updateAlarmSrc(self.nameKey.value)
         self.LOGLEVELalarm.updateAlarmSrc(self.nameKey.value)
         return rc.OK
 
@@ -809,6 +813,31 @@ class topDecoder(systemState, schema):
             else:
                 self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
 
+    def __onRpcServerMqttErr(self, state):
+        print("ZZZZZZZZZZZZ Topdecoder got MQTT state CB")
+        print(state)
+        if state == "unavailable":
+            print("ZZZZZZZZZZZZZZZZ Running disconnected")
+            trace.notify(DEBUG_ERROR, "RPC Server MQTT disconnected")
+            self.subConnectionOpState = self.subConnectionOpState | RPC_SERVER_MQTT_DISCONNECTED_FAILURE
+            if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
+                print("ZZZZZZZZZZZZZZZZ Resetting")
+                self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+            else:
+                self.setOpStateDetail(OP_DISCONNECTED[STATE])
+
+        elif state == "available":
+            print("ZZZZZZZZZZZZZZZZ Running disconnected")
+            trace.notify(DEBUG_INFO, "RPC Server MQTT connected")
+            self.subConnectionOpState = self.subConnectionOpState & ~RPC_SERVER_MQTT_DISCONNECTED_FAILURE
+            if not self.subConnectionOpState:
+                self.unSetOpStateDetail(OP_DISCONNECTED[STATE])
+            else:
+                print("ZZZZZZZZZZZZZZZZ Resetting")
+                self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+        else:
+            trace.notify(DEBUG_ERROR, "RPC Server MQTT connection state recieved not parsable - doing nothing...")
+
     def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP State - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
@@ -816,6 +845,8 @@ class topDecoder(systemState, schema):
             self.win.inactivateMoMObj(self.topItem)
         elif opStateDetail & OP_CBL[STATE]:
             self.win.controlBlockMarkMoMObj(self.topItem)
+            self.rpcClient.unRegMqttStatusEventCb(self.__onRpcServerMqttErr)
+            self.rpcClient.regMqttStatusEventCb(self.__onRpcServerMqttErr)
         elif opStateDetail:
             self.win.faultBlockMarkMoMObj(self.topItem, True)
         else:
@@ -823,17 +854,19 @@ class topDecoder(systemState, schema):
         if (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]):
             self.MQTTalarm.admDisableAlarm()
             self.RPCalarm.admDisableAlarm()
-            if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
+            self.RPCServerMQTTalarm.admDisableAlarm()
+            if not (self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE):
                 self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_OFF_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
         elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
             self.MQTTalarm.admEnableAlarm()
             self.RPCalarm.admEnableAlarm()
+            self.RPCServerMQTTalarm.admEnableAlarm()
             if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
                 self.pendingBoot = False
             else:
                 self.updateReq(self, self, uploadNReboot = False)
-            if not self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
+            if not (self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE):
                 self.mqttClient.publish(self.topDecoderAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD) #SHOLD THIS BE MOVED TO DECODER
         if (changedOpStateDetail & OP_DISCONNECTED[STATE]) and (opStateDetail & OP_DISCONNECTED[STATE]):
             if self.subConnectionOpState & MQTT_DISCONNECTED_FAILURE:
@@ -844,9 +877,14 @@ class topDecoder(systemState, schema):
                 self.RPCalarm.raiseAlarm("RPC client disconnected from remote RPC server", p_sysStateTransactionId, True)
             else:
                 self.RPCalarm.ceaseAlarm("RPC client connected to remote RPC server")
+            if self.subConnectionOpState & RPC_SERVER_MQTT_DISCONNECTED_FAILURE:
+                self.RPCServerMQTTalarm.raiseAlarm("RPC Server disconnected from MQTT Server/Broker", p_sysStateTransactionId, True)
+            else:
+                self.RPCServerMQTTalarm.ceaseAlarm("RPC Server connected to MQTT Server/Broker")
         elif (changedOpStateDetail & OP_DISCONNECTED[STATE]) and not (opStateDetail & OP_DISCONNECTED[STATE]):
             self.MQTTalarm.ceaseAlarm("MQTT client: " + MQTT_CLIENT_ID + " connected to brooker")
             self.RPCalarm.ceaseAlarm("RPC client connected to remote RPC server")
+            self.RPCServerMQTTalarm.ceaseAlarm("RPC Server connected to MQTT Server/Broker")
 
     def __onDiscoveryReq(self, topic, payload):
         try:

@@ -38,6 +38,8 @@ imp.load_source('dictEscapeing', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRai
 from dictEscapeing import *
 imp.load_source('myTrace', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\trace\\trace.py')
 from myTrace import *
+imp.load_source('mqttTopicsNPayloads', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\mqtt\\jmriMqttTopicsNPayloads.py')
+from mqttTopicsNPayloads import *
 # END <Module/Library dependance> ---------------------------------------------------------------------------------------------------------------
 
 #################################################################################################################################################
@@ -313,7 +315,6 @@ class jmriAPIShim(object):
 #################################################################################################################################################
 class mqttPubEvents():
     def __init__(self, type, sysName, topic, payloadMap):
-        print("#################################### INIT")
         self.type = type
         self.sysName = sysName
         self.topic = topic
@@ -334,10 +335,8 @@ class mqttPubEvents():
         trace.notify(DEBUG_VERBOSE, "Sending an MQTT message for JMRI MQTT object event publisher: " + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName + ", New JMRI object state: " + str(event.newValue) + ", Previous JMRI object state: " + str(event.oldValue) + ", MQTT Topic:" + self.topic + ", MQTT Payload: " + str(self.payloadMap.get(state2stateStr(self.type, self.sysName, event.newValue))))
         try:
            self.payloadMap["*"]
-           print("XXXXXXXX Sending topic: " + self.topic)
            MQTT.publish(self.topic, state2stateStr(self.type, self.sysName, event.newValue))
         except:
-            print("YYYYYYY Sending topic: " + self.topic)
             MQTT.publish(self.topic, self.payloadMap.get(state2stateStr(self.type, self.sysName, self.payloadMap[event.newValue])))
 
     def __del__(self): #ISSUE #99
@@ -394,7 +393,6 @@ class mqttSubEvents():
         MQTT.subscribe(topic, self.myMqttListener)
 
     def onStateChange(self, topic, message):
-        print("XXXXXXXX " + str(message))
         trace.notify(DEBUG_VERBOSE, "Received an MQTT event - topic: " + str(topic) + ", message: " + str(message) +
                                     " for JMRI Object:" + jmriObj.getObjTypeStr(self.type) + ":" + self.sysName +
                                     " - Setting JMRI object state according to payload map: " +
@@ -448,13 +446,10 @@ class jmriRpcShimAPI(jmriAPIShim):
 
     @staticmethod
     def rpcRegMqttPub(type, sysName, topic, payloadMap):
-        print("XXXXXXXXXXXX sysnameDict" + str(jmriRpcShimAPI.mqttPubRecordDict))
         try:
             jmriRpcShimAPI.mqttPubRecordDict[sysName]
-            print("XXXXXXXXXXXX Object did exist, updating it")
             jmriRpcShimAPI.mqttPubRecordDict[sysName].update(type, sysName, topic, payloadMap)
         except:
-            print("XXXXXXXXXXXX Object didn't exists, creating it")
             jmriRpcShimAPI.mqttPubRecordDict[sysName] = mqttPubEvents(type, sysName, topic, payloadMap)
         return rc.OK
 
@@ -470,10 +465,8 @@ class jmriRpcShimAPI(jmriAPIShim):
     def rpcRegMqttSub(type, sysName, topic, payloadMap):
         try:
             jmriRpcShimAPI.mqttSubRecordDict[sysName]
-            print("XXXXXXXXXXXX Object did exist, updating it")
             jmriRpcShimAPI.mqttSubRecordDict[sysName].update(type, sysName, topic, payloadMap)
         except:
-            print("XXXXXXXXXXXX Object didn't exists, creating it")
             jmriRpcShimAPI.mqttSubRecordDict[sysName] = mqttSubEvents(type, sysName, topic, payloadMap)
         return rc.OK
 
@@ -572,16 +565,28 @@ class jmriListener():
     stateChangeSem = threading.Semaphore(0)
     cbWaiting = False
     stateChangeList = []
-    
+    outstandingMqttPings = 0
+    mqttStatus = False
 
     @staticmethod
     def start():
         trace.notify(DEBUG_INFO, "Starting the JMRI object state listener, used for virtual RPC callbacks")
+        #REGISTER FUNCTIONS FOR JMRI STATUS RPC CALLBACK
         jmriRpcServer.regFn(jmriListener.rpcListen)
         jmriRpcServer.regFn(jmriListener.rpcUnListen)
         jmriRpcServer.regCbFn(jmriListener.rpcOnStateChange)
+        
+        #REGISTER FUNCTIONS FOR MQTT STATUS RPC CALLBACK
+        jmriRpcServer.regFn(jmriListener.rpcMqttStateChangeListen)
+        jmriRpcServer.regFn(jmriListener.rpcMqttStateChangeUnListen)
+        jmriRpcServer.regCbFn(jmriListener.rpcMqttOnStateChange)
+
+        #REGISTER FUNCTIONS FOR RPC CALLBACK CONTROL
         jmriRpcServer.regFn(jmriListener.rpcOnStateChangeRelease)
         jmriRpcServer.regFn(jmriListener.rpcOnStateChangePurge)
+
+        jmriListener.mqttSupervisionListenerHandle = mqttListener(jmriListener.mqttSupervisionListener)
+        MQTT.subscribe(MQTT_RPC_SERVER_MQTT_SUPERVISION_TOPIC, jmriListener.mqttSupervisionListenerHandle)
         jmriListener.keepaliveTimerHandle = threading.Timer(jmriListener.keepAlivePeriod, jmriListener.keepAlive)
         jmriListener.keepaliveTimerHandle.start()
 
@@ -600,7 +605,7 @@ class jmriListener():
             return rc.GEN_ERR
 
     @staticmethod
-    def rpcUnListen(type, sysName):
+    def rpcUnListen(type, sysName): #ISSUE #99
         trace.notify(DEBUG_INFO, "Removing JMRI object state listener for: " + jmriObj.getObjTypeStr(type) + ":" + sysName)
         try:
             getObjType(type).getBySystemName(sysName).removePropertyChangeListener(jmriListener.onStateChange)
@@ -619,6 +624,28 @@ class jmriListener():
         trace.notify(DEBUG_VERBOSE, "Got a JMRI object state listener state change from: " + type + ":" + sysName + "new state: " + state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.newValue) + ", old state: " + state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.oldValue))
         response = {"stateChange" : {"objType" : type, "sysName" : sysName, "usrName" : usrName, "newState" : state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.newValue), 
                                                                                                  "oldState" : state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.oldValue)}}
+        jmriListener.stateChangeList.append(dicttoxml(dictEscapeing.dictEscape(response)))
+        jmriListener.stateChangeSem.release()
+        
+    @staticmethod
+    def rpcMqttStateChangeListen():
+        jmriListener.mqttRpcListen = True
+        jmriListener.rpcMqttOnStateChange()
+        return rc.OK
+
+    @staticmethod
+    def rpcMqttStateChangeUnListen():
+        jmriListener.mqttRpcListen = False
+        return rc.OK
+
+    @staticmethod
+    def rpcMqttOnStateChange():
+        if jmriListener.mqttStatus:
+            trace.notify(DEBUG_INFO, "Got a JMRI MQTT state listener state change, now Available")
+            response = {"mqttstateChange" : {"state" : "available"}}
+        else:
+            trace.notify(DEBUG_INFO, "Got a JMRI MQTT state listener state change, now UnAvailable")
+            response = {"mqttstateChange" : {"state" : "unavailable"}}
         jmriListener.stateChangeList.append(dicttoxml(dictEscapeing.dictEscape(response)))
         jmriListener.stateChangeSem.release()
 
@@ -643,28 +670,44 @@ class jmriListener():
         jmriListener.stateChangeSem.acquire()
         trace.notify(DEBUG_VERBOSE, "A callback - either from a release event, a keepalive event, or a JMRI object state change event is sent")
         jmriListener.cbWaiting = False
-        return jmriListener.stateChangeList.pop(0)
+        if jmriListener.stateChangeList.__len__() == 0:
+            return "<empty/>"
+        else:
+            return jmriListener.stateChangeList.pop(0)
 
     @staticmethod
     def keepAlive():
-        trace.notify(DEBUG_VERBOSE, "A keepalive event is queued")
-        print(">>>>>>>>>>>>>>>>>>PING>>>>>>>>>>>>>>>")
+        trace.notify(DEBUG_VERBOSE, "Keepalive events are queued for both the RPC- and MQTT paths")
+        #MQTT SUPERVISION - GENERATE AN MQTT KEEPALIVE TO US SELF
+        jmriListener.outstandingMqttPings = jmriListener.outstandingMqttPings + 1
+        if jmriListener.outstandingMqttPings > 3:
+            if  jmriListener.mqttStatus == True:
+                trace.notify(DEBUG_ERROR, "MQTT supervision is down")
+                jmriListener.mqttStatus = False
+                jmriListener.rpcMqttOnStateChange()
+        MQTT.publish(MQTT_RPC_SERVER_MQTT_SUPERVISION_TOPIC, PING)
         jmriListener.keepaliveTimerHandle = threading.Timer(jmriListener.keepAlivePeriod, jmriListener.keepAlive)
         jmriListener.keepaliveTimerHandle.start()
         if jmriListener.cbWaiting:
             keepAliveMsg = {"keepAlive":""}
             jmriListener.stateChangeList.append(dicttoxml(dictEscapeing.dictEscape(keepAliveMsg)))
             jmriListener.stateChangeSem.release()
+
+    @staticmethod
+    def mqttSupervisionListener(topic, message):
+        if message == PING:
+            jmriListener.outstandingMqttPings = 0
+            if jmriListener.mqttStatus == False:
+                trace.notify(DEBUG_INFO, "MQTT supervision is up")
+                jmriListener.mqttStatus = True
+                jmriListener.rpcMqttOnStateChange()
 # END <jmriListener> ----------------------------------------------------------------------------------------------------------------------------
-
-
 
 #################################################################################################################################################
 # jmriRpcServer
 # Description: Handles the xml-RPC server
 #################################################################################################################################################
-class jmriRpcServer(): #Make this static
-
+class jmriRpcServer():
     @staticmethod
     def start(listenInterface="localhost", listenPortBase=8000):
         trace.notify(DEBUG_INFO, "Starting RPC server, listening on " + listenInterface + ":" + str(listenPortBase) + " and " + listenInterface + ":" + str(listenPortBase + 1))

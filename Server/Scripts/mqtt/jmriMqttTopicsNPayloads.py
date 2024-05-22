@@ -15,6 +15,7 @@
 
 MQTT_JMRI_PRE_TOPIC =                       "/trains/"
 
+MQTT_RPC_SERVER_MQTT_SUPERVISION_TOPIC =    "track/rpcservermqttsupervision/"                   # Supervision of the RPC server MQTT connectivity
 MQTT_DECODER_DISCOVERY_REQUEST_TOPIC =      "track/discoveryreq"                                # Discovery request from decoders
 MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC =     "track/discoveryresp"                               # Discovery response from server (aka topDecoder)
 MQTT_LOG_TOPIC =                            "track/log/"                                        # Logs sent from decoders
@@ -42,8 +43,6 @@ MQTT_SENS_TOPIC =                           "track/sensor/"
 MQTT_MEMORY_TOPIC =                         "track/memory/"
 MQTT_STATE_TOPIC =                          "state/"
 MQTT_STATS_TOPIC =                          "statistics/"
-MQTT_DISCOVERY_REQ =                        "track/discoveryreq"
-MQTT_DISCOVERY_RSEP =                       "track/discoveryresp"
 MQTT_SUPERVISION_UPSTREAM =                 "track/decodersupervision/upstream/"
 MQTT_SUPERVISION_DOWNSTREAM =               "track/decodersupervision/downstream/"
 MQTT_REBOOT_TOPIC =                         "reboot/"
