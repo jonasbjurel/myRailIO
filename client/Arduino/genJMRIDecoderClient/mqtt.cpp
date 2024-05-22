@@ -194,12 +194,19 @@ rc_t mqtt::reConnect(void){
     xSemaphoreTake(mqttLock, portMAX_DELAY);
     LOG_INFO("Re-connecting MQTT Client" CR);
     retryCnt = 0;
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 1\n");
     xSemaphoreTake(pubSubLock, portMAX_DELAY);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 2\n");
     mqttClient->disconnect();
     xSemaphoreGive(pubSubLock);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 3\n");
     mqttClient->setServer(brokerUri, brokerPort);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 4\n");
     mqttClient->setKeepAlive(keepAlive);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 5\n");
     xSemaphoreTake(pubSubLock, portMAX_DELAY);
+    LOG_INFO(">>>>>>>>>>>>>>>> Time-check" CR);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 6\n");
     mqttClient->connect(clientId,
                         brokerUser,
                         brokerPass,
@@ -207,8 +214,11 @@ rc_t mqtt::reConnect(void){
                         MQTT_DEFAULT_QOS,
                         true,
                         downPayload);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 7\n");
+    LOG_INFO("MQTT Client re-connected" CR);
     xSemaphoreGive(pubSubLock);
     xSemaphoreGive(mqttLock);
+    Serial.printf(">>>>>>>>>>>>>>>>>>> 8");
     uint8_t tries = 0;
     while (sysState->getOpStateBitmap() & OP_DISCONNECTED) {
         if (tries++ >= 50) {
@@ -563,9 +573,6 @@ rc_t mqtt::setPingPeriod(float p_pingPeriod) {
     if (p_pingPeriod < 0 || p_pingPeriod > 600)
         return RC_PARAMETERVALUE_ERR;
     pingPeriod = p_pingPeriod;
-    if (!(sysState->getOpStateBitmap() & OP_INIT)){
-        reConnect();
-    }
     return RC_OK;
 }
 

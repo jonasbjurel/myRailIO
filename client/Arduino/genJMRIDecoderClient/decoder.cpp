@@ -269,20 +269,27 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     else {
         LOG_INFO("%s: RSyslog server URI not provided, will not start RSyslog" CR, logContextName);
     }
-    // START DONT REINIT MQTT IF NOT NEEDED
     LOG_TERSE("Setting up MQTT endpoints and properties" CR);
-    Serial.printf("XXXXXXXX Setting brocker\n");
-    setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    if (strcmp(xmlconfig[XML_DECODER_MQTT_URI], networking::getMqttUri())){
+        Serial.printf("XXXXXXXX Setting MQTT broker\n");
+        setMqttBrokerURI(xmlconfig[XML_DECODER_MQTT_URI], true);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
     Serial.printf("XXXXXXXX Setting port\n");
-    setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    Serial.printf("XXXXXXXX Setting ping\n");
-    setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
-    Serial.printf("XXXXXXXX Setting keepalive\n");
-    // END DONT REINIT MQTT IF NOT NEEDED
+    if (atoi(xmlconfig[XML_DECODER_MQTT_PORT]) != networking::getMqttPort()) {
+        setMqttPort(atoi(xmlconfig[XML_DECODER_MQTT_PORT]), true);
+        Serial.printf("XXXXXXXX Setting MQTT port\n");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+    if (atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]) != MQTT_DEFAULT_PINGPERIOD_S) {
+        setPingPeriod(atof(xmlconfig[XML_DECODER_MQTT_PINGPERIOD]), true);
+        Serial.printf("XXXXXXXX Setting MQTT ping period\n");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+    if (atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]) != MQTT_DEFAULT_KEEP_ALIVE_S) {
+        setKeepAlivePeriod(atoi(xmlconfig[XML_DECODER_MQTT_KEEPALIVEPERIOD]), true);
+        Serial.printf("XXXXXXXX Setting MQTT keep-alive period\n");
+    }
     setMqttPrefix(xmlconfig[XML_DECODER_MQTT_PREFIX], true);
     LOG_INFO("Setting up NTP time server" CR);
     if (xmlconfig[XML_DECODER_NTPURI] && xmlconfig[XML_DECODER_NTPPORT]) {
