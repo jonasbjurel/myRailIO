@@ -359,7 +359,6 @@ rc_t actBase::getSystemName(char* p_systemName, bool p_force) {
         LOG_ERROR("%s: Cannot get System name as actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    printf("SSSSSSSSSSSSSSSSSSS %s\n", xmlconfig[XML_ACT_SYSNAME]);
     strcpy(p_systemName, xmlconfig[XML_ACT_SYSNAME]);
     return RC_OK;
 }
@@ -514,8 +513,8 @@ void actBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_
         return;
     }
     uint8_t port;
-    if ((port = static_cast<actBase*>(p_cliContext)->getPort()) < 0) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, return code: %i", port);
+    if ((port = static_cast<actBase*>(p_cliContext)->getPort()) == (uint8_t)RC_NOT_CONFIGURED_ERR) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, actuator not configured", port);
         return;
     }
     printCli("Actuator port: %i", port);
@@ -546,7 +545,14 @@ void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTab
     char showing[50];
     char orderedShowing[50];
     if ((rc = static_cast<actBase*>(p_cliContext)->getShowing(showing, orderedShowing))) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator showing, return code: %i", rc);
+        switch (rc) {
+        case RC_NOT_CONFIGURED_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get actuator showing, actuator not configured");
+            break;
+        default:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get actuator showing, return code: %i", rc);
+            break;
+        }
         return;
     }
     printCli("showing: %s, ordered-showing: %s", showing, orderedShowing);

@@ -693,7 +693,12 @@ void sat::onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite address: %i", static_cast<sat*>(p_cliContext)->getAddr());
+    uint8_t address;
+    if ((address = static_cast<sat*>(p_cliContext)->getAddr()) == RC_NOT_CONFIGURED_ERR) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satelite address, satelite not configured");
+        return;
+    }
+    printCli("Satelite address: %i", address);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -705,7 +710,17 @@ void sat::onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p
     }
     rc_t rc;
     if (rc = static_cast<sat*>(p_cliContext)->setAddr(atoi(cmd.getArgument(1).getValue().c_str()))) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address, return code: %i", rc);
+        switch (rc) {
+        case RC_DEBUG_NOT_SET_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address port, debug flag not set, see: \"set debug\"");
+            break;
+        case RC_NOTIMPLEMENTED_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address, not implemented");
+            break;
+        default:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address, return code: %i", rc);
+            break;
+        }
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);

@@ -828,7 +828,7 @@ void cliCore::onCliCmd(cmd* p_cmd) {
 					 "registered" CR);
 			printCli("Command not recognized for this CLI context\a");
 		}
-		if (strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(i)->cmdType))){
+		if (strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(i)->cmdType)) || (strcmp(GLOBAL_MO_NAME, cliCmdTable->at(i)->mo) && strcmp(COMMON_MO_NAME, cliCmdTable->at(i)->mo) && strcmp(cliCmdTable->at(i)->mo, currentParsingContext->cliContextDescriptor.contextName))){ //FIX HERE
 			continue;
 		}
 		if (requiresSubMo && strcmp(cmd.getArgument(0).getValue().c_str(), cliCmdTable->at(i)->subMo)){
