@@ -4105,7 +4105,7 @@ void globalCli::onCliSetSysName(cmd* p_cmd) {
 	acceptedCliCommand(CLI_TERM_EXECUTED);
 }
 
-rc_t globalCli::setSystemName(const char* p_systemName) {
+rc_t globalCli::setSystemName(const char* p_systemName, bool p_force) {
 	return RC_NOTIMPLEMENTED_ERR;
 }
 

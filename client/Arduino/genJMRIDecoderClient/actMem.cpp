@@ -39,7 +39,7 @@ actMem::actMem(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     actPort = actBaseHandle->getPort(true);
     satAddr = actBaseHandle->satHandle->getAddr();
     satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
-    sysName = actBaseHandle->getSystemName(true);
+    actBaseHandle->getSystemName(sysName, true);
     if (!(actMemLock = xSemaphoreCreateMutex())) {
         panic("%s: Could not create Lock objects", logContextName);
         return;
@@ -288,19 +288,18 @@ rc_t actMem::setShowing(const char* p_showing) {
 rc_t actMem::getShowing(char* p_showing, char* p_orderedShowing) {
     xSemaphoreTake(actMemLock, portMAX_DELAY);
     if (actMemPos == 0)
-        p_showing = (char*)MQTT_MEM_OFF_PAYLOAD;
+        strcpy(p_showing, MQTT_MEM_OFF_PAYLOAD);
     else if (actMemPos == 255)
-        p_showing = (char*)MQTT_MEM_ON_PAYLOAD;
+        strcpy(p_showing, MQTT_MEM_ON_PAYLOAD);
     else
         //ITOA NEEDS FIX - WILL CRASH
-        p_showing = itoa(actMemPos, NULL, 10);
+        p_showing = itoa(actMemPos, p_showing, 10);
     if (orderedActMemPos == 0)
-        p_orderedShowing = (char*)MQTT_MEM_OFF_PAYLOAD;
+        strcpy(p_orderedShowing, MQTT_MEM_OFF_PAYLOAD);
     else if (orderedActMemPos == 255)
-        p_orderedShowing = (char*)MQTT_MEM_ON_PAYLOAD;
+        strcpy(p_orderedShowing, MQTT_MEM_ON_PAYLOAD);
     else
-        //ITOA NEEDS FIX - WILL CRASH
-        p_orderedShowing = itoa(orderedActMemPos, NULL, 10);
+        p_orderedShowing = itoa(orderedActMemPos, p_orderedShowing, 10);
     xSemaphoreGive(actMemLock);
     return RC_OK;
 }

@@ -41,7 +41,6 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     LOG_INFO("%s: Creating actBase stem-object" CR, logContextName);
     satHandle = p_satHandle;
     actPort = p_actPort;
-    //Serial.printf("YYYYYYYYYYYYY Creating actport: %i, for object: %i\n", actPort, this);
     satAddr = satHandle->getAddr();
     satLinkNo = satHandle->linkHandle->getLink();
     char sysStateObjName[20];
@@ -78,7 +77,6 @@ rc_t actBase::init(void) {
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_GET_ACTPORT_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, onCliSetPortHelper);
     regCmdHelp(SET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORPORT_SUB_MO_NAME, ACT_SET_ACTPORT_HELP_TXT);
-
     // get/set showing
     regCmdMoArg(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, onCliGetShowingHelper);
     regCmdHelp(GET_CLI_CMD, ACTUATOR_MO_NAME, ACTUATORSHOWING_SUB_MO_NAME, ACT_GET_ACTSHOWING_HELP_TXT);
@@ -201,7 +199,6 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement, bool p_twin)
 
     if ((!strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_TURN_SOLENOID_PAYLOAD) || !strcmp(xmlconfig[XML_ACT_SUBTYPE], MQTT_MEM_SOLENOID_PAYLOAD)) && !(actPort % 2)) {
         LOG_INFO("%s: Actuator base object has a twin actuator base object - configuring it" CR, logContextName);
-        //Serial.printf("YYYYYYYYYYYYYYYYY Port: %i\n", actPort + 1);
         actBase* twinActBaseObject = satHandle->getActHandleByPort(actPort + 1);
         if (!twinActBaseObject)
             panic("Could not get twin actBase object");
@@ -226,12 +223,12 @@ rc_t actBase::start(void) {
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], start());
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char subscribeTopic[300];
-    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ACT_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ACT_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_ACT_SYSNAME]);
     if (mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this)){
         panic("%s: Failed to suscribe to admState topic \"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
     }
-    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_ACT_SYSNAME]);
     if (mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this)){
         panic("%s: Failed to suscribe to opState topic \"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
@@ -250,7 +247,6 @@ rc_t actBase::start(void) {
 }
 
 void actBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
-    //Serial.printf("YYYYYYYYYYYYYYY %s actBase %i discovered\n", logContextName, this);
     LOG_INFO("%s: actuator discovered" CR, logContextName);
     if (p_exists) {
         satLibHandle = p_sateliteLibHandle;
@@ -283,7 +279,7 @@ void actBase::onSysStateChange(sysState_t p_sysState) {
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_ACT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_ACT_SYSNAME]);
         systemState::getOpStateStr(publishPayload);
         mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
@@ -344,7 +340,7 @@ rc_t actBase::getOpStateStr(char* p_opStateStr) {
 }
 
 rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {
-    if (!debug || !p_force) {                               //LETS MOVE THESE CHECKS TO GLOBALCLI
+    if (!debug && !p_force) {                               //LETS MOVE THESE CHECKS TO GLOBALCLI
         LOG_ERROR("%s: Cannot set System name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -358,16 +354,18 @@ rc_t actBase::setSystemName(const char* p_systemName, bool p_force) {
     }
 }
 
-const char* actBase::getSystemName(bool p_force) {
+rc_t actBase::getSystemName(char* p_systemName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get System name as actuator is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return (const char*)xmlconfig[XML_ACT_SYSNAME];
+    printf("SSSSSSSSSSSSSSSSSSS %s\n", xmlconfig[XML_ACT_SYSNAME]);
+    strcpy(p_systemName, xmlconfig[XML_ACT_SYSNAME]);
+    return RC_OK;
 }
 
 rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
-    if (!debug || !p_force) {                               //LETS MOVE THESE CHECKS TO GLOBALCLI
+    if (!debug && !p_force) {                               //LETS MOVE THESE CHECKS TO GLOBALCLI
         LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -383,16 +381,17 @@ rc_t actBase::setUsrName(const char* p_usrName, bool p_force) {
     }
 }
 
-const char* actBase::getUsrName(bool p_force) {
+rc_t actBase::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get User name as actuator is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_ACT_USRNAME];
+    strcpy(p_userName, xmlconfig[XML_ACT_USRNAME]);
+    return RC_OK;
 }
 
 rc_t actBase::setDesc(const char* p_description, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -408,16 +407,17 @@ rc_t actBase::setDesc(const char* p_description, bool p_force) {
     }
 }
 
-const char* actBase::getDesc(bool p_force) {
+rc_t actBase::getDesc(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get Description as actuator is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_ACT_DESC];
+    strcpy(p_userName, xmlconfig[XML_ACT_DESC]);
+    return RC_OK;
 }
 
 rc_t actBase::setPort(uint8_t p_port, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set port as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -440,7 +440,7 @@ int8_t actBase::getPort(bool p_force) {
 }
 
 rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Actuator property as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -457,14 +457,13 @@ rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_forc
         LOG_ERROR("%s: Cannot get Actuator property as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getProperty(p_propertyId, p_propertyVal));
-    return RC_OK;
+    ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getProperty(p_propertyId, p_propertyVal));
+    return EXT_RC;
 }
 
 rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing, bool p_force) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED && !p_force) {
         LOG_ERROR("%s: Cannot get Actuator showing as Actuator is not configured" CR, logContextName);
-        p_showing = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
     ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getShowing(p_showing, p_orderedShowing));
@@ -473,7 +472,7 @@ rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing, bool p_force) 
 }
 
 rc_t actBase::setShowing(const char* p_showing, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Actuator showing as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -544,8 +543,8 @@ void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTab
         return;
     }
     rc_t rc;
-    char* showing = NULL;
-    char* orderedShowing = NULL;
+    char showing[50];
+    char orderedShowing[50];
     if ((rc = static_cast<actBase*>(p_cliContext)->getShowing(showing, orderedShowing))) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator showing, return code: %i", rc);
         return;
@@ -555,14 +554,24 @@ void actBase::onCliGetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTab
 }
 
 void actBase::onCliSetShowingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
-    Command cmd(p_cmd);
+    Command cmd(p_cmd); 
     if (!cmd.getArgument(1) || cmd.getArgument(2)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
     if ((rc = static_cast<actBase*>(p_cliContext)->setShowing(cmd.getArgument(1).getValue().c_str()))) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator showing, return code: %i", rc);
+        switch (rc) {
+        case RC_DEBUG_NOT_SET_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator showing, debug flag not set, see: \"set debug\"");
+            break;
+        case RC_PARAMETERVALUE_ERR:
+            notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Could not set Actuator showing, showing parameter incorrect");
+            break;
+        default:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator showing, return code: %i", rc);
+            break;
+        }
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
@@ -575,10 +584,10 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
         return;
     }
     rc_t rc;
-    char* property = NULL;
+    char property[50];
     if (cmd.getArgument(1)) {
         if ((rc = static_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property))) {
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor properties, return code: %i", rc);
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator properties, return code: %i", rc);
             return;
         }
         printCli("Actuator property %i: %s", atoi(cmd.getArgument(1).getValue().c_str()), property);

@@ -90,7 +90,7 @@ private:
     EXT_RAM_ATTR uint8_t satLinkNo;
     EXT_RAM_ATTR satelite* satLibHandle;
     EXT_RAM_ATTR bool failSafe;
-    EXT_RAM_ATTR const char* sensSysName;
+    EXT_RAM_ATTR char sensSysName[50];
     EXT_RAM_ATTR uint16_t sysState;
     EXT_RAM_ATTR bool filteredSenseVal;
     EXT_RAM_ATTR bool debug;

@@ -78,8 +78,8 @@ rc_t senseBase::init(void) {
     regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliSetPortHelper);
     regCmdHelp(SET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, SENS_SET_SENSPORT_HELP_TXT);
     // get sensing
-    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, onCliGetSensingHelper);
-    regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSPORT_SUB_MO_NAME, SENS_GET_SENSING_HELP_TXT);
+    regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSSENSING_SUB_MO_NAME, onCliGetSensingHelper);
+    regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSSENSING_SUB_MO_NAME, SENS_GET_SENSING_HELP_TXT);
     // get/set property
     regCmdMoArg(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, onCliGetPropertyHelper);
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_GET_SENSORPROPERTY_HELP_TXT);
@@ -196,12 +196,12 @@ rc_t senseBase::start(void) {
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     rc_t rc;
     char subscribeTopic[300];
-    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SENS_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SENS_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SENS_SYSNAME]);
     if (rc = mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this)){
         panic("%s: Failed to suscribe to admState topic \"%s\", return code: %i", logContextName, subscribeTopic, rc);
         return RC_GEN_ERR;
     }
-    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SENS_SYSNAME]);
     if (rc = mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this)){
         panic("%s: Failed to suscribe to opState topic \"%s\", return code: %i", logContextName, subscribeTopic, rc);
         return RC_GEN_ERR;
@@ -255,7 +255,7 @@ void senseBase::onSysStateChange(sysState_t p_sysState) {
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SENS_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SENS_SYSNAME]);
         systemState::getOpStateStr(publishPayload);
         mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
@@ -319,16 +319,17 @@ rc_t senseBase::setSystemName(char* p_sysName, bool p_force) {
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-const char* senseBase::getSystemName(bool p_force) {
+rc_t senseBase::getSystemName(char* p_systemName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get System name as sensor is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SENS_SYSNAME];
+    strcpy(p_systemName, xmlconfig[XML_SENS_SYSNAME]);
+    return RC_OK;
 }
 
 rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -344,16 +345,17 @@ rc_t senseBase::setUsrName(const char* p_usrName, bool p_force) {
     }
 }
 
-const char* senseBase::getUsrName(bool p_force) {
+rc_t senseBase::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get User name as sensor is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SENS_USRNAME];
+    strcpy(p_userName, xmlconfig[XML_SENS_USRNAME]);
+    return RC_OK;
 }
 
 rc_t senseBase::setDesc(const char* p_description, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -369,16 +371,17 @@ rc_t senseBase::setDesc(const char* p_description, bool p_force) {
     }
 }
 
-const char* senseBase::getDesc(bool p_force) {
+rc_t senseBase::getDesc(char* p_desc, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get Description as sensor is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SENS_DESC];
+    strcpy(p_desc, xmlconfig[XML_SENS_DESC]);
+    return RC_OK;
 }
 
 rc_t senseBase::setPort(const uint8_t p_port, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Sensor port as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -399,7 +402,7 @@ uint8_t senseBase::getPort(bool p_force) {
 }
 
 rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force){
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Sensor property as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -416,17 +419,16 @@ rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_fo
         LOG_ERROR("%s: Cannot get Sensor properties as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getProperty(p_propertyId, p_propertyVal));
-    return RC_OK;
+    SENSE_CALL_EXT_RC(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getProperty(p_propertyId, p_propertyVal));
+    return EXT_RC;
 }
 
-rc_t senseBase::getSensing(const char* p_sensing) {
+rc_t senseBase::getSensing(char* p_sensing) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         LOG_ERROR("%s: Cannot get sensing as sensor is not configured" CR, logContextName);
-        p_sensing = NULL;
         return RC_NOT_CONFIGURED_ERR;
     }
-    SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getSensing((char*)p_sensing));
+    SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getSensing(p_sensing));
     return RC_OK;
 }
 
@@ -489,7 +491,7 @@ void senseBase::onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdT
         return;
     }
     rc_t rc;
-    char* sensing;
+    char sensing[50];
     if (rc = static_cast<senseBase*>(p_cliContext)->getSensing(sensing)) {
         notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor sensing, return code: %i", rc);
         return;

@@ -35,12 +35,11 @@
 /*==============================================================================================================================================*/
 actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) {
     asprintf(&logContextName, "%s/%s-%s", p_actBaseHandle->getLogContextName(), "turn", p_subType);
-    //Serial.printf("YYYYYYYYYYYYYYY %s creating turn\n", logContextName);
     actBaseHandle = p_actBaseHandle;
     actPort = actBaseHandle->getPort(true);
     satAddr = actBaseHandle->satHandle->getAddr();
     satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
-    sysName = actBaseHandle->getSystemName(true);
+    actBaseHandle->getSystemName(sysName, true);
     satLibHandle = NULL;
     turnOutInvert = false;
     turnSolenoidPushPort = true;
@@ -64,7 +63,6 @@ actTurn::actTurn(actBase* p_actBaseHandle, const char* p_type, char* p_subType) 
     orderedTurnOutPos = TURN_DEFAULT_FAILSAFE;
     turnOutFailsafePos = TURN_DEFAULT_FAILSAFE;
     failsafe(true);
-    //Serial.printf("YYYYYYYYYYYYYYY %s turn created\n", logContextName);
 }
 
 actTurn::~actTurn(void) {
@@ -86,12 +84,10 @@ rc_t actTurn::start(void) {
 }
 
 void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
-    //Serial.printf("YYYYYYYYYYYYYYY %s turn discovered\n", logContextName);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_TURN_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
     if(p_exists){
         satLibHandle = p_sateliteLibHandle;
-        //Serial.printf("YYYYYYYYYYYYYYY %s Object %i is subscribing to turn orders\n", logContextName, this);
         LOG_INFO("%s: Subscribing to turn-out orders" CR, logContextName);
         if (mqtt::subscribeTopic(subscribeTopic, onActTurnChangeHelper, this)){
             panic("%s: Failed to suscribe to turn-out order topic \"%s\"", logContextName, subscribeTopic);
@@ -135,12 +131,10 @@ void actTurn::onSysStateChange(const uint16_t p_sysState) {
 }
 
 void actTurn::onActTurnChangeHelper(const char* p_topic, const char* p_payload, const void* p_actTurnHandle) {
-    //Serial.printf("YYYYYYYYYYYYYYY onActTurnChangeHelper\n");
     ((actTurn*)p_actTurnHandle)->onActTurnChange(p_topic, p_payload);
 }
 
 void actTurn::onActTurnChange(const char* p_topic, const char* p_payload) {
-    //Serial.printf("YYYYYYYYYYYYYYY %s onActTurnChange\n", logContextName);
     xSemaphoreTake(actTurnLock, portMAX_DELAY);
     if (!strcmp(p_payload, MQTT_TURN_CLOSED_PAYLOAD)) {
         LOG_INFO("%s: Got a close turnout change order" CR, logContextName);
@@ -276,14 +270,8 @@ rc_t actTurn::setShowing(const char* p_showing) {
 
 rc_t actTurn::getShowing(char* p_showing, char* p_orderedShowing) {
     xSemaphoreTake(actTurnLock, portMAX_DELAY);
-    if (turnOutPos)
-        p_showing = (char*)MQTT_TURN_THROWN_PAYLOAD;
-    else
-        p_showing = (char*)MQTT_TURN_CLOSED_PAYLOAD;
-    if (orderedTurnOutPos)
-        p_orderedShowing = (char*)MQTT_TURN_THROWN_PAYLOAD;
-    else
-        p_orderedShowing = (char*)MQTT_TURN_CLOSED_PAYLOAD;
+    strcpy(p_showing, turnOutPos? MQTT_TURN_THROWN_PAYLOAD : MQTT_TURN_CLOSED_PAYLOAD);
+    strcpy(p_orderedShowing, turnOutPos ? MQTT_TURN_THROWN_PAYLOAD : MQTT_TURN_CLOSED_PAYLOAD);
     xSemaphoreGive(actTurnLock);
     return RC_OK;
 }

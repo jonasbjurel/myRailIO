@@ -747,8 +747,6 @@ rc_t networking::recoverPersistantConfig(netwStaConfig_t* p_staConfig) {
                   "from file %s" CR, WIFI_CONFIG_STORE_FILENAME);
         return RC_GEN_ERR;
     }
-    Serial.printf("Wifi pretty Json content "
-                  "recovered: %s" CR, wifiConfigJsonPrettySerialized);
     LOG_VERBOSE("Wifi pretty Json content "
                 "recovered: %s" CR, wifiConfigJsonPrettySerialized);
     if (deserializeJson(wifiConfigJsonDoc, wifiConfigJsonPrettySerialized)) {

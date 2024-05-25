@@ -520,7 +520,6 @@ rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
 		panic("Could not create context map list item");
 		return RC_OUT_OF_MEM_ERR;
 	}
-
 	cliCmdTable->back()->contextMap->back()->contextHandle = this;
 	cliCmdTable->back()->contextMap->back()->cb = p_cliCmdCb;
 	cliCmdTable->back()->commandFlags = NULL;
@@ -832,7 +831,6 @@ void cliCore::onCliCmd(cmd* p_cmd) {
 		if (strcmp(cmd.getName().c_str(), getCliNameByType(cliCmdTable->at(i)->cmdType))){
 			continue;
 		}
-
 		if (requiresSubMo && strcmp(cmd.getArgument(0).getValue().c_str(), cliCmdTable->at(i)->subMo)){
 			continue;
 		}

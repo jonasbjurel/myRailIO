@@ -40,7 +40,7 @@ senseDigital::senseDigital(senseBase* p_senseBaseHandle) {
     sensPort = senseBaseHandle->getPort();
     satAddr = senseBaseHandle->satHandle->getAddr();
     satLinkNo = senseBaseHandle->satHandle->linkHandle->getLink();
-    sensSysName = senseBaseHandle->getSystemName(true);
+    senseBaseHandle->getSystemName(sensSysName, true);
     satLibHandle = NULL;
     sysState = OP_WORKING;
     failSafe = false;
@@ -126,7 +126,7 @@ rc_t senseDigital::getProperty(uint8_t p_propertyId, const char* p_propertyValue
 }
 
 void senseDigital::getSensing(char* p_sensing) {
-    (filteredSenseVal ? p_sensing = (char*)MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD : p_sensing = (char*)MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD);
+    filteredSenseVal ? strcpy(p_sensing, MQTT_SENS_DIGITAL_ACTIVE_PAYLOAD) : strcpy(p_sensing, MQTT_SENS_DIGITAL_INACTIVE_PAYLOAD);
 }
 
 void senseDigital::setDebug(bool p_debug) {

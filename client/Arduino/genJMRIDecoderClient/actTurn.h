@@ -94,7 +94,7 @@ private:
     EXT_RAM_ATTR actBase* actBaseHandle;
     esp_timer_handle_t turnServoPwmIncrementTimerHandle;
     esp_timer_create_args_t turnServoPwmTimerArgs;
-    EXT_RAM_ATTR const char* sysName;
+    EXT_RAM_ATTR char sysName[50];
     EXT_RAM_ATTR uint8_t actPort;
     EXT_RAM_ATTR uint8_t satAddr;
     EXT_RAM_ATTR uint8_t satLinkNo;

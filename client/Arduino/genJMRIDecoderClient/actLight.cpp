@@ -39,7 +39,7 @@ actLight::actLight(actBase* p_actBaseHandle, const char* p_type, char* p_subType
     actPort = actBaseHandle->getPort(true);
     satAddr = actBaseHandle->satHandle->getAddr();
     satLinkNo = actBaseHandle->satHandle->linkHandle->getLink();
-    sysName = actBaseHandle->getSystemName(true);
+    actBaseHandle->getSystemName(sysName, true);
     satLibHandle = NULL;
     LOG_INFO("%s: Creating light extention object" CR, logContextName);
     if (!(actLightLock = xSemaphoreCreateMutex())){
@@ -170,14 +170,8 @@ rc_t actLight::setShowing(const char* p_showing) {
 
 rc_t actLight::getShowing(char* p_showing, char* p_orderedShowing) {
     xSemaphoreTake(actLightLock, portMAX_DELAY);
-    if (actLightPos)
-        p_showing = (char*)MQTT_LIGHT_ON_PAYLOAD;
-    else
-        p_showing = (char*)MQTT_LIGHT_OFF_PAYLOAD;
-    if (orderedActLightPos)
-        p_orderedShowing = (char*)MQTT_LIGHT_ON_PAYLOAD;
-    else
-        p_orderedShowing = (char*)MQTT_LIGHT_OFF_PAYLOAD;
+    strcpy(p_showing, actLightPos? MQTT_LIGHT_ON_PAYLOAD : MQTT_LIGHT_OFF_PAYLOAD);
+    strcpy(p_orderedShowing, orderedActLightPos ? MQTT_LIGHT_ON_PAYLOAD : MQTT_LIGHT_OFF_PAYLOAD);
     xSemaphoreGive(actLightLock);
     return RC_OK;
 }

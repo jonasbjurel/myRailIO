@@ -814,26 +814,20 @@ class topDecoder(systemState, schema):
                 self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
 
     def __onRpcServerMqttErr(self, state):
-        print("ZZZZZZZZZZZZ Topdecoder got MQTT state CB")
-        print(state)
         if state == "unavailable":
-            print("ZZZZZZZZZZZZZZZZ Running disconnected")
             trace.notify(DEBUG_ERROR, "RPC Server MQTT disconnected")
             self.subConnectionOpState = self.subConnectionOpState | RPC_SERVER_MQTT_DISCONNECTED_FAILURE
             if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
-                print("ZZZZZZZZZZZZZZZZ Resetting")
                 self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
             else:
                 self.setOpStateDetail(OP_DISCONNECTED[STATE])
 
         elif state == "available":
-            print("ZZZZZZZZZZZZZZZZ Running disconnected")
             trace.notify(DEBUG_INFO, "RPC Server MQTT connected")
             self.subConnectionOpState = self.subConnectionOpState & ~RPC_SERVER_MQTT_DISCONNECTED_FAILURE
             if not self.subConnectionOpState:
                 self.unSetOpStateDetail(OP_DISCONNECTED[STATE])
             else:
-                print("ZZZZZZZZZZZZZZZZ Resetting")
                 self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
         else:
             trace.notify(DEBUG_ERROR, "RPC Server MQTT connection state recieved not parsable - doing nothing...")

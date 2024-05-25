@@ -119,7 +119,6 @@ class satelite(systemState, schema):
         trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
     def onXmlConfig(self, xmlConfig):
-        print("XXXXXXXXXXXXXXXXXXXX Satelite got a configuration")
         try:
             satXmlConfig = parse_xml(xmlConfig,
                                         {"SystemName": MANSTR,
@@ -145,26 +144,18 @@ class satelite(systemState, schema):
             else:
                 trace.notify(DEBUG_INFO, "\"AdminState\" not set for " + self.nameKey.candidateValue + " - disabling it")
                 self.setAdmState(ADM_DISABLE[STATE_STR])
-            print("XXXXXXXXXXXXXXXXXXXX Satelite first configuration Successful")
-
         except:
-            print("XXXXXXXXXXXXXXXXXXXX Satelite first configuration NOT Successful")
-
             trace.notify(DEBUG_ERROR, "Configuration validation failed for Satelite traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
         if self.getAdmState() == ADM_ENABLE[STATE]:
-            print("XXXXXXXXXXXXXXXXXXXX Satelite update req with rebooting")
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
-            print("XXXXXXXXXXXXXXXXXXXX Satelite update req WITHOUT rebooting")
             res = self.updateReq(self, self, uploadNReboot = False)
         if res != rc.OK:
-            print("XXXXXXXXXXXXXXXXXXXX Satelite update UNSUCCESSFUL")
             trace.notify(DEBUG_ERROR, "Validation of- or setting of configuration failed - initiated by configuration change of: " + satXmlConfig.get("SystemName") +
                                       ", return code: " + rc.getErrStr(res))
             return res
         else:
-            print("XXXXXXXXXXXXXXXXXXXX Satelite update successful")
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
         for sensor in xmlConfig:
             if sensor.tag == "Sensor":
@@ -182,21 +173,14 @@ class satelite(systemState, schema):
 
     def updateReq(self, child, source, uploadNReboot = True):
         if source == self:
-            print("XXXXXXXXXXXXXXXXXXXX Satelite update req Triggered by self")
             if self.updating:
-                print("XXXXXXXXXXXXXXXXXXXX Satelite update req Already updating")
-                print("XXXXXXXXXXXXXXXXXXXX Satelite Leaving update req 0")
                 return rc.ALREADY_EXISTS
             if uploadNReboot:
-                print("XXXXXXXXXXXXXXXXXXXX Satelite updatingNReboot requested")
                 self.updating = True
             else:
-                print("XXXXXXXXXXXXXXXXXXXX Satelite updatingNReboot NOT requested")
                 self.updating = False
         res = self.parent.updateReq(self, source, uploadNReboot)
-        print("XXXXXXXXXXXXXXXXXXXX Satelite parent Update Req resulted in: " + str(res))
         self.updating = False
-        print("XXXXXXXXXXXXXXXXXXXX Satelite Leaving update req 1")
         return res
 
     def validate(self):

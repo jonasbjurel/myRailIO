@@ -280,12 +280,12 @@ rc_t sat::start(void) {
     unSetOpStateByBitmap(OP_UNUSED);
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char subscribeTopic[300];
-    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SAT_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_SAT_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SAT_SYSNAME]);
     if (mqtt::subscribeTopic(subscribeTopic, onAdmStateChangeHelper, this)){
         panic("%s: Failed to suscribe to admState topic:\"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
     }
-    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_DECODER_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SAT_SYSNAME]);
     if (mqtt::subscribeTopic(subscribeTopic, onOpStateChangeHelper, this)){
         panic("%s: Failed to suscribe to opState topic: \"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
@@ -373,7 +373,7 @@ void sat::onPmPoll(void) {
     remoteCrcErr += pmData.remoteCrcErr;
     wdErr += pmData.wdErr;
     char pmPublishTopic[300];
-    sprintf(pmPublishTopic, "%s%s%s%s%s", MQTT_SAT_STATS_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(pmPublishTopic, "%s%s%s%s%s", MQTT_SAT_STATS_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SAT_SYSNAME]);
     char pmPublishPayload[100];
     sprintf(pmPublishPayload,
         ("<statReport>\n"
@@ -404,7 +404,6 @@ void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_li
 }
 
 void sat::onSatLibStateChange(satOpState_t p_satOpState) {
-    Serial.printf("EEEEEEEEEEEEEEEEEEE Got a new OP-state from the satelite lib: 0x%X\n", p_satOpState);
     if (p_satOpState & (SAT_OP_INIT | SAT_OP_FAIL | SAT_OP_CONTROLBOCK))
         systemState::setOpStateByBitmap(OP_GENERR);
     else
@@ -433,7 +432,7 @@ void sat::onSysStateChange(sysState_t p_sysState) {
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SAT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SAT_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SAT_SYSNAME]);
         systemState::getOpStateStr(publishPayload);
         mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
@@ -527,7 +526,6 @@ actBase* sat::getActHandleByPort(uint8_t p_port) {
         return NULL;
     }
     for (uint8_t actItter = 0; actItter < MAX_ACT; actItter++) {
-        //Serial.printf("YYYYYYYYYYYYYYY Itterating port: %i belonging to object: %i\n", acts[actItter]->getPort(true), acts[actItter]);
         if (acts[actItter]->getPort(true) == p_port)
             return acts[actItter];
     }
@@ -558,16 +556,17 @@ rc_t sat::setSystemName(const char* p_systemName, bool p_force) {
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-const char* sat::getSystemName(bool  p_force) {
+rc_t sat::getSystemName(char* p_systemName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get System name as sat is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SAT_SYSNAME];
+    strcpy(p_systemName, xmlconfig[XML_SAT_SYSNAME]);
+    return RC_OK;
 }
 
 rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -583,16 +582,17 @@ rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
     }
 }
 
-const char* sat::getUsrName(bool p_force) {
+rc_t sat::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get User name as satelite is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SAT_USRNAME];;
+    strcpy(p_userName, xmlconfig[XML_SAT_USRNAME]);
+    return RC_OK;
 }
 
 rc_t sat::setDesc(const char* p_description, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -608,16 +608,17 @@ rc_t sat::setDesc(const char* p_description, bool p_force) {
     }
 }
 
-const char* sat::getDesc(bool p_force) {
+rc_t sat::getDesc(char* p_desc, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get Description as satelite is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SAT_DESC];
+    strcpy(p_desc, xmlconfig[XML_SAT_DESC]);
+    return RC_OK;
 }
 
 rc_t sat::setAddr(uint8_t p_addr, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Satelite address as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }

@@ -94,12 +94,12 @@ public:
 	static void onAdmStateChangeHelper(const char* p_topic, const char* p_payload, const void* p_satLinkObject);
 	void onAdmStateChange(const char* p_topic, const char* p_payload);
 	rc_t getOpStateStr(char* p_opStateStr);
-	rc_t setSystemName(const char* p_systemName, const bool p_force = false);
-	const char* getSystemName(bool p_force = false);
+	rc_t setSystemName(const char* p_systemName, bool p_force = false);
+	rc_t getSystemName(char* p_systemName, bool p_force = false);
 	rc_t setUsrName(const char* p_usrName, const bool p_force = false);
-	const char* getUsrName(bool p_force = false);
+	rc_t getUsrName(char* p_userName, bool p_force = false);
 	rc_t setDesc(const char* p_description, const bool p_force = false);
-	const char* getDesc(bool p_force = false);
+	rc_t getDesc(char* p_desc, bool p_force = false);
 	rc_t setLink(uint8_t p_link, bool p_force = false);
 	uint8_t getLink(bool p_force = false);
 	const char* getLogLevel(void);

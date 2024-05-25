@@ -280,12 +280,12 @@ rc_t satLink::start(void) {
     unSetOpStateByBitmap(OP_UNUSED);
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char suscribeTopic[300];
-    sprintf(suscribeTopic, "%s%s%s%s%s", MQTT_SATLINK_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(suscribeTopic, "%s%s%s%s%s", MQTT_SATLINK_ADMSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
     if (mqtt::subscribeTopic(suscribeTopic, onAdmStateChangeHelper, this)){
         panic("%s: Failed to suscribe to admState topic: \"%s\"", logContextName, suscribeTopic);
         return RC_GEN_ERR;
     }
-    sprintf(suscribeTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+    sprintf(suscribeTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_DOWNSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
     if (mqtt::subscribeTopic(suscribeTopic, onOpStateChangeHelper, this)){
         panic("%s: Failed to suscribe to opState topic: \"%s\"", logContextName, suscribeTopic);
         return RC_GEN_ERR;
@@ -301,10 +301,8 @@ rc_t satLink::start(void) {
 
 void satLink::up(void) {
     xSemaphoreTake(upDownLock, portMAX_DELAY);
-    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Starting UP\n");
     if (!satLinkScanDisabled) {
         LOG_WARN("%s: satLink already enabled" CR, logContextName);
-        Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @1\n");
         xSemaphoreGive(upDownLock);
         return;
     }
@@ -317,7 +315,6 @@ void satLink::up(void) {
     }
     if (rc != 0){
         panic("%s: satLink scannig could not be started, return code: 0x%llx", logContextName, rc);
-        Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @2\n");
         xSemaphoreGive(upDownLock);
         return;
     }
@@ -326,7 +323,6 @@ void satLink::up(void) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
         if(t++ > 400){
             panic("Link wasnt enable in due time");
-            Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Exiting @3\n");
             xSemaphoreGive(upDownLock);
             return;
         }
@@ -347,12 +343,10 @@ void satLink::up(void) {
         return;
     }
 	linkScanWdt->activate();
-    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Ending UP\n");
 	xSemaphoreGive(upDownLock);
 }
 
 void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
-    //Serial.printf("VVVVVVVVVVVVVVVV Discovered satelite adress: %i, belonging to satelite object %i, exists: %i\n", p_satAddr, ((satLink*)p_satLinkHandle)->sats[p_satAddr], p_exists);
     if (p_satLink != ((satLink*)p_satLinkHandle)->linkNo) {
         panic("Inconsistant link number, expected %i, got %i", ((satLink*)p_satLinkHandle)->linkNo, p_satLink);
         return;
@@ -362,14 +356,12 @@ void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t 
         return;
     }
     if (p_exists) {
-    //Serial.printf("VVVVVVVVVVVVVVVV Discovered satelite, calling satelite object %i\n", ((satLink*)p_satLinkHandle)->sats[p_satAddr]);
     ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
     }
 }
 
 void satLink::down(void) {
 	xSemaphoreTake(upDownLock, portMAX_DELAY);
-    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Starting DOWN\n");
     if (satLinkScanDisabled) {
         LOG_INFO("%s: satLink already disabled" CR, logContextName);
         xSemaphoreGive(upDownLock);
@@ -385,7 +377,6 @@ void satLink::down(void) {
     }
     if (rc)
         LOG_ERROR("%s: Could not disable satLink link scanning, return code: %llx" CR, logContextName, rc);
-    Serial.printf("EEEEEEEEEEEEEEEEEEEEEE Ending DOWN\n");
     pmPoll = false;
     satLinkScanDisabled = true;
     xSemaphoreGive(upDownLock);
@@ -426,7 +417,7 @@ void satLink::onPmPoll(void) {
         rxDataSizeErr += pmData.rxDataSizeErr;
         wdErr += pmData.wdErr;
         char publishPmTopic[300];
-        sprintf(publishPmTopic, "%s%s%s%s%s", MQTT_SATLINK_STATS_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        sprintf(publishPmTopic, "%s%s%s%s%s", MQTT_SATLINK_STATS_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
         char publishPmPayload[150];
         sprintf(publishPmPayload, "<statReport>\n"
             "<rxCrcErr>%d</rxCrcErr>\n"
@@ -460,7 +451,6 @@ void satLink::onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandl
 }
 
 void satLink::onSatLinkLibStateChange(const satOpState_t p_satOpState) {
-    Serial.printf("EEEEEEEEEEEEEEEEEEE Got a new OP-state from the satelite-link lib: 0x%X\n", p_satOpState);
     if(p_satOpState & (SAT_OP_INIT | SAT_OP_FAIL | SAT_OP_CONTROLBOCK))
         systemState::setOpStateByBitmap(OP_GENERR);
     else
@@ -488,7 +478,7 @@ void satLink::onSysStateChange(sysState_t p_sysState) {
     if ((sysStateChange & ~OP_CBL) && mqtt::getDecoderUri() && !(getOpStateBitmap() & OP_UNCONFIGURED)) {
         char publishTopic[200];
         char publishPayload[100];
-        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", getSystemName());
+        sprintf(publishTopic, "%s%s%s%s%s", MQTT_SATLINK_OPSTATE_UPSTREAM_TOPIC, "/", mqtt::getDecoderUri(), "/", xmlconfig[XML_SATLINK_SYSNAME]);
         systemState::getOpStateStr(publishPayload);
         mqtt::sendMsg(publishTopic, getOpStateStrByBitmap(getOpStateBitmap() & ~OP_CBL, publishPayload), false);
     }
@@ -578,16 +568,17 @@ rc_t satLink::setSystemName(const char* p_systemName, const bool p_force) {
     return RC_NOTIMPLEMENTED_ERR;
 }
 
-const char* satLink::getSystemName(bool p_force) {
+rc_t satLink::getSystemName(char* p_systemName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get System name as satLink is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SATLINK_SYSNAME];
+    strcpy(p_systemName, xmlconfig[XML_SATLINK_SYSNAME]);
+    return RC_OK;
 }
 
 rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set User name as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -603,16 +594,17 @@ rc_t satLink::setUsrName(const char* p_usrName, const bool p_force) {
     }
 }
 
-const char* satLink::getUsrName(bool p_force) {
+rc_t satLink::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get User name as satLink is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SATLINK_USRNAME];
+    strcpy(p_userName, xmlconfig[XML_SATLINK_USRNAME]);
+    return RC_OK;
 }
 
 rc_t satLink::setDesc(const char* p_description, const bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Description as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
@@ -628,16 +620,17 @@ rc_t satLink::setDesc(const char* p_description, const bool p_force) {
     }
 }
 
-const char* satLink::getDesc(bool p_force) {
+rc_t satLink::getDesc(char* p_desc, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get Description as satLink is not configured" CR, logContextName);
-        return NULL;
+        return RC_NOT_CONFIGURED_ERR;
     }
-    return xmlconfig[XML_SATLINK_DESC];
+    strcpy(p_desc, xmlconfig[XML_SATLINK_DESC]);
+    return RC_OK;
 }
 
 rc_t satLink::setLink(uint8_t p_link, bool p_force) {
-    if (!debug || !p_force) {
+    if (!debug && !p_force) {
         LOG_ERROR("%s: Cannot set Satelite link No as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }

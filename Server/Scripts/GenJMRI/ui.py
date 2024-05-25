@@ -1221,9 +1221,7 @@ class UI_topDialog(QDialog):
         self.parentObjHandle.logRotateNoFiles.value = self.logRotateNoFilesSpinBox.value()
         self.parentObjHandle.logFileSize.value = int(self.logRotateFileSizeLineEdit.displayText())
         # MQTT Southbound API Configuration
-        print("%%%%%%%%%%%%%% Setting Ping period, type is: " + str(type(self.DecoderPingPeriodDoubleSpinBox.value())))
         self.parentObjHandle.decoderMqttPingPeriod.value = self.DecoderPingPeriodDoubleSpinBox.value()
-        print("%%%%%%%%%%%%%% Setting Keep-alive period, type is: " + str(type(int(self.DecoderKeepAlivePeriodDoubleSpinBox.value()))))
         self.parentObjHandle.decoderMqttKeepAlivePeriod.value = int(self.DecoderKeepAlivePeriodDoubleSpinBox.value())
         self.parentObjHandle.decoderFailSafe.value = self.decoderFailSafeCheckBox.isChecked()
         self.parentObjHandle.trackFailSafe.value = self.trackFailSafeCheckBox.isChecked()

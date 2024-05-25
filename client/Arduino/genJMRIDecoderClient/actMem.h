@@ -86,7 +86,7 @@ private:
     //Private data structures
     EXT_RAM_ATTR char* logContextName;
     EXT_RAM_ATTR actBase* actBaseHandle;
-    EXT_RAM_ATTR const char* sysName;
+    EXT_RAM_ATTR char sysName[50];
     EXT_RAM_ATTR uint8_t actPort;
     EXT_RAM_ATTR uint8_t satAddr;
     EXT_RAM_ATTR uint8_t satLinkNo;

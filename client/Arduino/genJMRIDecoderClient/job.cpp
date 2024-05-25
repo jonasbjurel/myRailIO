@@ -53,7 +53,6 @@ job::job(uint16_t p_jobQueueDepth, const char* p_processTaskName,
 	jobId = jobCnt;
 	jobQueueDepth = p_jobQueueDepth;
 	processTaskName = p_processTaskName;
-	Serial.printf("¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ Starting job Id: %i, description %s\n", jobId, processTaskName);
 	processTaskPrio = p_processTaskPrio;
 	taskSorting = p_taskSorting;
 	wdtTimeoutMs = p_wdtTimeoutMs;

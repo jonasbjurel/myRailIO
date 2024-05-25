@@ -239,7 +239,7 @@ private:
     static void onCliSetSysNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Set System name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliSetSysName(cmd* p_cmd);                                                   //Set System name for context parser
-    virtual rc_t setSystemName(const char* p_systemName);                               //Set System name for context
+    virtual rc_t setSystemName(const char* p_systemName, bool p_force = false);         //Set System name for context
     static void onCliGetUsrNameHelper(cmd* p_cmd, cliCore* p_cliContext,                //Get User name helper
                                       cliCmdTable_t* p_cmdTable);
     void onCliGetUsrName(cmd* p_cmd);                                                   //Get User name for context parser
