@@ -751,7 +751,12 @@ void satLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link: %i", static_cast<satLink*>(p_cliContext)->getLink());
+    uint8_t link;
+    if ((link = static_cast<satLink*>(p_cliContext)->getLink()) == RC_NOT_CONFIGURED_ERR) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satelitelink address, satelitelink not configured");
+        return;
+    }
+    printCli("Satelite-link: %i", link);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -763,7 +768,17 @@ void satLink::onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_
     }
     rc_t rc;
     if (rc = static_cast<satLink*>(p_cliContext)->setLink(atoi(cmd.getArgument(1).getValue().c_str()))) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lgLink, return code: %i", rc);
+        switch (rc) {
+        case RC_DEBUG_NOT_SET_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite link address, debug flag not set, see: \"set debug\"");
+            break;
+        case RC_NOTIMPLEMENTED_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite link address, not implemented");
+            break;
+        default:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite link address, return code: %i", rc);
+            break;
+        }
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);

@@ -85,7 +85,6 @@ rc_t senseBase::init(void) {
     regCmdHelp(GET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_GET_SENSORPROPERTY_HELP_TXT);
     regCmdMoArg(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, onCliSetPropertyHelper);
     regCmdHelp(SET_CLI_CMD, SENSOR_MO_NAME, SENSORPROPERTY_SUB_MO_NAME, SENS_SET_SENSORPROPERTY_HELP_TXT);
-    LOG_INFO("%s: senseBase specific CLI methods reistered" CR, sensPort, satAddr, satLinkNo);
     return RC_OK;
 }
 
@@ -462,8 +461,8 @@ void senseBase::onCliGetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         return;
     }
     uint8_t port;
-    if ((port = static_cast<senseBase*>(p_cliContext)->getPort()) < 0) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, return code: %i", port);
+    if ((port = static_cast<senseBase*>(p_cliContext)->getPort()) == (uint8_t)RC_NOT_CONFIGURED_ERR) {
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor port, sensor not configured");
         return;
     }
     printCli("Sensor port: %i", port);
@@ -478,7 +477,17 @@ void senseBase::onCliSetPortHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
     }
     rc_t rc;
     if (rc = static_cast<senseBase*>(p_cliContext)->setPort(atoi(cmd.getArgument(1).getValue().c_str()))) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor port, return code: %i", rc);
+        switch (rc) {
+        case RC_DEBUG_NOT_SET_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor port, debug flag not set, see: \"set debug\"");
+            break;
+        case RC_NOTIMPLEMENTED_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor port, not implemented");
+            break;
+        default:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor port, return code: %i", rc);
+            break;
+        }
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);
@@ -493,7 +502,14 @@ void senseBase::onCliGetSensingHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdT
     rc_t rc;
     char sensing[50];
     if (rc = static_cast<senseBase*>(p_cliContext)->getSensing(sensing)) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor sensing, return code: %i", rc);
+        switch (rc) {
+        case RC_NOT_CONFIGURED_ERR:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor state, sensor not configured");
+            break;
+        default:
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor state, return code: %i", rc);
+            break;
+        }
         return;
     }
     printCli("Sensing: %s", sensing);
