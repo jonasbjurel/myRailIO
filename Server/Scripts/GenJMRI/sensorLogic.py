@@ -239,9 +239,9 @@ class sensor(systemState, schema):
     def getActivMethods(self):
         activeMethods = METHOD_VIEW | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_DISABLE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
-            activeMethods = activeMethods & ~METHOD_ENABLE
+            activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
-            activeMethods = activeMethods & ~METHOD_DISABLE & ~METHOD_EDIT & ~METHOD_DELETE
+            activeMethods = activeMethods & ~METHOD_DISABLE
         else: activeMethods = ""
         return activeMethods
 

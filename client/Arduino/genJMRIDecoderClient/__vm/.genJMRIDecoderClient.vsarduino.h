@@ -30,10 +30,9 @@
 #define ARDUINO_ARCH_ESP32 1
 #define ARDUINO_BOARD "ESP32_WROVER_KIT"
 #define ARDUINO_VARIANT "esp32"
-#define ARDUINO_PARTITION_min_spiffs 1
+#define ARDUINO_PARTITION_default 1
 #define ESP32 1
-#define CORE_DEBUG_LEVEL 1
-#define BOARD_HAS_PSRAM 1
+#define CORE_DEBUG_LEVEL 0
 #define ARDUINO_USB_CDC_ON_BOOT 0
 #define __cplusplus 201103L
 
