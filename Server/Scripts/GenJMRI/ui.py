@@ -26,7 +26,8 @@ imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
-
+imp.load_source('tz', '..\\tz\\tz.py')
+from tz import *
 
 
 # Constants and definitions
@@ -1074,6 +1075,7 @@ class UI_topDialog(QDialog):
         self.parentObjHandle = parentObjHandle
         loadUi(TOP_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
+        self.timeZoneComboBox.addItems(tz.getClearTextTimeZones())
         self.displayValues()
         if edit:
             self.setEditable()
@@ -1094,7 +1096,7 @@ class UI_topDialog(QDialog):
         self.dateLineEdit.setEnabled(True)
         # General genJMRI services configuration
         self.ntpLineEdit.setEnabled(True)
-        self.timeZoneSpinBox.setEnabled(True)
+        self.timeZoneComboBox.setEnabled(True)
         self.rsyslogUrlLineEdit.setEnabled(True)
         self.logVerbosityComboBox.setEnabled(True)
         self.rsyslogFileLineEdit.setEnabled(True)
@@ -1131,12 +1133,11 @@ class UI_topDialog(QDialog):
         self.gitCoPushButton.setEnabled(False) #Missing functionality
         # General genJMRI Meta-data
         self.authorLineEdit.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
-        self.versionLineEdit.setEnabled(False)
+        self.descriptionLineEdit.setEnabled(False) 
         self.dateLineEdit.setEnabled(False)
         # General genJMRI services configuration
         self.ntpLineEdit.setEnabled(False)
-        self.timeZoneSpinBox.setEnabled(False)
+        self.timeZoneComboBox.setEnabled(False)
         self.rsyslogUrlLineEdit.setEnabled(False)
         self.logVerbosityComboBox.setEnabled(False)
         self.rsyslogFileLineEdit.setEnabled(False)
@@ -1177,7 +1178,7 @@ class UI_topDialog(QDialog):
         self.dateLineEdit.setText(str(self.parentObjHandle.date.value))
         # General genJMRI services configuration
         self.ntpLineEdit.setText(str(self.parentObjHandle.ntpUri.value))
-        self.timeZoneSpinBox.setValue(self.parentObjHandle.tz.value)
+        self.timeZoneComboBox.setCurrentText(self.parentObjHandle.tzClearText.value)
         self.rsyslogUrlLineEdit.setText(self.parentObjHandle.rsyslogUrl.value)
         self.logVerbosityComboBox.setCurrentText(str(long2shortVerbosity(self.parentObjHandle.logVerbosity.value)))
         self.rsyslogFileLineEdit.setText(self.parentObjHandle.logFile.value)
@@ -1214,7 +1215,8 @@ class UI_topDialog(QDialog):
         self.parentObjHandle.date.value = self.dateLineEdit.displayText()
         # General genJMRI services configuration
         self.parentObjHandle.ntpUri.value = self.ntpLineEdit.displayText()
-        self.parentObjHandle.tz.value = self.timeZoneSpinBox.value()
+        self.parentObjHandle.tzClearText.value = self.timeZoneComboBox.currentText()
+        self.parentObjHandle.tzEncodedText.value = tz.getEncodedTimeZones(self.parentObjHandle.tzClearText.candidateValue)
         self.parentObjHandle.rsyslogUrl.value = self.rsyslogUrlLineEdit.displayText()
         self.parentObjHandle.logVerbosity.value = short2longVerbosity(self.logVerbosityComboBox.currentText())
         self.parentObjHandle.logFile.value = self.rsyslogFileLineEdit.displayText()

@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>870</width>
+    <width>883</width>
     <height>1310</height>
    </rect>
   </property>
@@ -346,36 +346,6 @@
    </property>
    <property name="text">
     <string>pool.ntp.org</string>
-   </property>
-  </widget>
-  <widget class="QSpinBox" name="timeZoneSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>650</x>
-     <y>740</y>
-     <width>201</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="toolTip">
-    <string>TimeZone setting</string>
-   </property>
-   <property name="toolTipDuration">
-    <number>10</number>
-   </property>
-   <property name="whatsThis">
-    <string>TimeZone setting</string>
-   </property>
-   <property name="minimum">
-    <number>-12</number>
-   </property>
-   <property name="maximum">
-    <number>12</number>
    </property>
   </widget>
   <widget class="QLineEdit" name="rsyslogUrlLineEdit">
@@ -1789,6 +1759,42 @@
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="timeZoneComboBox">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>740</y>
+     <width>201</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>TimeZone- and daylight saving setting</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>10</number>
+   </property>
+   <property name="whatsThis">
+    <string>TimeZone- and daylight saving setting</string>
+   </property>
+   <property name="editable">
+    <bool>true</bool>
+   </property>
+   <property name="currentText">
+    <string>Europe/Stockholm</string>
    </property>
   </widget>
  </widget>

@@ -40,7 +40,8 @@
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
 #define NTP_DEFAULT_PORT							123
-#define NTP_DEFAULT_TZ_AREA							"CET"
+#define NTP_DEFAULT_TZ_AREA_CLEAR_TEXT				"Etc/UTC"
+#define NTP_DEFAULT_TZ_AREA_ENCODED_TEXT			"UTC0"
 #define NTP_DEFAULT_TZ_GMTOFFSET					+1
 #define NTP_MAX_NTPSERVERS							3
 #define NTP_POLL_PERIOD_S							60

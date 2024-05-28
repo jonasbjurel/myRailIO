@@ -27,8 +27,13 @@ from topDecoderLogic import *
 # MAIN
 #################################################################################################################################################
 if __name__ == '__main__':
+    print("0")
     app = QApplication(sys.argv)
+    print("1")
     win = UI_mainWindow()
+    print("2")
     win.setParentObjHandle(topDecoder(win))
+    print("3")
     win.show()
+    print("4")
     sys.exit(app.exec())

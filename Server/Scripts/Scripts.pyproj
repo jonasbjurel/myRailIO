@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{dcd4e9af-0405-4d2e-b869-e99650f9fa08}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>.\genJMRI\genJMRId.py</StartupFile>
+    <StartupFile>GenJMRI\genJMRId.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.\genJMRI</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -21,7 +21,6 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="alarmHandler.py" />
     <Compile Include="alarmHandler\alarmHandler.py" />
     <Compile Include="GenJMRI\actuatorLogic.py" />
     <Compile Include="GenJMRI\config.py" />
@@ -63,6 +62,9 @@
     <Compile Include="test\decoderSim.py" />
     <Compile Include="trace\trace.py" />
     <Compile Include="trace\traceTestBench.py" />
+    <Compile Include="tz\tz.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="xml\parseXml.py" />
     <Compile Include="__init__.py" />
   </ItemGroup>
@@ -93,6 +95,7 @@
     <Content Include="GenJMRI\ui\Top_Dialog.ui" />
     <Content Include="requirements.txt" />
     <Content Include="todo.txt" />
+    <Content Include="tz\zones.csv" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="GenJMRI" />
@@ -110,6 +113,7 @@
     <Folder Include="sysState" />
     <Folder Include="test" />
     <Folder Include="trace" />
+    <Folder Include="tz\" />
     <Folder Include="xml" />
   </ItemGroup>
   <ItemGroup>

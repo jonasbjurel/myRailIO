@@ -43,9 +43,7 @@ void ntpTime::init(void) {
 	ntpDescriptor.ntpServerIndexMap = 0;
 	ntpDescriptor.opState = NTP_CLIENT_DISABLED | NTP_CLIENT_NOT_SYNCHRONIZED;
 	ntpDescriptor.dhcp = false;
-	char defaultTz[20];
-	sprintf(defaultTz, "%s%+.2i", NTP_DEFAULT_TZ_AREA, NTP_DEFAULT_TZ_GMTOFFSET);
-	setTz(defaultTz);
+	setTz(NTP_DEFAULT_TZ_AREA_ENCODED_TEXT);
 	ntpDescriptor.syncMode = NTP_DEFAULT_SYNCMODE;
 	ntpDescriptor.syncStatus = SNTP_SYNC_STATUS_RESET;
 	ntpDescriptor.noOfServers = 0;

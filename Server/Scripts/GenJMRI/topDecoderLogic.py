@@ -54,6 +54,8 @@ from rc import rc
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
+imp.load_source('tz', '..\\tz\\tz.py')
+from tz import *
 
 
 
@@ -89,8 +91,7 @@ RPC_DISCONNECTED_FAILURE =              0b00000010
 RPC_SERVER_MQTT_DISCONNECTED_FAILURE =  0b00000100
 
 
-#TODO:
-#HANDLE CLIENTID IN A MORE GENERIC WAY
+
 class topDecoder(systemState, schema):
     def __init__(self, win, demo=False):
         self.topDecoderOpDownStreamTopic = (MQTT_JMRI_PRE_TOPIC + MQTT_TOPDECODER_TOPIC + MQTT_OPSTATE_TOPIC_DOWNSTREAM)[:-1]
@@ -142,8 +143,9 @@ class topDecoder(systemState, schema):
         self.JMRIRpcKeepAlivePeriod.value = DEFAULT_JMRI_RPC_KEEPALIVE_PERIOD
         self.ntpUri.value = DEFAULT_NTP_SERVER
         self.ntpPort.value = DEFAULT_NTP_PORT
-        #SET SAME TIMEZONE AS SERVER
-        self.tz.value = 0
+        #SET SAME TIMEZONE AS SERVER TO BE FIXED
+        self.tzClearText.value = "Etc/UTC"
+        self.tzEncodedText.value = tz.getEncodedTimeZones(self.tzClearText.candidateValue)
         probeSocket = socket(AF_INET, SOCK_DGRAM)                                                       # Get local host IP address to use as default
         probeSocket.settimeout(0)
         try:
@@ -240,7 +242,7 @@ class topDecoder(systemState, schema):
                                                     "DecoderMqttTopicPrefix": OPTSTR,
                                                     "NTPServer": OPTSTR,
                                                     "NTPPort": OPTINT,
-                                                    "TimeZoneGmtOffset": OPTINT,
+                                                    "TimeZoneClearText": OPTSTR,
                                                     "RSyslogServer": OPTSTR,
                                                     "RSyslogPort" : OPTINT,
                                                     "RSyslogProtocol" : OPTSTR,
@@ -274,7 +276,10 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("DecoderMqttTopicPrefix") != None: self.decoderMqttTopicPrefix.value = topDecoderXmlConfig.get("DecoderMqttTopicPrefix")
             if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = topDecoderXmlConfig.get("NTPServer")
             if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
-            if topDecoderXmlConfig.get("TimeZoneGmtOffset") != None: self.tz.value = int(topDecoderXmlConfig.get("TimeZoneGmtOffset"))
+#FIX THIS TZ
+            if topDecoderXmlConfig.get("TimeZoneClearText") != None:
+                self.tzClearText.value = topDecoderXmlConfig.get("TimeZoneClearText")
+                self.tzEncodedText.value = tz.getEncodedTimeZones(self.tzClearText.candidateValue)
             if topDecoderXmlConfig.get("RSyslogServer") != None: self.rsyslogUrl.value = topDecoderXmlConfig.get("RSyslogServer")
             if topDecoderXmlConfig.get("RSyslogPort") != None: self.rsyslogPort.value = topDecoderXmlConfig.get("RSyslogPort")
             if topDecoderXmlConfig.get("RSyslogProtocol") != None: self.rsyslogProtocol.value = topDecoderXmlConfig.get("RSyslogProtocol")
@@ -572,8 +577,14 @@ class topDecoder(systemState, schema):
             if self.ntpUri.value: childXml.text = self.ntpUri.value
             childXml = ET.SubElement(topXml, "NTPPort")
             if self.ntpPort.value: childXml.text = str(self.ntpPort.value)
-            childXml = ET.SubElement(topXml, "TimeZoneGmtOffset")
-            if self.tz.value: childXml.text = "%+d" % (self.tz.value)
+            if not decoder:
+                childXml = ET.SubElement(topXml, "TimeZoneClearText")
+                if self.tzClearText.value: childXml.text = self.tzClearText.value
+            else:
+                childXml = ET.SubElement(topXml, "TimeZoneClearText")
+                if self.tzClearText.value: childXml.text = self.tzClearText.value
+                childXml = ET.SubElement(topXml, "TimeZoneEncodedText")
+                if self.tzEncodedText.value: childXml.text = self.tzEncodedText.value
             childXml = ET.SubElement(topXml, "RSyslogServer")
             if self.rsyslogUrl.value: childXml.text = self.rsyslogUrl.value
             childXml = ET.SubElement(topXml, "RSyslogPort")

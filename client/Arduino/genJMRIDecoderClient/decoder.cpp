@@ -91,9 +91,8 @@ decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_M
     xmlconfig[XML_DECODER_NTPURI] = createNcpystr(NTP_DEFAULT_URI); //SHOULD THIS ORIGINATE FROM networking
     xmlconfig[XML_DECODER_NTPPORT] = new (heap_caps_malloc(sizeof(char[6]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[6];
     xmlconfig[XML_DECODER_NTPPORT] = itoa(NTP_DEFAULT_PORT, xmlconfig[XML_DECODER_NTPPORT], 10); //SHOULD THIS ORIGINATE FROM networking
-    xmlconfig[XML_DECODER_TZ_AREA] = createNcpystr(NTP_DEFAULT_TZ_AREA);
-    xmlconfig[XML_DECODER_TZ_GMTOFFSET] = new (heap_caps_malloc(sizeof(char[4]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[4];
-    xmlconfig[XML_DECODER_TZ_GMTOFFSET] = itoa(NTP_DEFAULT_TZ_GMTOFFSET, xmlconfig[XML_DECODER_TZ_GMTOFFSET], 10);
+    xmlconfig[XML_DECODER_TZ_CLEAR_TEXT] = createNcpystr(NTP_DEFAULT_TZ_AREA_CLEAR_TEXT);
+    xmlconfig[XML_DECODER_TZ_ENCODED_TEXT] = createNcpystr(NTP_DEFAULT_TZ_AREA_ENCODED_TEXT);
     xmlconfig[XML_DECODER_LOGLEVEL] = createNcpystr(Log.transformLogLevelInt2XmlStr(DEFAULT_LOGLEVEL));
     xmlconfig[XML_DECODER_RSYSLOGSERVER] = NULL;
     xmlconfig[XML_DECODER_RSYSLOGPORT] = new (heap_caps_malloc(sizeof(char[4]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[6];
@@ -198,8 +197,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_MQTT_KEEPALIVEPERIOD] = "DecoderKeepAlivePerid";
     decoderSearchTags[XML_DECODER_NTPURI] = "NTPServer";
     decoderSearchTags[XML_DECODER_NTPPORT] = "NTPPort";
-    decoderSearchTags[XML_DECODER_TZ_AREA] = "TimeZoneArea"; //NEW FUNCTIONALITY FOR THE SERVER - we should fail back to CET
-    decoderSearchTags[XML_DECODER_TZ_GMTOFFSET] = "TimeZoneGmtOffset";
+    decoderSearchTags[XML_DECODER_TZ_CLEAR_TEXT] = "TimeZoneClearText";
+    decoderSearchTags[XML_DECODER_TZ_ENCODED_TEXT] = "TimeZoneEncodedText";
     decoderSearchTags[XML_DECODER_LOGLEVEL] = "LogLevel";
     decoderSearchTags[XML_DECODER_RSYSLOGSERVER] = "RSyslogServer";
     decoderSearchTags[XML_DECODER_RSYSLOGPORT] = "RSyslogPort";
@@ -219,8 +218,8 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_MQTT_KEEPALIVEPERIOD] = NULL;
     decoderSearchTags[XML_DECODER_NTPURI] = NULL;
     decoderSearchTags[XML_DECODER_NTPPORT] = NULL;
-    decoderSearchTags[XML_DECODER_TZ_AREA] = NULL;
-    decoderSearchTags[XML_DECODER_TZ_GMTOFFSET] = NULL;
+    decoderSearchTags[XML_DECODER_TZ_CLEAR_TEXT] = NULL;
+    decoderSearchTags[XML_DECODER_TZ_ENCODED_TEXT] = NULL;
     decoderSearchTags[XML_DECODER_LOGLEVEL] = NULL;
     decoderSearchTags[XML_DECODER_RSYSLOGSERVER] = NULL;
     decoderSearchTags[XML_DECODER_RSYSLOGPORT] = NULL;
@@ -235,9 +234,6 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
 
     //VALIDATING AND SETTING OF CONFIGURATION
     LOG_INFO("%s: Validating and setting provided decoder configuration" CR, logContextName);
-
-    char tz[20];
-    sprintf(tz, "%s%+.2i", xmlconfig[XML_DECODER_TZ_AREA], atoi(xmlconfig[XML_DECODER_TZ_AREA]));
     bool failSafe;
     if(!strcmp(xmlconfig[XML_DECODER_FAILSAFE], MQTT_BOOL_TRUE_PAYLOAD))
         failSafe = true;
@@ -308,6 +304,9 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         else
             ntpTime::start();
     }
+    LOG_TERSE("Seting timezone to %s (%s)" CR, xmlconfig[XML_DECODER_TZ_CLEAR_TEXT], xmlconfig[XML_DECODER_TZ_ENCODED_TEXT]);
+	if(uint8_t rc = setTz(xmlconfig[XML_DECODER_TZ_ENCODED_TEXT], true))
+        LOG_WARN("Could not set time-zone, rc: %i" CR, rc);
     if (xmlconfig[XML_DECODER_SYSNAME] == NULL) {
         panic("%s: System name was not provided", logContextName);
         return;
@@ -352,7 +351,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     LOG_INFO("%s: MQTT Prefix: \"%s\"" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PREFIX], MQTT_PRE_TOPIC_DEFAULT_FRAGMENT);
     LOG_INFO("%s: MQTT Ping-period: %s" CR, logContextName, xmlconfig[XML_DECODER_MQTT_PINGPERIOD]);
     LOG_INFO("%s: NTP Server: \"%s:%s\"" CR, logContextName, xmlconfig[XML_DECODER_NTPURI], xmlconfig[XML_DECODER_NTPPORT]);
-    LOG_INFO("%s: Time-zone: \"%s\"" CR, logContextName, tz);
+    LOG_INFO("%s: Time-zone: \"%s\" (\"%s\")" CR, logContextName, xmlconfig[XML_DECODER_TZ_CLEAR_TEXT], xmlconfig[XML_DECODER_TZ_ENCODED_TEXT]);
     LOG_INFO("%s: Log-level: %s" CR, logContextName, xmlconfig[XML_DECODER_LOGLEVEL]);
     LOG_INFO("%s: Decoder fail-safe: %s" CR, logContextName, xmlconfig[XML_DECODER_FAILSAFE]);
     LOG_INFO("%s: Decoder MAC: %s" CR, logContextName, xmlconfig[XML_DECODER_MAC]);
@@ -780,70 +779,8 @@ rc_t decoder::setTz(const char* p_tz, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else {
-        char tzTmp[20];
-        strcpy(tzTmp, p_tz);
-        char tzAreaTmp[20] = { '\0' };
-        char offsetTmp[3] = { '\0' };
-        char* token;
-        char delim[2];
-        bool posetive;
-        bool found = false;
-        if (tzTmp[0] == '-' || tzTmp[0] == '+' || tzTmp[strlen(tzTmp) - 1] == '-' || tzTmp[strlen(tzTmp) - 1] == '+') {
-            LOG_ERROR("%s: TZ string \"%s\" missformatted" CR, logContextName, p_tz);
-            return RC_PARAMETERVALUE_ERR;
-        }
-        else {
-            for (int i = 0; i < strlen(tzTmp); i++) {
-                if (tzTmp[i] == '+') {
-                    posetive = true;
-                    if (found) {
-                        LOG_ERROR("%s: TZ string \"%s\" missformatted" CR, logContextName, p_tz);
-                        return RC_PARAMETERVALUE_ERR;
-                        break;
-                    }
-                    found = true;
-                }
-                if (tzTmp[i] == '-') {
-                    posetive = false;
-                    if (found) {
-                        LOG_ERROR("%s: TZ string \"%s\" missformatted" CR, logContextName, p_tz);
-                        return RC_PARAMETERVALUE_ERR;
-                        break;
-                    }
-                    found = true;
-                }
-            }
-        }
-        if (!found) {
-            LOG_WARN("%s: TZ string \"%s\" does not contain a GMT offset - using \"+00\"" CR, logContextName, p_tz);
-            strcpy(xmlconfig[XML_DECODER_TZ_AREA], p_tz);
-            itoa(0, xmlconfig[XML_DECODER_TZ_GMTOFFSET], 10);
-            return ntpTime::setTz(p_tz);
-        }
-        if (posetive)
-            strcpy(delim, "+");
-        else
-            strcpy(delim, "-");
-        token = strtok(tzTmp, delim);
-        for (int i = 0; i < 2; i++) {
-            if (i == 0)
-                strcpy(tzAreaTmp, token);
-            if (i == 1){
-                if(isIntNumberStr(token)){
-                    if (posetive)
-                        sprintf(offsetTmp, "% +.2i" ,atoi(token));
-                    else
-                        sprintf(offsetTmp, "%+.2i", -atoi(token));
-                }
-                else {
-                    return RC_PARAMETERVALUE_ERR;
-                    break;
-                }
-            }
-            token = strtok(NULL, delim);
-        }
-        strcpy(xmlconfig[XML_DECODER_TZ_AREA], tzAreaTmp);
-        strcpy(xmlconfig[XML_DECODER_TZ_GMTOFFSET], offsetTmp);
+		delete xmlconfig[XML_DECODER_TZ_ENCODED_TEXT];
+        xmlconfig[XML_DECODER_TZ_ENCODED_TEXT] = createNcpystr(p_tz);
         LOG_INFO("Setting TZ to \"%s\"" CR, p_tz);
         return ntpTime::setTz(p_tz, NULL);
     }
@@ -854,8 +791,7 @@ rc_t decoder::getTz(char* p_tz, bool p_force) {
         LOG_ERROR("%s: Cannot get Time-zone as decoder is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-
-    sprintf(p_tz, "%s%+.2i", xmlconfig[XML_DECODER_TZ_AREA], atoi(xmlconfig[XML_DECODER_TZ_AREA]));
+    strcpy(p_tz, xmlconfig[XML_DECODER_TZ_ENCODED_TEXT]);
     return RC_OK;
 }
 

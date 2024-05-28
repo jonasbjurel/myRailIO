@@ -165,8 +165,7 @@ class time_t(base_t):
 
 class tz_t(base_t):
     def validate(self, value):
-        assert type(value) == int, "tz_t didnt pass type check"
-        assert (value >= -12 and value <= 12), "tz_t didnt pass syntax check"
+        assert type(value) == str, "tz_t didnt pass type check"
 
 class adminState_t(base_t):
     def validate(self, value):
