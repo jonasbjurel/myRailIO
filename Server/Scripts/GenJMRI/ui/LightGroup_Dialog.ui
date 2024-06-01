@@ -297,27 +297,6 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLineEdit" name="JMRISystemNameLineEdit">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>10</y>
-     <width>541</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="readOnly">
-    <bool>false</bool>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_15">
    <property name="geometry">
     <rect>
@@ -426,7 +405,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLineEdit" name="descriptionLineEdit">
+  <widget class="QLineEdit" name="JMRIDescriptionLineEdit">
    <property name="geometry">
     <rect>
      <x>230</x>
@@ -464,51 +443,6 @@
    <item>
     <property name="text">
      <string>SIGNAL MAST</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>EMERGENCY</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>SEQUENCE LIGHT</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>WELDING</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>FLUOROCENT</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>FIRE PLACE</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>INDOOR LAMP</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>STREET LIGHT</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>TELEVISION</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>AMBIENT CLOCK</string>
     </property>
    </item>
   </widget>
@@ -652,6 +586,27 @@
     <font>
      <pointsize>10</pointsize>
     </font>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="JMRISystemNameComboBox">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>10</y>
+     <width>541</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="acceptDrops">
+    <bool>true</bool>
+   </property>
+   <property name="editable">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>

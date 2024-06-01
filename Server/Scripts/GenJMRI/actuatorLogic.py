@@ -90,10 +90,10 @@ class actuator(systemState, schema):
         if name:
             self.jmriActSystemName.value = name
         else:
-            self.jmriActSystemName.value = "MT-NewTurnoutSysName"
+            self.jmriActSystemName.value = "MT-MyNewTurnoutSysName"
         self.nameKey.value = "Turn-" + self.jmriActSystemName.candidateValue
-        self.userName.value = "MT-NewTurnoutUsrName"
-        self.description.value = "MS-NewActDescription"
+        self.userName.value = "MyNewTurnoutUsrName"
+        self.description.value = "MyNewTurnoutDescription"
         self.actPort.value = 0
         self.actType.value = "TURNOUT"
         self.actSubType.value = "SOLENOID"
@@ -256,11 +256,11 @@ class actuator(systemState, schema):
         pass
 
     def view(self):
-        self.dialog = UI_actuatorDialog(self, edit=False)
+        self.dialog = UI_actuatorDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_actuatorDialog(self, edit=True)
+        self.dialog = UI_actuatorDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self): #Just from the template - not applicable for this object leaf

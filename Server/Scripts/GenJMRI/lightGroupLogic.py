@@ -90,10 +90,10 @@ class lightGroup(systemState, schema):
         if name:
             self.jmriLgSystemName.value = name
         else:
-            self.jmriLgSystemName.value = "IF$vsm:Sweden-3HMS:SL-5HL($001)" #THIS DEFAULT VALUE NEEDS TO CHANGE
+            self.jmriLgSystemName.value = "IF$vsm:Sweden-3HMS:SL-5HL($0001)"
         self.nameKey.value = "GJLG-NewLightGroup-" + self.jmriLgSystemName.candidateValue
-        self.userName.value = "GJLG-NewLightGroupUsrName"
-        self.description.value = "GJLG-NewLightGroupUsrDescription"
+        self.userName.value = "MyNewSignalMastUsrName"
+        self.description.value = "MyNewSignalMastDescription"
         self.lgLinkAddr.value = 0
         self.lgType.value = "SIGNAL MAST"
         self.lgProperty1.value = ""
@@ -170,7 +170,6 @@ class lightGroup(systemState, schema):
             trace.notify(DEBUG_INFO, self.nameKey.value + "Successfully configured")
         self.mqttLgReqTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHTGROUPREQ_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
         self.mqttLgTopic = MQTT_JMRI_PRE_TOPIC + MQTT_LIGHTGROUP_TOPIC + MQTT_STATE_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriLgSystemName.value
-        print("XXXXXXXXXXXXXX Subscribing to Lg MQTT Topic: " + self.mqttLgReqTopic + " to serve Lg MQTT requests")
         trace.notify(DEBUG_TERSE, "Subscribing to Lg MQTT Topic: " + self.mqttLgReqTopic + " to serve Lg MQTT requests")
         self.mqttClient.subscribeTopic(self.mqttLgReqTopic, self.__LgMqttReqListener)
         return rc.OK
@@ -273,11 +272,11 @@ class lightGroup(systemState, schema):
         pass
 
     def view(self):
-        self.dialog = UI_lightGroupDialog(self, edit=False)
+        self.dialog = UI_lightGroupDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_lightGroupDialog(self, edit=True)
+        self.dialog = UI_lightGroupDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self): #Just from the template - not applicable for this object leaf

@@ -32,6 +32,7 @@ class jmriObj():
         except:
             pass
 
+
     @staticmethod
     def getGenJMRITypeFromJMRIType(JMRIType):
         return jmriObj.OBJ_STR.index(JMRIType)

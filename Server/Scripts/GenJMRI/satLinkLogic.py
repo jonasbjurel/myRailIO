@@ -87,10 +87,10 @@ class satLink(systemState, schema):
         if name:
             self.satLinkSystemName.value = name
         else:
-            self.satLinkSystemName.value = "GJSL-NewSatLinkSysName"
+            self.satLinkSystemName.value = "GJSL-MyNewSatLinkSysName"
         self.nameKey.value = "SatLink-" + self.satLinkSystemName.candidateValue
-        self.userName.value = "GJSL-NewSatLinkUsrName"
-        self.description.value = "New Satelite link"
+        self.userName.value = "MyNewSatLinkUsrName"
+        self.description.value = "MyNewSatlinkDescription"
         self.satLinkNo.value = 0
         self.commitAll()
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE_LINK, displayIcon=LINK_ICON)
@@ -310,7 +310,7 @@ class satLink(systemState, schema):
                 trace.notify(DEBUG_INFO, "Satelite: " + self.satelites.value[-1].nameKey.value + " successfully added to satelite link " + self.nameKey.value)
                 return rc.OK
             if config:
-                self.dialog = UI_sateliteDialog(self.satelites.candidateValue[-1], edit=True)
+                self.dialog = UI_sateliteDialog(self.satelites.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
@@ -332,11 +332,11 @@ class satLink(systemState, schema):
         return rc.OK
 
     def view(self):
-        self.dialog = UI_satLinkDialog(self, edit=False)
+        self.dialog = UI_satLinkDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_satLinkDialog(self, edit=True)
+        self.dialog = UI_satLinkDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self):

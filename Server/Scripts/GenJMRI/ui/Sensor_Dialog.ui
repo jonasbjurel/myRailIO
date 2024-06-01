@@ -298,30 +298,6 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLineEdit" name="JMRISystemNameLineEdit">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>20</y>
-     <width>541</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
-   </property>
-   <property name="whatsThis">
-    <string>JMRI provided actuator system name</string>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="readOnly">
-    <bool>false</bool>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_15">
    <property name="geometry">
     <rect>
@@ -436,7 +412,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLineEdit" name="descriptionLineEdit">
+  <widget class="QLineEdit" name="JMRIDescriptionLineEdit">
    <property name="geometry">
     <rect>
      <x>230</x>
@@ -541,6 +517,33 @@
    </property>
    <property name="maximum">
     <number>7</number>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="JMRISystemNameComboBox">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>20</y>
+     <width>541</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::StrongFocus</enum>
+   </property>
+   <property name="acceptDrops">
+    <bool>true</bool>
+   </property>
+   <property name="whatsThis">
+    <string>JMRI provided actuator system name</string>
+   </property>
+   <property name="editable">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>

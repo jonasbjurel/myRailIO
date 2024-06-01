@@ -81,10 +81,10 @@ class lgLink(systemState, schema):
         if name:
             self.lgLinkSystemName.value = name
         else:
-            self.lgLinkSystemName.value = "GJLL-NewLgLinkSysName"
+            self.lgLinkSystemName.value = "GJLL-MyNewLgLinkSysName"
         self.nameKey.value = "LgLink-" + self.lgLinkSystemName.candidateValue
-        self.userName.value = "GJLL-NewLgLinkUsrName"
-        self.description.value = "New Light group link"
+        self.userName.value = "MyNewLgLinkUsrName"
+        self.description.value = "MyNewLgLinkDescription"
         self.lgLinkNo.value = 0
         self.mastDefinitionPath.value = "C:\\Program Files (x86)\\JMRI\\xml\\signals\\Sweden-3HMS"
         self.commitAll()
@@ -309,9 +309,8 @@ class lgLink(systemState, schema):
                 trace.notify(DEBUG_INFO, "Light group: " + self.lightGroups.value[-1].nameKey.value + " successfully added to light group link " + self.nameKey.value)
                 return rc.OK
             if config:
-                self.dialog = UI_lightGroupDialog(self.lightGroups.candidateValue[-1], edit=True)
+                self.dialog = UI_lightGroupDialog(self.lightGroups.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
-                trace.notify(DEBUG_INFO, "Light group: " + self.lightGroups.candidateValue[-1].nameKey.value + " successfully added to light group link " + self.nameKey.value)
                 self.reEvalOpState()
                 return rc.OK
             trace.notify(DEBUG_ERROR, "Light group link could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\: " + ("Provided" if configXml else "Not provided") + " \"demo\": " + str(demo))
@@ -332,11 +331,11 @@ class lgLink(systemState, schema):
         return rc.OK
 
     def view(self):
-        self.dialog = UI_lightgroupsLinkDialog(self, edit=False)
+        self.dialog = UI_lightgroupsLinkDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_lightgroupsLinkDialog(self, edit=True)
+        self.dialog = UI_lightgroupsLinkDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self):

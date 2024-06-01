@@ -15,6 +15,8 @@ import threading
 import traceback
 from momResources import *
 import imp
+imp.load_source('rpc', '..\\rpc\\JMRIObjects.py')
+from rpc import jmriObj
 imp.load_source('alarmHandler', '..\\alarmHandler\\alarmHandler.py')
 from alarmHandler import *
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"\\..\\trace\\")
@@ -28,6 +30,8 @@ imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 imp.load_source('tz', '..\\tz\\tz.py')
 from tz import *
+imp.load_source('jmriObj', '..\\rpc\\JMRIObjects.py')
+from jmriObj import *
 
 
 # Constants and definitions
@@ -1300,9 +1304,11 @@ class UI_topDialog(QDialog):
 
 
 class UI_decoderDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(DECODER_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
         self.displayValues()
@@ -1312,11 +1318,14 @@ class UI_decoderDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.sysNameLineEdit.setEnabled(True)
-        self.usrNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameLineEdit.setEnabled(True)
+        else:
+            self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.uriLineEdit.setEnabled(True)
         self.macLineEdit.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1325,11 +1334,11 @@ class UI_decoderDialog(QDialog):
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.sysNameLineEdit.setEnabled(False)
-        self.usrNameLineEdit.setEnabled(False)
+        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.uriLineEdit.setEnabled(False)
         self.macLineEdit.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1338,11 +1347,11 @@ class UI_decoderDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.sysNameLineEdit.setText(self.parentObjHandle.decoderSystemName.value)
-        self.usrNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRISystemNameLineEdit.setText(self.parentObjHandle.decoderSystemName.value)
+        self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.uriLineEdit.setText(self.parentObjHandle.decoderMqttURI.value)
         self.macLineEdit.setText(self.parentObjHandle.mac.value)
-        self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.opStateSummaryLineEdit.setText(self.parentObjHandle.getOpStateSummary()[STATE_STR])
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -1351,15 +1360,15 @@ class UI_decoderDialog(QDialog):
 
     def setValues(self):
         try:
-            self.parentObjHandle.decoderSystemName.value = self.sysNameLineEdit.displayText()
-            self.parentObjHandle.userName.value = self.usrNameLineEdit.displayText()
+            self.parentObjHandle.decoderSystemName.value = self.JMRISystemNameLineEdit.displayText()
+            self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
             self.parentObjHandle.decoderMqttURI.value = self.uriLineEdit.displayText()
             self.parentObjHandle.mac.value = self.macLineEdit.displayText()
-            self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
         except AssertionError as configError:
             return configError
         if self.adminStateForceCheckBox.isChecked():
-            self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
+            res = self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
         else:
             res = self.parentObjHandle.setAdmState(self.adminStateComboBox.currentText())
         if res != rc.OK:
@@ -1401,9 +1410,11 @@ class UI_decoderDialog(QDialog):
 
 
 class UI_lightgroupsLinkDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(LIGHTGROUP__LINK_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
         self.displayValues()
@@ -1413,23 +1424,26 @@ class UI_lightgroupsLinkDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.sysNameLineEdit.setEnabled(True)
-        self.usrNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameLineEdit.setEnabled(True)
+        else:
+            self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.linkNoSpinBox.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
         self.mastDefinitionPathLineEdit.setEnabled(True)
-        self.opStateSummaryLineEdit.setEnabled(True)
-        self.opStateDetailLineEdit.setEnabled(True)
-        self.upTimeLineEdit.setEnabled(True)
+        self.opStateSummaryLineEdit.setEnabled(False)
+        self.opStateDetailLineEdit.setEnabled(False)
+        self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.sysNameLineEdit.setEnabled(False)
-        self.usrNameLineEdit.setEnabled(False)
+        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.linkNoSpinBox.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
         self.mastDefinitionPathLineEdit.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
@@ -1439,10 +1453,10 @@ class UI_lightgroupsLinkDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.sysNameLineEdit.setText(self.parentObjHandle.lgLinkSystemName.value)
-        self.usrNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRISystemNameLineEdit.setText(self.parentObjHandle.lgLinkSystemName.value)
+        self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.linkNoSpinBox.setValue(self.parentObjHandle.lgLinkNo.value)
-        self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.mastDefinitionPathLineEdit.setText(self.parentObjHandle.mastDefinitionPath.value)
         self.opStateSummaryLineEdit.setText(str(self.parentObjHandle.getOpStateSummary()[STATE_STR]))
         self.opStateDetailLineEdit.setText(str(self.parentObjHandle.getOpStateDetailStr()))
@@ -1452,25 +1466,25 @@ class UI_lightgroupsLinkDialog(QDialog):
 
     def setValues(self):
         try:
-            self.parentObjHandle.lgLinkSystemName.value = self.sysNameLineEdit.displayText()
-            self.parentObjHandle.userName.value = self.usrNameLineEdit.displayText()
+            self.parentObjHandle.lgLinkSystemName.value = self.JMRISystemNameLineEdit.displayText()
+            self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
             self.parentObjHandle.lgLinkNo.value = self.linkNoSpinBox.value()
-            self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
             self.parentObjHandle.mastDefinitionPath.value = self.mastDefinitionPathLineEdit.displayText()
         except AssertionError as configError:
             return configError
         if self.adminStateForceCheckBox.isChecked():
-            self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
+            res = self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
         else:
             res = self.parentObjHandle.setAdmState(self.adminStateComboBox.currentText())
-            if res:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Error could not change Adm State")
-                msg.setInformativeText('ReturnCode: ' + str(res))
-                msg.setWindowTitle("Error")
-                msg.exec_()
-                return res
+        if res:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not change Adm State")
+            msg.setInformativeText('ReturnCode: ' + str(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return res
         return rc.OK
 
     def connectWidgetSignalsSlots(self):
@@ -1501,9 +1515,11 @@ class UI_lightgroupsLinkDialog(QDialog):
 
 
 class UI_satLinkDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(SATLINK_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
         self.displayValues()
@@ -1513,28 +1529,32 @@ class UI_satLinkDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.sysNameLineEdit.setEnabled(True)
-        self.usrNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameLineEdit.setEnabled(True)
+        else:
+            self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.linkNoSpinBox.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
-        self.opStateSummaryLineEdit.setEnabled(True)
-        self.opStateDetailLineEdit.setEnabled(True)
-        self.upTimeLineEdit.setEnabled(True)
+        self.opStateSummaryLineEdit.setEnabled(False)
+        self.opStateDetailLineEdit.setEnabled(False)
+        self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
-        self.rxCrcErrLineEdit.setEnabled(True)
-        self.remCrcErrLineEdit.setEnabled(True)
-        self.rxSymErrLineEdit.setEnabled(True)
-        self.rxSizeErrLineEdit.setEnabled(True)
-        self.wdErrLineEdit.setEnabled(True)
+        self.rxCrcErrLineEdit.setEnabled(False)
+        self.remCrcErrLineEdit.setEnabled(False)
+        self.rxSymErrLineEdit.setEnabled(False)
+        self.rxSizeErrLineEdit.setEnabled(False)
+        self.wdErrLineEdit.setEnabled(False)
         self.clearStatsPushButton.setEnabled(True)
+        self.updateStatsPushButton.setEnabled(True)
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.sysNameLineEdit.setEnabled(False)
-        self.usrNameLineEdit.setEnabled(False)
+        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(False)
         self.linkNoSpinBox.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1546,13 +1566,14 @@ class UI_satLinkDialog(QDialog):
         self.rxSizeErrLineEdit.setEnabled(False)
         self.wdErrLineEdit.setEnabled(False)
         self.clearStatsPushButton.setEnabled(True)
+        self.updateStatsPushButton.setEnabled(True)
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.sysNameLineEdit.setText(self.parentObjHandle.satLinkSystemName.value)
-        self.usrNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRISystemNameLineEdit.setText(self.parentObjHandle.satLinkSystemName.value)
+        self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
         self.linkNoSpinBox.setValue(self.parentObjHandle.satLinkNo.value)
-        self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.opStateSummaryLineEdit.setText(self.parentObjHandle.getOpStateSummary()[STATE_STR])
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -1560,44 +1581,40 @@ class UI_satLinkDialog(QDialog):
         self.adminStateForceCheckBox.setChecked(False)
         self.displayStats()
 
+    def setValues(self):
+        try:
+            self.parentObjHandle.satLinkSystemName.value = self.JMRISystemNameLineEdit.displayText()
+            self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
+            self.parentObjHandle.satLinkNo.value = self.linkNoSpinBox.value()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
+        except AssertionError as configError:
+            return configError
+        if self.adminStateForceCheckBox.isChecked():
+            res = self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
+        else:
+            res = self.parentObjHandle.setAdmState(self.adminStateComboBox.currentText())
+        if res:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not change Adm State")
+            msg.setInformativeText('ReturnCode: ' + str(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return res
+        return rc.OK
+
+    def connectWidgetSignalsSlots(self):
+        self.confirmButtonBox.accepted.connect(self.accepted)
+        self.confirmButtonBox.rejected.connect(self.rejected)
+        self.updateStatsPushButton.clicked.connect(self.displayStats)
+        self.clearStatsPushButton.clicked.connect(self.clearStats)
+
     def displayStats(self):
         self.rxCrcErrLineEdit.setText(str(self.parentObjHandle.rxCrcErr))
         self.remCrcErrLineEdit.setText(str(self.parentObjHandle.remCrcErr))
         self.rxSymErrLineEdit.setText(str(self.parentObjHandle.rxSymErr))
         self.rxSizeErrLineEdit.setText(str(self.parentObjHandle.rxSizeErr))
         self.wdErrLineEdit.setText(str(self.parentObjHandle.wdErr))
-
-    def setValues(self):
-        try:
-            self.parentObjHandle.satLinkSystemName.value = self.sysNameLineEdit.displayText()
-            self.parentObjHandle.userName.value = self.usrNameLineEdit.displayText()
-            self.parentObjHandle.satLinkNo.value = self.linkNoSpinBox.value()
-            self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
-        except AssertionError as configError:
-            return configError
-        if self.adminStateForceCheckBox.isChecked():
-            self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
-        else:
-            res = self.parentObjHandle.setAdmState(self.adminStateComboBox.currentText())
-            if res:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Error could not change Adm State")
-                msg.setInformativeText('ReturnCode: ' + str(res))
-                msg.setWindowTitle("Error")
-                msg.exec_()
-                return res
-        return rc.OK
-
-    def connectWidgetSignalsSlots(self):
-        self.confirmButtonBox.accepted.connect(self.accepted)
-        self.confirmButtonBox.rejected.connect(self.rejected)
-
-        # Update Stats widget
-        self.updateStatsPushButton.clicked.connect(self.displayStats)
-
-        # Clear Stats widget
-        self.clearStatsPushButton.clicked.connect(self.clearStats)
 
     def clearStats(self):
         self.parentObjHandle.clearStats()
@@ -1627,9 +1644,11 @@ class UI_satLinkDialog(QDialog):
 
 
 class UI_lightGroupDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(LIGHTGROUP_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
         self.property1Geometry = self.lgProp1Box.geometry()
@@ -1646,12 +1665,19 @@ class UI_lightGroupDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.JMRISystemNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameComboBox.setEnabled(True)
+        else:
+            self.JMRISystemNameComboBox.setEnabled(False)
         self.JMRIUserNameLineEdit.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.lgLinkAddressSpinBox.setEnabled(True)
-        self.lgTypeComboBox.setEnabled(True)
-        self.lgProp1Box.setEnabled(True)
+        if self.newConfig:
+            self.lgTypeComboBox.setEnabled(True)
+            self.lgProp1Box.setEnabled(True)
+        else:
+            self.lgTypeComboBox.setEnabled(False)
+            self.lgProp1Box.setEnabled(False)
         self.lgProp2Box.setEnabled(True)
         self.lgProp3Box.setEnabled(True)
         self.opStateSummaryLineEdit.setEnabled(False)
@@ -1663,9 +1689,9 @@ class UI_lightGroupDialog(QDialog):
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRISystemNameComboBox.setEnabled(False)
         self.JMRIUserNameLineEdit.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.lgLinkAddressSpinBox.setEnabled(False)
         self.lgTypeComboBox.setEnabled(False)
         self.lgProp1Box.setEnabled(False)
@@ -1680,9 +1706,9 @@ class UI_lightGroupDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.JMRISystemNameLineEdit.setText(str(self.parentObjHandle.jmriLgSystemName.value))
-        self.JMRIUserNameLineEdit.setText(str(self.parentObjHandle.userName.value))
-        self.descriptionLineEdit.setText(str(self.parentObjHandle.description.value))
+        #self.JMRISystemNameComboBox.setCurrentText(str(self.parentObjHandle.jmriLgSystemName.value))
+        self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.lgLinkAddressSpinBox.setValue(self.parentObjHandle.lgLinkAddr.value)
         self.lgTypeComboBox.setCurrentText(str(self.parentObjHandle.lgType.value))
         self.lgProp1Box.setCurrentText(str(self.parentObjHandle.lgProperty1.value))
@@ -1696,34 +1722,57 @@ class UI_lightGroupDialog(QDialog):
         self.lgShowingLineEdit.setText(str(self.parentObjHandle.lgShowing))
 
     def setValues(self):
-        self.parentObjHandle.jmriLgSystemName.value = self.JMRISystemNameLineEdit.displayText()
-        self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
-        self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
-        self.parentObjHandle.lgLinkAddr.value = self.lgLinkAddressSpinBox.value()
-        self.parentObjHandle.lgType.value = self.lgTypeComboBox.currentText()
-        self.parentObjHandle.lgProperty1.value = self.lgProp1Box.currentText()
-        self.parentObjHandle.lgProperty2.value = self.lgProp2Box.currentText()
-        self.parentObjHandle.lgProperty3.value = self.lgProp3Box.currentText()
+        try:
+            self.parentObjHandle.jmriLgSystemName.value = self.JMRISystemNameComboBox.currentText()
+            self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
+            self.parentObjHandle.lgLinkAddr.value = self.lgLinkAddressSpinBox.value()
+            self.parentObjHandle.lgType.value = self.lgTypeComboBox.currentText()
+            self.parentObjHandle.lgProperty1.value = self.lgProp1Box.currentText()
+            self.parentObjHandle.lgProperty2.value = self.lgProp2Box.currentText()
+            self.parentObjHandle.lgProperty3.value = self.lgProp3Box.currentText()
+        except AssertionError as configError:
+            return configError
+      
         if self.adminStateForceCheckBox.isChecked():
-            self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
+            res = self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
         else:
             res = self.parentObjHandle.setAdmState(self.adminStateComboBox.currentText())
-            if res != rc.OK:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Error could not change Adm State")
-                msg.setInformativeText('ReturnCode: ' + str(res))
-                msg.setWindowTitle("Error")
-                msg.exec_()
-                return res
+        if res:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not change Adm State")
+            msg.setInformativeText('ReturnCode: ' + str(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return res
         return rc.OK
 
     def connectWidgetSignalsSlots(self):
+        self.JMRISystemNameComboBox.currentTextChanged.connect(self.onSysNameChanged)
+        self.lgTypeComboBox.currentTextChanged.connect(self.lgPropertyHandler)
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
-        self.lgTypeComboBox.currentTextChanged.connect(self.lgPropertyHandler)
 
+    def onSysNameChanged(self):
+        try:
+            self.JMRIUserNameLineEdit.setText(self.rpcClient.getUserNameBySysName(jmriObj.MASTS, self.JMRISystemNameComboBox.currentText()))
+        except:
+            self.JMRIUserNameLineEdit.setText("")
+            if self.newConfig:
+                self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
+        try:
+            self.JMRIDescriptionLineEdit.setText(self.rpcClient.getCommentBySysName(jmriObj.MASTS, self.JMRISystemNameComboBox.currentText()))
+        except:
+            self.JMRIDescriptionLineEdit.setText("")
+            if self.newConfig:
+                self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
+            
     def lgPropertyHandler(self):
+        try:
+            self.lgProp1Box.currentTextChanged.disconnect();
+        except:
+            pass
         self.lgProp1Box.deleteLater()
         self.lgProp2Box.deleteLater()
         self.lgProp3Box.deleteLater()
@@ -1737,6 +1786,17 @@ class UI_lightGroupDialog(QDialog):
             self.lgProp2Box.addItems(["NORMAL", "FAST", "SLOW"])
             self.lgProp3Box = QComboBox(self)
             self.lgProp3Box.addItems(["NORMAL", "FAST", "SLOW"])
+            self.lgProp1Box.setGeometry(self.property1Geometry)
+            self.lgProp2Box.setGeometry(self.property2Geometry)
+            self.lgProp3Box.setGeometry(self.property3Geometry)
+            self.lgProp1Box.setFont(self.property1Font)
+            self.lgProp2Box.setFont(self.property2Font)
+            self.lgProp3Box.setFont(self.property3Font)
+            self.lgProp1Box.show()
+            self.lgProp2Box.show()
+            self.lgProp3Box.show()
+            self.lgProp1Box.currentTextChanged.connect(self.onMastTypeChanged)
+            self.onMastTypeChanged()
         else:
             self.lgProperty1Label.setText("Property 1:")
             self.lgProperty2Label.setText("Property 2:")
@@ -1744,15 +1804,24 @@ class UI_lightGroupDialog(QDialog):
             self.lgProp1Box = QLineEdit(self)
             self.lgProp2Box = QLineEdit(self)
             self.lgProp3Box = QLineEdit(self)
-        self.lgProp1Box.setGeometry(self.property1Geometry)
-        self.lgProp2Box.setGeometry(self.property2Geometry)
-        self.lgProp3Box.setGeometry(self.property3Geometry)
-        self.lgProp1Box.setFont(self.property1Font)
-        self.lgProp2Box.setFont(self.property2Font)
-        self.lgProp3Box.setFont(self.property3Font)
-        self.lgProp1Box.show()
-        self.lgProp2Box.show()
-        self.lgProp3Box.show()
+            self.lgProp1Box.setGeometry(self.property1Geometry)
+            self.lgProp2Box.setGeometry(self.property2Geometry)
+            self.lgProp3Box.setGeometry(self.property3Geometry)
+            self.lgProp1Box.setFont(self.property1Font)
+            self.lgProp2Box.setFont(self.property2Font)
+            self.lgProp3Box.setFont(self.property3Font)
+            self.lgProp1Box.show()
+            self.lgProp2Box.show()
+            self.lgProp3Box.show()
+        
+    def onMastTypeChanged(self):
+        self.JMRISystemNameComboBox.clear()
+        for mastItter in self.rpcClient.getObjects(jmriObj.MASTS):
+            if mastItter.startswith("IF$vsm:" + self.lgProp1Box.currentText()):
+                self.JMRISystemNameComboBox.addItem(mastItter)
+        if self.newConfig:
+            self.JMRISystemNameComboBox.setCurrentText("IF$vsm:" + self.lgProp1Box.currentText() + "($0001)")
+        self.onSysNameChanged()
 
     def accepted(self):
         res = self.setValues()
@@ -1778,9 +1847,11 @@ class UI_lightGroupDialog(QDialog):
 
 
 class UI_sateliteDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(SATELITE_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
         self.displayValues()
@@ -1790,27 +1861,30 @@ class UI_sateliteDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.sysNameLineEdit.setEnabled(True)
-        self.usrNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameLineEdit.setEnabled(True)
+        else:
+            self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.satAddrSpinBox.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
-        self.opStateSummaryLineEdit.setEnabled(True)
-        self.opStateDetailLineEdit.setEnabled(True)
-        self.upTimeLineEdit.setEnabled(True)
+        self.opStateSummaryLineEdit.setEnabled(False)
+        self.opStateDetailLineEdit.setEnabled(False)
+        self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
-        self.rxCrcErrLineEdit.setEnabled(True)
-        self.txCrcErrLineEdit.setEnabled(True)
-        self.wdErrLineEdit.setEnabled(True)
+        self.rxCrcErrLineEdit.setEnabled(False)
+        self.txCrcErrLineEdit.setEnabled(False)
+        self.wdErrLineEdit.setEnabled(False)
         self.updateStatsPushButton.setEnabled(True)
         self.clearStatsPushButton.setEnabled(True)
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.sysNameLineEdit.setEnabled(False)
-        self.usrNameLineEdit.setEnabled(False)
+        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRIUserNameLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.satAddrSpinBox.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1824,10 +1898,10 @@ class UI_sateliteDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.sysNameLineEdit.setText(self.parentObjHandle.satSystemName.value)
-        self.usrNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRISystemNameLineEdit.setText(self.parentObjHandle.satSystemName.value)
+        self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.satAddrSpinBox.setValue(self.parentObjHandle.satLinkAddr.value)
-        self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.opStateSummaryLineEdit.setText(str(self.parentObjHandle.getOpStateSummary()[STATE_STR]))
         self.opStateDetailLineEdit.setText(str(self.parentObjHandle.getOpStateDetailStr()))
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -1835,17 +1909,12 @@ class UI_sateliteDialog(QDialog):
         self.adminStateForceCheckBox.setChecked(False)
         self.displayStats()
 
-    def displayStats(self):
-        self.rxCrcErrLineEdit.setText(str(self.parentObjHandle.rxCrcErr))
-        self.txCrcErrLineEdit.setText(str(self.parentObjHandle.txCrcErr))
-        self.wdErrLineEdit.setText(str(self.parentObjHandle.wdErr))
-
     def setValues(self):
         try:
-            self.parentObjHandle.satSystemName.value = self.sysNameLineEdit.displayText()
-            self.parentObjHandle.userName.value = self.usrNameLineEdit.displayText()
+            self.parentObjHandle.satSystemName.value = self.JMRISystemNameLineEdit.displayText()
+            self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
             self.parentObjHandle.satLinkAddr.value = self.satAddrSpinBox.value()
-            self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
         except AssertionError as configError:
             return configError
         if self.adminStateForceCheckBox.isChecked():
@@ -1865,12 +1934,13 @@ class UI_sateliteDialog(QDialog):
     def connectWidgetSignalsSlots(self):
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
-
-        # Update Stats widget
         self.updateStatsPushButton.clicked.connect(self.displayStats)
-
-        # Clear Stast widget
         self.clearStatsPushButton.clicked.connect(self.clearStats)
+
+    def displayStats(self):
+        self.rxCrcErrLineEdit.setText(str(self.parentObjHandle.rxCrcErr))
+        self.txCrcErrLineEdit.setText(str(self.parentObjHandle.txCrcErr))
+        self.wdErrLineEdit.setText(str(self.parentObjHandle.wdErr))
 
     def clearStats(self):
         self.parentObjHandle.clearStats()
@@ -1900,11 +1970,14 @@ class UI_sateliteDialog(QDialog):
 
 
 class UI_sensorDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(SENSOR_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
+        self.JMRISystemNameComboBox.addItems(self.rpcClient.getObjects(jmriObj.SENSORS))
         self.displayValues()
         if edit:
             self.setEditable()
@@ -1912,23 +1985,26 @@ class UI_sensorDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.JMRISystemNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameComboBox.setEnabled(True)
+        else:
+            self.JMRISystemNameComboBox.setEnabled(False)
         self.JMRIUserNameLineEdit.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.sensPortSpinBox.setEnabled(True)
         self.sensTypeComboBox.setEnabled(True)
-        self.opStateSummaryLineEdit.setEnabled(True)
-        self.opStateDetailLineEdit.setEnabled(True)
-        self.upTimeLineEdit.setEnabled(True)
+        self.opStateSummaryLineEdit.setEnabled(False)
+        self.opStateDetailLineEdit.setEnabled(False)
+        self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
-        self.sensStateLineEdit.setEnabled(True)
+        self.sensStateLineEdit.setEnabled(False)
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRISystemNameComboBox.setEnabled(False)
         self.JMRIUserNameLineEdit.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.sensPortSpinBox.setEnabled(False)
         self.sensTypeComboBox.setEnabled(False)
         self.opStateSummaryLineEdit.setEnabled(False)
@@ -1940,9 +2016,9 @@ class UI_sensorDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.JMRISystemNameLineEdit.setText(self.parentObjHandle.jmriSensSystemName.value)
+        self.JMRISystemNameComboBox.setCurrentText(self.parentObjHandle.jmriSensSystemName.value)
         self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
-        self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.sensPortSpinBox.setValue(self.parentObjHandle.sensPort.value)
         self.sensTypeComboBox.setCurrentText(self.parentObjHandle.sensType.value)
         self.opStateSummaryLineEdit.setText(self.parentObjHandle.getOpStateSummary()[STATE_STR])
@@ -1954,9 +2030,9 @@ class UI_sensorDialog(QDialog):
 
     def setValues(self):
         try:
-            self.parentObjHandle.jmriSensSystemName.value = self.JMRISystemNameLineEdit.displayText()
+            self.parentObjHandle.jmriSensSystemName.value = self.JMRISystemNameComboBox.currentText()
             self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
-            self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
             self.parentObjHandle.sensPort.value = self.sensPortSpinBox.value()
             self.parentObjHandle.sensType.value = self.sensTypeComboBox.currentText()
         except AssertionError as configError:
@@ -1976,8 +2052,19 @@ class UI_sensorDialog(QDialog):
         return rc.OK
 
     def connectWidgetSignalsSlots(self):
+        self.JMRISystemNameComboBox.currentTextChanged.connect(self.onSysNameChanged)
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
+
+    def onSysNameChanged(self):
+        try:
+            self.JMRIUserNameLineEdit.setText(self.rpcClient.getUserNameBySysName(jmriObj.SENSORS, self.JMRISystemNameComboBox.currentText()))
+        except:
+            self.JMRIUserNameLineEdit.setText("")
+        try:
+            self.JMRIDescriptionLineEdit.setText(self.rpcClient.getCommentBySysName(jmriObj.SENSORS, self.JMRISystemNameComboBox.currentText()))
+        except:
+            self.JMRIDescriptionLineEdit.setText("")
 
     def accepted(self):
         res = self.setValues()
@@ -1994,7 +2081,6 @@ class UI_sensorDialog(QDialog):
         msg.setInformativeText('Info: ' + str(res))
         msg.setWindowTitle("Error")
         msg.exec_()
-        return
 
     def rejected(self):
         self.parentObjHandle.rejected()
@@ -2003,11 +2089,20 @@ class UI_sensorDialog(QDialog):
 
 
 class UI_actuatorDialog(QDialog):
-    def __init__(self, parentObjHandle, edit = False, parent = None):
+    def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
+        self.rpcClient = rpcClient
+        self.newConfig = newConfig
         loadUi(ACTUATOR_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
+        if self.actTypeComboBox.currentText() == "TURNOUT":
+            type = jmriObj.TURNOUTS
+        elif(self.actTypeComboBox.currentText() == "LIGHT"):
+            type = jmriObj.LIGHTS
+        elif(self.actTypeComboBox.currentText() == "MEMORY"):
+            type = jmriObj.MEMORIES
+        self.JMRISystemNameComboBox.addItems(self.rpcClient.getObjects(type))
         self.onTypeChanged()
         self.displayValues()
         if edit:
@@ -2016,24 +2111,30 @@ class UI_actuatorDialog(QDialog):
             self.unSetEditable()
 
     def setEditable(self):
-        self.JMRISystemNameLineEdit.setEnabled(True)
+        if self.newConfig:
+            self.JMRISystemNameComboBox.setEnabled(True)
+        else:
+            self.JMRISystemNameComboBox.setEnabled(False)
         self.JMRIUserNameLineEdit.setEnabled(True)
-        self.descriptionLineEdit.setEnabled(True)
+        self.JMRIDescriptionLineEdit.setEnabled(True)
         self.actPortSpinBox.setEnabled(True)
-        self.actTypeComboBox.setEnabled(True)
+        if self.newConfig:
+            self.actTypeComboBox.setEnabled(True)
+        else:
+            self.actTypeComboBox.setEnabled(False)
         self.actSubTypeComboBox.setEnabled(True)
-        self.opStateSummaryLineEdit.setEnabled(True)
-        self.opStateDetailLineEdit.setEnabled(True)
-        self.upTimeLineEdit.setEnabled(True)
+        self.opStateSummaryLineEdit.setEnabled(False)
+        self.opStateDetailLineEdit.setEnabled(False)
+        self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
-        self.actStateLineEdit.setEnabled(True)
+        self.actStateLineEdit.setEnabled(False)
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
-        self.JMRISystemNameLineEdit.setEnabled(False)
+        self.JMRISystemNameComboBox.setEnabled(False)
         self.JMRIUserNameLineEdit.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False)
+        self.JMRIDescriptionLineEdit.setEnabled(False)
         self.actPortSpinBox.setEnabled(False)
         self.actTypeComboBox.setEnabled(False)
         self.actSubTypeComboBox.setEnabled(False)
@@ -2046,12 +2147,12 @@ class UI_actuatorDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        self.JMRISystemNameLineEdit.setText(self.parentObjHandle.jmriActSystemName.value)
+        self.JMRISystemNameComboBox.setCurrentText(self.parentObjHandle.jmriActSystemName.value)
         self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
-        self.descriptionLineEdit.setText(self.parentObjHandle.description.value)
-        self.actPortSpinBox.setValue(self.parentObjHandle.actPort.value)
+        self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.actTypeComboBox.setCurrentText(self.parentObjHandle.actType.value)
         self.actSubTypeComboBox.setCurrentText(self.parentObjHandle.actSubType.value)
+        self.actPortSpinBox.setValue(self.parentObjHandle.actPort.value)
         self.opStateSummaryLineEdit.setText(self.parentObjHandle.getOpStateSummary()[STATE_STR])
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -2061,45 +2162,73 @@ class UI_actuatorDialog(QDialog):
 
     def setValues(self):
         try:
-            self.parentObjHandle.jmriActSystemName.value = self.JMRISystemNameLineEdit.displayText()
+            self.parentObjHandle.jmriActSystemName.value = self.JMRISystemNameComboBox.currentText()
             self.parentObjHandle.userName.value = self.JMRIUserNameLineEdit.displayText()
-            self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
+            self.parentObjHandle.description.value = self.JMRIDescriptionLineEdit.displayText()
             self.parentObjHandle.actType.value = self.actTypeComboBox.currentText()
             self.parentObjHandle.actSubType.value = self.actSubTypeComboBox.currentText()
             self.parentObjHandle.actPort.value = self.actPortSpinBox.value()
-
         except AssertionError as configError:
             return configError
         if self.adminStateForceCheckBox.isChecked():
-            self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
+            res = self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
         else:
             res = self.parentObjHandle.setAdmState(self.adminStateComboBox.currentText())
-            if res:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Error could not change Adm State")
-                msg.setInformativeText('ReturnCode: ' + str(res))
-                msg.setWindowTitle("Error")
-                msg.exec_()
-                return res
+        if res:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not change Adm State")
+            msg.setInformativeText('ReturnCode: ' + str(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return res
         return rc.OK
 
     def connectWidgetSignalsSlots(self):
+        self.JMRISystemNameComboBox.currentTextChanged.connect(self.onSysNameChanged)
         self.actTypeComboBox.currentTextChanged.connect(self.onTypeChanged)
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
 
+    def onSysNameChanged(self):
+        if self.actTypeComboBox.currentText() == "TURNOUT":
+            type = jmriObj.TURNOUTS
+        elif(self.actTypeComboBox.currentText() == "LIGHT"):
+            type = jmriObj.LIGHTS
+        elif(self.actTypeComboBox.currentText() == "MEMORY"):
+            type = jmriObj.MEMORIES
+        else:
+            type = None
+        try:
+            self.JMRIUserNameLineEdit.setText(self.rpcClient.getUserNameBySysName(type, self.JMRISystemNameComboBox.currentText()))
+        except:
+            self.JMRIUserNameLineEdit.setText("")
+        try:
+            self.JMRIDescriptionLineEdit.setText(self.rpcClient.getCommentBySysName(type, self.JMRISystemNameComboBox.currentText()))
+        except:
+            self.JMRIDescriptionLineEdit.setText("")
+
     def onTypeChanged(self):
         self.actSubTypeComboBox.clear()
+        self.JMRISystemNameComboBox.clear()
         if self.actTypeComboBox.currentText() == "TURNOUT":
+            self.JMRISystemNameComboBox.addItems(self.rpcClient.getObjects(jmriObj.TURNOUTS))
+            self.JMRISystemNameComboBox.setCurrentText("MT-MyNewTurnoutSysName")
+            self.JMRIUserNameLineEdit.setText("MyNewTurnoutUserName")
+            self.JMRIDescriptionLineEdit.setText("MyNewTurnoutDescription")
             self.actSubTypeComboBox.addItems(["SOLENOID", "SERVO"])
         elif self.actTypeComboBox.currentText() == "LIGHT":
+            self.JMRISystemNameComboBox.addItems(self.rpcClient.getObjects(jmriObj.LIGHTS))
+            self.JMRISystemNameComboBox.setCurrentText("ML-MyNewLightSysName")
+            self.JMRIUserNameLineEdit.setText("MyNewLightUserName")
+            self.JMRIDescriptionLineEdit.setText("MyNewLightDescription")
             self.actSubTypeComboBox.addItems(["ONOFF"])
         elif self.actTypeComboBox.currentText() == "MEMORY":
+            self.JMRISystemNameComboBox.addItems(self.rpcClient.getObjects(jmriObj.MEMORIES))
+            self.JMRISystemNameComboBox.setCurrentText("IM-MyNewMemorySysName")
+            self.JMRIUserNameLineEdit.setText("MyNewMemoryUserName")
+            self.JMRIDescriptionLineEdit.setText("MyNewMemoryDescription")
             self.actSubTypeComboBox.addItems(["SOLENOID", "SERVO", "PWM100", "PWM1_25K", "ONOFF", "PULSE"])
-        else:
-            return rc.TYPE_VAL_ERR
-        return rc.OK
 
     def accepted(self):
         res = self.setValues()
@@ -2116,7 +2245,6 @@ class UI_actuatorDialog(QDialog):
         msg.setInformativeText('Info: ' + str(res))
         msg.setWindowTitle("Error")
         msg.exec_()
-        return
 
     def rejected(self):
         self.parentObjHandle.rejected()

@@ -650,7 +650,7 @@ class topDecoder(systemState, schema):
                 trace.notify(DEBUG_INFO, "Decoder: " + self.decoders.candidateValue[-1].nameKey.value + " successfully configured")
                 return rc.OK
             if config:
-                self.dialog = UI_decoderDialog(self.decoders.candidateValue[-1], edit=True)
+                self.dialog = UI_decoderDialog(self.decoders.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK

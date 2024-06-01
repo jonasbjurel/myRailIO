@@ -90,10 +90,10 @@ class satelite(systemState, schema):
         if name:
             self.satSystemName.value = name
         else:
-            self.satSystemName.value = "GJSAT-NewSatSysName"
+            self.satSystemName.value = "GJSAT-MyNewSateliteSysName"
         self.nameKey.value = "Sat-" + self.satSystemName.candidateValue
-        self.userName.value = "GJSAT-NewSatLinkUsrName"
-        self.description.value = "New Satelite"
+        self.userName.value = "MyNewSateliteUsrName"
+        self.description.value = "MyNewSateliteDescription"
         self.satLinkAddr.value = 0
         self.commitAll()
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE, displayIcon=SATELITE_ICON)
@@ -319,7 +319,7 @@ class satelite(systemState, schema):
                 trace.notify(DEBUG_INFO, "Sensor: " + self.sensors.value[-1].nameKey.value + " successfully added to satelite link " + self.nameKey.value)
                 return rc.OK
             if config:
-                self.dialog = UI_sensorDialog(self.sensors.candidateValue[-1], edit=True)
+                self.dialog = UI_sensorDialog(self.sensors.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
@@ -340,7 +340,7 @@ class satelite(systemState, schema):
                 trace.notify(DEBUG_INFO, "Actuator: " + self.actuators.value[-1].nameKey.value + " successfully added to satelite link " + self.nameKey.value)
                 return rc.OK
             if config:
-                self.dialog = UI_actuatorDialog(self.actuators.candidateValue[-1], edit=True)
+                self.dialog = UI_actuatorDialog(self.actuators.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
@@ -367,11 +367,11 @@ class satelite(systemState, schema):
         return rc.OK
 
     def view(self):
-        self.dialog = UI_sateliteDialog(self, edit=False)
+        self.dialog = UI_sateliteDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_sateliteDialog(self, edit=True)
+        self.dialog = UI_sateliteDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self):

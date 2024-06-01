@@ -623,6 +623,10 @@ class jmriRpcClient():
             return rc.DOES_NOT_EXIST
         return rc.OK
 
+    def getObjects(self, type):
+        trace.notify(DEBUG_INFO, "Requesting all objects for object type: " + jmriObj.getObjTypeStr(type))
+        return self.rpc.rpcGetObjects(type)
+
     def regMqttPub(self, type, sysName, topic, payloadMap):
         trace.notify(DEBUG_INFO, "Registering MQTT pub event for object type: " + jmriObj.getObjTypeStr(type) + " System name: " + str(sysName) + ", Topic: " + str(topic) + ", Payload-map: " + str(payloadMap))
         if self.retryStateMachine != RPC_CONNECTED and self.retryStateMachine != RPC_CONNECTING:
@@ -940,7 +944,6 @@ class jmriRpcClient():
             return None
         try:
             userName = dictEscapeing.dictUnEscape(xmltodict.parse(self.rpc.rpcGetUserNameXmlBySysName(type, sysName))).get("usrName")
-            jmriObjDict[sysName].userName = userName
             return userName
         except xmlrpc.client.ProtocolError as err:
             trace.notify(DEBUG_ERROR, "Could not get userName for systemName  \"" + sysName + "\" - rc: " + err.errmsg)
@@ -981,7 +984,6 @@ class jmriRpcClient():
         except Exception as err:
             trace.notify(DEBUG_ERROR, "Could not set comment for systemName \"" + sysName + "\" - rc: " + str(err))
             return None
-        self.jmriObjDict[sysName].description = comment
         return comment
 
     def setCommentBySysName(self, type, sysName, comment):

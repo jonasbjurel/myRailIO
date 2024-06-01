@@ -278,7 +278,7 @@
     <string>Satelite Address:</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="descriptionLineEdit">
+  <widget class="QLineEdit" name="JMRIDescriptionLineEdit">
    <property name="geometry">
     <rect>
      <x>230</x>
@@ -585,7 +585,7 @@
     <string>System name:</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="sysNameLineEdit">
+  <widget class="QLineEdit" name="JMRISystemNameLineEdit">
    <property name="geometry">
     <rect>
      <x>230</x>
@@ -632,7 +632,7 @@
     <string>User name</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="usrNameLineEdit">
+  <widget class="QLineEdit" name="JMRIUserNameLineEdit">
    <property name="geometry">
     <rect>
      <x>230</x>

@@ -90,10 +90,10 @@ class sensor(systemState, schema):
         if name:
             self.jmriSensSystemName.value = name
         else:
-            self.jmriSensSystemName.value = "MS-NewSensSysName"
+            self.jmriSensSystemName.value = "MS-MyNewSensorSysName"
         self.nameKey.value = "Sens-" + self.jmriSensSystemName.candidateValue
-        self.userName.value = "MS-NewSensUsrName"
-        self.description.value = "MS-NewSensDescription"
+        self.userName.value = "MyNewSensorUsrName"
+        self.description.value = "MyNewSensorDescription"
         self.sensPort.value = 0
         self.sensType.value = "DIGITAL"
         self.commitAll()
@@ -252,11 +252,11 @@ class sensor(systemState, schema):
         pass
 
     def view(self):
-        self.dialog = UI_sensorDialog(self, edit=False)
+        self.dialog = UI_sensorDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_sensorDialog(self, edit=True)
+        self.dialog = UI_sensorDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self): #Just from the template - not applicable for this object leaf

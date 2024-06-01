@@ -109,12 +109,12 @@ class decoder(systemState, schema):
         if name:
             self.decoderSystemName.value = name
         else:
-            self.decoderSystemName.value = "GJD-NewDecoderSysName"
+            self.decoderSystemName.value = "GJD-MyNewDecoderSysName"
         self.nameKey.value = "Decoder-" + self.decoderSystemName.candidateValue
-        self.userName.value = "GJD-NewDecoderUsrName"
+        self.userName.value = "MyNewDecoderUsrName"
         self.decoderMqttURI.value = "no.valid.uri"
         self.mac.value = "00:00:00:00:00:00"
-        self.description.value = "New decoder"
+        self.description.value = "MyNewdecoderDescription"
         self.commitAll()
         self.item = self.win.registerMoMObj(self, self.parentItem, self.nameKey.candidateValue, DECODER, displayIcon=DECODER_ICON)
         self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder reported disconnected")
@@ -354,9 +354,8 @@ class decoder(systemState, schema):
                 trace.notify(DEBUG_INFO, "Light group link: " + self.lgLinks.value[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
                 return rc.OK
             if config:
-                self.dialog = UI_lightgroupsLinkDialog(self.lgLinks.candidateValue[-1], edit=True)
+                self.dialog = UI_lightgroupsLinkDialog(self.lgLinks.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
-                trace.notify(DEBUG_INFO, "Light group link: " + self.lgLinks.candidateValue[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
                 self.reEvalOpState()
                 return rc.OK
         elif resourceType == SATELITE_LINK:
@@ -373,7 +372,7 @@ class decoder(systemState, schema):
                 trace.notify(DEBUG_INFO, "Satelite link: " + self.satLinks.value[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
                 return rc.OK
             if config:
-                self.dialog = UI_satLinkDialog(self.satLinks.candidateValue[-1], edit=True)
+                self.dialog = UI_satLinkDialog(self.satLinks.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
@@ -399,11 +398,11 @@ class decoder(systemState, schema):
         return rc.OK
 
     def view(self):
-        self.dialog = UI_decoderDialog(self, edit=False)
+        self.dialog = UI_decoderDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_decoderDialog(self, edit=True)
+        self.dialog = UI_decoderDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self):

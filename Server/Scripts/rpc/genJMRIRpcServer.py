@@ -421,6 +421,7 @@ class jmriRpcShimAPI(jmriAPIShim):
     @staticmethod
     def start():
         trace.notify(DEBUG_INFO, "Starting JMRI RPC API Shim layer, regestring RPC exposed methods")
+        jmriRpcServer.regFn(jmriRpcShimAPI.rpcGetObjects)
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcRegMqttPub)
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcUnRegMqttPub)
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcRegMqttSub)
@@ -443,6 +444,10 @@ class jmriRpcShimAPI(jmriAPIShim):
         jmriRpcServer.regFn(jmriRpcShimAPI.rpcListDir)
         jmriRpcShimAPI.mqttPubRecordDict = {}
         jmriRpcShimAPI.mqttSubRecordDict = {}
+
+    @staticmethod
+    def rpcGetObjects(type):
+        return jmriRpcShimAPI.getObjsByType(type)[jmriRpcShimAPI.getObjsByType(type).keys()[0]].keys()
 
     @staticmethod
     def rpcRegMqttPub(type, sysName, topic, payloadMap):
