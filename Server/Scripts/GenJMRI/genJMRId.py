@@ -19,21 +19,26 @@
 # Dependencies
 import os
 import sys
+import psutil
 from topDecoderLogic import *
-
+from pathlib import Path
+from PyQt5.QtGui import QIcon
+import ctypes
 
 
 #################################################################################################################################################
 # MAIN
 #################################################################################################################################################
 if __name__ == '__main__':
-    print("0")
     app = QApplication(sys.argv)
-    print("1")
     win = UI_mainWindow()
-    print("2")
+    myappid = 'genJMRI.Server.GUI.version' 
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    win.setWindowIcon(QIcon('icons\\genJMRI.png'))
     win.setParentObjHandle(topDecoder(win))
-    print("3")
     win.show()
-    print("4")
-    sys.exit(app.exec())
+    app.exec()
+    current_system_pid = os.getpid()
+    ThisSystem = psutil.Process(current_system_pid)
+    ThisSystem.terminate()
+    exit()

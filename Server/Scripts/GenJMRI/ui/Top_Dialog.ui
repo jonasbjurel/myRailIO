@@ -264,7 +264,7 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration description - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>myConfigDescription</string>
+    <string>MyConfigDescription</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="versionLineEdit">
@@ -291,7 +291,7 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration version - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>myConfigVersion</string>
+    <string>MyConfigVersion</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="dateLineEdit">
@@ -318,7 +318,7 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration date - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>myConfigVersionDate</string>
+    <string>MyConfigVersionDate</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="ntpLineEdit">
@@ -1745,7 +1745,7 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git repository URL or local Git path: Eg. &amp;quot;https://github.com/jonasbjurel/myConfig&amp;quot; or &amp;quot;local://myConfig&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>myGit.github.com</string>
+    <string>MyGit.github.com</string>
    </property>
   </widget>
   <widget class="Line" name="line_7">

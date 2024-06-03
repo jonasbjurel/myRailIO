@@ -29,10 +29,10 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../../../../../../../../.designer/icons/genJMRI.png</normaloff>../../../../../../../../.designer/icons/genJMRI.png</iconset>
+    <normaloff>../icons/genJMRI.png</normaloff>../icons/genJMRI.png</iconset>
   </property>
   <property name="whatsThis">
-   <string>Main JMRI navigation dialog</string>
+   <string>Main genJMRI navigation dialog</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label">
