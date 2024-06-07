@@ -25,6 +25,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -67,7 +68,7 @@ from config import *
 #               Implements the management-, configuration-, supervision-, and control of genJMRI lightgroups.
 #               See archictecture.md for more information
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -77,6 +78,8 @@ class lightGroup(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
@@ -112,6 +115,10 @@ class lightGroup(systemState, schema):
         self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         trace.notify(DEBUG_INFO,"Light group: " + self.nameKey.candidateValue + " created - awaiting configuration")
+
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.lgTopology.removeTopologyMember(ref.jmriLgSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -197,8 +204,11 @@ class lightGroup(systemState, schema):
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
             return rc.OK
 
-    def checkSysName(self, sysName): #Just from the template - not applicable for this object leaf
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName): #Just from the template - not applicable for this object leaf
+        return self.parent.regSysName(sysName)
+    
+    def unRegSysName(self, sysName): #Just from the template - not applicable for this object leaf
+        return self.parent.unRegSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration commit0()")
@@ -223,12 +233,14 @@ class lightGroup(systemState, schema):
                 return res
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.value + " was not reconfigured, skiping re-configuration")
+        self.provioned = True
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
+        if not self.provioned:
+            self.delete(top = True)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -290,6 +302,7 @@ class lightGroup(systemState, schema):
         self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.CBLalarm.ceaseAlarm("Source object deleted")
+        self.parent.unRegSysName(self.jmriLgSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -305,7 +318,7 @@ class lightGroup(systemState, schema):
             res = self.updateReq(self, self, uploadNReboot = False)
             self.pendingBoot = True
         if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + trace.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Could not configure " + nameKey + ", return code: " + rc.getErrStr(res))
             return res
         else:
             trace.notify(DEBUG_INFO, self.nameKey.value + "Configured")
@@ -316,9 +329,16 @@ class lightGroup(systemState, schema):
         return rc.OK
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.jmriLgSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.jmriLgSystemName.candidateValue + " already in use")
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.jmriLgSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.jmriLgSystemName.candidateValue + " already in use")
+                return res
+        self.sysNameReged = True
+        weakSelf = weakref.ref(self, lightGroup.aboutToDelete)
+        res = self.parent.lgTopology.addTopologyMember(self.jmriLgSystemName.candidateValue, self.lgLinkAddr.candidateValue, weakSelf)
+        if res:
+            trace.notify(DEBUG_ERROR, "Lightgroup failed address/port topology validation for port/address: " + str(self.lgLinkAddr.candidateValue) + rc.getErrStr(res))
             return res
         return rc.OK
 

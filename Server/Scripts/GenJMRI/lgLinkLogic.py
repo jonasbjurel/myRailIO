@@ -18,6 +18,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -34,6 +35,8 @@ imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
+imp.load_source('topologyMgr', '..\\topologyMgr\\topologyMgr.py')
+from topologyMgr import topologyMgr
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
@@ -56,7 +59,7 @@ from config import *
 #               supervision-, and control of genJMRI satelite links - interconnecting satelites in daisy-chains.
 #               See archictecture.md for more information
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -66,6 +69,8 @@ class lgLink(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
@@ -75,6 +80,7 @@ class lgLink(systemState, schema):
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
         self.lightGroups.value = []
+        self.lgTopology = topologyMgr(self, LG_LINK_MAX_LIGHTGROUPS)
         self.childs.value = self.lightGroups.candidateValue
         self.updating = False
         self.pendingBoot = False
@@ -105,6 +111,10 @@ class lgLink(systemState, schema):
             for i in range(8):
                 self.addChild(LIGHT_GROUP, name="GJLG-"+str(i), config=False, demo=True)
         trace.notify(DEBUG_INFO,"New Light group link: " + self.nameKey.candidateValue + " created - awaiting configuration")
+
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.lgLinkTopology.removeTopologyMember(ref.lgLinkSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -187,8 +197,11 @@ class lgLink(systemState, schema):
             trace.notify(DEBUG_TERSE, "Light group link " + self.lgLinkSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
             return rc.OK
 
-    def checkSysName(self, sysName):
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName):
+        return self.parent.regSysName(sysName)
+    
+    def unRegSysName(self, sysName):
+        return self.parent.unRegSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Light group link " + self.lgLinkSystemName.candidateValue + " received configuration commit0()")
@@ -237,6 +250,7 @@ class lgLink(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
+        self.provioned = True
         return rc.OK
 
     def abort(self):
@@ -250,7 +264,8 @@ class lgLink(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
+        if not self.provioned:
+            self.delete(top = True)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=True, text=False, includeChilds=True): #Change decoder value
@@ -356,6 +371,7 @@ class lgLink(systemState, schema):
         self.LINK_SCAN_OVERLOADalarm.ceaseAlarm("Source object deleted")
         self.LINK_FLASH_OVERLOADalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
+        self.parent.unRegSysName(self.lgLinkSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -392,9 +408,17 @@ class lgLink(systemState, schema):
         return self.mastTypes
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.lgLinkSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.lgLinkSystemName.candidateValue + " already in use")
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.lgLinkSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.lgLinkSystemName.candidateValue + " already in use")
+                return res
+            self.sysNameReged = True
+        weakSelf = weakref.ref(self, lgLink.aboutToDelete)
+        res = self.parent.lgLinkTopology.addTopologyMember(self.lgLinkSystemName.candidateValue, self.lgLinkNo.candidateValue, weakSelf)
+        if res:
+            print (">>>>>>>>>>>>> Lightgroup Link failed address/port topology validation for Link No: " + str(self.lgLinkNo.candidateValue) + "return code: " + rc.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Lightgroup Link failed address/port topology validation for Link No: " + str(self.lgLinkNo.candidateValue) + rc.getErrStr(res))
             return res
         if len(self.lightGroups.candidateValue) > LG_LINK_MAX_LIGHTGROUPS:
             trace.notify(DEBUG_ERROR, "Too many Light groups defined for light group link " + str(self.lgLinkSystemName.candidateValue) + ", " + str(len(self.lightGroups.candidateValue)) + "  given, " + str(LG_LINK_MAX_LIGHTGROUPS) + " is maximum")

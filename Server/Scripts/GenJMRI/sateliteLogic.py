@@ -24,6 +24,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -41,6 +42,8 @@ imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
+imp.load_source('topologyMgr', '..\\topologyMgr\\topologyMgr.py')
+from topologyMgr import topologyMgr
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
@@ -73,6 +76,8 @@ class satelite(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
@@ -83,6 +88,8 @@ class satelite(systemState, schema):
         self.mqttClient = mqttClient
         self.sensors.value = []
         self.actuators.value = []
+        self.sensTopology = topologyMgr(self, SAT_MAX_SENS_PORTS)
+        self.actTopology = topologyMgr(self, SAT_MAX_ACTS_PORTS)
         self.commitAll()
         self.childs.value = self.sensors.candidateValue + self.actuators.candidateValue
         self.updating = False
@@ -118,6 +125,10 @@ class satelite(systemState, schema):
             self.logStatsProducer.start()
         trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.satTopology.removeTopologyMember(ref.satSystemName.value)
+
     def onXmlConfig(self, xmlConfig):
         try:
             satXmlConfig = parse_xml(xmlConfig,
@@ -127,7 +138,7 @@ class satelite(systemState, schema):
                                          "Description": OPTSTR,
                                          "AdminState": OPTSTR
                                         }
-                                )
+                                    )
             self.satSystemName.value = satXmlConfig.get("SystemName")
             if satXmlConfig.get("UserName") != None:
                 self.userName.value = satXmlConfig.get("UserName")
@@ -205,8 +216,11 @@ class satelite(systemState, schema):
             return rc.OK
         return rc.OK
 
-    def checkSysName(self, sysName):
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName):
+        return self.parent.regSysName(sysName)
+
+    def unRegSysName(self, sysName):
+        return self.parent.unRegSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " received configuration commit0()")
@@ -256,6 +270,7 @@ class satelite(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
+        self.provioned = True
         return rc.OK
 
     def abort(self):
@@ -269,7 +284,8 @@ class satelite(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
+        if not self.provioned:
+            self.delete(top = True)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -393,6 +409,7 @@ class satelite(systemState, schema):
         self.SAT_GEN_ERRORalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.CBLalarm.ceaseAlarm("Source object deleted")
+        self.parent.unRegSysName(self.satSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -427,9 +444,17 @@ class satelite(systemState, schema):
         self.wdErr = 0
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.satSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.satSystemName.candidateValue + " already in use")
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.satSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.satSystemName.candidateValue + " already in use")
+                return res
+        self.sysNameReged = True
+        weakSelf = weakref.ref(self, satelite.aboutToDelete)
+        res = self.parent.satTopology.addTopologyMember(self.satSystemName.candidateValue, self.satLinkAddr.candidateValue, weakSelf)
+        if res:
+            print (">>>>>>>>>>>>> Satelite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + "return code: " + rc.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Satelite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + rc.getErrStr(res))
             return res
         return rc.OK # Place holder for object config validation
 

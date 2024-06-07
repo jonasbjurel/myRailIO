@@ -2086,6 +2086,10 @@ class UI_sensorDialog(QDialog):
         self.parentObjHandle.rejected()
         self.close()
 
+    def closeEvent(self, event):
+        self.parentObjHandle.rejected()
+        self.close()
+
 
 
 class UI_actuatorDialog(QDialog):
@@ -2247,5 +2251,10 @@ class UI_actuatorDialog(QDialog):
         msg.exec_()
 
     def rejected(self):
+        print(">>>>>>>>>>>>>>>>>>>>rejected1")
+        self.parentObjHandle.rejected()
+        self.close()
+        
+    def closeEvent(self, event):
         self.parentObjHandle.rejected()
         self.close()

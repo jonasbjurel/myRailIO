@@ -57,6 +57,7 @@
     <Compile Include="schema\moTypes.py" />
     <Compile Include="schema\schema.py" />
     <Compile Include="schema\schemaTestBench.py" />
+    <Compile Include="topologyMgr\topologyMgr.py" />
     <Compile Include="trace\syslog.py" />
     <Compile Include="sysState\sysState.py" />
     <Compile Include="test\decoderSim.py" />
@@ -107,6 +108,7 @@
     <Folder Include="lib\xml2dict" />
     <Folder Include="mqtt" />
     <Folder Include="alarmHandler\" />
+    <Folder Include="topologyMgr\" />
     <Folder Include="rc" />
     <Folder Include="rpc" />
     <Folder Include="schema" />

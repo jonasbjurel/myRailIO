@@ -12,6 +12,9 @@
 #################################################################################################################################################
 # Todo - see https://github.com/jonasbjurel/GenericJMRIdecoder/issues
 #################################################################################################################################################
+from http.client import NO_CONTENT
+
+
 class rc():
     OK =                         0
     NOT_DISABLE =                1
@@ -28,6 +31,8 @@ class rc():
     PARAM_ERR =                  12
     SOCK_ERR =                   13
     GEN_COM_ERR =                14
+    NO_RESOURCES =               15
+    RESOURCES_IN_USE =           16
     GEN_ERR =                    255
 
     ERROR_TEXT = [""] * 256
@@ -46,6 +51,8 @@ class rc():
     ERROR_TEXT[12] =                "Parameter error"
     ERROR_TEXT[13] =                "Socket connect error"
     ERROR_TEXT[14] =                "General communication error"
+    ERROR_TEXT[15] =                "No resources available"
+    ERROR_TEXT[16] =                "Resources in use"
     ERROR_TEXT[255] =               "General error"
 
     @staticmethod

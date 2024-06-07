@@ -26,6 +26,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -49,6 +50,8 @@ imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
+imp.load_source('topologyMgr', '..\\topologyMgr\\topologyMgr.py')
+from topologyMgr import topologyMgr
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
@@ -71,7 +74,7 @@ from config import *
 # for controling various JMRI I/O resources such as lights-, light groups-, signal masts-, sensors and actuators throug various periperial
 # devices and interconnect links.
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -91,6 +94,8 @@ class decoder(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         childsSchemaDirty = False
         schema.__init__(self)
@@ -105,6 +110,8 @@ class decoder(systemState, schema):
         self.pendingBoot = False
         self.lgLinks.value = []
         self.satLinks.value = []
+        self.lgLinkTopology = topologyMgr(self, DECODER_MAX_LG_LINKS)
+        self.satLinkTopology = topologyMgr(self, DECODER_MAX_SAT_LINKS)
         self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
         if name:
             self.decoderSystemName.value = name
@@ -147,6 +154,10 @@ class decoder(systemState, schema):
             for i in range(DECODER_MAX_SAT_LINKS):
                 self.addChild(SATELITE_LINK, name=i, config=False, demo=True)
         trace.notify(DEBUG_INFO,"New decoder: " + self.nameKey.candidateValue + " created - awaiting configuration")
+
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.decoderMacTopology.removeTopologyMember(ref.decoderSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -235,8 +246,11 @@ class decoder(systemState, schema):
             trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
             return rc.OK
 
-    def checkSysName(self, sysName):
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName):
+        return self.parent.regSysName(sysName)
+    
+    def unRegSysName(self, sysName):
+        return self.parent.unRegSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Decoder " + self.decoderSystemName.candidateValue + " received configuration commit0()")
@@ -285,6 +299,7 @@ class decoder(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
+        self.provioned = True
         return rc.OK
     
     def abort(self):
@@ -298,6 +313,8 @@ class decoder(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
+        if not self.provioned:
+            self.delete(top = True)
         # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
@@ -434,6 +451,7 @@ class decoder(systemState, schema):
         self.NTP_SYNCHalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.CBLalarm.ceaseAlarm("Source object deleted")
+        self.parent.unRegSysName(self.decoderSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -465,9 +483,22 @@ class decoder(systemState, schema):
         self.__decoderRestart()
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.decoderSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.decoderSystemName.candidateValue + " already in use")
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.decoderSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.decoderSystemName.candidateValue + " already in use")
+                return res
+        self.sysNameReged = True
+        weakSelf = weakref.ref(self, decoder.aboutToDelete)
+        res = self.parent.decoderMacTopology.addTopologyMember(self.decoderSystemName.candidateValue, self.mac.candidateValue, weakSelf)
+        if res:
+            print (">>>>>>>>>>>>> Decoder failed Mac-address topology validation for MAC: " + str(self.mac.candidateValue) + "return code: " + rc.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Decoder failed Mac-address topology validation for MAC: " + str(self.mac.candidateValue) + "return code: " + rc.getErrStr(res))
+            return res
+        res = self.parent.decoderUriTopology.addTopologyMember(self.decoderSystemName.candidateValue, self.decoderMqttURI.candidateValue, weakSelf)
+        if res:
+            print (">>>>>>>>>>>>> Decoder failed URI topology validation for URI: " + str(self.decoderMqttURI.candidateValue) + "return code: " + rc.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Decoder failed URI topology validation for URI: " + str(self.decoderMqttURI.candidateValue) + "return code: " + rc.getErrStr(res))
             return res
         if len(self.lgLinks.candidateValue) > DECODER_MAX_LG_LINKS:
             trace.notify(DEBUG_ERROR, "Too many Lg links defined for decoder " + str(self.decoderSystemName.candidateValue) + ", " + str(len(self.lgLinks.candidateValue)) + "  given, " + str(DECODER_MAX_LG_LINKS) + " is maximum")

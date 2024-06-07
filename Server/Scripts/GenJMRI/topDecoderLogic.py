@@ -51,6 +51,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__))+"\\..\\rpc\\")
 from genJMRIRpcClient import *
 imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
+imp.load_source('topologyMgr', '..\\topologyMgr\\topologyMgr.py')
+from topologyMgr import topologyMgr
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
@@ -82,7 +84,7 @@ from tz import *
 # for controling various JMRI I/O resources such as lights-, light groups-, signal masts-, sensors and actuators throug various periperial
 # devices and interconnect links.
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -107,6 +109,7 @@ class topDecoder(systemState, schema):
         self.mqttClientId = MQTT_CLIENT_ID
         self.rpcClient = None
         self.schemaDirty = False
+        self.sysNames = []
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
         self.setSchema(schema.TOP_DECODER_SCHEMA)
@@ -120,6 +123,8 @@ class topDecoder(systemState, schema):
         self.updating = False
         self.pendingBoot = False
         self.decoders.value = []
+        self.decoderMacTopology = topologyMgr(self, -1)
+        self.decoderUriTopology = topologyMgr(self, -1)
         self.pendingDecoderRestartList = []
         self.childs.value = self.decoders.candidateValue
         self.nameKey.value = "topDecoder"
@@ -383,6 +388,7 @@ class topDecoder(systemState, schema):
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
+        print(">>>>>>>>>>>>>>>> topDecoder received configuration updateReq()")
         if source == self:
             if self.updating:
                 return rc.ALREADY_EXISTS
@@ -407,7 +413,6 @@ class topDecoder(systemState, schema):
 
     def validate(self):
         trace.notify(DEBUG_TERSE, "topDecoder received configuration validate()")
-        self.sysNames = []
         self.schemaDirty = self.isDirty()
         childs = True
         try:
@@ -447,13 +452,24 @@ class topDecoder(systemState, schema):
         self.generateDiscoveryResponse(self.getXmlConfigTree(text = True))
         return rc.OK
 
-    def checkSysName(self, sysName):
+    def regSysName(self, sysName):
+        print(self.sysNames)
         try:
             self.sysNames.index(sysName)
+            print(">>>>>>>>>>>>> sysName:" + sysName + " already exists")
             return rc.ALREADY_EXISTS
         except:
             self.sysNames.append(sysName)
+            print(">>>>>>>>>>>>> sysName " + sysName + " doesnt exists adding it")
+            print(self.sysNames)
             return rc.OK
+
+    def unRegSysName(self, sysName):
+        try:
+            self.sysNames.remove(sysName)
+            return rc.OK
+        except:
+            return rc.DOES_NOT_EXIST
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "topDecoder received configuration commit0()")

@@ -24,6 +24,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -40,6 +41,8 @@ imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
+imp.load_source('topologyMgr', '..\\topologyMgr\\topologyMgr.py')
+from topologyMgr import topologyMgr
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
 from config import *
@@ -62,7 +65,7 @@ from config import *
 #               supervision-, and control of genJMRI satelite links - interconnecting satelites in daisy-chains.
 #               See archictecture.md for more information
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -72,6 +75,8 @@ class satLink(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
@@ -81,6 +86,7 @@ class satLink(systemState, schema):
         self.rpcClient = rpcClient
         self.mqttClient = mqttClient
         self.satelites.value = []
+        self.satTopology = topologyMgr(self, SATLINK_MAX_SATS)
         self.childs.value = self.satelites.candidateValue
         self.updating = False
         self.pendingBoot = False
@@ -113,6 +119,10 @@ class satLink(systemState, schema):
             for i in range(0, MAX_SATS):
                 self.addChild(SATELITE, name="GJS-" + str(i), config=False, demo=True)
         trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
+
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.satLinkTopology.removeTopologyMember(ref.satLinkSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -193,8 +203,11 @@ class satLink(systemState, schema):
             trace.notify(DEBUG_TERSE, "Satelite link " + self.satLinkSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
             return rc.OK
 
-    def checkSysName(self, sysName):
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName):
+        return self.parent.regSysName(sysName)
+    
+    def unRegSysName(self, sysName):
+        return self.parent.unRegSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Satelite link " + self.satLinkSystemName.candidateValue + " received configuration commit0()")
@@ -243,6 +256,7 @@ class satLink(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
+        self.provioned = True
         return rc.OK
 
     def abort(self):
@@ -256,7 +270,8 @@ class satLink(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
+        if not self.provioned:
+            self.delete(top = True)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -359,6 +374,7 @@ class satLink(systemState, schema):
         self.LINK_SCAN_GEN_ERRORalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.CBLalarm.ceaseAlarm("Source object deleted")
+        self.parent.unRegSysName(self.satLinkSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -395,9 +411,17 @@ class satLink(systemState, schema):
         self.wdErr = 0
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.satLinkSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.satLinkSystemName.candidateValue + " already in use")
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.satLinkSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.satLinkSystemName.candidateValue + " already in use")
+                return res
+        self.sysNameReged = True
+        weakSelf = weakref.ref(self, satLink.aboutToDelete)
+        res = self.parent.satLinkTopology.addTopologyMember(self.satLinkSystemName.candidateValue, self.satLinkNo.candidateValue, weakSelf)
+        if res:
+            print (">>>>>>>>>>>>> Satelite Link failed address/port topology validation for Link No: " + str(self.satLinkNo.candidateValue) + "return code: " + rc.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Satelite Link failed address/port topology validation for Link No: " + str(self.satLinkNo.candidateValue) + rc.getErrStr(res))
             return res
         if len(self.satelites.candidateValue) > SATLINK_MAX_SATS:
             trace.notify(DEBUG_ERROR, "Too many satelites defined for satelite link " + str(self.satLinkSystemName.candidateValue) + ", " + str(len(self.satelites.candidateValue)) + "  given, " + str(SATLINK_MAX_SATS) + " is maximum")

@@ -24,6 +24,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from topDecoderLogic import *   #Should go away
@@ -67,7 +68,7 @@ from config import *
 #               Implements the management-, configuration-, supervision-, and control of genJMRI actuators.
 #               See archictecture.md for more information
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -77,6 +78,8 @@ class actuator(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
@@ -97,6 +100,7 @@ class actuator(systemState, schema):
         self.actPort.value = 0
         self.actType.value = "TURNOUT"
         self.actSubType.value = "SOLENOID"
+        self.contigiousPorts = 1
         self.commitAll()
         self.actState = "CLOSED"
         self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, ACTUATOR, displayIcon=ACTUATOR_ICON)
@@ -110,6 +114,10 @@ class actuator(systemState, schema):
         self.win.inactivateMoMObj(self.item)
         self.setOpStateDetail(OP_INIT[STATE] | OP_UNCONFIGURED[STATE])
         trace.notify(DEBUG_INFO,"New Actuator: " + self.nameKey.candidateValue + " created - awaiting configuration")
+
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.actTopology.removeTopologyMember(ref.jmriActSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -130,6 +138,10 @@ class actuator(systemState, schema):
             self.actPort.value = actuatorXmlConfig.get("Port")
             self.actType.value = actuatorXmlConfig.get("Type")
             self.actSubType.value = actuatorXmlConfig.get("SubType")
+            if actuatorXmlConfig.get("SubType") == "SOLENOID":
+                self.contigiousPorts = 2
+            else:
+                self.contigiousPorts = 1
             self.jmriActSystemName.value = actuatorXmlConfig.get("JMRISystemName")
             if self.actType.candidateValue == "TURNOUT":
                 self.nameKey.value = "Turn-" + self.jmriActSystemName.candidateValue
@@ -173,6 +185,7 @@ class actuator(systemState, schema):
         return res
 
     def validate(self):
+        print(">>>>>>>>>>>>>>>>>>>>Actuator validate")
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration validate()")
         self.schemaDirty = self.isDirty()
         if self.schemaDirty:
@@ -182,8 +195,11 @@ class actuator(systemState, schema):
             trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
             return rc.OK
 
-    def checkSysName(self, sysName): #Just from the template - not applicable for this object leaf
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName): #Just from the template - not applicable for this object leaf
+        return self.parent.regSysName(sysName)
+
+    def unRegSysName(self, sysName): #Just from the template - not applicable for this object leaf
+        return self.parent.regSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration commit0()")
@@ -210,11 +226,16 @@ class actuator(systemState, schema):
                 return res
         else:
             trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.value + " was not reconfigured, skiping re-configuration")
+        self.provioned = True
         return rc.OK
 
     def abort(self):
+        print(">>>>>>>>>>>>>>>>>>>>abort")
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
+        if not self.provioned:
+            print(">>>>>>>>>>>>>>>>>>>>removing myself")
+            self.delete(top = True)
         # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
 
@@ -274,6 +295,8 @@ class actuator(systemState, schema):
         self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.CBLalarm.ceaseAlarm("Source object deleted")
+        self.parent.actTopology.removeTopologyMember(self.jmriActSystemName.value)
+        self.parent.unRegSysName(self.jmriActSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -288,6 +311,10 @@ class actuator(systemState, schema):
         elif self.actType.candidateValue == "MEMORY":
             self.nameKey.value = "Mem-" + self.jmriActSystemName.candidateValue
         nameKey = self.nameKey.candidateValue # Need to save nameKey as it may be gone after an abort from updateReq()
+        if self.actSubType.candidateValue == "SOLENOID":
+            self.contigiousPorts = 2
+        else:
+            self.contigiousPorts = 1
         if self.getAdmState() == ADM_ENABLE[STATE]:
             res = self.updateReq(self, self, uploadNReboot = True)
         else:
@@ -305,10 +332,28 @@ class actuator(systemState, schema):
         return rc.OK
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.jmriActSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.jmriActSystemName.candidateValue + " already in use")
-            return res
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.jmriActSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.jmriActSystemName.candidateValue + " already in use")
+                return res
+        self.sysNameReged = True
+
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #HERE IS WHERE WE NEED TO ADD THE TOPOLOGY VALIDATION OF THE CONFIGURATION
+        # We need to define additional subsequent ports needed for this actuator type: self.contigousPorts
+        self.parent.actTopology.removeTopologyMember(self.jmriActSystemName.value)
+        print(">>>>>>>>>>>>>>>>> About to allocate ports in topology")
+        weakSelf = weakref.ref(self, actuator.aboutToDelete)
+        for portItter in range (0, self.contigiousPorts):
+            print(">>>>>>>>>>>>>>>>> Allocating port: " + str(self.actPort.candidateValue + portItter))
+            res = self.parent.actTopology.addTopologyMember(self.jmriActSystemName.candidateValue, self.actPort.candidateValue + portItter, weakSelf)
+            if res:
+                print(">>>>>>>>>>>>>>>>Add failed")
+                trace.notify(DEBUG_ERROR, "Actuator failed address/port topology validation for port/address: " + str(self.actPort.candidateValue + portItter) + rc.getErrStr(res))
+                return res
+            print(">>>>>>>>>>>>>>>>Add Succeeded")
+
         return rc.OK
 
     def __setConfig(self):

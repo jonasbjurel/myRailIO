@@ -8,7 +8,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
 # A genJMRI sensor class providing the JMRI-genJMRI interactions for various sensors providing the bridge between following JMRI objects:
-# SENSORS and MEMORIES, and the genJMRI satelite sensor object atributes: DIGOTAL sensor
+# SENSORS and MEMORIES, and the genJMRI satelite sensor object atributes: DIGITAL sensor
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -24,6 +24,7 @@ import sys
 import time
 import threading
 import traceback
+import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from topDecoderLogic import *   #Should go away
@@ -67,7 +68,7 @@ from config import *
 #               Implements the management-, configuration-, supervision-, and control of genJMRI sensors.
 #               See archictecture.md for more information
 # StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
-#               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
+#               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
@@ -77,6 +78,8 @@ class sensor(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
+        self.provioned = False
+        self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
         self.setSchema(schema.BASE_SCHEMA)
@@ -112,6 +115,10 @@ class sensor(systemState, schema):
 
 # NEDAN MÅSTE FIXAS - FINS INGEN REFERENS TILL self.sensTopic - kanske måste subscribas för att få status parrallelt med direktkanalen till JMRI?
         self.sensTopic = MQTT_JMRI_PRE_TOPIC + MQTT_SENS_TOPIC + self.parent.getDecoderUri() + "/" + self.jmriSensSystemName.value
+
+    @staticmethod
+    def aboutToDelete(ref):
+        ref.parent.actTopology.removeTopologyMember(ref.jmriSensSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -179,8 +186,11 @@ class sensor(systemState, schema):
 
             return rc.OK
 
-    def checkSysName(self, sysName): #Just from the template - not applicable for this object leaf
-        return self.parent.checkSysName(sysName)
+    def regSysName(self, sysName): #Just from the template - not applicable for this object leaf
+        return self.parent.regSysName(sysName)
+
+    def unRegSysName(self, sysName): #Just from the template - not applicable for this object leaf
+        return self.parent.regSysName(sysName)
 
     def commit0(self):
         trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.candidateValue + " received configuration commit0()")
@@ -208,12 +218,14 @@ class sensor(systemState, schema):
                 return res
         else:
             trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.value + " was not reconfigured, skiping re-configuration")
+        self.provioned = True
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
+        if not self.provioned:
+            self.delete(top = True)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
@@ -270,6 +282,7 @@ class sensor(systemState, schema):
         self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
         self.INT_FAILalarm.ceaseAlarm("Source object deleted")
         self.CBLalarm.ceaseAlarm("Source object deleted")
+        self.parent.unRegSysName(self.jmriSensSystemName.value)
         self.parent.delChild(self)
         self.win.unRegisterMoMObj(self.item)
         if top:
@@ -296,9 +309,16 @@ class sensor(systemState, schema):
         return rc.OK
 
     def __validateConfig(self):
-        res = self.parent.checkSysName(self.jmriSensSystemName.candidateValue)
-        if res != rc.OK:
-            trace.notify(DEBUG_ERROR, "System name " + self.jmriSensSystemName.candidateValue + " already in use")
+        if not self.sysNameReged:
+            res = self.parent.regSysName(self.jmriSensSystemName.candidateValue)
+            if res != rc.OK:
+                trace.notify(DEBUG_ERROR, "System name " + self.jmriSensSystemName.candidateValue + " already in use")
+                return res
+        self.sysNameReged = True
+        weakSelf = weakref.ref(self, sensor.aboutToDelete)
+        res = self.parent.sensTopology.addTopologyMember(self.jmriSensSystemName.candidateValue, self.sensPort.candidateValue, weakSelf)
+        if res:
+            trace.notify(DEBUG_ERROR, "Sensor failed address/port topology validation for port/address: " + str(self.sensPort.candidateValue) + rc.getErrStr(res))
             return res
         return rc.OK
 
