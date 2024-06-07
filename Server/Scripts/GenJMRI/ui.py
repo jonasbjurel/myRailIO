@@ -116,8 +116,15 @@ class StandardItem(QStandardItem):
         super().__delete__()
 
 class UI_mainWindow(QMainWindow):
+    faultBlockMarkMoMObjSignal = QtCore.pyqtSignal(StandardItem, bool, name='faultBlockMo')
+    inactivateMoMObjSignal = QtCore.pyqtSignal(StandardItem, name='inactivateMo')
+    controlBlockMarkMoMObjSignal = QtCore.pyqtSignal(StandardItem, name='controlBlockMo')
+
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.faultBlockMarkMoMObjSignal.connect(self.__faultBlockMarkMoMObj)
+        self.inactivateMoMObjSignal.connect(self.__inactivateMoMObj)
+        self.controlBlockMarkMoMObjSignal.connect(self.__controlBlockMarkMoMObj)
         self.configFileDialog = UI_fileDialog("genJMRI main configuration", self)
         loadUi(MAIN_FRAME_UI, self)
         self.actionOpenConfig.setEnabled(True)
@@ -190,15 +197,24 @@ class UI_mainWindow(QMainWindow):
         self.MoMTreeModel.removeRow(item.row(), parent=self.MoMTreeModel.indexFromItem(item).parent())
 
     def faultBlockMarkMoMObj(self, item, faultState):
+        self.faultBlockMarkMoMObjSignal.emit(item, faultState)
+
+    def __faultBlockMarkMoMObj(self, item, faultState):
         if faultState:
             item.setColor(QColor(255, 0, 0))
         else:
             item.setColor(QColor(119,150,56))
-
+            
     def inactivateMoMObj(self, item):
+        self.inactivateMoMObjSignal.emit(item)
+        
+    def __inactivateMoMObj(self, item):
         item.setColor(QColor(200, 200, 200))
 
     def controlBlockMarkMoMObj(self, item):
+        self.controlBlockMarkMoMObjSignal.emit(item)
+
+    def __controlBlockMarkMoMObj(self, item):
         item.setColor(QColor(255, 200, 0))
 
     def _onAlarm(self, p_criticality, p_noOfAlarms, p_object):
