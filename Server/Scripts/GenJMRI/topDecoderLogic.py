@@ -22,6 +22,7 @@
 #################################################################################################################################################
 import os
 import sys
+from typing import List, Callable, Any
 from socket import *
 import time
 from datetime import datetime
@@ -32,7 +33,6 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 import paho.mqtt.client as pahomqtt
 from momResources import *
-from ui import *
 from decoderLogic import *
 import imp
 imp.load_source('sysState', '..\\sysState\\sysState.py')
@@ -51,6 +51,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__))+"\\..\\rpc\\")
 from genJMRIRpcClient import *
 imp.load_source('rc', '..\\rc\\genJMRIRc.py')
 from rc import rc
+imp.load_source('schema', '..\\schema\\schema.py')
+from schema import *
 imp.load_source('topologyMgr', '..\\topologyMgr\\topologyMgr.py')
 from topologyMgr import topologyMgr
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
@@ -58,6 +60,8 @@ from parseXml import *
 from config import *
 imp.load_source('tz', '..\\tz\\tz.py')
 from tz import *
+from ui import UI_decoderDialog, UI_topDialog, UI_addDialog
+
 
 
 

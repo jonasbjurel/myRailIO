@@ -482,6 +482,42 @@ class decoder(systemState, schema):
     def decoderRestart(self):
         self.__decoderRestart()
 
+    def getFirmwareVersion(self):
+        return "myFWVersion"
+    
+    def getHardwareVersion(self):
+        return "myHWVersion"
+    
+    def getIpAddress(self):
+        return "0.0.0.0"
+    
+    def getBrokerUri(self):
+        return "myBrokerUri"
+    
+    def getWifiSsid(self):
+        return "myWifiSsid"
+
+    def getWifiSsidSnr(self):
+        return "-70"
+    
+    def getLoglevel(self):
+        return "INFO"
+    
+    def getMemUsage(self):
+        return "100/3900"
+    
+    def getCpuUsage(self):
+        return "70"
+    
+    def getCoreDumpId(self):
+        return "2024-06-10 : 12.00.00"
+
+    def getCoreDump(self):
+        return "git commit Id: blabla:\nThis is a coreDump"
+    
+    def getDecoderUrl(self):
+        return "www.github.com"
+    
     def __validateConfig(self):
         if not self.sysNameReged:
             res = self.parent.regSysName(self.decoderSystemName.candidateValue)

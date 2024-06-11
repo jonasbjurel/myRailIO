@@ -14,6 +14,7 @@ import re
 import threading
 import traceback
 from momResources import *
+import webbrowser
 import imp
 imp.load_source('rpc', '..\\rpc\\JMRIObjects.py')
 from rpc import jmriObj
@@ -55,6 +56,7 @@ MAIN_FRAME_UI = "ui/Main_Frame.ui"
 TOP_DIALOG_UI = "ui/Top_Dialog.ui"
 ADD_DIALOG_UI = "ui/Add_Dialog.ui"
 DECODER_DIALOG_UI = "ui/Decoder_Dialog.ui"
+CRASHDUMPOUTPUT_DIALOG_UI = "ui/Crash_Dump_Dialog.ui"
 LIGHTGROUPSLINK_DIALOG_UI = "ui/LightGroupsLink_Dialog.ui"
 SATLINK_DIALOG_UI = "ui/SatLink_Dialog.ui"
 LIGHTGROUP__LINK_DIALOG_UI = "ui/LightGroupsLink_Dialog.ui"
@@ -67,6 +69,7 @@ LOGSETTING_DIALOG_UI = "ui/Log_Setting_Dialog.ui"
 SHOWALARMS_DIALOG_UI = "ui/Alarms_Show_Dialog.ui"
 SHOWALARMSINVENTORY_DIALOG_UI = "ui/Alarms_Inventory_Dialog.ui"
 SHOWS_SELECTED_ALARM_DIALOG_UI = "ui/Individual_Alarm_Show_Dialog.ui"
+SHOWDECODERINVENTORY_DIALOG_UI = "ui/Decoders_Inventory_Dialog.ui"
 CONFIGOUTPUT_DIALOG_UI = "ui/Config_Output_Dialog.ui"
 AUTOLOAD_PREF_DIALOG_UI = "ui/AutoLoad_Pref_Dialog.ui"
 
@@ -316,7 +319,7 @@ class UI_mainWindow(QMainWindow):
         # Inventory actions
         # -----------------
         self.actionAlarm_inventory_2.triggered.connect(self.showAlarmInventory)
-
+        self.actionShow_Decoders.triggered.connect(self.showDecoderInventory)
 
         # Debug actions
         # -----------------
@@ -391,6 +394,10 @@ class UI_mainWindow(QMainWindow):
     def showAlarmInventory(self):
         self.alarmInventoryWidget = UI_alarmInventoryShowDialog(self.parentObjHandle)
         self.alarmInventoryWidget.show()
+        
+    def showDecoderInventory(self):
+        self.decoderInventoryWidget = UI_decoderInventoryShowDialog(self.parentObjHandle)
+        self.decoderInventoryWidget.show()
 
     def about(self):
         QMessageBox.about(
@@ -1029,7 +1036,7 @@ class UI_getConfig(QDialog):
         # Copy widget
         self.configOutputCopyPushButton.clicked.connect(self.copyDisplay)
 
-        # Copy widget
+        # Save as widget
         self.configOutputSaveasPushButton.clicked.connect(self.saveAs)
 
     def saveAs(self):
@@ -1090,6 +1097,7 @@ class UI_addDialog(QDialog):
 
 
 class UI_topDialog(QDialog):
+    topDecoderHandle = None
     def __init__(self, parentObjHandle, edit = False, parent = None):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
@@ -1319,6 +1327,42 @@ class UI_topDialog(QDialog):
 
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# DECODER DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#################################################################################################################################################
+# Class: UI_decoderDialog
+# Purpose: UI_decoderDialog provides configuration GUI dialogs for the decoder objects.
+#
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: decoder:                Parent decoder object handle
+# -rpcClient: rpc:                          rpcClient handle
+# -newConfig: bool                          New configuration flag
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -setEditable() -> bool:                   Set the dialog to editable/configurable
+# -unSetEditable() -> bool:                 Set the dialog to uneditable/unconfigurable
+# -displayValues() -> None:                 Display the decoder object values in the dialog
+# -setValues() -> int:                      Set the decoder object values from the dialog
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -accepted() -> None:                      Slot for the dialog accept button
+# -rejected() -> None:                      Slot for the dialog reject button
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
 class UI_decoderDialog(QDialog):
     def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
@@ -1422,6 +1466,379 @@ class UI_decoderDialog(QDialog):
     def rejected(self):
         self.parentObjHandle.rejected()
         self.close()
+#################################################################################################################################################
+# End Class: decoderInventoryTableModel
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_decoderInventoryShowDialog
+# Purpose: UI_decoderInventoryShowDialog provides decoder inventory GUI dialogs
+#
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: topDecoder:             Top decoder object handle
+# -proxymodel: QSortFilterProxyModel        Filter model for the decoder inventory table
+# -decoderInventoryTableModel: decoderInventoryTableModel: Decoder inventory table model
+# -updateTableWorker: UI_decoderShowDialogUpdateWorker: Table update worker
+# -updateTableWorkerThread: QThread         Table update worker thread
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -stopUpdate() -> None:                    Stop the table update worker
+# -updateDecoderInventoryTable() -> None:   Update the decoder inventory table
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -showSelectedDecoder() -> None:           Show the selected decoder
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_decoderInventoryShowDialog(QDialog):
+    def __init__(self, parentObjHandle, parent = None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(SHOWDECODERINVENTORY_DIALOG_UI, self)
+        self.proxymodel = QtCore.QSortFilterProxyModel()
+        self.decoderInventoryTableModel = decoderInventoryTableModel(self, self.parentObjHandle)
+        self.proxymodel.setSourceModel(self.decoderInventoryTableModel)
+        self.decoderInventoryTableView.setModel(self.proxymodel)
+        self.decoderInventoryTableView.setSortingEnabled(True)
+        self.updateTableWorker = UI_decoderShowDialogUpdateWorker(self)
+        self.updateTableWorker.setParent(None)
+        self.updateTableWorkerThread = QtCore.QThread()
+        self.updateTableWorker.moveToThread(self.updateTableWorkerThread)
+        self.updateTableWorkerThread.start()
+        self.updateTableWorkerThread.started.connect(self.updateTableWorker.start)
+        self.updateTableWorker.updateDecoders.connect(self.updateDecoderInventoryTable)
+        self.connectWidgetSignalsSlots()
+        self.closeEvent = self.stopUpdate
+
+    def stopUpdate(self, event):
+        if self.updateTableWorkerThread.isRunning():
+             self.updateTableWorker.stop()
+        pass
+
+    def updateDecoderInventoryTable(self):
+        self.proxymodel.beginResetModel()
+        self.decoderInventoryTableModel.beginResetModel()
+        self.decoderInventoryTableModel.endResetModel()
+        self.proxymodel.endResetModel()
+        self.decoderInventoryTableView.resizeColumnsToContents()
+        self.decoderInventoryTableView.resizeRowsToContents()
+
+    def connectWidgetSignalsSlots(self):
+        self.decoderInventoryTableView.clicked.connect(self.showSelectedDecoder)
+
+    def showSelectedDecoder(self, p_clickedIndex):
+        if p_clickedIndex.column() == decoderInventoryTableModel.provUriCol():
+            decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())
+            webbrowser.open_new_tab(decoder.getDecoderUrl())
+        elif p_clickedIndex.column() == decoderInventoryTableModel.coreDumpCol():
+            UI_crashDumpDialog(self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())).show()
+        else:
+            decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
+            self.individualDecoderWidget = UI_decoderDialog(decoder, None)
+            self.individualDecoderWidget.show()
+#################################################################################################################################################
+# End Class: UI_decoderInventoryShowDialog
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_decoderShowDialogUpdateWorker
+# Purpose: A worker class for the decoder inventory table update
+#
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -updateDecoders: QtCore.pyqtSignal:       Signal for decoder inventory table update
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -start() -> None:                         Start the worker
+# -stop() -> None:                          Stop the worker
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_decoderShowDialogUpdateWorker(QtCore.QObject):
+    updateDecoders = QtCore.pyqtSignal()
+    
+    def __init__(self, decoderShowHandle = None):
+        super(self.__class__, self).__init__(decoderShowHandle)
+
+    @QtCore.pyqtSlot()
+    def start(self):
+        self.run = True
+        while self.run:
+            self.updateDecoders.emit()
+            QtCore.QThread.sleep(1)
+
+    def stop(self):
+        self.run = False
+#################################################################################################################################################
+# End Class: UI_decoderShowDialogUpdateWorker
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: decoderInventoryTableModel
+# Purpose: decoderInventoryTableModel is a QAbstractTable model for registered decoder inventory table model. It provides the capabilities to
+# represent a registered decoders inventory in a QTableView table.
+#
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>)
+# -isFirstColumnObjectId() -> bool:         Used to identify column 0 key information
+# -isFirstColumnInstanceId() -> bool        Used to identify column 0 key information
+# -getDecoderObjFromSysId() -> decoder:     Used to get the decoder object from the decoder system ID
+# -formatdecoderInventoryTable() -> List[List[str]]: Populate the decoder inventory table
+# -rowCount() -> int:                       Returns the current table view row count
+# -columnCount() -> int:                    Returns the current table view column count
+# -headerData() -> List[str] | None:        Returns the decoder table header columns
+# -data() -> str | Any:                     Returns decoder table cell data
+# -<*>Col() -> int                          Provides the coresponding column index as provided with formatdecoderInventoryTable()
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -_decoderInventoryTableReloadLock : threading.Lock:
+#                                           decoder inventory Re-load lock
+# -_parent : Any:                           Calling UI object
+# -_decoderInventoryTable : List[List[str]]:   Inventory list of lists [row][column]
+# -_colCnt                                  Decoder table column count
+# -_rowCnt                                  Decoder table row count
+#
+# Private methods:
+# ----------------
+# -_reLoadData() -> None                    Reload decoder inventory content
+#################################################################################################################################################
+class decoderInventoryTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, p_parent, parentObjHandle):
+        self._decoderInventoryTableReloadLock  = threading.Lock()
+        self._parent : Any = p_parent
+        self.parentObjHandle = parentObjHandle
+        self._decoderInventoryTable : List[List[str]] = []
+        self._colCnt : int = 0
+        self._rowCnt : int = 0
+        QtCore.QAbstractTableModel.__init__(self)
+        self._reLoadData()
+
+    def isFirstColumnObjectId(self) -> bool:
+        return True
+
+    def isFirstColumnInstanceId(self) -> bool: 
+        return False
+
+    def getDecoderObjFromSysId(self, decoderSysId : str) -> ...:
+        for decoderItter in self.parentObjHandle.decoders.value:
+            if decoderItter.decoderSystemName.value == decoderSysId:
+                return decoderItter
+        return None
+
+    def _reLoadData(self) -> None:
+        with self._decoderInventoryTableReloadLock:
+            self._decoderInventoryTable = self.formatDecoderInventoryTable()
+            try:
+                self._colCnt = len(self._decoderInventoryTable[0])
+            except:
+                self._colCnt = 0
+            self._rowCnt = len(self._decoderInventoryTable)
+        self._parent.decoderInventoryTableView.resizeColumnsToContents()
+        self._parent.decoderInventoryTableView.resizeRowsToContents()
+
+    def formatDecoderInventoryTable(self) -> List[List[str]]:
+        self._decoderInventoryTable : List[decoder] = []
+        decoderInventoryList : List[decoder] = self.parentObjHandle.decoders.value
+        for decoderInventoryItter in decoderInventoryList:
+            decoderInventoryRow : List[str] = []
+            decoderInventoryRow.append(decoderInventoryItter.decoderSystemName.value)
+            decoderInventoryRow.append(decoderInventoryItter.userName.value)
+            decoderInventoryRow.append(decoderInventoryItter.description.value)
+            decoderInventoryRow.append(decoderInventoryItter.getOpStateDetailStr())
+            decoderInventoryRow.append(decoderInventoryItter.getFirmwareVersion())
+            decoderInventoryRow.append(decoderInventoryItter.getHardwareVersion())
+            decoderInventoryRow.append(decoderInventoryItter.mac.value)
+            decoderInventoryRow.append(decoderInventoryItter.getIpAddress())
+            decoderInventoryRow.append(decoderInventoryItter.getBrokerUri())
+            decoderInventoryRow.append(decoderInventoryItter.decoderMqttURI.value)
+            decoderInventoryRow.append(decoderInventoryItter.getUptime())
+            decoderInventoryRow.append(decoderInventoryItter.getWifiSsid())
+            decoderInventoryRow.append(decoderInventoryItter.getWifiSsidSnr())
+            decoderInventoryRow.append(decoderInventoryItter.getLoglevel())
+            decoderInventoryRow.append(decoderInventoryItter.getMemUsage())
+            decoderInventoryRow.append(decoderInventoryItter.getCpuUsage())
+            decoderInventoryRow.append(decoderInventoryItter.getCoreDumpId())
+            decoderInventoryRow.append(decoderInventoryItter.getDecoderUrl())
+            self._decoderInventoryTable.append(decoderInventoryRow)
+        return self._decoderInventoryTable
+
+    def rowCount(self, p_parent : Any = Qt.QModelIndex()) -> int:
+        with self._decoderInventoryTableReloadLock:
+            return self._rowCnt
+
+    def columnCount(self, p_parent : Any = Qt.QModelIndex()):
+        with self._decoderInventoryTableReloadLock:
+            return self._colCnt
+
+    def headerData(self, section, orientation, role):
+        with self._decoderInventoryTableReloadLock:
+            if role != QtCore.Qt.DisplayRole:
+                return None
+            if orientation == QtCore.Qt.Horizontal:
+                return ("SysName:","UsrName:", "Desc:", "OpState:", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[s]:", "WifiSSID:", "WiFiSNR[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "coreDump", "decoderURL:")[section]
+            else:
+                return f"{section}"
+
+    def data(self, index : Any, role : Any = QtCore.Qt.DisplayRole)-> str | Any:
+        with self._decoderInventoryTableReloadLock:
+            column = index.column()
+            row = index.row()
+            if role == QtCore.Qt.DisplayRole:
+                return self._decoderInventoryTable[row][column]
+            
+            if role == QtCore.Qt.ForegroundRole:
+                if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#505050'))
+                if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF0000'))
+                if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF8000'))
+                return QtGui.QBrush(QtGui.QColor('#0000FF'))
+            if role == QtCore.Qt.TextAlignmentRole:
+                return QtCore.Qt.AlignCenter
+    @staticmethod
+    def sysNameCol() -> int: return 0
+    @staticmethod
+    def usrNameCol() -> int: return 1
+    @staticmethod
+    def descCol() -> int: return 2
+    @staticmethod
+    def opStateCol() -> int: return 3
+    @staticmethod
+    def fwVer() -> int: return 4
+    @staticmethod
+    def swVer() -> int: return 5
+    @staticmethod
+    def macCol() -> int: return 6
+    @staticmethod
+    def ipCol() -> int: return 7
+    @staticmethod
+    def mqttBrokerCol() -> int: return 8
+    @staticmethod
+    def mqttClientCol() -> int: return 9
+    @staticmethod
+    def upTimeCol() -> int: return 10
+    @staticmethod
+    def ssidCol() -> int: return 11
+    @staticmethod
+    def snrCol() -> int: return 12
+    @staticmethod
+    def logLevelCol() -> int: return 13
+    @staticmethod
+    def memUsageCol() -> int: return 14
+    @staticmethod
+    def cpuUsageCol() -> int: return 15
+    @staticmethod
+    def coreDumpCol() -> int: return 16
+    @staticmethod
+    def provUriCol() -> int: return 17
+#################################################################################################################################################
+# End Class: decoderInventoryTableModel
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_crashDumpDialog
+# Purpose: UI_crashDumpDialog provides GUI dialogs for the decoder core dump output
+#
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -
+#
+# Public methods:
+# ---------------
+# -__init__() -> None:                      Constructor
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -writeCrashDump() -> None:                Write the crash dump to the dialog
+# -copyDisplay() -> None:                   Copy the crash dump to the clipboard
+# -close_() -> None:                        Close the dialog
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_crashDumpDialog(QDialog):
+    def __init__(self, parentObjHandle, parent = None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(CRASHDUMPOUTPUT_DIALOG_UI, self)
+        self.connectWidgetSignalsSlots()
+        self.writeCrashDump()
+        self.closeEvent = self.close_
+
+    def connectWidgetSignalsSlots(self):
+        # Close button
+        self.crashDumpOutputClosePushButton.clicked.connect(self.close_)
+        
+        # Copy widget
+        self.crashDumpOutputCopyPushButton.clicked.connect(self.copyDisplay)
+
+    def writeCrashDump(self):
+        self.crashDumpOutputTextBrowser.append(self.parentObjHandle.getCoreDump())
+
+    def copyDisplay(self):
+        self.crashDumpOutputTextBrowser.selectAll()
+        self.crashDumpOutputTextBrowser.copy()
+
+    def close_(self, unknown):
+        self.close()
+#################################################################################################################################################
+# End Class: UI_crashDumpDialog
+#################################################################################################################################################
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# END - DECODER DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 

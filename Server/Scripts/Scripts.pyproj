@@ -83,6 +83,8 @@
     <Content Include="GenJMRI\ui\Add_Dialog.ui" />
     <Content Include="GenJMRI\ui\autoLoad_Pref_Dialog.ui" />
     <Content Include="GenJMRI\ui\Config_Output_Dialog.ui" />
+    <Content Include="GenJMRI\ui\Crash_Dump_Dialog.ui" />
+    <Content Include="GenJMRI\ui\Decoders_Inventory_Dialog.ui" />
     <Content Include="GenJMRI\ui\Decoder_Dialog.ui" />
     <Content Include="GenJMRI\ui\Decoder_Modify_Dialog.ui" />
     <Content Include="GenJMRI\ui\LightGroupsLink_Dialog.ui" />
