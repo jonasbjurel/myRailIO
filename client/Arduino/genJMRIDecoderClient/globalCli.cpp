@@ -817,6 +817,7 @@ void globalCli::onCliShowCoreDump(cmd* p_cmd, cliCore* p_cliContext,
 			delete stackTraceBuff;
 			return;
 		}
+		stackTraceBuff[readBytes] = '\0';
 		printCli("%s", stackTraceBuff);
 		delete stackTraceBuff;
 		acceptedCliCommand(CLI_TERM_QUIET);

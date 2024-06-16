@@ -113,16 +113,185 @@
 #define REBOOT_PAYLOAD							"<REBOOT/>"
 
 // Decoder fetch coredump
-#define MQTT_DECODER_FETCHCOREDUMP_TOPIC		MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/coredumprequest"
+#define MQTT_DECODER_COREDUMP_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/coredumprequest"
 
 // Payload examples:
-#define FETCHCOREDUMP_PAYLOAD					"<FETCHCOREDUMP/>"
+#define FETCHCOREDUMP_PAYLOAD					"<COREDUMPREQ/>"
 
 // Decoder deliver coredump
-#define MQTT_DECODER_COREDUMP_UPSTREAM_TOPIC	MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/coredumpdelivery"
+#define MQTT_DECODER_COREDUMP_RESP_TOPIC		MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/coredumpresponse"
 
 // Payload examples:
-#define DELIVERCOREDUMP_XMLTAG_PAYLOAD		"COREDUMP"
+#define DELIVERCOREDUMP_XMLTAG_PAYLOAD			"COREDUMP"
+
+// Decoder fetch FW version
+#define MQTT_DECODER_FWVER_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/firmwareversionrequest"
+
+// Payload examples:
+#define FETCHFWVER_PAYLOAD						"<FWVERREQ/>"
+
+// Decoder deliver FW version
+#define MQTT_DECODER_FWVER_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/firmwareversionresponse"
+
+// Payload examples:
+#define DELIVERFWVER_XMLTAG_PAYLOAD				"FWVER"
+
+// Decoder fetch HW version
+#define MQTT_DECODER_HWVER_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/hardwareversionrequest"
+
+// Payload examples:
+#define FETCHHWVER_PAYLOAD						"<HWVERREQ/>"
+
+// Decoder deliver HW version
+#define MQTT_DECODER_HWVER_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/hardwareversionresponse"
+
+// Payload examples:
+#define DELIVERHWVER_XMLTAG_PAYLOAD				"HWVER"
+
+// Decoder fetch IP address
+#define MQTT_DECODER_IPADDR_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/ipaddressrequest"
+
+// Payload examples:
+#define FETCHIPADDR_PAYLOAD						"<IPADDRREQ/>"
+
+// Decoder deliver IP address
+#define MQTT_DECODER_IPADDR_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/ipaddressresponse"
+
+// Payload examples:
+#define DELIVERIPADDR_XMLTAG_PAYLOAD			"IPADDR"
+
+// Decoder fetch SSID address
+#define MQTT_DECODER_SSID_REQ_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/ssidrequest"
+
+// Payload examples:
+#define FETCHSSID_PAYLOAD						"<SSIDREQ/>"
+
+// Decoder deliver SSID address
+#define MQTT_DECODER_SSID_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/ssidresponse"
+
+// Payload examples:
+#define DELIVERSSID_XMLTAG_PAYLOAD				"SSID"
+
+// Decoder fetch WIFI SNR
+#define MQTT_DECODER_SNR_REQ_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/snrrequest"
+
+// Payload examples:
+#define FETCHSNR_PAYLOAD						"<SNRREQ/>"
+
+// Decoder deliver WIFI SNR
+#define MQTT_DECODER_SNR_RESP_TOPIC				MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/snrresponse"
+
+// Payload examples:
+#define DELIVERSNR_XMLTAG_PAYLOAD				"SNR"
+
+// Decoder fetch IP address
+#define MQTT_DECODER_IPADDR_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/ipaddrrequest"
+
+// Payload examples:
+#define FETCHIPADDR_PAYLOAD						"<IPADDRREQ/>"
+
+// Decoder deliver IP address
+#define MQTT_DECODER_IPADDR_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/ipaddrresponse"
+
+// Payload examples:
+#define DELIVERIPADDR_XMLTAG_PAYLOAD			"IPADDR"
+
+// Decoder fetch Memory stats
+#define MQTT_DECODER_MEMSTAT_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/memstatrequest"
+
+// Payload examples:
+#define FETCHMEMSTAT_PAYLOAD					"<MEMSTATREQ/>"
+
+// Decoder deliver Memory stats
+#define MQTT_DECODER_MEMSTAT_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/memstatresponse"
+
+// Payload examples:
+#define DELIVERMEMSTAT_XMLTAG_PAYLOAD			"MEMSTAT"
+
+// Decoder fetch CPU stats
+#define MQTT_DECODER_CPUSTAT_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/cpustatrequest"
+
+// Payload examples:
+#define FETCHCPUSTAT_PAYLOAD					"<CPUSTATREQ/>"
+
+// Decoder deliver CPU stats
+#define MQTT_DECODER_CPUSTAT_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/cpustatresponse"
+
+// Payload examples:
+#define DELIVERCPUSTAT_XMLTAG_PAYLOAD			"CPUSTAT"
+
+// Decoder fetch Broker URI
+#define MQTT_DECODER_BROKERURI_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/brokerurirequest"
+
+// Payload examples:
+#define FETCHBROKERURI_PAYLOAD						"<BROKERURIREQ/>"
+
+// Decoder deliver Broker URI
+#define MQTT_DECODER_BROKERURI_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/brokeruriresponse"
+
+// Payload examples:
+#define DELIVERBROKERURI_XMLTAG_PAYLOAD				"BROKERURI"
+
+// Decoder fetch HW version
+#define MQTT_DECODER_HWVER_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/hwverrequest"
+
+// Payload examples:
+#define FETCHHWVER_PAYLOAD						"<HWVERREQ/>"
+
+// Decoder deliver HW version
+#define MQTT_DECODER_HWVER_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/hwverresponse"
+
+// Payload examples:
+#define DELIVERHWVER_XMLTAG_PAYLOAD				"HWVER"
+
+// Decoder fetch SW version
+#define MQTT_DECODER_SWVER_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/swverrequest"
+
+// Payload examples:
+#define FETCSHWVER_PAYLOAD						"<SWVERREQ/>"
+
+// Decoder deliver SW version
+#define MQTT_DECODER_SWVER_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/swverresponse"
+
+// Payload examples:
+#define DELIVERSWVER_XMLTAG_PAYLOAD				"SWVER"
+
+
+// Decoder fetch Log level
+#define MQTT_DECODER_LOGLVL_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/loglvlrequest"
+
+// Payload examples:
+#define FETCSLOGLVL_PAYLOAD						"<LOGLVL/>"
+
+// Decoder deliver Log level
+#define MQTT_DECODER_LOGLVL_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/loglvlresponse"
+
+// Payload examples:
+#define DELIVERLOGLVL_XMLTAG_PAYLOAD			"LOGLVL"
+
+// Decoder fetch Log level
+#define MQTT_DECODER_WWWUI_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/wwwuirequest"
+
+// Payload examples:
+#define FETCSWWWUI_PAYLOAD						"<WWWUI/>"
+
+// Decoder deliver Log level
+#define MQTT_DECODER_WWWUI_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/wwwuiresponse"
+
+// Payload examples:
+#define DELIVERWWWUI_XMLTAG_PAYLOAD				"WWWUI"
+
+// Decoder fetch OP State
+#define MQTT_DECODER_OPSTATE_REQ_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/opstaterequest"
+
+// Payload examples:
+#define FETCOPSTATE_PAYLOAD						"<OPSTATE/>"
+
+// Decoder deliver OP State
+#define MQTT_DECODER_OPSTATE_RESP_TOPIC			MQTT_PRE_TOPIC_DEFAULT_FRAGMENT "/" MQTT_DECODER_TOPIC_FRAGMENT "/opstateresponse"
+
+// Payload examples:
+#define DELIVEROPSTATE_XMLTAG_PAYLOAD			"OPSTATE"
 
 // MQTT Object resource business logic topics and payloads
 // Sensors

@@ -724,7 +724,7 @@ rc_t networking::persistentSaveConfig(const netwStaConfig_t* p_staConfig) {
     uint storeSize;
     if (fileSys::putFile(WIFI_CONFIG_STORE_FILENAME,
                          wifiConfigJsonPrettySerialized,
-                         WIFI_CONFIG_JSON_SERIAL_SIZE, &storeSize)) {
+                         strlen(wifiConfigJsonPrettySerialized) + 1, &storeSize)) {
         LOG_ERROR("Could not save configuration " \
                   "to file %s" CR, WIFI_CONFIG_STORE_FILENAME);
         return RC_GEN_ERR;
@@ -747,6 +747,10 @@ rc_t networking::recoverPersistantConfig(netwStaConfig_t* p_staConfig) {
                   "from file %s" CR, WIFI_CONFIG_STORE_FILENAME);
         return RC_GEN_ERR;
     }
+    Serial.printf(">>>>>>>>>>>>>>>>>>>> %s" CR, wifiConfigJsonPrettySerialized);
+	Serial.printf(">>>>>>>>>>>>>>>> Read size: %i" CR, readSize);
+	wifiConfigJsonPrettySerialized[readSize] = '\0';
+    Serial.printf(">>>>>>>>>>>>>>>>>>>> %s" CR, wifiConfigJsonPrettySerialized);
     LOG_VERBOSE("Wifi pretty Json content "
                 "recovered: %s" CR, wifiConfigJsonPrettySerialized);
     if (deserializeJson(wifiConfigJsonDoc, wifiConfigJsonPrettySerialized)) {

@@ -1391,6 +1391,9 @@ class UI_decoderDialog(QDialog):
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
+        self.ipAddressLineEdit.setEnabled(False)
+        self.launchUiPushButton.setEnabled(True)
+        self.launchTelnetPushButton.setEnabled(False)
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
@@ -1404,6 +1407,9 @@ class UI_decoderDialog(QDialog):
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(False)
         self.adminStateForceCheckBox.setEnabled(False)
+        self.ipAddressLineEdit.setEnabled(False)
+        self.launchUiPushButton.setEnabled(True)
+        self.launchTelnetPushButton.setEnabled(False)
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
@@ -1416,6 +1422,7 @@ class UI_decoderDialog(QDialog):
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
         self.adminStateComboBox.setCurrentText(self.parentObjHandle.getAdmState()[STATE_STR])
+        self.ipAddressLineEdit.setText(self.parentObjHandle.getIpAddressFromClient())
         self.adminStateForceCheckBox.setChecked(False)
 
     def setValues(self):
@@ -1442,9 +1449,21 @@ class UI_decoderDialog(QDialog):
         return rc.OK
 
     def connectWidgetSignalsSlots(self):
+        self.launchUiPushButton.clicked.connect(self.launchUi)
+        self.launchTelnetPushButton.clicked.connect(self.launchTelnet)
         self.confirmButtonBox.accepted.connect(self.accepted)
         self.confirmButtonBox.rejected.connect(self.rejected)
-        pass
+
+    def launchUi(self):
+        webbrowser.open_new_tab(self.parentObjHandle.getDecoderWwwUiFromClient())
+
+    def launchTelnet(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText("Error: Telnet not yet implemented")
+        msg.setInformativeText("Telnet not yet implemented")
+        msg.setWindowTitle("Error")
+        msg.exec_()
 
     def accepted(self):
         res = self.setValues()
@@ -1467,7 +1486,7 @@ class UI_decoderDialog(QDialog):
         self.parentObjHandle.rejected()
         self.close()
 #################################################################################################################################################
-# End Class: decoderInventoryTableModel
+# End Class: UI_decoderDialog
 #################################################################################################################################################
 
 
@@ -1530,6 +1549,7 @@ class UI_decoderInventoryShowDialog(QDialog):
         pass
 
     def updateDecoderInventoryTable(self):
+        self.decoderInventoryTableModel.reLoadData()
         self.proxymodel.beginResetModel()
         self.decoderInventoryTableModel.beginResetModel()
         self.decoderInventoryTableModel.endResetModel()
@@ -1543,7 +1563,7 @@ class UI_decoderInventoryShowDialog(QDialog):
     def showSelectedDecoder(self, p_clickedIndex):
         if p_clickedIndex.column() == decoderInventoryTableModel.provUriCol():
             decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())
-            webbrowser.open_new_tab(decoder.getDecoderUrl())
+            webbrowser.open_new_tab(decoder.getDecoderWwwUiFromClient())
         elif p_clickedIndex.column() == decoderInventoryTableModel.coreDumpCol():
             UI_crashDumpDialog(self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())).show()
         else:
@@ -1593,7 +1613,7 @@ class UI_decoderShowDialogUpdateWorker(QtCore.QObject):
         self.run = True
         while self.run:
             self.updateDecoders.emit()
-            QtCore.QThread.sleep(1)
+            QtCore.QThread.sleep(5)
 
     def stop(self):
         self.run = False
@@ -1651,7 +1671,7 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
         self._colCnt : int = 0
         self._rowCnt : int = 0
         QtCore.QAbstractTableModel.__init__(self)
-        self._reLoadData()
+        self.reLoadData()
 
     def isFirstColumnObjectId(self) -> bool:
         return True
@@ -1665,7 +1685,7 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
                 return decoderItter
         return None
 
-    def _reLoadData(self) -> None:
+    def reLoadData(self) -> None:
         with self._decoderInventoryTableReloadLock:
             self._decoderInventoryTable = self.formatDecoderInventoryTable()
             try:
@@ -1684,21 +1704,21 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             decoderInventoryRow.append(decoderInventoryItter.decoderSystemName.value)
             decoderInventoryRow.append(decoderInventoryItter.userName.value)
             decoderInventoryRow.append(decoderInventoryItter.description.value)
-            decoderInventoryRow.append(decoderInventoryItter.getOpStateDetailStr())
-            decoderInventoryRow.append(decoderInventoryItter.getFirmwareVersion())
-            decoderInventoryRow.append(decoderInventoryItter.getHardwareVersion())
+            decoderInventoryRow.append(decoderInventoryItter.getOpStateDetailStr() + "/" + decoderInventoryItter.getOpStateFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getFirmwareVersionFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getHardwareVersionFromClient())
             decoderInventoryRow.append(decoderInventoryItter.mac.value)
-            decoderInventoryRow.append(decoderInventoryItter.getIpAddress())
-            decoderInventoryRow.append(decoderInventoryItter.getBrokerUri())
+            decoderInventoryRow.append(decoderInventoryItter.getIpAddressFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getBrokerUriFromClient())
             decoderInventoryRow.append(decoderInventoryItter.decoderMqttURI.value)
             decoderInventoryRow.append(decoderInventoryItter.getUptime())
-            decoderInventoryRow.append(decoderInventoryItter.getWifiSsid())
-            decoderInventoryRow.append(decoderInventoryItter.getWifiSsidSnr())
-            decoderInventoryRow.append(decoderInventoryItter.getLoglevel())
-            decoderInventoryRow.append(decoderInventoryItter.getMemUsage())
-            decoderInventoryRow.append(decoderInventoryItter.getCpuUsage())
-            decoderInventoryRow.append(decoderInventoryItter.getCoreDumpId())
-            decoderInventoryRow.append(decoderInventoryItter.getDecoderUrl())
+            decoderInventoryRow.append(decoderInventoryItter.getWifiSsidFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getWifiSsidSnrFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getLoglevelFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getMemUsageFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getCpuUsageFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getCoreDumpIdFromClient())
+            decoderInventoryRow.append(decoderInventoryItter.getDecoderWwwUiFromClient())
             self._decoderInventoryTable.append(decoderInventoryRow)
         return self._decoderInventoryTable
 
@@ -1715,7 +1735,7 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             if role != QtCore.Qt.DisplayRole:
                 return None
             if orientation == QtCore.Qt.Horizontal:
-                return ("SysName:","UsrName:", "Desc:", "OpState:", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[s]:", "WifiSSID:", "WiFiSNR[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "coreDump", "decoderURL:")[section]
+                return ("SysName:","UsrName:", "Desc:", "OpState (Server/Client):", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[s]:", "WifiSSID:", "WiFiRSSI[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "CoreDump", "DecoderUI:")[section]
             else:
                 return f"{section}"
 
@@ -1725,7 +1745,6 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             row = index.row()
             if role == QtCore.Qt.DisplayRole:
                 return self._decoderInventoryTable[row][column]
-            
             if role == QtCore.Qt.ForegroundRole:
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#00FF00'))
@@ -1824,7 +1843,7 @@ class UI_crashDumpDialog(QDialog):
         self.crashDumpOutputCopyPushButton.clicked.connect(self.copyDisplay)
 
     def writeCrashDump(self):
-        self.crashDumpOutputTextBrowser.append(self.parentObjHandle.getCoreDump())
+        self.crashDumpOutputTextBrowser.append(self.parentObjHandle.getCoreDumpFromClient())
 
     def copyDisplay(self):
         self.crashDumpOutputTextBrowser.selectAll()
@@ -2075,7 +2094,7 @@ class UI_satLinkDialog(QDialog):
         self.close()
 
 
-
+#"SysName:","UsrName:", "Desc:", "Type", "Subtype", "OpState:", "Showing", "UpTime[s]:")[section]
 class UI_lightGroupDialog(QDialog):
     def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)

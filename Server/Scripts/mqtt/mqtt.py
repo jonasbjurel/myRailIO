@@ -157,7 +157,7 @@ class mqtt(pahomqtt.Client):
             return
         for cb in self.subscriptions[message.topic]:
             trace.notify(DEBUG_VERBOSE, "MQTT client: " + self.clientId + " is calling " + str(cb) + "with MQTT message: " + message.topic + ":" + str(message.payload))
-            cb(message.topic, message.payload.decode("utf-8"))
+            cb(message.topic, message.payload.decode("utf-8")) # EXCEPT FOR BAD PAYLOADS
 
     def _retryConnect(self):
         if not self.retry:
@@ -180,7 +180,6 @@ class mqtt(pahomqtt.Client):
                         self.__on_connect(None, None, None, pahomqtt.MQTT_ERR_NO_CONN)
                 else:
                     trace.notify(DEBUG_INFO, "Waiting for MQTT client: " + self.clientId + " to connect...")
-
                 threading.Timer(MQTT_RETRY_PERIOD_S, self._retryConnectLoop).start()
             else:
                 self.retry = False
@@ -190,3 +189,114 @@ class mqtt(pahomqtt.Client):
         self.active = False
         self._stopRetryConnect()
         self.loop_stop()
+
+
+
+#################################################################################################################################################
+# Class: syncMqttRequest
+# Purpose: syncMqttRequest is a synchronous MQTT Request/Response class that makes a blocking MQTT request and returns the MQTT response
+#          a timeout can be provided which will cause the callback to return with None
+# 
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -
+#
+# Public methods:
+# ---------------
+# -__init__() -> None                        Constructor - defining the request-
+#                                            and response topics, the MQTT client object,
+#                                            and the timeout. Multiple requests can be
+#                                            made to the MQTT topic endpoint using this
+#                                            class object
+# -__delete__() -> None                      Destructor
+# -sendRequest() -> Str | None               Send a request to the MQTT receiver of
+#                                            the topic and return the resonse, in case 
+#                                            timeout, or object distruction -None is returned.
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -_requestTopic : str:                     Request topic
+# -_requestPayload : str:                   Request payload
+# -_responseTopic : str:                    Response topic
+# -_mqttClient : mqtt:                      MQTT client object handle
+# -_timeout : int:                          Timeout request timeout in ms, if set to 0 it will block indefenetly for an answer.
+# -_responsePayload : str:                  Response payload
+# -_syncRequestSemaphore : threading.Semaphore: Synchronizing semaphore between requests
+#                                               and responses.
+# -_syncRequestReentranceLock : threading.Lock: Reentrance lock for requests, only one can
+#                                               be queued at a time, if lock cannot be taken
+#                                               None will immediately be returned.
+# -_delete : bool:                          Destructor flag, indicating that all operations 
+#                                           should be ceased, and calls should be returned
+#                                           with None.
+#
+# Private methods:
+# ----------------
+# -_getResponse() -> None                    Callback for response messages
+#################################################################################################################################################
+class syncMqttRequest():
+    def __init__(self, requestTopic : str, requestPayload : str, responseTopic : str, mqttClient : mqtt, timeout : int):
+        trace.notify(DEBUG_INFO, "An MQTT Sync request template is being created, requestTopic: " + requestTopic + ", requestPayload: " + requestPayload + ", responseTopic" + responseTopic + ", timeout: " + str(timeout))
+        self._requestTopic : str = requestTopic
+        self._requestPayload : str = requestPayload
+        self._responseTopic : str = responseTopic
+        self._mqttClient : mqtt = mqttClient
+        if timeout <= 0:
+            self._timeout = -1
+        else:
+            self._timeout : int = timeout
+        self._responsePayload : str = None
+        #self._syncRequestSemaphore : threading.Semaphore = threading.Semaphore(1)
+        print("@@@@@@@@Creating semaphore 0")
+        self._syncRequestSemaphore : threading.Lock = threading.Lock()
+        print("@@@@@@@@Aquire semaphore 1")
+        self._syncRequestSemaphore.acquire()
+        self._mqttClient.subscribeTopic(self._responseTopic, self._getResponse)
+        self._syncRequestReentranceLock : threading.Lock = threading.Lock()
+        self._delete : bool = False
+
+    def __delete__(self):
+        trace.notify(DEBUG_VERBOSE, "The MQTT Sync request template is being deleted for requestTopic: " + self._requestTopic + ", requestPayload: " + self._requestPayload + ", responseTopic" + self._responseTopic + ", timeout: " + str(self._timeout))
+        self.mqttClient.unSubscribeTopic(self._responseTopic, self._getResponse)
+        self._delete = True
+        try:
+            print("@@@@@@@@Release semaphore 2")
+            self._syncRequestSemaphore.release()
+        except:
+            pass
+
+    def sendRequest(self) -> str | None:
+        if not self._syncRequestReentranceLock.acquire(blocking = False):
+            return None
+        self._responsePayload = None
+        print(">>>>>>>>>Sending request")
+        self._mqttClient.publish(self._requestTopic, self._requestPayload)
+        print(">>>>>>>>>Waiting for response")
+        if not self._syncRequestSemaphore.acquire(timeout=self._timeout / 1000):
+            trace.notify(DEBUG_ERROR, "MQTT sync request timed out for requestTopic: " + self._requestTopic + ", requestPayload: " + self._requestPayload + ", responseTopic" + self._responseTopic + ", timeout: " + str(self._timeout))
+            self._syncRequestReentranceLock.release()
+            print(">>>>>>>>>Timeout")
+            return None
+        if self._delete:
+            return None
+        print(">>>>>>>>>Serving response")
+        self._syncRequestReentranceLock.release()
+        trace.notify(DEBUG_ERROR, "MQTT sync request received a response: " + self._responsePayload + " for requestTopic: " + self._requestTopic + ", requestPayload: " + self._requestPayload + ", responseTopic" + self._responseTopic + ", timeout: " + str(self._timeout))
+        return self._responsePayload
+
+    def _getResponse(self, responseTopic : str, responsePayload : str) -> None :
+        if not self._syncRequestReentranceLock.locked():
+            return                                                                  # Ignore response if no one is still asking for it
+        self._responsePayload = responsePayload
+        print("########Got response")
+        self._syncRequestSemaphore.release()
+        print("########Released semaphore")
+
+
+#################################################################################################################################################
+# End Class: syncMqttRequest
+#################################################################################################################################################

@@ -39,7 +39,10 @@ void panic(const char* p_panicFmt, ...) {
         return; 
     }
     ongoingPanic = true;
-    esp_backtrace_buff(20, stackTraceBuff);
+	if (esp_backtrace_buff(20, stackTraceBuff)) {
+		LOG_ERROR_NOFMT("Could not get backtrace - corrupted");
+		strcpy(stackTraceBuff, "Could not get backtrace - corrupted" CR);
+	}
     va_list args;
     va_start(args, p_panicFmt);
     int len = vsnprintf(NULL, 0, p_panicFmt, args);

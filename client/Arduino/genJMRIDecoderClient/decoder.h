@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "version.h"
 #include "panic.h"
 #include "networking.h"
 #include "libraries/tinyxml2/tinyxml2.h"
@@ -248,8 +249,30 @@ public:
 	static uint8_t onWdtReboot(uint8_t escalationCnt, const void* p_metaData);
 	static void onRebootHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
 	void onReboot(void);
-	static void onGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
-	void onGetCoreDump(void);
+	static void onMqttGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetCoreDump(void);
+	static void onMqttGetSsidHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetSsid(void);
+	static void onMqttGetSnrHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetSnr(void);
+	static void onMqttGetIpAddrHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetIpAddr(void);
+	static void onMqttGetMemStatHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetMemStat(void);
+	static void onMqttGetCpuStatHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetCpuStat(void);
+	static void onMqttGetBrokerUriHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetBrokerUri(void);
+	static void onMqttGetHwVerHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetHwVer(void);
+	static void onMqttGetSwVerHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetSwVer(void);
+	static void onMqttGetLogLvlHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetLogLvl(void);
+	static void onMqttGetWwwUiHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetWwwUi(void);
+	static void onMqttGetOpStateHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject);
+	void onMqttGetOpState(void);
 
 	/* CLI decoration methods */
 	// No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.

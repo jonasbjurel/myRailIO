@@ -37,7 +37,7 @@ import imp
 imp.load_source('sysState', '..\\sysState\\sysState.py')
 from sysState import *
 imp.load_source('mqtt', '..\\mqtt\\mqtt.py')
-from mqtt import mqtt
+from mqtt import mqtt, syncMqttRequest
 imp.load_source('syslog', '..\\trace\\syslog.py')
 from syslog import rSyslog
 imp.load_source('alarmHandler', '..\\alarmHandler\\alarmHandler.py')
@@ -148,6 +148,21 @@ class decoder(systemState, schema):
         self.missedPingReq = 0
         self.supervisionActive = False
         self.restart = True
+        
+        self.syncMemStatRequest = None
+        self.syncCpuStatRequest = None
+        self.syncCoreDumpRequest = None
+        self.syncSsidRequest = None
+        self.syncSnrRequest = None
+        self.syncIPAddrRequest = None
+        self.syncBrokerUriRequest = None
+        self.syncHwVerRequest = None
+        self.syncSwVerRequest = None
+        self.syncLogLvlRequest = None
+        self.syncWwwUiRequest = None
+        self.syncOpStateRequest = None
+        
+
         if self.demo:
             for i in range(DECODER_MAX_LG_LINKS):
                 self.addChild(LIGHT_GROUP_LINK, name="GJLL-" + str(i), config=False, demo=True)
@@ -482,41 +497,148 @@ class decoder(systemState, schema):
     def decoderRestart(self):
         self.__decoderRestart()
 
-    def getFirmwareVersion(self):
-        return "myFWVersion"
-    
-    def getHardwareVersion(self):
-        return "myHWVersion"
-    
-    def getIpAddress(self):
-        return "0.0.0.0"
-    
-    def getBrokerUri(self):
-        return "myBrokerUri"
-    
-    def getWifiSsid(self):
-        return "myWifiSsid"
+    def getOpStateFromClient(self):
+        opStateXmlStr = self.syncOpStateRequest.sendRequest()
+        if not opStateXmlStr:
+            trace.notify(DEBUG_ERROR, "OP State could not be fetched")
+            return "-"
+        opStateXmlTree = ET.ElementTree(ET.fromstring(opStateXmlStr))
+        if str(opStateXmlTree.getroot().tag) != MQTT_DECODER_OPSTATERESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "OP State response missformatted: " + ipAddrXmlTree)
+            return "-"
+        return opStateXmlTree.getroot().text
 
-    def getWifiSsidSnr(self):
-        return "-70"
+    def getFirmwareVersionFromClient(self):
+        swVerXmlStr = self.syncSwverRequest.sendRequest()
+        if not swVerXmlStr:
+            trace.notify(DEBUG_ERROR, "SW Version could not be fetched")
+            return "-"
+        swVerXmlTree = ET.ElementTree(ET.fromstring(swVerXmlStr))
+        if str(swVerXmlTree.getroot().tag) != MQTT_DECODER_SWVERRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "SW Version response missformatted: " + ipAddrXmlTree)
+            return "-"
+        return swVerXmlTree.getroot().text
     
-    def getLoglevel(self):
-        return "INFO"
+    def getHardwareVersionFromClient(self):
+        hwVerXmlStr = self.syncHwverRequest.sendRequest()
+        if not hwVerXmlStr:
+            trace.notify(DEBUG_ERROR, "HW Version could not be fetched")
+            return "-"
+        hwVerXmlTree = ET.ElementTree(ET.fromstring(hwVerXmlStr))
+        if str(hwVerXmlTree.getroot().tag) != MQTT_DECODER_HWVERRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "HW Version response missformatted: " + ipAddrXmlTree)
+            return "-"
+        return hwVerXmlTree.getroot().text
     
-    def getMemUsage(self):
-        return "100/3900"
-    
-    def getCpuUsage(self):
-        return "70"
-    
-    def getCoreDumpId(self):
-        return "2024-06-10 : 12.00.00"
+    def getIpAddressFromClient(self):
+        ipAddrXmlStr = self.syncIPAddrRequest.sendRequest()
+        if not ipAddrXmlStr:
+            trace.notify(DEBUG_ERROR, "IP Address could not be fetched")
+            return "-"
+        ipAddrXmlTree = ET.ElementTree(ET.fromstring(ipAddrXmlStr))
+        if str(ipAddrXmlTree.getroot().tag) != MQTT_DECODER_IPADDRRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "IP Address response missformatted: " + ipAddrXmlTree)
+            return "-"
+        return ipAddrXmlTree.getroot().text
 
-    def getCoreDump(self):
-        return "git commit Id: blabla:\nThis is a coreDump"
+    def getBrokerUriFromClient(self):
+        brokerUriXmlStr = self.syncBrokerUriRequest.sendRequest()
+        if not brokerUriXmlStr:
+            trace.notify(DEBUG_ERROR, "Broker URI could not be fetched")
+            return "-"
+        brokerUriXmlTree = ET.ElementTree(ET.fromstring(brokerUriXmlStr))
+        if str(brokerUriXmlTree.getroot().tag) != MQTT_DECODER_BROKERURIRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Broker URI response missformatted: " + ipAddrXmlTree)
+            return "-"
+        return brokerUriXmlTree.getroot().text
+
+    def getWifiSsidFromClient(self):
+        ssidXmlStr = self.syncSsidRequest.sendRequest()
+        if not ssidXmlStr:
+            trace.notify(DEBUG_ERROR, "SSID could not be fetched")
+            return "-"
+        ssidXmlTree = ET.ElementTree(ET.fromstring(ssidXmlStr))
+        if str(ssidXmlTree.getroot().tag) != MQTT_DECODER_SSIDRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "SSID response missformatted: " + ssidXmlStr)
+            return "-"
+        return ssidXmlTree.getroot().text
+
+    def getWifiSsidSnrFromClient(self):
+        snrXmlStr = self.syncSnrRequest.sendRequest()
+        if not snrXmlStr:
+            trace.notify(DEBUG_ERROR, "WIFI SNR could not be fetched")
+            return "-"
+        snrXmlTree = ET.ElementTree(ET.fromstring(snrXmlStr))
+        if str(snrXmlTree.getroot().tag) != MQTT_DECODER_SNRRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "WIFI SNR response missformatted: " + snrXmlStr)
+            return "-"
+        return snrXmlTree.getroot().text
     
-    def getDecoderUrl(self):
-        return "www.github.com"
+    def getLoglevelFromClient(self):
+        logLvlXmlStr = self.syncLogLvlRequest.sendRequest()
+        if not logLvlXmlStr:
+            trace.notify(DEBUG_ERROR, "Log level could not be fetched")
+            return "-"
+        logLvlTree = ET.ElementTree(ET.fromstring(logLvlXmlStr))
+        if str(logLvlTree.getroot().tag) != MQTT_DECODER_LOGLVLRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Log level response missformatted: " + logLvlXmlStr)
+            return "-"
+        return logLvlTree.getroot().text
+    
+    def getMemUsageFromClient(self):
+        memUsageXmlStr = self.syncMemStatRequest.sendRequest()
+        if not memUsageXmlStr:
+            trace.notify(DEBUG_ERROR, "Memory stats could not be fetched")
+            return "-"
+        memUsageXmlTree = ET.ElementTree(ET.fromstring(memUsageXmlStr))
+        if str(memUsageXmlTree.getroot().tag) != MQTT_DECODER_MEMSTATRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Memory stats response missformatted: " + memUsageXmlStr)
+            return "-"
+        return memUsageXmlTree.getroot().text
+    
+    def getCpuUsageFromClient(self):
+        cpuUsageXmlStr = self.syncCpuStatRequest.sendRequest()
+        if not cpuUsageXmlStr:
+            trace.notify(DEBUG_ERROR, "CPU stats could not be fetched")
+            return "-"
+        cpuUsageXmlTree = ET.ElementTree(ET.fromstring(cpuUsageXmlStr))
+        if str(cpuUsageXmlTree.getroot().tag) != MQTT_DECODER_CPUSTATRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "CPU stats response missformatted: " + cpuUsageXmlStr)
+            return "-"
+        return cpuUsageXmlTree.getroot().text
+    
+    def getCoreDumpIdFromClient(self):
+        coreDumpXmlStr = self.syncCoreDumpRequest.sendRequest()
+        if not coreDumpXmlStr:
+            trace.notify(DEBUG_ERROR, "Coredump could not be fetched")
+            return "-"
+        coreDumpXmlTree = ET.ElementTree(ET.fromstring(coreDumpXmlStr))
+        if str(coreDumpXmlTree.getroot().tag) != MQTT_DECODER_COREDUMPRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Core-dump response missformatted: " + coreDumpXmlStr)
+            return "-"
+        return coreDumpXmlTree.getroot().text.partition('Backtrace')[0].strip()
+
+    def getCoreDumpFromClient(self):
+        coreDumpXmlStr = self.syncCoreDumpRequest.sendRequest()
+        if not coreDumpXmlStr:
+            trace.notify(DEBUG_ERROR, "Coredump could not be fetched")
+            return "Coredump could not be fetched"
+        coreDumpXmlTree = ET.ElementTree(ET.fromstring(coreDumpXmlStr))
+        if str(coreDumpXmlTree.getroot().tag) != MQTT_DECODER_COREDUMPRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Core-dump response missformatted: " + coreDumpXmlStr)
+            return "Coredump could not be fetched"
+        return coreDumpXmlTree.getroot().text
+
+    def getDecoderWwwUiFromClient(self):
+        wwwUiXmlStr = self.syncWwwUiRequest.sendRequest()
+        if not wwwUiXmlStr:
+            trace.notify(DEBUG_ERROR, "WWW UI URI could not be fetched")
+            return "-"
+        wwwUiXmlTree = ET.ElementTree(ET.fromstring(wwwUiXmlStr))
+        if str(wwwUiXmlTree.getroot().tag) != MQTT_DECODER_WWWUIRESP_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "WWW UI URI response missformatted: " + wwwUiXmlStr)
+            return "-"
+        return wwwUiXmlTree.getroot().text
     
     def __validateConfig(self):
         if not self.sysNameReged:
@@ -571,6 +693,22 @@ class decoder(systemState, schema):
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIGREQ_TOPIC + self.decoderMqttURI.value, self.__onDecoderConfigReq)
         self.mqttClient.subscribeTopic(self.decoderOpUpStreamTopic, self.__onDecoderOpStateChange)
+
+        self.syncMemStatRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_MEMSTATREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_MEMSTATREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_MEMSTATRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncCpuStatRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CPUSTATREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_CPUSTATREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CPUSTATRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncCoreDumpRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_COREDUMPREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_COREDUMPREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_COREDUMPRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncSsidRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_SSIDREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_SSIDREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_SSIDRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncSnrRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_SNRREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_SNRREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_SNRRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncIPAddrRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_IPADDRREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_IPADDRREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_IPADDRRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncBrokerUriRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_BROKERURIREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_BROKERURIREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_BROKERURIRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncHwverRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_HWVERREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_HWVERREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_HWVERRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncSwverRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_SWVERREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_SWVERREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_SWVERRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncLogLvlRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGLVLREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_LOGLVLREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGLVLRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncWwwUiRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WWWUIREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_WWWUIREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WWWUIRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        self.syncOpStateRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_OPSTATEREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_OPSTATEREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_OPSTATERESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
+        
+
+
         self.NOT_CONNECTEDalarm.updateAlarmSrc(self.nameKey.value)
         self.NOT_CONFIGUREDalarm.updateAlarmSrc(self.nameKey.value)
         self.SERVER_UNAVAILalarm.updateAlarmSrc(self.nameKey.value)

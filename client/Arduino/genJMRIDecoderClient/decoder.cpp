@@ -466,12 +466,80 @@ rc_t decoder::start(void) {
         panic("%s: Failed to suscribe to reboot topic \"%s\"", logContextName, subscribeTopic);
         return RC_GEN_ERR;
     }
-    LOG_INFO("%s: Subscribing to fetch coredump topic" CR, logContextName);
-	sprintf(subscribeTopic, "%s/%s", MQTT_DECODER_FETCHCOREDUMP_TOPIC, mqtt::getDecoderUri());
-    if (mqtt::subscribeTopic(subscribeTopic, onGetCoreDumpHelper, this)) {
-		panic("%s: Failed to suscribe to fetch coredump topic \"%s\"", logContextName, subscribeTopic);
+    LOG_INFO("%s: Subscribing to coredump request topic" CR, logContextName);
+	sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_COREDUMP_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetCoreDumpHelper, this)) {
+		panic("%s: Failed to suscribe to coredump topic \"%s\"", logContextName, subscribeTopic);
 	    return RC_GEN_ERR;
     }
+    LOG_INFO("%s: Subscribing to SSID request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_SSID_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetSsidHelper, this)) {
+        panic("%s: Failed to suscribe to SSID topic \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to WIFI SNR request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_SNR_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetSnrHelper, this)) {
+        panic("%s: Failed to suscribe to WIFI SNR topic \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to IP Address request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_IPADDR_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetIpAddrHelper, this)) {
+        panic("%s: Failed to suscribe to IP Address topic \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to Memory statistics request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_MEMSTAT_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetMemStatHelper, this)) {
+        panic("%s: Failed to suscribe to Memory statistics \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to CPU statistics request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_CPUSTAT_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetCpuStatHelper, this)) {
+        panic("%s: Failed to suscribe to CPU statistics \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    
+    LOG_INFO("%s: Subscribing to Broker URI request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_BROKERURI_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetBrokerUriHelper, this)) {
+        panic("%s: Failed to suscribe to Broker URI \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to HW Version request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_HWVER_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetHwVerHelper, this)) {
+        panic("%s: Failed to suscribe to HW Version \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to SW Version request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_SWVER_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetSwVerHelper, this)) {
+        panic("%s: Failed to suscribe to SW Version \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to Debug level request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_LOGLVL_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetLogLvlHelper, this)) {
+        panic("%s: Failed to suscribe to Debug level \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to Decoder WWW UI request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_WWWUI_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetWwwUiHelper, this)) {
+        panic("%s: Failed to suscribe to WWW UI request \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+    LOG_INFO("%s: Subscribing to Decoder OP State request topic" CR, logContextName);
+    sprintf(subscribeTopic, "%s/%s/%s", MQTT_DECODER_OPSTATE_REQ_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    if (mqtt::subscribeTopic(subscribeTopic, onMqttGetOpStateHelper, this)) {
+        panic("%s: Failed to suscribe to OP State request \"%s\"", logContextName, subscribeTopic);
+        return RC_GEN_ERR;
+    }
+
     LOG_INFO("Starting lightgroup link Decoders" CR);
     for (int lgLinkItter = 0; lgLinkItter < MAX_LGLINKS; lgLinkItter++) {
         LOG_TERSE("%s: Starting LgLink-%d" CR, logContextName, lgLinkItter);
@@ -1027,28 +1095,197 @@ void decoder::onReboot(void) {
     panic("Ordered reboot");
 }
 
-void decoder::onGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
-    ((decoder*)p_decoderObject)->onGetCoreDump();
+void decoder::onMqttGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetCoreDump();
 }
 
-void decoder::onGetCoreDump(void) {
+void decoder::onMqttGetCoreDump(void) {
 	char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
-	sprintf(topic, "%s/%s", MQTT_DECODER_COREDUMP_UPSTREAM_TOPIC, mqtt::getDecoderUri());
+	sprintf(topic, "%s/%s/%s", MQTT_DECODER_COREDUMP_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
     char* payload = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
     char* coreDumpBuff = new (heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
     uint readBytes;
 	if (fileSys::getFile(FS_PATH "/" "panic", coreDumpBuff, 10000, &readBytes)) {
-        sprintf(payload, "<%s>\n\r   %s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, "-", DELIVERCOREDUMP_XMLTAG_PAYLOAD);
+        sprintf(payload, "<%s>\n\r%s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, "No Coredump stored", DELIVERCOREDUMP_XMLTAG_PAYLOAD);
 		mqtt::sendMsg(topic, payload, false);
 	}
 	else {
-		sprintf(payload, "<%s>\n\r   %s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, coreDumpBuff, DELIVERCOREDUMP_XMLTAG_PAYLOAD);
-		mqtt::sendMsg(topic, payload, false);
+		Serial.printf(">>>>>>>>>>>>>>>>>>>>>>> NonTerminated buffer: %s" CR, coreDumpBuff);
+		coreDumpBuff[readBytes] = '\0';
+		sprintf(payload, "<%s>\n\r%s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, coreDumpBuff, DELIVERCOREDUMP_XMLTAG_PAYLOAD);
+		Serial.printf(">>>>>>>>>>>>>>>>>>>>>>> Read bytes: %i" CR, readBytes);
+        Serial.printf(">>>>>>>>>>>>>>>>>>>>>>> CordumpString: <%s>\n\r%s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, coreDumpBuff, DELIVERCOREDUMP_XMLTAG_PAYLOAD);
+        mqtt::sendMsg(topic, payload, false);
 	}
     delete coreDumpBuff;
     delete payload;
     delete topic;
 }
+
+void decoder::onMqttGetSsidHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetSsid();
+}
+
+void decoder::onMqttGetSsid(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_SSID_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>%s</%s>", DELIVERSSID_XMLTAG_PAYLOAD, networking::getSsid(), DELIVERSSID_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetSnrHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+	((decoder*)p_decoderObject)->onMqttGetSnr();
+}
+
+void decoder::onMqttGetSnr(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_SNR_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>%i</%s>", DELIVERSNR_XMLTAG_PAYLOAD, networking::getRssi(), DELIVERSNR_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+
+void decoder::onMqttGetIpAddrHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetIpAddr();
+}
+
+void decoder::onMqttGetIpAddr(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_IPADDR_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>%s</%s>", DELIVERIPADDR_XMLTAG_PAYLOAD, networking::getIpAddr().toString().c_str(), DELIVERIPADDR_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetMemStatHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetMemStat();
+}
+
+void decoder::onMqttGetMemStat(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_MEMSTAT_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    heapInfo_t intMemInfo;
+    cpu::getHeapMemInfo(&intMemInfo, true);
+    heapInfo_t extMemInfo;
+	cpu::getHeapMemInfo(&extMemInfo, false);
+    sprintf(payload, "<%s>%i/%i</%s>", DELIVERMEMSTAT_XMLTAG_PAYLOAD, intMemInfo.freeSize/1000, extMemInfo.freeSize/1000, DELIVERMEMSTAT_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetCpuStatHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetCpuStat();
+}
+
+void decoder::onMqttGetCpuStat(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_CPUSTAT_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>-</%s>", DELIVERCPUSTAT_XMLTAG_PAYLOAD, DELIVERCPUSTAT_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetBrokerUriHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetBrokerUri();
+}
+
+void decoder::onMqttGetBrokerUri(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_BROKERURI_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>%s</%s>", DELIVERBROKERURI_XMLTAG_PAYLOAD, xmlconfig[XML_DECODER_MQTT_URI], DELIVERBROKERURI_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetHwVerHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetHwVer();
+}
+
+void decoder::onMqttGetHwVer(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_HWVER_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+
+    sprintf(payload, "<%s>%s-V%i</%s>", DELIVERHWVER_XMLTAG_PAYLOAD, ESP.getChipModel(), ESP.getChipRevision(), DELIVERHWVER_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetSwVerHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetSwVer();
+}
+
+void decoder::onMqttGetSwVer(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_SWVER_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+
+    sprintf(payload, "<%s>V%s-%s</%s>", DELIVERSWVER_XMLTAG_PAYLOAD, GENJMRI_VERSION, GENJMRI_STATUS, DELIVERSWVER_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+    }
+
+void decoder::onMqttGetLogLvlHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetLogLvl();
+}
+
+void decoder::onMqttGetLogLvl(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_LOGLVL_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+
+    sprintf(payload, "<%s>%s</%s>", DELIVERLOGLVL_XMLTAG_PAYLOAD, xmlconfig[XML_DECODER_LOGLEVEL], DELIVERLOGLVL_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetWwwUiHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetWwwUi();
+}
+
+void decoder::onMqttGetWwwUi(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_WWWUI_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>http://%s:80</%s>", DELIVERWWWUI_XMLTAG_PAYLOAD, networking::getIpAddr().toString().c_str(), DELIVERWWWUI_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
+void decoder::onMqttGetOpStateHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
+    ((decoder*)p_decoderObject)->onMqttGetOpState();
+}
+
+void decoder::onMqttGetOpState(void) {
+    char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(topic, "%s/%s/%s", MQTT_DECODER_OPSTATE_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
+    char opStateStr[50];
+    getOpStateStr(opStateStr);
+    char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
+    sprintf(payload, "<%s>%s</%s>", DELIVEROPSTATE_XMLTAG_PAYLOAD, opStateStr, DELIVEROPSTATE_XMLTAG_PAYLOAD);
+    mqtt::sendMsg(topic, payload, false);
+    delete payload;
+    delete topic;
+}
+
 
 /* CLI decoration methods */
 // No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.

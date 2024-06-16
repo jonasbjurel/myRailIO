@@ -21,6 +21,66 @@ MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC =     "track/discoveryresp"               
 MQTT_LOG_TOPIC =                            "track/log/"                                        # Logs sent from decoders
 MQTT_DECODER_CONFIGREQ_TOPIC =              "track/decoder/configReq/"                          # Decoder ask for configuration
 MQTT_DECODER_CONFIG_TOPIC =                 "track/decoder/configResp/"                         # Configuration response from server
+MQTT_DECODER_COREDUMPREQ_TOPIC =            "track/decoder/coredumprequest/"
+MQTT_DECODER_COREDUMPREQ_PAYLOAD =          "<COREDUMPREQ/>"
+MQTT_DECODER_COREDUMPRESP_TOPIC =           "track/decoder/coredumpresponse/"
+MQTT_DECODER_COREDUMPRESP_PAYLOAD_TAG =     "COREDUMP"
+
+MQTT_DECODER_SSIDREQ_TOPIC =                "track/decoder/ssidrequest/"
+MQTT_DECODER_SSIDREQ_PAYLOAD =              "<SSIDREQ/>"
+MQTT_DECODER_SSIDRESP_TOPIC =               "track/decoder/ssidresponse/"
+MQTT_DECODER_SSIDRESP_PAYLOAD_TAG =         "SSID"
+
+MQTT_DECODER_SNRREQ_TOPIC =                 "track/decoder/snrrequest/"
+MQTT_DECODER_SNRREQ_PAYLOAD =               "<SNRREQ/>"
+MQTT_DECODER_SNRRESP_TOPIC =                "track/decoder/snrresponse/"
+MQTT_DECODER_SNRRESP_PAYLOAD_TAG =          "SNR"
+
+MQTT_DECODER_IPADDRREQ_TOPIC =              "track/decoder/ipaddrrequest/"
+MQTT_DECODER_IPADDRREQ_PAYLOAD =            "<IPADDRREQ/>"
+MQTT_DECODER_IPADDRRESP_TOPIC =             "track/decoder/ipaddrresponse/"
+MQTT_DECODER_IPADDRRESP_PAYLOAD_TAG =       "IPADDR"
+
+MQTT_DECODER_MEMSTATREQ_TOPIC =             "track/decoder/memstatrequest/"
+MQTT_DECODER_MEMSTATREQ_PAYLOAD =           "<MEMSTATREQ/>"
+MQTT_DECODER_MEMSTATRESP_TOPIC =            "track/decoder/memstatresponse/"
+MQTT_DECODER_MEMSTATRESP_PAYLOAD_TAG =      "MEMSTAT"
+
+MQTT_DECODER_CPUSTATREQ_TOPIC =             "track/decoder/cpustatrequest/"
+MQTT_DECODER_CPUSTATREQ_PAYLOAD =           "<CPUSTATREQ/>"
+MQTT_DECODER_CPUSTATRESP_TOPIC =            "track/decoder/cpustatresponse/"
+MQTT_DECODER_CPUSTATRESP_PAYLOAD_TAG =      "CPUSTAT"
+
+MQTT_DECODER_BROKERURIREQ_TOPIC =           "track/decoder/brokerurirequest/"
+MQTT_DECODER_BROKERURIREQ_PAYLOAD =         "<BROKERURIREQ/>"
+MQTT_DECODER_BROKERURIRESP_TOPIC =          "track/decoder/brokeruriresponse/"
+MQTT_DECODER_BROKERURIRESP_PAYLOAD_TAG =    "BROKERURI"
+
+MQTT_DECODER_HWVERREQ_TOPIC =               "track/decoder/hwverrequest/"
+MQTT_DECODER_HWVERREQ_PAYLOAD =             "<HWVERREQ/>"
+MQTT_DECODER_HWVERRESP_TOPIC =              "track/decoder/hwverresponse/"
+MQTT_DECODER_HWVERRESP_PAYLOAD_TAG =        "HWVER"
+
+MQTT_DECODER_SWVERREQ_TOPIC =               "track/decoder/swverrequest/"
+MQTT_DECODER_SWVERREQ_PAYLOAD =             "<SWVERREQ/>"
+MQTT_DECODER_SWVERRESP_TOPIC =              "track/decoder/swverresponse/"
+MQTT_DECODER_SWVERRESP_PAYLOAD_TAG =        "SWVER"
+
+MQTT_DECODER_LOGLVLREQ_TOPIC =              "track/decoder/loglvlrequest/"
+MQTT_DECODER_LOGLVLREQ_PAYLOAD =            "<LOGLVL/>"
+MQTT_DECODER_LOGLVLRESP_TOPIC =             "track/decoder/loglvlresponse/"
+MQTT_DECODER_LOGLVLRESP_PAYLOAD_TAG =       "LOGLVL"
+
+MQTT_DECODER_WWWUIREQ_TOPIC =               "track/decoder/wwwuirequest/"
+MQTT_DECODER_WWWUIREQ_PAYLOAD =             "<WWWUI/>"
+MQTT_DECODER_WWWUIRESP_TOPIC =              "track/decoder/wwwuiresponse/"
+MQTT_DECODER_WWWUIRESP_PAYLOAD_TAG =        "WWWUI"
+
+
+MQTT_DECODER_OPSTATEREQ_TOPIC =             "track/decoder/opstaterequest/"
+MQTT_DECODER_OPSTATEREQ_PAYLOAD =           "<OPSTATE/>"
+MQTT_DECODER_OPSTATERESP_TOPIC =            "track/decoder/opstateresponse/"
+MQTT_DECODER_OPSTATERESP_PAYLOAD_TAG =      "OPSTATE"
 
 MQTT_OPSTATE_TOPIC_DOWNSTREAM =             "opState/downstream/"                               # Decoder Operational state sent to decoders
 MQTT_OPSTATE_TOPIC_UPSTREAM =               "opState/upstream/"                                 # Decoder Operational state received from decoders
