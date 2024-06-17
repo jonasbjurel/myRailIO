@@ -160,6 +160,12 @@
 #define CPU_SETUP_TASKNAME							"setup"
 #define CPU_SETUP_STACK_ATTR						INTERNAL
 
+// WWW polltaks
+#define CPU_WWWPOLL_PRIO							5
+#define CPU_WWWPOLL_STACKSIZE_1K					4
+#define CPU_WWWPOLL_TASKNAME						"wwwPoll"
+#define CPU_WWWPOLL_STACK_ATTR						INTERNAL
+
 // MQTT message polling
 #define CPU_MQTT_POLL_PRIO							15
 #define CPU_MQTT_POLL_STACKSIZE_1K					4			//Verified 4k

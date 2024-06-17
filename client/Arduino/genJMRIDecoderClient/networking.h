@@ -221,7 +221,8 @@ public:
     static void concludeRestart(void);                                                  // Conclude the start of all network dependent services 
     static sysState_t getOpStateBitmap(void);                                           // Get current Networking Operational state
     static char* getOpStateStr(char* p_opStateStr);                                     // Get current Networking Operational state as string
-
+	static rc_t startRuntimePortal(void);                                                // Start runtime portal
+	static void wwwPoll(void* p_dummy);                                                 // Polling function for the WiFi manager
 
     //Public data structures
     //-

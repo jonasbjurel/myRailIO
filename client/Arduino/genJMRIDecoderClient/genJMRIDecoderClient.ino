@@ -65,6 +65,9 @@ void setup() {
     while (setupRunning)
         vTaskDelay(100 / portTICK_PERIOD_MS);
     LOG_INFO_NOFMT("Initial setup has successfully concluded, handing over to \"Arduino loop\"" CR);
+	LOG_INFO_NOFMT("Starting runtime portal" CR);
+    networking::startRuntimePortal();
+	LOG_INFO_NOFMT("Runtime portal started" CR);
 }
 
 void setupTask(void* p_dummy) {
@@ -86,18 +89,6 @@ void setupTask(void* p_dummy) {
     esp_timer_init();
     ntpTime::init();
     LOG_INFO_NOFMT("Time- and NTP- service initialized" CR);
-    LOG_INFO_NOFMT("Starting the runtime web-portal service" CR);
-    //wifiManager = new(heap_caps_malloc(sizeof(WiFiManager), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) WiFiManager;
-    //wifiManager = new WiFiManager;
-
-    /*wifiManager->setTitle(WIFI_MGR_HTML_TITLE);
-    wifiManager->setShowStaticFields(true);
-    wifiManager->setShowDnsFields(true);
-    wifiManager->setShowInfoErase(true);
-    wifiManager->setShowInfoUpdate(true);
-    */
-    //wifiManager->startWebPortal();
-    LOG_INFO_NOFMT("Runtime web-portal service started" CR);
     LOG_INFO_NOFMT("Starting the decoder service" CR);
     decoderHandle = new (heap_caps_malloc(sizeof(decoder), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) decoder();
     decoderHandle->init();

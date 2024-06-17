@@ -1022,6 +1022,33 @@ void networking::configurePortalConnectTimeoutCb(void) {
     }
 }
 
+rc_t networking::startRuntimePortal(void) {
+    LOG_INFO_NOFMT("Starting WiFi runtime portal" CR);
+    wifiManager.setTitle(WIFI_MGR_HTML_TITLE);
+    wifiManager.setShowStaticFields(true);
+    wifiManager.setShowDnsFields(true);
+    wifiManager.setShowInfoErase(true);
+    wifiManager.setShowInfoUpdate(true);
+    wifiManager.startWebPortal();
+    if (!eTaskCreate(                               // Spinning up a www polling task
+        wwwPoll,                                    // Task function
+        CPU_WWWPOLL_TASKNAME,                       // Task function name reference
+        CPU_WWWPOLL_STACKSIZE_1K * 1024,            // Stack size
+        NULL,                                       // Parameter passing
+        CPU_WWWPOLL_PRIO,                           // Priority 0-24, higher is more
+        CPU_WWWPOLL_STACK_ATTR)) {                  // Stack attibute
+        panic("Could not start the WWW poll task");
+        return RC_OUT_OF_MEM_ERR;
+    }
+    return RC_OK;
+}
+void networking::wwwPoll(void* p_dummy) {
+    while (true) {
+		wifiManager.process();
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+
 void networking::wifiWd(const void* p_args, sysState_t p_wifiOpState) {
     esp_err_t errCode;
     if (sysState->getOpStateBitmap()) {
