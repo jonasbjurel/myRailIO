@@ -323,8 +323,8 @@ rc_t logg::deleteCustomLogItem(const char* p_file, const char* p_classNfunc) {
 
 void logg::deleteAllCustomLogItems(void) {
     xSemaphoreTake(logCustomLock, portMAX_DELAY);
-    for (uint16_t customLogDesItter = 0; customLogDesItter < customLogDescList->size(); customLogDesItter++) {
-        delete customLogDescList->at(customLogDesItter);
+    for (uint16_t customLogDescItter = 0; customLogDescItter < customLogDescList->size(); customLogDescItter++) {
+        delete customLogDescList->at(customLogDescItter);
     }
     customLogDescList->clear();
     delete customLogDescList;

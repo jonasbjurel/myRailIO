@@ -78,7 +78,7 @@ public:
     ~globalCli(void);                                                                   //globalCLI instance destructor
 
     void regGlobalNCommonCliMOCmds(void);                                               //Register global and common MOs and sub-MOs
-
+    static uint8_t getDebugCnt(void);                                                   //Debug flag counter
 
     //Public data structures
     // -
@@ -265,6 +265,8 @@ private:
     EXT_RAM_ATTR uint16_t moIndex;;
     EXT_RAM_ATTR globalCli* parentContext;
     EXT_RAM_ATTR static char* testBuff;                                                 //memory allocation test buffer
+    EXT_RAM_ATTR static uint8_t debugCnt;
+
 };
 /*==============================================================================================================================================*/
 /* END Class globalCli                                                                                                                          */

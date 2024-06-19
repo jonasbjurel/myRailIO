@@ -21,6 +21,9 @@ MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC =     "track/discoveryresp"               
 MQTT_LOG_TOPIC =                            "track/log/"                                        # Logs sent from decoders
 MQTT_DECODER_CONFIGREQ_TOPIC =              "track/decoder/configReq/"                          # Decoder ask for configuration
 MQTT_DECODER_CONFIG_TOPIC =                 "track/decoder/configResp/"                         # Configuration response from server
+
+# Southbound Decoder requests
+# ---------------------------
 MQTT_DECODER_COREDUMPREQ_TOPIC =            "track/decoder/coredumprequest/"
 MQTT_DECODER_COREDUMPREQ_PAYLOAD =          "<COREDUMPREQ/>"
 MQTT_DECODER_COREDUMPRESP_TOPIC =           "track/decoder/coredumpresponse/"
@@ -82,6 +85,28 @@ MQTT_DECODER_OPSTATEREQ_PAYLOAD =           "<OPSTATE/>"
 MQTT_DECODER_OPSTATERESP_TOPIC =            "track/decoder/opstateresponse/"
 MQTT_DECODER_OPSTATERESP_PAYLOAD_TAG =      "OPSTATE"
 
+# Northbound decoder notifications
+# --------------------------------
+MQTT_DECODER_WIFISTATUS_TOPIC =             "track/decoder/wifistatus/"
+MQTT_DECODER_WIFISTATUS_PAYLOAD_TAG =       "WIFISTATUS"
+
+MQTT_DECODER_MEMSTATUS_TOPIC =              "track/decoder/memstatus/"
+MQTT_DECODER_MEMSTATUS_PAYLOAD_TAG =        "MEMSTATUS"
+
+MQTT_DECODER_LOGOVERLOAD_TOPIC =            "track/decoder/logoverload/"
+MQTT_DECODER_LOGOVERLOAD_PAYLOAD_TAG =      "LOGOVERLOAD"
+
+MQTT_DECODER_CLIACCESS_TOPIC =              "track/decoder/cliaccess/"
+MQTT_DECODER_CLIACCESS_PAYLOAD_TAG =        "CLIENT"
+
+MQTT_DECODER_DEBUG_TOPIC =                  "track/decoder/debug/"
+MQTT_DECODER_DEBUG_PAYLOAD_TAG =            "DEBUG"
+
+MQTT_DECODER_NTPSTATUS_TOPIC =              "track/decoder/ntpstatus/"
+MQTT_DECODER_NTPSTATUS_PAYLOAD_TAG =            "NTPSTATUS"
+
+# bothway opStates
+# ----------------
 MQTT_OPSTATE_TOPIC_DOWNSTREAM =             "opState/downstream/"                               # Decoder Operational state sent to decoders
 MQTT_OPSTATE_TOPIC_UPSTREAM =               "opState/upstream/"                                 # Decoder Operational state received from decoders
 MQTT_ADMSTATE_TOPIC_DOWNSTREAM =            "admState/downstream/"                              # Decoder Operational state sent to decoders

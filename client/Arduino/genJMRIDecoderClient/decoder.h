@@ -283,6 +283,14 @@ public:
 
 private:
 	//Private methods
+	rc_t startDecoderNotifications(void);
+	static void decoderNotificationLoop(void* p_handle);
+	void checkWifiRssi(void);
+	void checkMem(void);
+	void checkLog(void);
+	void checkNtp(void);
+	void checkCli(void);
+	void checkDebug(void);
 
 	//Private data structures
 	EXT_RAM_ATTR char* logContextName;
@@ -294,6 +302,19 @@ private:
 	EXT_RAM_ATTR tinyxml2::XMLElement* lgLinkXmlElement;
 	EXT_RAM_ATTR sysState_t prevSysState;
 	EXT_RAM_ATTR bool debug;
+	EXT_RAM_ATTR static char newRssiNotification[50];
+	EXT_RAM_ATTR static char previousRssiNotification[50];
+	EXT_RAM_ATTR static char newIntMemNotification[50];
+	EXT_RAM_ATTR static char previousIntMemNotification[50];
+	EXT_RAM_ATTR static char newLogNotification[50];
+	EXT_RAM_ATTR static char previousLogNotification[50];
+	EXT_RAM_ATTR static uint32_t previousMissedLogs;
+	EXT_RAM_ATTR static char newCliNotification[50];
+	EXT_RAM_ATTR static char previousCliNotification[50];
+	EXT_RAM_ATTR static char newDebugNotification[50];
+	EXT_RAM_ATTR static char previousDebugNotification[50];
+	EXT_RAM_ATTR static char newNtpNotification[50];
+	EXT_RAM_ATTR static char previousNtpNotification[50];
 };
 
 /*==============================================================================================================================================*/

@@ -147,6 +147,9 @@ QList<cliCore*>* cliCore::getChildContexts(cliCore* p_cliContext) {
 		return cliContextDescriptor.childContexts;
 }
 
+const char* cliCore::getConnectedClient(void) {
+	return clientIp;
+}
 void cliCore::setContextType(const char* p_contextType) {
 	LOG_INFO("Setting context type: %s" CR, p_contextType);
 	if (cliContextDescriptor.moType)
@@ -203,8 +206,10 @@ void cliCore::onCliConnect(const char* p_clientIp, bool p_connected, void* p_met
 	if (p_connected) {
 		LOG_INFO("A new CLI seesion from: %s started" CR,
 					p_clientIp);
-		if (clientIp)
+		if (clientIp) {
 			delete clientIp;
+			clientIp = NULL;
+		}
 		clientIp = createNcpystr(p_clientIp);
 		currentContext = rootCliContext;
 		printCli("\n\rWelcome to JMRI generic decoder CLI - JMRI version: %s",

@@ -124,6 +124,8 @@ class decoder(systemState, schema):
         self.description.value = "MyNewdecoderDescription"
         self.commitAll()
         self.item = self.win.registerMoMObj(self, self.parentItem, self.nameKey.candidateValue, DECODER, displayIcon=DECODER_ICON)
+        self.WIFI_Balarm = alarm(self, "WIFI STATUS", self.nameKey.value, ALARM_CRITICALITY_B, "WiFi Signal quality not optimal")
+        self.WIFI_Aalarm = alarm(self, "WIFI STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "WiFi Signal quality not acceptable")
         self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder reported disconnected")
         self.NOT_CONFIGUREDalarm = alarm(self, "CONFIGURATION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder has not received a valid configuration")
         self.SERVER_UNAVAILalarm = alarm(self, "KEEP-ALIVE STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Server-side has reported missing keep-live messages from client")
@@ -131,11 +133,11 @@ class decoder(systemState, schema):
         self.CPU_LOAD_Calarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder has reached 75% CPU Load") #NEEDS TO BE IMPLEMENTED
         self.CPU_LOAD_Balarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder has reached 85% CPU Load") #NEEDS TO BE IMPLEMENTED
         self.CPU_LOAD_Aalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder has reached 95% CPU Load") #NEEDS TO BE IMPLEMENTED
-        self.INT_MEM_Calarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder internal memory usage has reached 75%") #NEEDS TO BE IMPLEMENTED
-        self.INT_MEM_Balarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder internal memory usage has reached 85%") #NEEDS TO BE IMPLEMENTED
-        self.INT_MEM_Calarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder internal memory usage has reached 95%") #NEEDS TO BE IMPLEMENTED
-        self.LOG_OVERLOADalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder logging overloaded") #NEEDS TO BE IMPLEMENTED
-        self.CLI_ACCESSalarm = alarm(self, "AUDIT TRAIL", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder is being accessed by a CLI user") #NEEDS TO BE IMPLEMENTED
+        self.INT_MEM_Calarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder internal memory usage has reached 70%")
+        self.INT_MEM_Balarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder internal memory usage has reached 80%")
+        self.INT_MEM_Aalarm = alarm(self, "RESOURCE CONSTRAINT WARNING", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder internal memory usage has reached 90%")
+        self.LOG_OVERLOADalarm = alarm(self, "PERFORMANCE WARNING", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder logging overloaded")
+        self.CLI_ACCESSalarm = alarm(self, "AUDIT TRAIL", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder is being accessed by a CLI user")
         self.CLI_DEBUG_ACCESSalarm = alarm(self, "AUDIT TRAIL", self.nameKey.value, ALARM_CRITICALITY_B, "Decoder is being accessed by a CLI user which has set the debug-flag, risking configuration inconsistances") #NEEDS TO BE IMPLEMENTED
         self.NTP_SYNCHalarm = alarm(self, "TIME SYNCHRONIZATION", self.nameKey.value, ALARM_CRITICALITY_C, "Decoder NTP Time synchronization failed") #NEEDS TO BE IMPLEMENTED
         self.INT_FAILalarm = alarm(self, "INTERNAL FAILURE", self.nameKey.value, ALARM_CRITICALITY_A, "Decoder has experienced an internal error")
@@ -148,7 +150,6 @@ class decoder(systemState, schema):
         self.missedPingReq = 0
         self.supervisionActive = False
         self.restart = True
-        
         self.syncMemStatRequest = None
         self.syncCpuStatRequest = None
         self.syncCoreDumpRequest = None
@@ -161,8 +162,6 @@ class decoder(systemState, schema):
         self.syncLogLvlRequest = None
         self.syncWwwUiRequest = None
         self.syncOpStateRequest = None
-        
-
         if self.demo:
             for i in range(DECODER_MAX_LG_LINKS):
                 self.addChild(LIGHT_GROUP_LINK, name="GJLL-" + str(i), config=False, demo=True)
@@ -450,6 +449,8 @@ class decoder(systemState, schema):
                 child.delete()
         except:
             pass
+        self.WIFI_Balarm.ceaseAlarm("Source object deleted")
+        self.WIFI_Aalarm.ceaseAlarm("Source object deleted")
         self.NOT_CONNECTEDalarm.ceaseAlarm("Source object deleted")
         self.NOT_CONFIGUREDalarm.ceaseAlarm("Source object deleted")
         self.SERVER_UNAVAILalarm.ceaseAlarm("Source object deleted")
@@ -459,7 +460,7 @@ class decoder(systemState, schema):
         self.CPU_LOAD_Aalarm.ceaseAlarm("Source object deleted")
         self.INT_MEM_Calarm.ceaseAlarm("Source object deleted")
         self.INT_MEM_Balarm.ceaseAlarm("Source object deleted")
-        self.INT_MEM_Calarm.ceaseAlarm("Source object deleted")
+        self.INT_MEM_Aalarm.ceaseAlarm("Source object deleted")
         self.LOG_OVERLOADalarm.ceaseAlarm("Source object deleted")
         self.CLI_ACCESSalarm.ceaseAlarm("Source object deleted")
         self.CLI_DEBUG_ACCESSalarm.ceaseAlarm("Source object deleted")
@@ -497,6 +498,7 @@ class decoder(systemState, schema):
     def decoderRestart(self):
         self.__decoderRestart()
 
+    # Requests to decoders
     def getOpStateFromClient(self):
         opStateXmlStr = self.syncOpStateRequest.sendRequest()
         if not opStateXmlStr:
@@ -639,7 +641,108 @@ class decoder(systemState, schema):
             trace.notify(DEBUG_ERROR, "WWW UI URI response missformatted: " + wwwUiXmlStr)
             return "-"
         return wwwUiXmlTree.getroot().text
-    
+
+# Decoder notifications
+    def onWifiStatus(self, topic, value):
+        wifiStatusXmlTree = ET.ElementTree(ET.fromstring(value))
+        if str(wifiStatusXmlTree.getroot().tag) != MQTT_DECODER_WIFISTATUS_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Wifi status message missformatted: " + value)
+            return
+        wifiStatus = wifiStatusXmlTree.getroot().text
+        if wifiStatus == "GOOD":
+            self.WIFI_Balarm.ceaseAlarm("WiFi Signal quality not optimal alarm ceased")
+            self.WIFI_Aalarm.ceaseAlarm("WiFi Signal quality not acceptable alarm ceased")
+        elif wifiStatus == "FAIR":
+            self.WIFI_Balarm.raiseAlarm("WiFi Signal quality not optimal")
+            self.WIFI_Aalarm.ceaseAlarm("WiFi Signal quality not acceptable alarm ceased")
+        elif wifiStatus == "POOR":
+            self.WIFI_Balarm.ceaseAlarm("WiFi Signal quality not optimal alarm ceased")
+            self.WIFI_Aalarm.raiseAlarm("WiFi Signal quality not acceptable")
+        else:
+            trace.notify(DEBUG_ERROR, "Unknown wifi status: " + wifiStatus)
+
+
+    def onMemStatus(self, topic, value):
+        memStatusXmlTree = ET.ElementTree(ET.fromstring(value))
+        if str(memStatusXmlTree.getroot().tag) != MQTT_DECODER_MEMSTATUS_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Memory status message missformatted: " + value)
+            return
+        memStatus = memStatusXmlTree.getroot().text
+        if memStatus == "NORMAL":
+            self.INT_MEM_Calarm.ceaseAlarm("Decoder internal memory usage is under 70%")
+            self.INT_MEM_Balarm.ceaseAlarm("Decoder internal memory usage is under 80%")
+            self.INT_MEM_Aalarm.ceaseAlarm("Decoder internal memory usage is under 90%")
+        elif memStatus == "WARN":
+            self.INT_MEM_Calarm.raiseAlarm("Decoder internal memory usage is over 70%")
+            self.INT_MEM_Balarm.ceaseAlarm("Decoder internal memory usage is under 80%")
+            self.INT_MEM_Aalarm.ceaseAlarm("Decoder internal memory usage is under 90%")
+        elif memStatus == "HIGH":
+            self.INT_MEM_Calarm.ceaseAlarm("Decoder internal memory usage is over 80%, raising alarm severity")
+            self.INT_MEM_Balarm.raiseAlarm("Decoder internal memory usage is over 80%")
+            self.INT_MEM_Aalarm.ceaseAlarm("Decoder internal memory usage is under 90%")
+        elif memStatus == "CRITICAL":
+            self.INT_MEM_Calarm.ceaseAlarm("Decoder internal memory usage is over 90%, raising alarm severity")
+            self.INT_MEM_Balarm.ceaseAlarm("Decoder internal memory usage is over 90%, raising alarm severity")
+            self.INT_MEM_Aalarm.raiseAlarm("Decoder internal memory usage is over 90%")
+        else:
+            trace.notify(DEBUG_ERROR, "Unknown memory status: " + memStatus)
+
+    def onLogOverload(self, topic, value):
+        logOverloadStatusXmlTree = ET.ElementTree(ET.fromstring(value))
+        if str(logOverloadStatusXmlTree.getroot().tag) != MQTT_DECODER_LOGOVERLOAD_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Log overload status message missformatted: " + value)
+            return
+        logOverloadStatus = logOverloadStatusXmlTree.getroot().text
+        if logOverloadStatus == "TRUE":
+            self.LOG_OVERLOADalarm.raiseAlarm("Decoder logging overloaded")
+        elif logOverloadStatus == "FALSE":
+            self.LOG_OVERLOADalarm.ceaseAlarm("Decoder logging is no longer overloaded")
+        else:
+            trace.notify(DEBUG_ERROR, "Unknown log overload status: " + logOverloadStatus)
+            
+    def onCliAccess(self, topic, value):
+        print("///////////////// CLI access value: " + value)
+        cliAccessStatusXmlTree = ET.ElementTree(ET.fromstring(value))
+        if str(cliAccessStatusXmlTree.getroot().tag) != MQTT_DECODER_CLIACCESS_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "CLI access status message missformatted: " + value)
+            return
+        cliAccessStatus = cliAccessStatusXmlTree.getroot().text
+        print("///////////////// CLI access status: " + cliAccessStatus)
+        if cliAccessStatus != "NONE":
+            print("///////////////// CLI RAISING ALARM")
+            self.CLI_ACCESSalarm.raiseAlarm("Decoder is being accessed by a CLI user: " + cliAccessStatus)
+        elif cliAccessStatus == "NONE":
+            print("///////////////// CLI CEASING ALARM")
+            self.CLI_ACCESSalarm.ceaseAlarm("Decoder is no longer being accessed by a CLI user")
+        else:
+            trace.notify(DEBUG_ERROR, "Unknown CLI access status: " + cliAccessStatus)
+            
+    def onNtpSynch(self, topic, value):
+        ntpSynchStatusXmlTree = ET.ElementTree(ET.fromstring(value))
+        if str(ntpSynchStatusXmlTree.getroot().tag) != MQTT_DECODER_NTPSTATUS_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "NTP synchronization status message missformatted: " + value)
+            return
+        ntpSynchStatus = ntpSynchStatusXmlTree.getroot().text
+        if ntpSynchStatus == "SYNCED" or ntpSynchStatus == "SYNCING":
+            self.NTP_SYNCHalarm.ceaseAlarm("NTP is synchronized")
+            trace.notify(DEBUG_INFO, "NTP is synchronized")
+        else:
+            self.NTP_SYNCHalarm.raiseAlarm("NTP is not synchronized, status: " + ntpSynchStatus)
+            trace.notify(DEBUG_ERROR, "NTP is not synchronized, status: " + ntpSynchStatus)
+
+    def onDebugFlag(self, topic, value):
+        debugFlagStatusXmlTree = ET.ElementTree(ET.fromstring(value))
+        if str(debugFlagStatusXmlTree.getroot().tag) != MQTT_DECODER_NTPSTATUS_PAYLOAD_TAG:
+            trace.notify(DEBUG_ERROR, "Debug flag status message missformatted: " + value)
+            return
+        cliDebugAccessStatus = debugFlagStatusXmlTree.getroot().text
+        if cliDebugAccessStatus == "ACTIVE":
+            self.CLI_DEBUG_ACCESSalarm.raiseAlarm("One of the debug flags have been set")
+        elif cliDebugAccessStatus == "INACTIVE":
+            self.CLI_DEBUG_ACCESSalarm.ceaseAlarm("Debug flags are no longer set")
+        else:
+            trace.notify(DEBUG_ERROR, "Unknown debug flag status: " + cliDebugAccessStatus)
+
     def __validateConfig(self):
         if not self.sysNameReged:
             res = self.parent.regSysName(self.decoderSystemName.candidateValue)
@@ -693,7 +796,12 @@ class decoder(systemState, schema):
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
         self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CONFIGREQ_TOPIC + self.decoderMqttURI.value, self.__onDecoderConfigReq)
         self.mqttClient.subscribeTopic(self.decoderOpUpStreamTopic, self.__onDecoderOpStateChange)
-
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WIFISTATUS_TOPIC + self.decoderMqttURI.value, self.onWifiStatus)
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_MEMSTATUS_TOPIC + self.decoderMqttURI.value, self.onMemStatus)
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGOVERLOAD_TOPIC + self.decoderMqttURI.value, self.onLogOverload)
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CLIACCESS_TOPIC + self.decoderMqttURI.value, self.onCliAccess)
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_NTPSTATUS_TOPIC + self.decoderMqttURI.value, self.onNtpSynch)
+        self.mqttClient.subscribeTopic(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DEBUG_TOPIC + self.decoderMqttURI.value, self.onDebugFlag)
         self.syncMemStatRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_MEMSTATREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_MEMSTATREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_MEMSTATRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
         self.syncCpuStatRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CPUSTATREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_CPUSTATREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_CPUSTATRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
         self.syncCoreDumpRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_COREDUMPREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_COREDUMPREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_COREDUMPRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
@@ -706,15 +814,23 @@ class decoder(systemState, schema):
         self.syncLogLvlRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGLVLREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_LOGLVLREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGLVLRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
         self.syncWwwUiRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WWWUIREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_WWWUIREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WWWUIRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
         self.syncOpStateRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_OPSTATEREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_OPSTATEREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_OPSTATERESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
-        
 
 
+
+        self.WIFI_Balarm.updateAlarmSrc(self.nameKey.value)
+        self.WIFI_Aalarm.updateAlarmSrc(self.nameKey.value)
         self.NOT_CONNECTEDalarm.updateAlarmSrc(self.nameKey.value)
         self.NOT_CONFIGUREDalarm.updateAlarmSrc(self.nameKey.value)
         self.SERVER_UNAVAILalarm.updateAlarmSrc(self.nameKey.value)
         self.CLIENT_UNAVAILalarm.updateAlarmSrc(self.nameKey.value)
         self.INT_FAILalarm.updateAlarmSrc(self.nameKey.value)
         self.CBLalarm.updateAlarmSrc(self.nameKey.value)
+        self.INT_MEM_Calarm.updateAlarmSrc(self.nameKey.value)
+        self.INT_MEM_Balarm.updateAlarmSrc(self.nameKey.value)
+        self.INT_MEM_Aalarm.updateAlarmSrc(self.nameKey.value)
+        self.NTP_SYNCHalarm.updateAlarmSrc(self.nameKey.value)
+        self.CLI_ACCESSalarm.updateAlarmSrc(self.nameKey.value)
+        self.CLI_DEBUG_ACCESSalarm.updateAlarmSrc(self.nameKey.value)
         if self.getAdmState() == ADM_ENABLE:
             self.__startSupervision()
         return rc.OK
@@ -744,19 +860,37 @@ class decoder(systemState, schema):
         else:
             self.win.faultBlockMarkMoMObj(self.item, False)
         if (changedOpStateDetail & OP_DISABLED[STATE]) and (opStateDetail & OP_DISABLED[STATE]):
+            self.WIFI_Balarm.admDisableAlarm()
+            self.WIFI_Aalarm.admDisableAlarm()
             self.NOT_CONNECTEDalarm.admDisableAlarm()
             self.NOT_CONFIGUREDalarm.admDisableAlarm()
             self.SERVER_UNAVAILalarm.admDisableAlarm()
             self.CLIENT_UNAVAILalarm.admDisableAlarm()
             self.INT_FAILalarm.admDisableAlarm()
             self.CBLalarm.admDisableAlarm()
+            self.INT_MEM_Calarm.admDisableAlarm()
+            self.INT_MEM_Balarm.admDisableAlarm()
+            self.INT_MEM_Aalarm.admDisableAlarm()
+            self.LOG_OVERLOADalarm.admDisableAlarm()
+            self.CLI_ACCESSalarm.admDisableAlarm()
+            self.CLI_DEBUG_ACCESSalarm.admDisableAlarm()
+            self.NTP_SYNCHalarm.admDisableAlarm()
         elif (changedOpStateDetail & OP_DISABLED[STATE]) and not (opStateDetail & OP_DISABLED[STATE]):
+            self.WIFI_Balarm.admEnableAlarm()
+            self.WIFI_Aalarm.admEnableAlarm()
             self.NOT_CONNECTEDalarm.admEnableAlarm()
             self.NOT_CONFIGUREDalarm.admEnableAlarm()
             self.SERVER_UNAVAILalarm.admEnableAlarm()
             self.CLIENT_UNAVAILalarm.admEnableAlarm()
             self.INT_FAILalarm.admEnableAlarm()
             self.CBLalarm.admEnableAlarm()
+            self.INT_MEM_Calarm.admEnableAlarm()
+            self.INT_MEM_Balarm.admEnableAlarm()
+            self.INT_MEM_Aalarm.admEnableAlarm()
+            self.LOG_OVERLOADalarm.admEnableAlarm()
+            self.CLI_ACCESSalarm.admEnableAlarm()
+            self.CLI_DEBUG_ACCESSalarm.admEnableAlarm()
+            self.NTP_SYNCHalarm.admEnableAlarm()
             if self.pendingBoot:
                 self.updateReq(self, self, uploadNReboot = True)
                 self.pendingBoot = False

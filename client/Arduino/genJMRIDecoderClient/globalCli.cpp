@@ -37,6 +37,7 @@
 /*==============================================================================================================================================*/
 EXT_RAM_ATTR globalCli* globalCli::rootHandle;
 EXT_RAM_ATTR char globalCli::decoderSysName[50];
+EXT_RAM_ATTR uint8_t globalCli::debugCnt;
 
 
 char* globalCli::testBuff = NULL;
@@ -49,6 +50,7 @@ globalCli::globalCli(const char* p_moType, const char* p_moName, uint16_t p_moIn
 	moName = p_moName;
 	moIndex = p_moIndex;
 	parentContext = p_parent_context;
+	debugCnt = 0;
 }
 
 globalCli::~globalCli(void) {
@@ -57,6 +59,10 @@ globalCli::~globalCli(void) {
 void globalCli::regGlobalNCommonCliMOCmds(void) {
 	regGlobalCliMOCmds();
 	regCommonCliMOCmds();
+}
+
+uint8_t globalCli::getDebugCnt(void) {
+	return debugCnt;
 }
 
 void globalCli::regGlobalCliMOCmds(void) {
@@ -3998,6 +4004,7 @@ void globalCli::onCliSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
 	}
 	static_cast<globalCli*>(p_cliContext)->setDebug(true);
 	acceptedCliCommand(CLI_TERM_EXECUTED);
+	debugCnt++;
 }
 
 void globalCli::onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
@@ -4008,6 +4015,7 @@ void globalCli::onCliUnSetDebugHelper(cmd* p_cmd, cliCore* p_cliContext,
 	}
 	static_cast<globalCli*>(p_cliContext)->setDebug(false);
 	acceptedCliCommand(CLI_TERM_EXECUTED);
+	debugCnt--;
 }
 
 void globalCli::setDebug(bool p_debug) {

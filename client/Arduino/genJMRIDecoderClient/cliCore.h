@@ -138,6 +138,7 @@ public:
     void regChildContext(const cliCore* p_childContext);                                //Register a child CLI context
     void unRegChildContext(const cliCore* p_childContext);                              //Unregister a child CLI context
     QList<cliCore*>* getChildContexts(cliCore* p_cliContext);                           //Get all child contexts
+	static const char* getConnectedClient(void);                                        //Get connected client
     void setContextName(const char* p_contextName);                                     //Set CLI context name
     const char* getContextName(void);                                                   //Get CLI context name
     void setContextType(const char* p_contextType);                                     //Set CLI context type

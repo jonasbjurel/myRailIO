@@ -41,6 +41,20 @@
 /*          as ntp-, rsyslog-, ntp-, watchdog- and cli configuration and is the cooridnator and root of such servicies.                         */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
+EXT_RAM_ATTR char decoder::newRssiNotification[50];
+EXT_RAM_ATTR char decoder::previousRssiNotification[50];
+EXT_RAM_ATTR char decoder::newIntMemNotification[50];
+EXT_RAM_ATTR char decoder::previousIntMemNotification[50];
+EXT_RAM_ATTR char decoder::newLogNotification[50];
+EXT_RAM_ATTR char decoder::previousLogNotification[50] = "FALSE";
+EXT_RAM_ATTR uint32_t decoder::previousMissedLogs = 0;
+EXT_RAM_ATTR char decoder::newCliNotification[50];
+EXT_RAM_ATTR char decoder::previousCliNotification[50];
+EXT_RAM_ATTR char decoder::newDebugNotification[50];
+EXT_RAM_ATTR char decoder::previousDebugNotification[50];
+EXT_RAM_ATTR char decoder::newNtpNotification[50];
+EXT_RAM_ATTR char decoder::previousNtpNotification[50];
+
 decoder::decoder(void) : systemState(NULL), globalCli(DECODER_MO_NAME, DECODER_MO_NAME, 0, NULL, true) {
     regPanicCb(onPanicHelper, this);
     wdt::regGlobalFailsafeCb(onWdtFailsafeHelper, this);
@@ -561,6 +575,7 @@ rc_t decoder::start(void) {
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     unSetOpStateByBitmap(OP_INIT);
+	startDecoderNotifications();
     LOG_INFO("%s: decoder started" CR, logContextName);
     return RC_OK;
 }
@@ -1110,11 +1125,8 @@ void decoder::onMqttGetCoreDump(void) {
 		mqtt::sendMsg(topic, payload, false);
 	}
 	else {
-		Serial.printf(">>>>>>>>>>>>>>>>>>>>>>> NonTerminated buffer: %s" CR, coreDumpBuff);
 		coreDumpBuff[readBytes] = '\0';
 		sprintf(payload, "<%s>\n\r%s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, coreDumpBuff, DELIVERCOREDUMP_XMLTAG_PAYLOAD);
-		Serial.printf(">>>>>>>>>>>>>>>>>>>>>>> Read bytes: %i" CR, readBytes);
-        Serial.printf(">>>>>>>>>>>>>>>>>>>>>>> CordumpString: <%s>\n\r%s\n\r</%s>", DELIVERCOREDUMP_XMLTAG_PAYLOAD, coreDumpBuff, DELIVERCOREDUMP_XMLTAG_PAYLOAD);
         mqtt::sendMsg(topic, payload, false);
 	}
     delete coreDumpBuff;
@@ -1149,7 +1161,6 @@ void decoder::onMqttGetSnr(void) {
     delete payload;
     delete topic;
 }
-
 
 void decoder::onMqttGetIpAddrHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
     ((decoder*)p_decoderObject)->onMqttGetIpAddr();
@@ -1286,6 +1297,186 @@ void decoder::onMqttGetOpState(void) {
     delete topic;
 }
 
+rc_t decoder::startDecoderNotifications(void) {
+    LOG_INFO_NOFMT("Starting Decoder notification service" CR);
+    if (!eTaskCreate(                               // Spinning up a notification loop task
+        decoderNotificationLoop,                    // Task function
+        CPU_NOTIF_TASKNAME,                         // Task function name reference
+        CPU_NOTIF_STACKSIZE_1K * 1024,              // Stack size
+        this,                                       // Parameter passing
+        CPU_NOTIF_PRIO,                             // Priority 0-24, higher is more
+        CPU_NOTIF_STACK_ATTR)) {                    // Stack attibute
+        panic("Could not start the Decoder notificationservice");
+        return RC_OUT_OF_MEM_ERR;
+    }
+    return RC_OK;
+}
+
+void decoder::decoderNotificationLoop(void* p_handle) {
+    while (true) {  
+        ((decoder*)p_handle)->checkWifiRssi();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        //((decoder*)p_handle)->checkCpu();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ((decoder*)p_handle)->checkMem();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ((decoder*)p_handle)->checkLog();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ((decoder*)p_handle)->checkCli();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ((decoder*)p_handle)->checkNtp();
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ((decoder*)p_handle)->checkCli();
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ((decoder*)p_handle)->checkDebug();
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+void decoder::checkWifiRssi(void) {
+	newRssiNotification[0] = '\0';
+	long rssi = networking::getRssi();
+    if (rssi <= RSSI_POOR && strcmp(previousRssiNotification, "POOR")) {
+        strcpy(newRssiNotification, "POOR");
+        LOG_ERROR("%s: POOR WIFI Signal detected, RSSI: %i" CR, logContextName, rssi);
+        }
+	else if (rssi > RSSI_POOR && rssi <= RSSI_FAIR && strcmp(previousRssiNotification, "FAIR")) {
+		strcpy(newRssiNotification, "FAIR");
+		LOG_WARN("%s: FAIR WIFI Signal detected, RSSI: %i" CR, logContextName, rssi);
+	}
+	else if (rssi > RSSI_FAIR && strcmp(previousRssiNotification, "GOOD")) {
+		strcpy(newRssiNotification, "GOOD");
+		LOG_INFO("%s: GOOD WIFI Signal detected, RSSI: %i" CR, logContextName, rssi);
+	}
+	if (strlen(newRssiNotification)){
+        char publishTopic[200];
+        char publishPayload[50];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_WIFISTATUS_TOPIC, "/", mqtt::getDecoderUri());
+        sprintf(publishPayload, "<%s>%s</%s>", DELIVERWIFISTATUS_XMLTAG_PAYLOAD, newRssiNotification, DELIVERWIFISTATUS_XMLTAG_PAYLOAD);
+		mqtt::sendMsg(publishTopic, publishPayload, false);
+		strcpy(previousRssiNotification, newRssiNotification);
+    }
+}
+
+void decoder::checkMem(void) {
+	heapInfo_t intMemInfo;
+	newIntMemNotification[0] = '\0';
+	cpu::getHeapMemInfo(&intMemInfo, true);
+	uint8_t intMemUsage = (1 - (float)((float)intMemInfo.freeSize/(float)intMemInfo.totalSize)) * 100;
+    if (intMemUsage >= MEM_CRITICAL && strcmp(previousIntMemNotification, "CRITICAL")) {
+		strcpy(newIntMemNotification, "CRITICAL");
+        LOG_ERROR("%s: Critical memory utilization: %i\%" CR, logContextName, intMemUsage);
+	}
+	else if (intMemUsage < MEM_CRITICAL && intMemUsage >= MEM_HIGH && strcmp(previousIntMemNotification, "HIGH")) {
+        strcpy(newIntMemNotification, "HIGH");
+		LOG_WARN("%s: High memory utilization: %i\%" CR, logContextName, intMemUsage);
+	}
+	else if (intMemUsage < MEM_HIGH && intMemUsage >= MEM_WARN && strcmp(previousIntMemNotification, "WARN")) {
+        strcpy(newIntMemNotification, "WARN");
+		LOG_INFO("%s: Warning for memory utilization: %i\%" CR, logContextName, intMemUsage);
+	}
+	else if (intMemUsage < MEM_WARN && strcmp(previousIntMemNotification, "NORMAL")) {
+        strcpy(newIntMemNotification, "NORMAL");
+		LOG_INFO("%s: Normal memory utilization: %i\%" CR, logContextName, intMemUsage);
+	}
+    if (strlen(newIntMemNotification)) {
+        char publishTopic[200];
+        char publishPayload[50];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_MEMSTATUS_TOPIC, "/", mqtt::getDecoderUri());
+        sprintf(publishPayload, "<%s>%s</%s>", DELIVERMEMSTATUS_XMLTAG_PAYLOAD, newIntMemNotification, DELIVERMEMSTATUS_XMLTAG_PAYLOAD);
+        mqtt::sendMsg(publishTopic, publishPayload, false);
+		strcpy(previousIntMemNotification, newIntMemNotification);
+    }
+}
+
+void decoder::checkLog(void) {
+    newLogNotification[0] = '\0';
+	uint32_t missedLogs = Log.getMissedLogs();
+	if (missedLogs > previousMissedLogs && strcmp(previousLogNotification, "TRUE")) {
+		strcpy(newLogNotification, "TRUE");
+    }
+	else if (missedLogs == previousMissedLogs && strcmp(previousLogNotification, "FALSE")) {
+		strcpy(newLogNotification, "FALSE");
+	}
+	else if (missedLogs < previousMissedLogs && strcmp(previousLogNotification, "FALSE")) {
+		strcpy(newLogNotification, "FALSE");
+	}
+	previousMissedLogs = missedLogs;
+	if (strlen(newLogNotification)) {
+        char publishTopic[200];
+        char publishPayload[50];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_LOGOVERLOAD_TOPIC, "/", mqtt::getDecoderUri());
+		sprintf(publishPayload, "<%s>%s</%s>", DELIVERLOGOVERLOAD_XMLTAG_PAYLOAD, newLogNotification, DELIVERLOGOVERLOAD_XMLTAG_PAYLOAD);
+		mqtt::sendMsg(publishTopic, publishPayload, false);
+		strcpy(previousLogNotification, newLogNotification);
+	}
+}
+
+void decoder::checkNtp(void) {
+	newNtpNotification[0] = '\0';
+    ntpOpState_t ntpOpState;
+	ntpTime::getNtpOpState(&ntpOpState);
+	Serial.printf("NTP state: 0x%x" CR, ntpOpState);
+	if (!ntpOpState && strcmp(previousNtpNotification, "SYNCED")) {
+		strcpy(newNtpNotification, "SYNCED");
+	}
+    else if (ntpOpState == NTP_CLIENT_SYNCHRONIZING && strcmp(previousNtpNotification, "SYNCING")) {
+        strcpy(newNtpNotification, "SYNCING");
+    }
+	else if (ntpOpState == NTP_CLIENT_DISABLED && strcmp(previousNtpNotification, "DISABLED")) {
+		strcpy(newNtpNotification, "DISABLED");
+	}
+	else if (ntpOpState == NTP_CLIENT_NOT_SYNCHRONIZED && strcmp(previousNtpNotification, "NOTSYNCING")) {
+		strcpy(newNtpNotification, "NOTSYNCING");
+	}
+	if (strlen(newNtpNotification)) {
+		char publishTopic[200];
+		char publishPayload[50];
+		sprintf(publishTopic, "%s%s%s", MQTT_DECODER_NTPSTATUS_TOPIC, "/", mqtt::getDecoderUri());
+		sprintf(publishPayload, "<%s>%s</%s>", DELIVERNTPSTATUS_XMLTAG_PAYLOAD, newNtpNotification, DELIVERNTPSTATUS_XMLTAG_PAYLOAD);
+		mqtt::sendMsg(publishTopic, publishPayload, false);
+		strcpy(previousNtpNotification, newNtpNotification);
+	}
+}
+void decoder::checkCli(void) {
+    newCliNotification[0] = '\0';
+    const char* cliClient = getConnectedClient();
+    if (cliClient && strcmp(previousCliNotification, cliClient)) {
+        strcpy(newCliNotification, cliClient);
+    }
+    else if (!cliClient && strcmp(previousCliNotification, "NONE")) {
+        strcpy(newCliNotification, "NONE");
+    }
+    if (strlen(newCliNotification)) {
+        char publishTopic[200];
+        char publishPayload[50];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_CLIACCESS_TOPIC, "/", mqtt::getDecoderUri());
+        sprintf(publishPayload, "<%s>%s</%s>", DELIVERCLIACCESS_XMLTAG_PAYLOAD, newCliNotification, DELIVERCLIACCESS_XMLTAG_PAYLOAD);
+        mqtt::sendMsg(publishTopic, publishPayload, false);
+        strcpy(previousCliNotification, newCliNotification);
+    }
+}
+
+void decoder::checkDebug(void) {
+	newDebugNotification[0] = '\0';
+	uint8_t debugCnt = getDebugCnt();
+    if (debugCnt && strcmp(previousDebugNotification, "ACTIVE")) {
+		strcpy(newDebugNotification, "ACTIVE");
+		LOG_INFO("%s: Debug flag(s) is active" CR, logContextName);
+    }
+    else if (!debugCnt && strcmp(previousDebugNotification, "INACTIVE")) {
+		strcpy(newDebugNotification, "INACTIVE");
+		LOG_INFO("%s: Debug flag(s) is inactive" CR, logContextName);
+    }
+	if (strlen(newDebugNotification)) {
+        char publishTopic[200];
+        char publishPayload[50];
+        sprintf(publishTopic, "%s%s%s", MQTT_DECODER_DEBUG_TOPIC, "/", mqtt::getDecoderUri());
+		sprintf(publishPayload, "<%s>%s</%s>", DELIVERDEBUG_XMLTAG_PAYLOAD, newDebugNotification, DELIVERDEBUG_XMLTAG_PAYLOAD);
+		mqtt::sendMsg(publishTopic, publishPayload, false);
+		strcpy(previousDebugNotification, newDebugNotification);
+	}
+}
 
 /* CLI decoration methods */
 // No CLI decorations for the decoder context - all decoder related MOs are available through the global CLI context.

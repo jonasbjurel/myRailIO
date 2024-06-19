@@ -160,6 +160,12 @@
 #define CPU_SETUP_TASKNAME							"setup"
 #define CPU_SETUP_STACK_ATTR						INTERNAL
 
+// Notification task
+#define CPU_NOTIF_TASKNAME                         "notifLoop"
+#define CPU_NOTIF_STACKSIZE_1K						4			// Stack size
+#define CPU_NOTIF_PRIO								5
+#define CPU_NOTIF_STACK_ATTR						INTERNAL
+
 // WWW polltaks
 #define CPU_WWWPOLL_PRIO							5
 #define CPU_WWWPOLL_STACKSIZE_1K					4
@@ -253,6 +259,15 @@ const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define WIFI_CONFIG_JSON_OBJ_SIZE					1024									// Config JSON document object size
 #define WIFI_CONFIG_JSON_SERIAL_SIZE				1024									// Config JSON document serial4eized size
 #define WIFI_CONFIG_STORE_FILENAME					FS_PATH "/" "WiFiConfig.json"			// Confiuration file path/name
+#define RSSI_FAIR									-70
+#define RSSI_POOR									-80
+
+// Memory Metrics
+// ==============
+#define MEM_CRITICAL 								90
+#define MEM_HIGH 									80
+#define MEM_WARN 									70
+
 
 // File system parameters
 // ======================
