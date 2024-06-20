@@ -327,7 +327,13 @@ class lightGroup(systemState, schema):
     def rejected(self):
         self.abort()
         return rc.OK
-
+    
+    def getShowing(self):
+        return self.lgShowing
+    
+    def getTopology(self):
+        return self.parent.getTopology() + "/" + self.jmriLgSystemName.value
+    
     def __validateConfig(self):
         if not self.sysNameReged:
             res = self.parent.regSysName(self.jmriLgSystemName.candidateValue)

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>791</width>
-    <height>851</height>
+    <height>843</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -174,7 +174,7 @@
    <property name="geometry">
     <rect>
      <x>605</x>
-     <y>814</y>
+     <y>803</y>
      <width>171</width>
      <height>31</height>
     </rect>
@@ -344,9 +344,9 @@
   <widget class="QLineEdit" name="lgShowingLineEdit">
    <property name="geometry">
     <rect>
-     <x>150</x>
+     <x>230</x>
      <y>740</y>
-     <width>461</width>
+     <width>381</width>
      <height>41</height>
     </rect>
    </property>
@@ -367,7 +367,7 @@
     <rect>
      <x>10</x>
      <y>740</y>
-     <width>141</width>
+     <width>221</width>
      <height>41</height>
     </rect>
    </property>
@@ -379,7 +379,7 @@
     </font>
    </property>
    <property name="text">
-    <string>Showing:</string>
+    <string>Light group showing:</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_16">

@@ -331,6 +331,9 @@ class actuator(systemState, schema):
         self.abort()
         return rc.OK
 
+    def getTopology(self):
+        return self.parent.getTopology() + "/" + self.jmriActSystemName.value
+
     def __validateConfig(self):
         if not self.sysNameReged:
             res = self.parent.regSysName(self.jmriActSystemName.candidateValue)

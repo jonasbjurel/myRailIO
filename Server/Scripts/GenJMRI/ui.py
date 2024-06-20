@@ -61,9 +61,12 @@ LIGHTGROUPSLINK_DIALOG_UI = "ui/LightGroupsLink_Dialog.ui"
 SATLINK_DIALOG_UI = "ui/SatLink_Dialog.ui"
 LIGHTGROUP__LINK_DIALOG_UI = "ui/LightGroupsLink_Dialog.ui"
 LIGHTGROUP_DIALOG_UI = "ui/LightGroup_Dialog.ui"
+LIGHTGROUP_INVENTORY_DIALOG_UI = "ui/LightGroups_Inventory_Dialog.ui"
 SATELITE_DIALOG_UI = "ui/Sat_Dialog.ui"
 SENSOR_DIALOG_UI = "ui/Sensor_Dialog.ui"
+SENSOR_INVENTORY_DIALOG_UI = "ui/Sensors_Inventory_Dialog.ui"
 ACTUATOR_DIALOG_UI = "ui/Actuator_Dialog.ui"
+ACTUATOR_INVENTORY_DIALOG_UI = "ui/Actuators_Inventory_Dialog.ui"
 LOGOUTPUT_DIALOG_UI = "ui/Log_Output_Dialog.ui"
 LOGSETTING_DIALOG_UI = "ui/Log_Setting_Dialog.ui"
 SHOWALARMS_DIALOG_UI = "ui/Alarms_Show_Dialog.ui"
@@ -318,8 +321,11 @@ class UI_mainWindow(QMainWindow):
 
         # Inventory actions
         # -----------------
-        self.actionAlarm_inventory_2.triggered.connect(self.showAlarmInventory)
-        self.actionShow_Decoders.triggered.connect(self.showDecoderInventory)
+        self.actionShow_AlarmInventory.triggered.connect(self.showAlarmInventory)
+        self.actionShow_DecoderInventory.triggered.connect(self.showDecoderInventory)
+        self.actionShow_LightGroupInventory.triggered.connect(self.showLightGroupInventory)
+        self.actionShow_SensorInventory.triggered.connect(self.showSensorInventory)
+        self.actionShow_ActuatorInventory.triggered.connect(self.showActuatorInventory)
 
         # Debug actions
         # -----------------
@@ -398,6 +404,18 @@ class UI_mainWindow(QMainWindow):
     def showDecoderInventory(self):
         self.decoderInventoryWidget = UI_decoderInventoryShowDialog(self.parentObjHandle)
         self.decoderInventoryWidget.show()
+        
+    def showLightGroupInventory(self):
+        self.lightGroupInventoryWidget = UI_lightGroupInventoryShowDialog(self.parentObjHandle)
+        self.lightGroupInventoryWidget.show()
+        
+    def showSensorInventory(self):
+        self.sensorInventoryWidget = UI_sensorInventoryShowDialog(self.parentObjHandle)
+        self.sensorInventoryWidget.show()
+        
+    def showActuatorInventory(self):
+        self.actuatorInventoryWidget = UI_actuatorInventoryShowDialog(self.parentObjHandle)
+        self.actuatorInventoryWidget.show()
 
     def about(self):
         QMessageBox.about(
@@ -1422,7 +1440,10 @@ class UI_decoderDialog(QDialog):
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
         self.adminStateComboBox.setCurrentText(self.parentObjHandle.getAdmState()[STATE_STR])
-        self.ipAddressLineEdit.setText(self.parentObjHandle.getIpAddressFromClient())
+        try:
+            self.ipAddressLineEdit.setText(self.parentObjHandle.getIpAddressFromClient())
+        except:
+            self.ipAddressLineEdit.setText("-")
         self.adminStateForceCheckBox.setChecked(False)
 
     def setValues(self):
@@ -1455,7 +1476,15 @@ class UI_decoderDialog(QDialog):
         self.confirmButtonBox.rejected.connect(self.rejected)
 
     def launchUi(self):
-        webbrowser.open_new_tab(self.parentObjHandle.getDecoderWwwUiFromClient())
+        try:
+            webbrowser.open_new_tab(self.parentObjHandle.getDecoderWwwUiFromClient())
+        except:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error: Could not launch the decoder UI")
+            msg.setInformativeText('Decoder UI not available')
+            msg.setWindowTitle("Error")
+            msg.exec_()
 
     def launchTelnet(self):
         msg = QMessageBox()
@@ -1568,7 +1597,7 @@ class UI_decoderInventoryShowDialog(QDialog):
             UI_crashDumpDialog(self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())).show()
         else:
             decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
-            self.individualDecoderWidget = UI_decoderDialog(decoder, None)
+            self.individualDecoderWidget = UI_decoderDialog(decoder, decoder.rpcClient)
             self.individualDecoderWidget.show()
 #################################################################################################################################################
 # End Class: UI_decoderInventoryShowDialog
@@ -2093,8 +2122,46 @@ class UI_satLinkDialog(QDialog):
         self.parentObjHandle.rejected()
         self.close()
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# LIGHT GROUP DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#################################################################################################################################################
+# Class: UI_lightGroupDialog
+# Purpose: UI_lightGroupDialog provides configuration GUI dialogs for the light group objects.
+#
+# Public Methods and objects to be used by the decoder producers:
+# =============================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: decoder:                Parent decoder object handle
+# -rpcClient: rpc:                          rpcClient handle
+# -newConfig: bool                          New configuration flag
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -setEditable() -> bool:                   Set the dialog to editable/configurable
+# -unSetEditable() -> bool:                 Set the dialog to uneditable/unconfigurable
+# -displayValues() -> None:                 Display the decoder object values in the dialog
+# -setValues() -> int:                      Set the decoder object values from the dialog
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -onSysNameChanged                         System name changed during initial configuration
+# -lgPropertyHandler                        Property configuration handler
+# -onMastTypeChanged                        Mast type changed during initial configuration
+# -accepted() -> None:                      Slot for the dialog accept button
+# -rejected() -> None:                      Slot for the dialog reject button
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
 
-#"SysName:","UsrName:", "Desc:", "Type", "Subtype", "OpState:", "Showing", "UpTime[s]:")[section]
 class UI_lightGroupDialog(QDialog):
     def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
@@ -2158,7 +2225,7 @@ class UI_lightGroupDialog(QDialog):
         self.confirmButtonBox.setEnabled(False)
 
     def displayValues(self):
-        #self.JMRISystemNameComboBox.setCurrentText(str(self.parentObjHandle.jmriLgSystemName.value))
+        self.JMRISystemNameComboBox.setCurrentText(str(self.parentObjHandle.jmriLgSystemName.value))
         self.JMRIUserNameLineEdit.setText(self.parentObjHandle.userName.value)
         self.JMRIDescriptionLineEdit.setText(self.parentObjHandle.description.value)
         self.lgLinkAddressSpinBox.setValue(self.parentObjHandle.lgLinkAddr.value)
@@ -2295,6 +2362,300 @@ class UI_lightGroupDialog(QDialog):
     def rejected(self):
         self.parentObjHandle.rejected()
         self.close()
+#################################################################################################################################################
+# End Class: UI_lightGroupDialog
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_lightGroupInventoryShowDialog
+# Purpose: UI_lightGroupInventoryShowDialog provides Light group inventory GUI dialogs
+#
+# Public Methods and objects to be used by the lightGroup producers:
+# ==================================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: lglink   :              Parent lgLink object handle
+# -proxymodel: QSortFilterProxyModel        Filter model for the Light group inventory table
+# -lightGroupInventoryTableModel: lightGroupInventoryTableModel: Light group inventory table model
+# -updateTableWorker: UI_lightGroupShowDialogUpdateWorker: Table update worker
+# -updateTableWorkerThread: QThread         Table update worker thread
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -stopUpdate() -> None:                    Stop the table update worker
+# -updatelightGroupInventoryTable() -> None:Update the Light group inventory table
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -showSelectedLighGroup() -> None:           Show the selected light group in the dialog
+# 
+# Private Methods and objects only to be used internally or by the lightGroupHandler server:
+# ==========================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_lightGroupInventoryShowDialog(QDialog):
+    def __init__(self, parentObjHandle, parent = None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(LIGHTGROUP_INVENTORY_DIALOG_UI, self)
+        self.proxymodel = QtCore.QSortFilterProxyModel()
+        self.lightGroupInventoryTableModel = lightGroupInventoryTableModel(self, self.parentObjHandle)
+        self.proxymodel.setSourceModel(self.lightGroupInventoryTableModel)
+        self.lightGroupInventoryTableView.setModel(self.proxymodel)
+        self.lightGroupInventoryTableView.setSortingEnabled(True)
+        self.updateTableWorker = UI_lightGroupShowDialogUpdateWorker(self)
+        self.updateTableWorker.setParent(None)
+        self.updateTableWorkerThread = QtCore.QThread()
+        self.updateTableWorker.moveToThread(self.updateTableWorkerThread)
+        self.updateTableWorkerThread.start()
+        self.updateTableWorkerThread.started.connect(self.updateTableWorker.start)
+        self.updateTableWorker.updateLightGroups.connect(self.updatelightGroupInventoryTable)
+        self.connectWidgetSignalsSlots()
+        self.closeEvent = self.stopUpdate
+
+    def stopUpdate(self, event):
+        if self.updateTableWorkerThread.isRunning():
+             self.updateTableWorker.stop()
+        pass
+
+    def updatelightGroupInventoryTable(self):
+        self.lightGroupInventoryTableModel.reLoadData()
+        self.proxymodel.beginResetModel()
+        self.lightGroupInventoryTableModel.beginResetModel()
+        self.lightGroupInventoryTableModel.endResetModel()
+        self.proxymodel.endResetModel()
+        self.lightGroupInventoryTableView.resizeColumnsToContents()
+        self.lightGroupInventoryTableView.resizeRowsToContents()
+
+    def connectWidgetSignalsSlots(self):
+        self.lightGroupInventoryTableView.clicked.connect(self.showSelectedLightGroup)
+
+    def showSelectedLightGroup(self, p_clickedIndex):
+        lightGroup = self.lightGroupInventoryTableModel.getLightGroupObjFromSysId(self.lightGroupInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
+        self.individualLightGroupWidget = UI_lightGroupDialog(lightGroup, lightGroup.rpcClient)
+        self.individualLightGroupWidget.show()
+#################################################################################################################################################
+# End Class: UI_lightGroupInventoryShowDialog
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_lightGroupShowDialogUpdateWorker
+# Purpose: A worker class for the lightGroup inventory table update
+#
+# Public Methods and objects to be used by the lightGroup producers:
+# ==================================================================
+# Public data-structures:
+# -----------------------
+# -updatelightGroups: QtCore.pyqtSignal:    Signal for lightGroup inventory table update
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -start() -> None:                         Start the worker
+# -stop() -> None:                          Stop the worker
+# 
+# Private Methods and objects only to be used internally or by the decoderHandler server:
+# ======================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_lightGroupShowDialogUpdateWorker(QtCore.QObject):
+    updateLightGroups = QtCore.pyqtSignal()
+    
+    def __init__(self, lightGroupShowHandle = None):
+        super(self.__class__, self).__init__(lightGroupShowHandle)
+
+    @QtCore.pyqtSlot()
+    def start(self):
+        self.run = True
+        while self.run:
+            self.updateLightGroups.emit()
+            QtCore.QThread.sleep(5)
+
+    def stop(self):
+        self.run = False
+#################################################################################################################################################
+# End Class: UI_lightGroupShowDialogUpdateWorker
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: lightGroupInventoryTableModel
+# Purpose: lightGroupInventoryTableModel is a QAbstractTable model for registered lightGroup inventory table model. It provides the capabilities to
+# represent a registered lightGroup inventory in a QTableView table.
+#
+# Public Methods and objects to be used by the lightGroup producers:
+# =================================================================
+# Public data-structures:
+# -----------------------
+# -
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>)
+# -isFirstColumnObjectId() -> bool:         Used to identify column 0 key information
+# -isFirstColumnInstanceId() -> bool        Used to identify column 0 key information
+# -getLightGroupFromSysId() -> lightGroup:  Used to get the lightGroup object from the lightGroup system ID
+# -formatLightGroupInventoryTable() -> List[List[str]]: Populate the lightGroup inventory table
+# -rowCount() -> int:                       Returns the current table view row count
+# -columnCount() -> int:                    Returns the current table view column count
+# -headerData() -> List[str] | None:        Returns the lightGroup table header columns
+# -data() -> str | Any:                     Returns lightGroup table cell data
+# -<*>Col() -> int                          Provides the coresponding column index as provided with formatLightGroupInventoryTable()
+# 
+# Private Methods and objects only to be used internally or by the lightGroupHandler server:
+# ==========================================================================================
+# Private data-structures:
+# ------------------------
+# -_lightGroupInventoryTableReloadLock : threading.Lock:
+#                                           lightGroup inventory Re-load lock
+# -_parent : Any:                           Calling UI object
+# -_lightGroupInventoryTable : List[List[str]]:   Inventory list of lists [row][column]
+# -_colCnt                                  lightGroup table column count
+# -_rowCnt                                  lightGroup table row count
+#
+# Private methods:
+# ----------------
+# -_reLoadData() -> None                    Reload lightGroup inventory content
+#################################################################################################################################################
+class lightGroupInventoryTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, p_parent, parentObjHandle):
+        self._lightGroupInventoryTableReloadLock  = threading.Lock()
+        self._parent : Any = p_parent
+        self.parentObjHandle = parentObjHandle
+        self._lightGroupInventoryTable : List[List[str]] = []
+        self._colCnt : int = 0
+        self._rowCnt : int = 0
+        QtCore.QAbstractTableModel.__init__(self)
+        self.reLoadData()
+
+    def isFirstColumnObjectId(self) -> bool:
+        return True
+
+    def isFirstColumnInstanceId(self) -> bool: 
+        return False
+
+    def getLightGroupObjFromSysId(self, lightGroupSysId : str) -> ...:
+        lightGroupInventoryList : List[lightGroup] = self.getAllLightGroups()
+        for lightGroupItter in lightGroupInventoryList:
+            if lightGroupItter.jmriLgSystemName.value == lightGroupSysId:
+                return lightGroupItter
+        return None
+
+    def reLoadData(self) -> None:
+        with self._lightGroupInventoryTableReloadLock:
+            self._lightGroupInventoryTable = self.formatLightGroupInventoryTable()
+            try:
+                self._colCnt = len(self._lightGroupInventoryTable[0])
+            except:
+                self._colCnt = 0
+            self._rowCnt = len(self._lightGroupInventoryTable)
+        self._parent.lightGroupInventoryTableView.resizeColumnsToContents()
+        self._parent.lightGroupInventoryTableView.resizeRowsToContents()
+
+    def formatLightGroupInventoryTable(self) -> List[List[str]]:
+        self._lightGroupInventoryTable : List[lightGroup] = []
+        lightGroupInventoryList : List[lightGroup] = self.getAllLightGroups()
+        for lightGroupInventoryItter in lightGroupInventoryList:
+            lightGroupInventoryRow : List[str] = []
+            lightGroupInventoryRow.append(lightGroupInventoryItter.jmriLgSystemName.value)
+            lightGroupInventoryRow.append(lightGroupInventoryItter.userName.value)
+            lightGroupInventoryRow.append(lightGroupInventoryItter.description.value)
+            lightGroupInventoryRow.append(lightGroupInventoryItter.lgType.value)
+            lightGroupInventoryRow.append(lightGroupInventoryItter.lgProperty1.value)
+            lightGroupInventoryRow.append(lightGroupInventoryItter.lgLinkAddr.value)
+            lightGroupInventoryRow.append(lightGroupInventoryItter.getOpStateDetailStr())
+            lightGroupInventoryRow.append(lightGroupInventoryItter.getShowing())
+            lightGroupInventoryRow.append(lightGroupInventoryItter.getUptime())
+            lightGroupInventoryRow.append(lightGroupInventoryItter.getTopology())
+            self._lightGroupInventoryTable.append(lightGroupInventoryRow)
+        return self._lightGroupInventoryTable
+
+    def rowCount(self, p_parent : Any = Qt.QModelIndex()) -> int:
+        with self._lightGroupInventoryTableReloadLock:
+            return self._rowCnt
+
+    def columnCount(self, p_parent : Any = Qt.QModelIndex()):
+        with self._lightGroupInventoryTableReloadLock:
+            return self._colCnt
+
+    def headerData(self, section, orientation, role):
+        with self._lightGroupInventoryTableReloadLock:
+            if role != QtCore.Qt.DisplayRole:
+                return None
+            if orientation == QtCore.Qt.Horizontal:
+                return ("SysName:","UsrName:", "Desc:", "Type:", "Subtype:", "LinkAddr:", "OpState:", "Showing:", "UpTime[s]:", "Topology:")[section]
+            else:
+                return f"{section}"
+
+    def data(self, index : Any, role : Any = QtCore.Qt.DisplayRole)-> str | Any:
+        with self._lightGroupInventoryTableReloadLock:
+            column = index.column()
+            row = index.row()
+            if role == QtCore.Qt.DisplayRole:
+                return self._lightGroupInventoryTable[row][column]
+            if role == QtCore.Qt.ForegroundRole:
+                if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#505050'))
+                if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF0000'))
+                if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF8000'))
+                return QtGui.QBrush(QtGui.QColor('#0000FF'))
+            if role == QtCore.Qt.TextAlignmentRole:
+                return QtCore.Qt.AlignCenter
+            
+    def getAllLightGroups(self):
+        lightGroups : List[lightGroup] = []
+        for decoderItter in self.parentObjHandle.decoders.value:
+            for lightGroupLinkItter in decoderItter.lgLinks.value:
+                lightGroups.extend(lightGroupLinkItter.lightGroups.value)
+        return lightGroups
+        
+    @staticmethod
+    def sysNameCol() -> int: return 0
+    @staticmethod
+    def usrNameCol() -> int: return 1
+    @staticmethod
+    def descCol() -> int: return 2
+    @staticmethod
+    def typeCol() -> int: return 3
+    @staticmethod
+    def subTypeCol() -> int: return 4
+    @staticmethod
+    def linkAddrCol() -> int: return 5
+    @staticmethod
+    def opStateCol() -> int: return 6
+    @staticmethod
+    def showing() -> int: return 7
+    @staticmethod
+    def upTimeCol() -> int: return 8
+    @staticmethod
+    def topologyCol() -> int: return 9
+#################################################################################################################################################
+# End Class: lightGroupInventoryTableModel
+#################################################################################################################################################
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# END - LIGHT GROUP DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
@@ -2421,6 +2782,44 @@ class UI_sateliteDialog(QDialog):
 
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# SENSOR DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#################################################################################################################################################
+# Class: UI_sensorDialog
+# Purpose: UI_sensorDialog provides configuration GUI dialogs for the sensor objects.
+#
+# Public Methods and objects to be used by the sensor consumers:
+# ==============================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: satelite                Parent satelite object handle
+# -rpcClient: rpc:                          rpcClient handle
+# -newConfig: bool                          New configuration flag
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -setEditable() -> bool:                   Set the dialog to editable/configurable
+# -unSetEditable() -> bool:                 Set the dialog to uneditable/unconfigurable
+# -displayValues() -> None:                 Display the sensor object values in the dialog
+# -setValues() -> int:                      Set the sensor object values from the dialog
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -onSysNameChanged                         System name changed during initial configuration
+# -accepted() -> None:                      Slot for the dialog accept button
+# -rejected() -> None:                      Slot for the dialog reject button
+# 
+# Private Methods and objects only to be used internally or by the sensorHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+
 class UI_sensorDialog(QDialog):
     def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
@@ -2541,8 +2940,349 @@ class UI_sensorDialog(QDialog):
     def closeEvent(self, event):
         self.parentObjHandle.rejected()
         self.close()
+#################################################################################################################################################
+# End Class: UI_sensorDialog
+#################################################################################################################################################
 
 
+
+#################################################################################################################################################
+# Class: UI_sensorInventoryShowDialog
+# Purpose: UI_sensorInventoryShowDialog provides Light group inventory GUI dialogs
+#
+# Public Methods and objects to be used by the sensor producers:
+# ==================================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: lglink   :              Parent lgLink object handle
+# -proxymodel: QSortFilterProxyModel        Filter model for the Light group inventory table
+# -sensorInventoryTableModel: sensorInventoryTableModel: Light group inventory table model
+# -updateTableWorker: UI_sensorShowDialogUpdateWorker: Table update worker
+# -updateTableWorkerThread: QThread         Table update worker thread
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -stopUpdate() -> None:                    Stop the table update worker
+# -updateSensorInventoryTable() -> None:Update the Light group inventory table
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -showSelectedLighGroup() -> None:           Show the selected light group in the dialog
+# 
+# Private Methods and objects only to be used internally or by the sensorHandler server:
+# ==========================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_sensorInventoryShowDialog(QDialog):
+    def __init__(self, parentObjHandle, parent = None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(SENSOR_INVENTORY_DIALOG_UI, self)
+        self.proxymodel = QtCore.QSortFilterProxyModel()
+        self.sensorInventoryTableModel = sensorInventoryTableModel(self, self.parentObjHandle)
+        self.proxymodel.setSourceModel(self.sensorInventoryTableModel)
+        self.sensorInventoryTableView.setModel(self.proxymodel)
+        self.sensorInventoryTableView.setSortingEnabled(True)
+        self.updateTableWorker = UI_sensorShowDialogUpdateWorker(self)
+        self.updateTableWorker.setParent(None)
+        self.updateTableWorkerThread = QtCore.QThread()
+        self.updateTableWorker.moveToThread(self.updateTableWorkerThread)
+        self.updateTableWorkerThread.start()
+        self.updateTableWorkerThread.started.connect(self.updateTableWorker.start)
+        self.updateTableWorker.updateSensors.connect(self.updateSensorInventoryTable)
+        self.connectWidgetSignalsSlots()
+        self.closeEvent = self.stopUpdate
+
+    def stopUpdate(self, event):
+        if self.updateTableWorkerThread.isRunning():
+             self.updateTableWorker.stop()
+        pass
+
+    def updateSensorInventoryTable(self):
+        self.sensorInventoryTableModel.reLoadData()
+        self.proxymodel.beginResetModel()
+        self.sensorInventoryTableModel.beginResetModel()
+        self.sensorInventoryTableModel.endResetModel()
+        self.proxymodel.endResetModel()
+        self.sensorInventoryTableView.resizeColumnsToContents()
+        self.sensorInventoryTableView.resizeRowsToContents()
+
+    def connectWidgetSignalsSlots(self):
+        self.sensorInventoryTableView.clicked.connect(self.showSelectedSensor)
+
+    def showSelectedSensor(self, p_clickedIndex):
+        sensor = self.sensorInventoryTableModel.getSensorObjFromSysId(self.sensorInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
+        self.individualSensorWidget = UI_sensorDialog(sensor, sensor.rpcClient)
+        self.individualSensorWidget.show()
+#################################################################################################################################################
+# End Class: UI_sensorInventoryShowDialog
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_sensorShowDialogUpdateWorker
+# Purpose: A worker class for the sensor inventory table update
+#
+# Public Methods and objects to be used by the sensor producers:
+# ==================================================================
+# Public data-structures:
+# -----------------------
+# -updateSensors: QtCore.pyqtSignal:    Signal for sensor inventory table update
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -start() -> None:                         Start the worker
+# -stop() -> None:                          Stop the worker
+# 
+# Private Methods and objects only to be used internally or by the sensorHandler server:
+# ======================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_sensorShowDialogUpdateWorker(QtCore.QObject):
+    updateSensors = QtCore.pyqtSignal()
+    
+    def __init__(self, sensorShowHandle = None):
+        super(self.__class__, self).__init__(sensorShowHandle)
+
+    @QtCore.pyqtSlot()
+    def start(self):
+        self.run = True
+        while self.run:
+            self.updateSensors.emit()
+            QtCore.QThread.sleep(5)
+
+    def stop(self):
+        self.run = False
+#################################################################################################################################################
+# End Class: UI_sensorShowDialogUpdateWorker
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: sensorInventoryTableModel
+# Purpose: sensorInventoryTableModel is a QAbstractTable model for registered sensor inventory table model. It provides the capabilities to
+# represent a registered sensor inventory in a QTableView table.
+#
+# Public Methods and objects to be used by the sensor producers:
+# =================================================================
+# Public data-structures:
+# -----------------------
+# -
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>)
+# -isFirstColumnObjectId() -> bool:         Used to identify column 0 key information
+# -isFirstColumnInstanceId() -> bool        Used to identify column 0 key information
+# -getSensorFromSysId() -> sensor:  Used to get the sensor object from the sensor system ID
+# -formatSensorInventoryTable() -> List[List[str]]: Populate the sensor inventory table
+# -rowCount() -> int:                       Returns the current table view row count
+# -columnCount() -> int:                    Returns the current table view column count
+# -headerData() -> List[str] | None:        Returns the sensor table header columns
+# -data() -> str | Any:                     Returns sensor table cell data
+# -<*>Col() -> int                          Provides the coresponding column index as provided with formatSensorInventoryTable()
+# 
+# Private Methods and objects only to be used internally or by the sensorHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -_sensorInventoryTableReloadLock : threading.Lock:
+#                                           sensor inventory Re-load lock
+# -_parent : Any:                           Calling UI object
+# -_sensorInventoryTable : List[List[str]]: Inventory list of lists [row][column]
+# -_colCnt                                  sensor table column count
+# -_rowCnt                                  sensor table row count
+#
+# Private methods:
+# ----------------
+# -_reLoadData() -> None                    Reload sensor inventory content
+#################################################################################################################################################
+class sensorInventoryTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, p_parent, parentObjHandle):
+        self._sensorInventoryTableReloadLock  = threading.Lock()
+        self._parent : Any = p_parent
+        self.parentObjHandle = parentObjHandle
+        self._sensorInventoryTable : List[List[str]] = []
+        self._colCnt : int = 0
+        self._rowCnt : int = 0
+        QtCore.QAbstractTableModel.__init__(self)
+        self.reLoadData()
+
+    def isFirstColumnObjectId(self) -> bool:
+        return True
+
+    def isFirstColumnInstanceId(self) -> bool: 
+        return False
+
+    def getSensorObjFromSysId(self, sensorSysId : str) -> ...:
+        sensorInventoryList : List[sensor] = self.getAllSensors()
+        for sensorItter in sensorInventoryList:
+            if sensorItter.jmriSensSystemName.value == sensorSysId:
+                return sensorItter
+        return None
+
+    def reLoadData(self) -> None:
+        with self._sensorInventoryTableReloadLock:
+            self._sensorInventoryTable = self.formatSensorInventoryTable()
+            try:
+                self._colCnt = len(self._sensorInventoryTable[0])
+            except:
+                self._colCnt = 0
+            self._rowCnt = len(self._sensorInventoryTable)
+        self._parent.sensorInventoryTableView.resizeColumnsToContents()
+        self._parent.sensorInventoryTableView.resizeRowsToContents()
+
+    def formatSensorInventoryTable(self) -> List[List[str]]:
+        self._sensorInventoryTable : List[sensor] = []
+        sensorInventoryList : List[sensor] = self.getAllSensors()
+        for sensorInventoryItter in sensorInventoryList:
+            sensorInventoryRow : List[str] = []
+            sensorInventoryRow.append(sensorInventoryItter.jmriSensSystemName.value)
+            sensorInventoryRow.append(sensorInventoryItter.userName.value)
+            sensorInventoryRow.append(sensorInventoryItter.description.value)
+            sensorInventoryRow.append(sensorInventoryItter.sensType.value)
+            sensorInventoryRow.append(sensorInventoryItter.sensPort.value)
+            sensorInventoryRow.append(sensorInventoryItter.getOpStateDetailStr())
+            sensorInventoryRow.append(sensorInventoryItter.sensState)
+            sensorInventoryRow.append(sensorInventoryItter.getUptime())
+            sensorInventoryRow.append(sensorInventoryItter.getTopology())
+            self._sensorInventoryTable.append(sensorInventoryRow)
+        return self._sensorInventoryTable
+
+    def rowCount(self, p_parent : Any = Qt.QModelIndex()) -> int:
+        with self._sensorInventoryTableReloadLock:
+            return self._rowCnt
+
+    def columnCount(self, p_parent : Any = Qt.QModelIndex()):
+        with self._sensorInventoryTableReloadLock:
+            return self._colCnt
+
+    def headerData(self, section, orientation, role):
+        with self._sensorInventoryTableReloadLock:
+            if role != QtCore.Qt.DisplayRole:
+                return None
+            if orientation == QtCore.Qt.Horizontal:
+                return ("SysName:","UsrName:", "Desc:", "Type:", "Port:", "OpState:", "Sensing:", "UpTime[s]:", "Topology:")[section]
+            else:
+                return f"{section}"
+
+    def data(self, index : Any, role : Any = QtCore.Qt.DisplayRole)-> str | Any:
+        with self._sensorInventoryTableReloadLock:
+            column = index.column()
+            row = index.row()
+            if role == QtCore.Qt.DisplayRole:
+                return self._sensorInventoryTable[row][column]
+            if role == QtCore.Qt.ForegroundRole:
+                if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#505050'))
+                if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF0000'))
+                if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF8000'))
+                return QtGui.QBrush(QtGui.QColor('#0000FF'))
+            if role == QtCore.Qt.TextAlignmentRole:
+                return QtCore.Qt.AlignCenter
+            
+    def getAllSensors(self):
+        sensors : List[sensor] = []
+        for decoderItter in self.parentObjHandle.decoders.value:
+            for satLinkLinkItter in decoderItter.satLinks.value:
+                for satItter in satLinkLinkItter.satelites.value:
+                    sensors.extend(satItter.sensors.value)
+        return sensors
+        
+    @staticmethod
+    def sysNameCol() -> int: return 0
+    @staticmethod
+    def usrNameCol() -> int: return 1
+    @staticmethod
+    def descCol() -> int: return 2
+    @staticmethod
+    def typeCol() -> int: return 3
+    @staticmethod
+    def portCol() -> int: return 4
+    @staticmethod
+    def opStateCol() -> int: return 5
+    @staticmethod
+    def sensingCol() -> int: return 6
+    @staticmethod
+    def upTimeCol() -> int: return 7
+    @staticmethod
+    def topologyCol() -> int: return 8
+#################################################################################################################################################
+# End Class: sensorInventoryTableModel
+#################################################################################################################################################
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# END - SENSOR DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# ACTUATOR DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#################################################################################################################################################
+# Class: UI_actuatorDialog
+# Purpose: UI_actuatorDialog provides configuration GUI dialogs for the actuator objects.
+#
+# Public Methods and objects to be used by the actuator consumers:
+# ===============================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: satelite                Parent satelite object handle
+# -rpcClient: rpc:                          rpcClient handle
+# -newConfig: bool                          New configuration flag
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -setEditable() -> bool:                   Set the dialog to editable/configurable
+# -unSetEditable() -> bool:                 Set the dialog to uneditable/unconfigurable
+# -displayValues() -> None:                 Display the actuator object values in the dialog
+# -setValues() -> int:                      Set the actuator object values from the dialog
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -onSysNameChanged                         System name changed during initial configuration
+# -onTypeChanged                            Actuator type changed during initial configuration
+# -accepted() -> None:                      Slot for the dialog accept button
+# -rejected() -> None:                      Slot for the dialog reject button
+# 
+# Private Methods and objects only to be used internally or by the actuatorHandler server:
+# ========================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
 
 class UI_actuatorDialog(QDialog):
     def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
@@ -2703,10 +3443,304 @@ class UI_actuatorDialog(QDialog):
         msg.exec_()
 
     def rejected(self):
-        print(">>>>>>>>>>>>>>>>>>>>rejected1")
         self.parentObjHandle.rejected()
         self.close()
         
     def closeEvent(self, event):
         self.parentObjHandle.rejected()
         self.close()
+#################################################################################################################################################
+# End Class: UI_actuatorDialog
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_actuatorInventoryShowDialog
+# Purpose: UI_actuatorInventoryShowDialog provides Light group inventory GUI dialogs
+#
+# Public Methods and objects to be used by the actuator producers:
+# ==================================================================
+# Public data-structures:
+# -----------------------
+# -parentObjHandle: lglink   :              Parent lgLink object handle
+# -proxymodel: QSortFilterProxyModel        Filter model for the Light group inventory table
+# -actuatorInventoryTableModel: actuatorInventoryTableModel: Light group inventory table model
+# -updateTableWorker: UI_actuatorShowDialogUpdateWorker: Table update worker
+# -updateTableWorkerThread: QThread         Table update worker thread
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -stopUpdate() -> None:                    Stop the table update worker
+# -updateActuatorInventoryTable() -> None:Update the Light group inventory table
+# -connectWidgetSignalsSlots() -> None:     Connect the dialog widget signals to slots
+# -showSelectedLighGroup() -> None:           Show the selected light group in the dialog
+# 
+# Private Methods and objects only to be used internally or by the actuatorHandler server:
+# ==========================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_actuatorInventoryShowDialog(QDialog):
+    def __init__(self, parentObjHandle, parent = None):
+        super().__init__(parent)
+        self.parentObjHandle = parentObjHandle
+        loadUi(ACTUATOR_INVENTORY_DIALOG_UI, self)
+        self.proxymodel = QtCore.QSortFilterProxyModel()
+        self.actuatorInventoryTableModel = actuatorInventoryTableModel(self, self.parentObjHandle)
+        self.proxymodel.setSourceModel(self.actuatorInventoryTableModel)
+        self.actuatorInventoryTableView.setModel(self.proxymodel)
+        self.actuatorInventoryTableView.setSortingEnabled(True)
+        self.updateTableWorker = UI_actuatorShowDialogUpdateWorker(self)
+        self.updateTableWorker.setParent(None)
+        self.updateTableWorkerThread = QtCore.QThread()
+        self.updateTableWorker.moveToThread(self.updateTableWorkerThread)
+        self.updateTableWorkerThread.start()
+        self.updateTableWorkerThread.started.connect(self.updateTableWorker.start)
+        self.updateTableWorker.updateActuators.connect(self.updateActuatorInventoryTable)
+        self.connectWidgetSignalsSlots()
+        self.closeEvent = self.stopUpdate
+
+    def stopUpdate(self, event):
+        if self.updateTableWorkerThread.isRunning():
+             self.updateTableWorker.stop()
+        pass
+
+    def updateActuatorInventoryTable(self):
+        self.actuatorInventoryTableModel.reLoadData()
+        self.proxymodel.beginResetModel()
+        self.actuatorInventoryTableModel.beginResetModel()
+        self.actuatorInventoryTableModel.endResetModel()
+        self.proxymodel.endResetModel()
+        self.actuatorInventoryTableView.resizeColumnsToContents()
+        self.actuatorInventoryTableView.resizeRowsToContents()
+
+    def connectWidgetSignalsSlots(self):
+        self.actuatorInventoryTableView.clicked.connect(self.showSelectedActuator)
+
+    def showSelectedActuator(self, p_clickedIndex):
+        actuator = self.actuatorInventoryTableModel.getActuatorObjFromSysId(self.actuatorInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
+        self.individualActuatorWidget = UI_actuatorDialog(actuator, actuator.rpcClient)
+        self.individualActuatorWidget.show()
+#################################################################################################################################################
+# End Class: UI_actuatorInventoryShowDialog
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: UI_actuatorShowDialogUpdateWorker
+# Purpose: A worker class for the actuator inventory table update
+#
+# Public Methods and objects to be used by the actuator producers:
+# ==================================================================
+# Public data-structures:
+# -----------------------
+# -updateActuators: QtCore.pyqtSignal:    Signal for actuator inventory table update
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>) -> None:              Constructor
+# -start() -> None:                         Start the worker
+# -stop() -> None:                          Stop the worker
+# 
+# Private Methods and objects only to be used internally or by the actuatorHandler server:
+# ======================================================================================
+# Private data-structures:
+# ------------------------
+# -
+#
+# Private methods:
+# ----------------
+# -
+#################################################################################################################################################
+class UI_actuatorShowDialogUpdateWorker(QtCore.QObject):
+    updateActuators = QtCore.pyqtSignal()
+    
+    def __init__(self, actuatorShowHandle = None):
+        super(self.__class__, self).__init__(actuatorShowHandle)
+
+    @QtCore.pyqtSlot()
+    def start(self):
+        self.run = True
+        while self.run:
+            self.updateActuators.emit()
+            QtCore.QThread.sleep(5)
+
+    def stop(self):
+        self.run = False
+#################################################################################################################################################
+# End Class: UI_actuatorShowDialogUpdateWorker
+#################################################################################################################################################
+
+
+
+#################################################################################################################################################
+# Class: actuatorInventoryTableModel
+# Purpose: actuatorInventoryTableModel is a QAbstractTable model for registered actuator inventory table model. It provides the capabilities to
+# represent a registered actuator inventory in a QTableView table.
+#
+# Public Methods and objects to be used by the actuator producers:
+# =================================================================
+# Public data-structures:
+# -----------------------
+# -
+#
+# Public methods:
+# ---------------
+# -__init__(<parent>)
+# -isFirstColumnObjectId() -> bool:         Used to identify column 0 key information
+# -isFirstColumnInstanceId() -> bool        Used to identify column 0 key information
+# -getActuatorFromSysId() -> actuator:  Used to get the actuator object from the actuator system ID
+# -formatActuatorInventoryTable() -> List[List[str]]: Populate the actuator inventory table
+# -rowCount() -> int:                       Returns the current table view row count
+# -columnCount() -> int:                    Returns the current table view column count
+# -headerData() -> List[str] | None:        Returns the actuator table header columns
+# -data() -> str | Any:                     Returns actuator table cell data
+# -<*>Col() -> int                          Provides the coresponding column index as provided with formatActuatorInventoryTable()
+# 
+# Private Methods and objects only to be used internally or by the actuatorHandler server:
+# =====================================================================================
+# Private data-structures:
+# ------------------------
+# -_actuatorInventoryTableReloadLock : threading.Lock:
+#                                           actuator inventory Re-load lock
+# -_parent : Any:                           Calling UI object
+# -_actuatorInventoryTable : List[List[str]]: Inventory list of lists [row][column]
+# -_colCnt                                  actuator table column count
+# -_rowCnt                                  actuator table row count
+#
+# Private methods:
+# ----------------
+# -_reLoadData() -> None                    Reload actuator inventory content
+#################################################################################################################################################
+class actuatorInventoryTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, p_parent, parentObjHandle):
+        self._actuatorInventoryTableReloadLock  = threading.Lock()
+        self._parent : Any = p_parent
+        self.parentObjHandle = parentObjHandle
+        self._actuatorInventoryTable : List[List[str]] = []
+        self._colCnt : int = 0
+        self._rowCnt : int = 0
+        QtCore.QAbstractTableModel.__init__(self)
+        self.reLoadData()
+
+    def isFirstColumnObjectId(self) -> bool:
+        return True
+
+    def isFirstColumnInstanceId(self) -> bool: 
+        return False
+
+    def getActuatorObjFromSysId(self, actuatorSysId : str) -> ...:
+        actuatorInventoryList : List[actuator] = self.getAllActuators()
+        for actuatorItter in actuatorInventoryList:
+            if actuatorItter.jmriActSystemName.value == actuatorSysId:
+                return actuatorItter
+        return None
+
+    def reLoadData(self) -> None:
+        with self._actuatorInventoryTableReloadLock:
+            self._actuatorInventoryTable = self.formatActuatorInventoryTable()
+            try:
+                self._colCnt = len(self._actuatorInventoryTable[0])
+            except:
+                self._colCnt = 0
+            self._rowCnt = len(self._actuatorInventoryTable)
+        self._parent.actuatorInventoryTableView.resizeColumnsToContents()
+        self._parent.actuatorInventoryTableView.resizeRowsToContents()
+
+    def formatActuatorInventoryTable(self) -> List[List[str]]:
+        self._actuatorInventoryTable : List[actuator] = []
+        actuatorInventoryList : List[actuator] = self.getAllActuators()
+        for actuatorInventoryItter in actuatorInventoryList:
+            actuatorInventoryRow : List[str] = []
+            actuatorInventoryRow.append(actuatorInventoryItter.jmriActSystemName.value)
+            actuatorInventoryRow.append(actuatorInventoryItter.userName.value)
+            actuatorInventoryRow.append(actuatorInventoryItter.description.value)
+            actuatorInventoryRow.append(actuatorInventoryItter.actType.value)
+            actuatorInventoryRow.append(actuatorInventoryItter.actSubType.value)
+            actuatorInventoryRow.append(actuatorInventoryItter.actPort.value)
+            actuatorInventoryRow.append(actuatorInventoryItter.getOpStateDetailStr())
+            actuatorInventoryRow.append(actuatorInventoryItter.actState)
+            actuatorInventoryRow.append(actuatorInventoryItter.getUptime())
+            actuatorInventoryRow.append(actuatorInventoryItter.getTopology())
+            self._actuatorInventoryTable.append(actuatorInventoryRow)
+        return self._actuatorInventoryTable
+
+    def rowCount(self, p_parent : Any = Qt.QModelIndex()) -> int:
+        with self._actuatorInventoryTableReloadLock:
+            return self._rowCnt
+
+    def columnCount(self, p_parent : Any = Qt.QModelIndex()):
+        with self._actuatorInventoryTableReloadLock:
+            return self._colCnt
+
+    def headerData(self, section, orientation, role):
+        with self._actuatorInventoryTableReloadLock:
+            if role != QtCore.Qt.DisplayRole:
+                return None
+            if orientation == QtCore.Qt.Horizontal:
+                return ("SysName:","UsrName:", "Desc:", "Type:", "SubType:", "Port:", "OpState:", "Position:", "UpTime[s]:", "Topology:")[section]
+            else:
+                return f"{section}"
+
+    def data(self, index : Any, role : Any = QtCore.Qt.DisplayRole)-> str | Any:
+        with self._actuatorInventoryTableReloadLock:
+            column = index.column()
+            row = index.row()
+            if role == QtCore.Qt.DisplayRole:
+                return self._actuatorInventoryTable[row][column]
+            if role == QtCore.Qt.ForegroundRole:
+                if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#505050'))
+                if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF0000'))
+                if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_CBL[STATE]:
+                    return QtGui.QBrush(QtGui.QColor('#FF8000'))
+                return QtGui.QBrush(QtGui.QColor('#0000FF'))
+            if role == QtCore.Qt.TextAlignmentRole:
+                return QtCore.Qt.AlignCenter
+
+    def getAllActuators(self):
+        actuators : List[actuator] = []
+        for decoderItter in self.parentObjHandle.decoders.value:
+            for satLinkLinkItter in decoderItter.satLinks.value:
+                for satItter in satLinkLinkItter.satelites.value:
+                    actuators.extend(satItter.actuators.value)
+        return actuators
+
+    @staticmethod
+    def sysNameCol() -> int: return 0
+    @staticmethod
+    def usrNameCol() -> int: return 1
+    @staticmethod
+    def descCol() -> int: return 2
+    @staticmethod
+    def typeCol() -> int: return 3
+    @staticmethod
+    def subTypeCol() -> int: return 4
+    @staticmethod
+    def portCol() -> int: return 5
+    @staticmethod
+    def opStateCol() -> int: return 6
+    @staticmethod
+    def positionCol() -> int: return 7
+    @staticmethod
+    def upTimeCol() -> int: return 8
+    @staticmethod
+    def topologyCol() -> int: return 9
+#################################################################################################################################################
+# End Class: actuatorInventoryTableModel
+#################################################################################################################################################
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# END - ACTUATOR DIALOG CLASSES
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

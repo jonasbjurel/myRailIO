@@ -434,6 +434,9 @@ class satelite(systemState, schema):
     def rejected(self):
         self.abort()
         return rc.OK
+    
+    def getTopology(self):
+        return self.parent.getTopology() + "/" + self.satSystemName.value
 
     def getDecoderUri(self):
         return self.parent.getDecoderUri()

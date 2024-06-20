@@ -497,6 +497,9 @@ class decoder(systemState, schema):
 
     def decoderRestart(self):
         self.__decoderRestart()
+        
+    def getTopology(self):
+        return "/" + self.decoderSystemName.value
 
     # Requests to decoders
     def getOpStateFromClient(self):

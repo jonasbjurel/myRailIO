@@ -406,6 +406,9 @@ class lgLink(systemState, schema):
     def getMastTypes(self):
         self.__getXmlMastDesc()
         return self.mastTypes
+    
+    def getTopology(self):
+        return self.parent.getTopology() + "/" + self.lgLinkSystemName.value
 
     def __validateConfig(self):
         if not self.sysNameReged:

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>781</width>
-    <height>554</height>
+    <height>635</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -204,7 +204,7 @@
    <property name="geometry">
     <rect>
      <x>600</x>
-     <y>512</y>
+     <y>590</y>
      <width>171</width>
      <height>41</height>
     </rect>
@@ -370,8 +370,8 @@
    <property name="geometry">
     <rect>
      <x>230</x>
-     <y>300</y>
-     <width>131</width>
+     <y>530</y>
+     <width>391</width>
      <height>41</height>
     </rect>
    </property>
@@ -394,7 +394,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>300</y>
+     <y>530</y>
      <width>221</width>
      <height>41</height>
     </rect>
@@ -410,7 +410,7 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Current actuator state&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Actuator state:</string>
+    <string>Actuator position:</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_18">

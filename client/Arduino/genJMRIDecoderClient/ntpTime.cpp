@@ -269,7 +269,6 @@ rc_t ntpTime::getNoOfNtpServers(uint8_t* p_ntpNoOfServerHosts) {
 
 rc_t ntpTime::getNtpOpState(ntpOpState_t* p_ntpOpState) {
 	*p_ntpOpState = ntpDescriptor.opState;
-	Serial.printf("======================== %i" CR, ntpDescriptor.opState);
 	return RC_OK;
 }
 
@@ -614,7 +613,6 @@ rc_t ntpTime::syncModeToStr(char* p_syncModeStr, uint8_t p_syncMode) {
 }
 
 void ntpTime::sntpCb(timeval* p_tv) {
-	Serial.printf("/////////////////////////////// NTP STATUS UPDATE");
 	bool newSyncstate = false;
 	ntpDescriptor.syncStatus = sntp_get_sync_status();
 	switch (ntpDescriptor.syncStatus) {

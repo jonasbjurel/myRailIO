@@ -79,6 +79,7 @@
     <Content Include="GenJMRI\icons\server.png" />
     <Content Include="GenJMRI\icons\servo.png" />
     <Content Include="GenJMRI\icons\traffic-light.png" />
+    <Content Include="GenJMRI\ui\Actuators_Inventory_Dialog.ui" />
     <Content Include="GenJMRI\ui\Actuator_Dialog.ui" />
     <Content Include="GenJMRI\ui\Add_Dialog.ui" />
     <Content Include="GenJMRI\ui\autoLoad_Pref_Dialog.ui" />
@@ -88,6 +89,7 @@
     <Content Include="GenJMRI\ui\Decoder_Dialog.ui" />
     <Content Include="GenJMRI\ui\Decoder_Modify_Dialog.ui" />
     <Content Include="GenJMRI\ui\LightGroupsLink_Dialog.ui" />
+    <Content Include="GenJMRI\ui\LightGroups_Inventory_Dialog.ui" />
     <Content Include="GenJMRI\ui\LightGroup_Dialog.ui" />
     <Content Include="GenJMRI\ui\Log_Output_Dialog.ui" />
     <Content Include="GenJMRI\ui\Log_Setting_Dialog.ui" />

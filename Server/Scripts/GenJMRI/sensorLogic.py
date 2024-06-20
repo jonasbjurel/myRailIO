@@ -307,6 +307,9 @@ class sensor(systemState, schema):
     def rejected(self):
         self.abort()
         return rc.OK
+    
+    def getTopology(self):
+        return self.parent.getTopology() + "/" + self.jmriSensSystemName.value
 
     def __validateConfig(self):
         if not self.sysNameReged:

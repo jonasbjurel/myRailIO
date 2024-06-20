@@ -274,12 +274,12 @@
      <string>&amp;Inventory</string>
     </property>
     <addaction name="separator"/>
-    <addaction name="actionShow_Decoders"/>
-    <addaction name="actionShow_Kight_groups"/>
-    <addaction name="actionShow_Sensors"/>
-    <addaction name="actionShow_Actuators"/>
+    <addaction name="actionShow_DecoderInventory"/>
+    <addaction name="actionShow_LightGroupInventory"/>
+    <addaction name="actionShow_SensorInventory"/>
+    <addaction name="actionShow_ActuatorInventory"/>
     <addaction name="separator"/>
-    <addaction name="actionAlarm_inventory_2"/>
+    <addaction name="actionShow_AlarmInventory"/>
     <addaction name="separator"/>
     <addaction name="actiongitOpsVersions"/>
     <addaction name="separator"/>
@@ -438,12 +438,12 @@
     <string>Upgrading JMRI</string>
    </property>
   </action>
-  <action name="actionShow_Decoders">
+  <action name="actionShow_DecoderInventory">
    <property name="text">
     <string>Show Decoders inventory</string>
    </property>
   </action>
-  <action name="actionShow_Kight_groups">
+  <action name="actionShow_LightGroupInventory">
    <property name="text">
     <string>Show Light groups inventory</string>
    </property>
@@ -458,12 +458,12 @@
     <string>Show Satelites inventory</string>
    </property>
   </action>
-  <action name="actionShow_Sensors">
+  <action name="actionShow_SensorInventory">
    <property name="text">
     <string>Show Sensors inventory</string>
    </property>
   </action>
-  <action name="actionShow_Actuators">
+  <action name="actionShow_ActuatorInventory">
    <property name="text">
     <string>Show Actuators  inventory</string>
    </property>
@@ -529,7 +529,7 @@
     <string>Alarm inventory</string>
    </property>
   </action>
-  <action name="actionAlarm_inventory_2">
+  <action name="actionShow_AlarmInventory">
    <property name="text">
     <string>Alarms inventory</string>
    </property>
