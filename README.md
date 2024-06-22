@@ -1,2 +1,3 @@
-# GenericJMRIdecoder
-A project aiming for a micropython generic JMRI decoder for signals, general lights, turnouts, sensors, ... Based on ESP32.
+# myRailIO
+A project aiming for a generic modelrailway decoder for signals, general lights, turnouts, sensors, ... 
+Based on ESP32.
