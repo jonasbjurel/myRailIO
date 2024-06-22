@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<myRailIOFilePreference>
-	<Path>C:/Users/jonas/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/server/config</Path>
-	<FileName>C:/Users/jonas/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/server/config/RobustSat.xml</FileName>
-	<AutoLoad>No</AutoLoad>
-	<AutoLoadDelay>0</AutoLoadDelay>
-</myRailIOFilePreference>

@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<genJMRIFilePreference>
-	<Path>C:/Users/jonas/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Server/config</Path>
-	<FileName>C:/Users/jonas/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Server/config/sampleConfigWriteBack.xml</FileName>
-	<AutoLoad>No</AutoLoad>
-	<AutoLoadDelay>0</AutoLoadDelay>
-</genJMRIFilePreference>
