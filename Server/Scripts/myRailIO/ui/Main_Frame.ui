@@ -25,14 +25,14 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>genJMRI</string>
+   <string>myRailIO</string>
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../icons/genJMRI.png</normaloff>../icons/genJMRI.png</iconset>
+    <normaloff>../icons/myRailIO.png</normaloff>../icons/myRailIO.png</iconset>
   </property>
   <property name="whatsThis">
-   <string>Main genJMRI navigation dialog</string>
+   <string>Main myRailIO navigation dialog</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label">
@@ -230,7 +230,7 @@
     <addaction name="actionPaste"/>
     <addaction name="actionFind"/>
     <addaction name="separator"/>
-    <addaction name="actiongenJMRI_preferences"/>
+    <addaction name="actionmyRailIO_preferences"/>
     <addaction name="actiongit_preferences"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -244,7 +244,7 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionAbout_genJMRI"/>
+    <addaction name="actionAbout_myRailIO"/>
     <addaction name="actionSearch_for_help"/>
     <addaction name="separator"/>
     <addaction name="actionLicense"/>
@@ -358,9 +358,9 @@
     <string>Open Log window</string>
    </property>
   </action>
-  <action name="actionAbout_genJMRI">
+  <action name="actionAbout_myRailIO">
    <property name="text">
-    <string>About genJMRI</string>
+    <string>About myRailIO</string>
    </property>
   </action>
   <action name="actionSoftware_inventory">
@@ -408,9 +408,9 @@
     <string>Launch JMRI UI</string>
    </property>
   </action>
-  <action name="actiongenJMRI_preferences">
+  <action name="actionmyRailIO_preferences">
    <property name="text">
-    <string>genJMRI preferences</string>
+    <string>myRailIO preferences</string>
    </property>
   </action>
   <action name="actionReplace">

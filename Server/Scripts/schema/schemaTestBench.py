@@ -7,8 +7,8 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI server management object model (MOM) verification test script - verifying the transactional model, as well as the type verification
-# of all used genJMRI Managed objects (MO) defined data types
+# A myRailIO server management object model (MOM) verification test script - verifying the transactional model, as well as the type verification
+# of all used myRailIO Managed objects (MO) defined data types
 # A full description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
 #################################################################################################################################################
 
@@ -20,7 +20,7 @@ import os
 import sys
 # Internal project dependencies
 import imp
-imp.load_source('jmriRpcClient', '..\\rpc\\genJMRIRpcClient.py')
+imp.load_source('jmriRpcClient', '..\\rpc\\myRailIORpcClient.py')
 from jmriRpcClient import *
 imp.load_source('moTypes', '..\\schema\\moTypes.py')
 from moTypes import *
@@ -39,7 +39,7 @@ from schema import schema
 #------------------------------------------------------------------------------------------------------------------------------------------------
 
 #================================================================================================================================================
-# Good/Bad genJMRI MO Value/Type generator functions
+# Good/Bad myRailIO MO Value/Type generator functions
 #================================================================================================================================================
 def genEstr_t(good=True):
     if good: return ["My good estr_t"]
@@ -125,7 +125,7 @@ def genSatSystemName_t(good=True):
     if good: return ["GJSAT-MY_SAT"]
     else: return [1, "ABC-MY_BAD_SAT"]
 
-def genJmriSensSystemName_t(good=True):
+def myRailIOSensSystemName_t(good=True):
     if good: return ["MS-MY_SENS"]
     else: return [1, "ABC-MY_BAD_SENS"]
 
@@ -137,7 +137,7 @@ def genSensType_t(good=True):
     if good: return ["DIGITAL"]
     else: return ["NON_DIGITAL"]
 
-def genJmriActSystemName_t(good=True):
+def myRailIOActSystemName_t(good=True):
     if good: return ["MT-MY TURNOUT", "ML-MY LIGHT", "IM-MY MEMORY"]
     else: return ["SOMETHING ELSE"]
 
@@ -149,7 +149,7 @@ def genActType_t(good=True):
     if good: return ["SOLENOID", "SERVO", "PWM", "ONOFF", "PULSE"]
     else: return ["NON VALID ACT TYPE"]
 
-def genJmriLgSystemName_t(good=True):
+def myRailIOLgSystemName_t(good=True):
     if good: return ["IF$vsm:MyMast($1)", "IF$vsm:MyMast($01)", "IF$vsm:MyMast($001)", "IF$vsm:MyMast($0001)"]
     else: return ["IF$vsm:MyBadMast($00001)", "IF$vsm:MyBadMast(1)", "IF$vsm:MyBadMast$1", "iF$vsm:MyBadMast($1)"]
 
@@ -173,25 +173,25 @@ def genSatLinkAddr_t(good=True):
     if good: return [0, MAX_SAT_ADRESSES-1]
     else: return ["0", -1, MAX_SAT_ADRESSES]
 #------------------------------------------------------------------------------------------------------------------------------------------------
-# END: Good/Bad genJMRI MO Value/Type generator functions
+# END: Good/Bad myRailIO MO Value/Type generator functions
 #------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
 #================================================================================================================================================
-# Type test vector mapping - genJMRI-type to type generator
+# Type test vector mapping - myRailIO-type to type generator
 #================================================================================================================================================
 typeTestMethods = {str(estr_t):genEstr_t, str(eint_t):genEint_t, str(efloat_t):genEfloat_t, str(edict_t):genEdict_t, str(elist_t):genElist_t,
                    str(etuple_t):genEtuple_t, str(date_t):genDate_t, str(time_t):genTime_t, str(tz_t):genTz_t, str(adminState_t):genAdminState_t,
                    str(mac_t):genMac_t, str(ipPort_t):genIpPort_t, str(ipProtocol_t):genIpProtocol_t, str(uri_t):genUri_t,
                    str(multiChoiceUri_t):genMultiChoiceUri_t, str(multiChoicePort_t):genMultiChoicePort_t, str(logVerbosity_t):genLogVerbosity_t,
                    str(decoderSystemName_t):genDecoderSystemName_t, str(lgLinkSystemName_t):genLgLinkSystemName_t,
-                   str(satLinkSystemName_t):genSatLinkSystemName_t, str(satSystemName_t):genSatSystemName_t, str(jmriSensSystemName_t):genJmriSensSystemName_t,
-                   str(sensPortNo_t):genSensPortNo_t, str(sensType_t):genSensType_t, str(jmriActSystemName_t):genJmriActSystemName_t,
-                   str(actPortNo_t):genActPortNo_t, str(actType_t):genActType_t, str(jmriLgSystemName_t):genJmriLgSystemName_t, str(lgLinkNo_t):genLgLinkNo_t,
+                   str(satLinkSystemName_t):genSatLinkSystemName_t, str(satSystemName_t):genSatSystemName_t, str(jmriSensSystemName_t):myRailIOSensSystemName_t,
+                   str(sensPortNo_t):genSensPortNo_t, str(sensType_t):genSensType_t, str(jmriActSystemName_t):myRailIOActSystemName_t,
+                   str(actPortNo_t):genActPortNo_t, str(actType_t):genActType_t, str(jmriLgSystemName_t):myRailIOLgSystemName_t, str(lgLinkNo_t):genLgLinkNo_t,
                    str(lgLinkAddr_t):genLgLinkAddr_t, str(satLinkNo_t):genSatLinkNo_t, str(satLinkAddr_t):genSatLinkAddr_t}
 #------------------------------------------------------------------------------------------------------------------------------------------------
-# END: Type test vector mapping - genJMRI-type to type generator
+# END: Type test vector mapping - myRailIO-type to type generator
 #------------------------------------------------------------------------------------------------------------------------------------------------
 
 

@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI topologymgr class providing tracking of address/port assets, in order to avoid objects with overlapping addresses/ports:
+# A myRailIO topologymgr class providing tracking of address/port assets, in order to avoid objects with overlapping addresses/ports:
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -21,7 +21,7 @@
 from dataclasses import dataclass
 from http.client import FOUND
 import imp
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 
 

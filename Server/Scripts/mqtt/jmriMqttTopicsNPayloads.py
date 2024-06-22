@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# Provides a set of commonly used and pre-defined genJMRI MQTT topics and payloads
+# Provides a set of commonly used and pre-defined myRailIO MQTT topics and payloads
 # A full description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
 ################################################################################################################################################## Southbound Decoder MQTT Topics
 # Decoder channel topics

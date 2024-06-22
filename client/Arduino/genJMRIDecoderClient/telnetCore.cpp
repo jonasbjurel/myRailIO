@@ -112,12 +112,6 @@ void telnetCore::onTelnetDisconnect(String p_ip) {
 		telnetConnectCb(p_ip.c_str(), false, telnetConnectCbMetaData);
 }
 
-void telnetCore::regTelnetDisConnectCb(telnetDisConnectCb_t p_telnetDisConnectCb,
-	void* p_telnetDisConnectCbMetaData) {
-	telnetDisConnectCb = p_telnetDisConnectCb;
-	telnetDisConnectCbMetaData = p_telnetDisConnectCbMetaData;
-}
-
 void telnetCore::onTelnetReconnect(String p_ip) {
 	LOG_INFO("dCLI reconnected from: %s" CR, p_ip);
 	strcpy(ip, p_ip.c_str());

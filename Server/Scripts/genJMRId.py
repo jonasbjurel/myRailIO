@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# This is the MAIN genJMRI deamon program
+# This is the MAIN myRailIO deamon program
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -19,7 +19,7 @@
 # Dependencies
 import os
 import sys
-from GenJMRI.topDecoderLogic import *
+from MyRailIO.topDecoderLogic import *
 
 
 

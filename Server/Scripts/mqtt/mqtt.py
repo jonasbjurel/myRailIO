@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# genJMRI MQTT client.
+# myRailIO MQTT client.
 # A full description of the project can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/README.md
 #################################################################################################################################################
 # Todo - see https://github.com/jonasbjurel/GenericJMRIdecoder/issues
@@ -21,7 +21,7 @@ from config import *
 import imp
 imp.load_source('myTrace', '..\\trace\\trace.py')
 from myTrace import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import *
 
 # ==============================================================================================================================================
@@ -31,7 +31,7 @@ from rc import *
 # Data structures: None
 # ==============================================================================================================================================
 class mqtt(pahomqtt.Client):
-    def __init__(self, URL, port=1883, keepalive=60, onConnectCb=None, onDisconnectCb=None, clientId="genJMRI"):
+    def __init__(self, URL, port=1883, keepalive=60, onConnectCb=None, onDisconnectCb=None, clientId="myRailIO"):
         trace.notify(DEBUG_INFO, "Starting and connecting MQTT client: " + clientId + " towards MQTT end-point " + URL + ":" + str(port))
         self.active = True
         self.retry = False

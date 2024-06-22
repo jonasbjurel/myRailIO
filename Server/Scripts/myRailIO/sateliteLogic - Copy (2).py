@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI satelite class providing the genJMRI satelite management- and supervision. genJMRI provides various sensor and actuators interworking
+# A myRailIO satelite class providing the myRailIO satelite management- and supervision. myRailIO provides various sensor and actuators interworking
 # with JMRI.
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
@@ -24,7 +24,6 @@ import sys
 import time
 import threading
 import traceback
-import weakref
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from momResources import *
@@ -38,7 +37,7 @@ imp.load_source('mqtt', '..\\mqtt\\mqtt.py')
 from mqtt import mqtt
 imp.load_source('mqttTopicsNPayloads', '..\\mqtt\\jmriMqttTopicsNPayloads.py')
 from mqttTopicsNPayloads import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
@@ -62,10 +61,10 @@ from config import *
 
 #################################################################################################################################################
 # Class: satelite
-# Purpose:      Provides management- and supervision capabilities of genJMRI satelites. Implements the management-, configuration-, supervision-,
-#               and control of genJMRI satelites.
+# Purpose:      Provides management- and supervision capabilities of myRailIO satelites. Implements the management-, configuration-, supervision-,
+#               and control of myRailIO satelites.
 #               See archictecture.md for more information
-# StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
+# StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
@@ -125,10 +124,6 @@ class satelite(systemState, schema):
             self.logStatsProducer.start()
         trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
-    @staticmethod
-    def aboutToDelete(ref):
-        ref.parent.satTopology.removeTopologyMember(ref.satSystemName.value)
-
     def onXmlConfig(self, xmlConfig):
         try:
             satXmlConfig = parse_xml(xmlConfig,
@@ -138,7 +133,7 @@ class satelite(systemState, schema):
                                          "Description": OPTSTR,
                                          "AdminState": OPTSTR
                                         }
-                                    )
+                                )
             self.satSystemName.value = satXmlConfig.get("SystemName")
             if satXmlConfig.get("UserName") != None:
                 self.userName.value = satXmlConfig.get("UserName")
@@ -434,9 +429,6 @@ class satelite(systemState, schema):
     def rejected(self):
         self.abort()
         return rc.OK
-    
-    def getTopology(self):
-        return self.parent.getTopology() + "/" + self.satSystemName.value
 
     def getDecoderUri(self):
         return self.parent.getDecoderUri()
@@ -453,12 +445,6 @@ class satelite(systemState, schema):
                 trace.notify(DEBUG_ERROR, "System name " + self.satSystemName.candidateValue + " already in use")
                 return res
         self.sysNameReged = True
-        weakSelf = weakref.ref(self, satelite.aboutToDelete)
-        res = self.parent.satTopology.addTopologyMember(self.satSystemName.candidateValue, self.satLinkAddr.candidateValue, weakSelf)
-        if res:
-            print (">>>>>>>>>>>>> Satelite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + "return code: " + rc.getErrStr(res))
-            trace.notify(DEBUG_ERROR, "Satelite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + rc.getErrStr(res))
-            return res
         return rc.OK # Place holder for object config validation
 
     def __setConfig(self):

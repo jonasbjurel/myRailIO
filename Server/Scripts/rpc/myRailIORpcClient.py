@@ -25,129 +25,129 @@
 #                        fun:errCb: Callback in case of RPC client errors
 #                        int:keepAlive: Keep-alive intervale RPC callback procedure
 #
-#       stop(): returns genJMRIDecoderRc.x
+#       stop(): returns myRailIODecoderRc.x
 #           Description: Stops the jmriRPC client, all registered callbacks and MQTT pub registrations are canceled/unregistered.
 #
-#       regEventCb(type, sysName, cb): returns genJMRIRc.rc
+#       regEventCb(type, sysName, cb): returns myRailIORc.rc
 #           Description: Registers a client call-back function for JMRI object state changes
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        fun:cb: Call-back function reference
 #
-#       reRegEventCbs(): returns genJMRIRc.rc
+#       reRegEventCbs(): returns myRailIORc.rc
 #           Description: Re-registers previously registered events
 #           Parameters: -
 #
-#       unRegEventCb(type, sysName, cb, allCb=False): returns genJMRIRc.rc
+#       unRegEventCb(type, sysName, cb, allCb=False): returns myRailIORc.rc
 #           Description: Un Registers a client call-back function for JMRI object state changes
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        fun:cb: Call-back function reference
 #                        allCb: if set to true - all duplicate callback references will be removed
 #
-#       regMqttStatusEventCb(cb): returns genJMRIRc.rc
+#       regMqttStatusEventCb(cb): returns myRailIORc.rc
 #           Description: Registers a callback for RPC server MQTT status
 #           Parameters:  callback
 #
-#       reRegMqttStatusEventCb(): returns genJMRIRc.rc
+#       reRegMqttStatusEventCb(): returns myRailIORc.rc
 #           Description: Re-registers previously registered MQTT status callbacks
 #           Parameters: -
 #
-#       unRegMqttStatusEventCb(cb, allCb=False): returns genJMRIRc.rc
+#       unRegMqttStatusEventCb(cb, allCb=False): returns myRailIORc.rc
 #           Description: Un Registers a client call-back function for MQTT status callbacks
 #           Parameters:  fun:cb: Call-back function reference
 #                        allCb: if set to true - all duplicate callback references will be removed
 #
-#       regMqttPub(type, sysName, topic, payloadMap): returns genJMRIRc.rc
+#       regMqttPub(type, sysName, topic, payloadMap): returns myRailIORc.rc
 #           Description: Registers an RPC server side MQTT publish emmit event at a JMRI object state change - this avoids any latenceies involved with RPC
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        str:topic: postpended topic to JMRI MQTT defined prepended topic Eg "track/light/")
 #                        dict:payloadMap: A dictionary mapping the event value to a published payload - e.g. {"ON":"<"+str(sysName)+">"+"TurnOnMyLight"+"</"+str(sysName)+">","OFF:....
 #                                         if any key matches "*", the event payload will transparently be copied from the event value. eg: {"*":"*"}.
 #
-#       unRegMqttPub(type, sysName): returns genJMRIRc.rc
+#       unRegMqttPub(type, sysName): returns myRailIORc.rc
 #           Description: Un-registers an RPC server side MQTT publish emmit event
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
-#       regMqttSub(type, sysName, topic, payloadMap): returns genJMRIRc.rc
+#       regMqttSub(type, sysName, topic, payloadMap): returns myRailIORc.rc
 #           Description: Registers an RPC server side MQTT subscription event, which when triggered will set the JMRI object state according to the given payload map -
 #           this avoids any latenceies involved with RPC
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        str:topic: postpended topic to JMRI MQTT defined prepended topic Eg "track/light/")
 #                        dict:payloadMap: A dictionary mapping the event value to a published payload - e.g. {"ON":"<"+str(sysName)+">"+"TurnOnMyLight"+"</"+str(sysName)+">","OFF:....
 #                                         if any key matches "*", the MQTT payload will transparently be copied to the JMRI object state. eg: {"*":"*"}.
 #
-#       unRegMqttSub(type, sysName): returns genJMRIRc.rc
+#       unRegMqttSub(type, sysName): returns myRailIORc.rc
 #           Description: Un-registers an RPC server side MQTT publish emmit event
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
-#       createObject(type, sysName): returns genJMRIRc.rc
+#       createObject(type, sysName): returns myRailIORc.rc
 #           Description: Creates a JMRI object of type "type"
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
 #       getObjectConfig(type, sysName): returns dict: {"type":type,"usrName":userName","comment":comment}
 #           Description: Retreives a JMRI object's configuration
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
-#       canDeleteObject(type, sysName): returns genJMRIRc.rc
+#       canDeleteObject(type, sysName): returns myRailIORc.rc
 #           Description: Checks if a JMRI object can be deleted
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
-#       deleteObject(type, sysName): returns genJMRIRc.rc
+#       deleteObject(type, sysName): returns myRailIORc.rc
 #           Description: Delete a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
 #       getConfigsByType(type):returns dict: {"sysName:{"type":type,"usrName":userName","comment":comment}, "sysName":....
 #           Description: Get the configuration for all JMRI objects of a certain type
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #
 #       getUserNameBySysName(type, sysName): returns str: userName
 #           Description: Gets the userName of a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
-#       setUserNameBySysName(type, sysName, usrName): returns genJMRIRc.rc
+#       setUserNameBySysName(type, sysName, usrName): returns myRailIORc.rc
 #           Description: Sets the userName of a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        str:usrName: JMRI object user name
 #
 #       getCommentBySysName(type, sysName):: returns str: comment
 #           Description: Gets the comment of a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
-#       setCommentBySysName(type, sysName, comment): returns genJMRIRc.rc
+#       setCommentBySysName(type, sysName, comment): returns myRailIORc.rc
 #           Description: Sets the comment of a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        str:comment: JMRI object user name
 #
-#       getStateBySysName(type, sysName): returns genJMRIObj.x
+#       getStateBySysName(type, sysName): returns myRailIOObj.x
 #           Description: Sets the current state of a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #
 #       getValidStatesBySysName(type, sysName): returns [str state, str:state,....]
 #           Description: Get all valid states for a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name#
 #
-#       setStateBySysName(type, sysName, state): returns genJMRIRc.rc
+#       setStateBySysName(type, sysName, state): returns myRailIORc.rc
 #           Description: Sets the state of a JMRI object
-#           Parameters:  type: JMRI object type: genJMRIObj.x
+#           Parameters:  type: JMRI object type: myRailIOObj.x
 #                        str:sysName: JMRI object system name
 #                        str:state: JMRI object state
 #
-#       setRpcServerDebugLevel(GlobalDebugLevelStr): returns genJMRIRc.rc
+#       setRpcServerDebugLevel(GlobalDebugLevelStr): returns myRailIORc.rc
 #           Description: Sets current global debug level
 #           Parameters: str:GlobalDebugLevelStr Global debug level string
 #
@@ -155,7 +155,7 @@
 #           Description: get current keep-alive interval (s)
 #           Parameters: -
 #
-#       setKeepaliveInterval(keepaliveInterval): returns genJMRIRc.rc
+#       setKeepaliveInterval(keepaliveInterval): returns myRailIORc.rc
 #           Description: set current keep-alive interval (s)
 #           Parameters: int: keepaliveInterval keep alive interval
 #
@@ -166,7 +166,7 @@
 # Callbacks:
 #       errcb(int:ErrNo): returns None
 #           Description: Called when a RPC client error has occured, callback is registered by jmriRpcClient.start
-#           Parameters:  int:errNo - genJMRIRc.rc
+#           Parameters:  int:errNo - myRailIORc.rc
 #
 #       eventCb(cbEvent): returns None
 #           Description: Called when a JMRI object state change has occurred, callback is registered by jmriRpcClient.regEventCb
@@ -175,17 +175,17 @@
 # Important data structures:
 #       cbEvent:
 #           cbEvent.obj: Source Cb JMRI object
-#           cbEvent.type: genJMRIObj.jmriObj.OBJ_STR: JMRI Object type
+#           cbEvent.type: myRailIOObj.jmriObj.OBJ_STR: JMRI Object type
 #           cbEvent.sysName: str: JMRI Object system name
 #           cbEvent.usrName: str: JMRI Object user name
 #           cbEvent.oldState: str: Old JMRI object state
 #           cbEvent.newState: str: New JMRI object state
 #
 #       Return codes:
-#           See genJMRIRc.rc
+#           See myRailIORc.rc
 #
 #       jmriObjects:
-#        - see genJMRIObj.jmriObj
+#        - see myRailIOObj.jmriObj
 
 
 
@@ -205,7 +205,7 @@ import threading
 #import time
 import xmltodict
 import imp
-imp.load_source('config', '..\\genJMRI\\config.py')
+imp.load_source('config', '..\\myRailIO\\config.py')
 from config import *
 imp.load_source('jmriObj', '..\\rpc\\JMRIObjects.py')
 from jmriObj import jmriObj
@@ -213,7 +213,7 @@ imp.load_source('myTrace', '..\\trace\\trace.py')
 from myTrace import *
 imp.load_source('dictEscapeing', '..\\rpc\\dictEscapeing.py')
 from dictEscapeing import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 # END <Module/Library dependance> ---------------------------------------------------------------------------------------------------------------
 
@@ -369,7 +369,7 @@ class jmriRpcClient():
         trace.notify(DEBUG_TERSE, "Stopping RPC client")
         for typeStr in self.regCbs.copy():
             for sysName in self.regCbs.get(typeStr).copy():
-                self.unRegEventCb(jmriObj.getGenJMRITypeFromJMRIType(typeStr), sysName, None, allCb=True)
+                self.unRegEventCb(jmriObj.getMyRailIOTypeFromJMRIType(typeStr), sysName, None, allCb=True)
         mqttPubRecordDictItter = dict(self.mqttPubRecordDict)
         for sysName in mqttPubRecordDictItter:
             if self.unRegMqttPub(self.mqttPubRecordDict[sysName], sysName) != rc.OK:
@@ -520,11 +520,11 @@ class jmriRpcClient():
                 continue
             for rpcCbSysNameItter in self.regCbs[rpcCbTypeItter]:
                 try:
-                    self.rpc.rpcUnListen(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
+                    self.rpc.rpcUnListen(jmriObj.getMyRailIOTypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
                 except:
                     pass
                 try:
-                    res = self.rpc.rpcListen(jmriObj.getGenJMRITypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
+                    res = self.rpc.rpcListen(jmriObj.getMyRailIOTypeFromJMRIType(rpcCbTypeItter), rpcCbSysNameItter)
                 except xmlrpc.client.ProtocolError as err:
                     trace.notify(DEBUG_ERROR, "Re-registering RPC client callback failed - rc: " + err.errmsg)
                     return rc.GEN_COM_ERR

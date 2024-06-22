@@ -7,8 +7,8 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI actuator class providing the JMRI-genJMRI interactions for various actuators providing the bridge between following JMRI objects:
-# TURNOUTS, LIGHTS and MEMORIES, and the genJMRI satelite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses.
+# A myRailIO actuator class providing the JMRI-myRailIO interactions for various actuators providing the bridge between following JMRI objects:
+# TURNOUTS, LIGHTS and MEMORIES, and the myRailIO satelite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses.
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -37,13 +37,13 @@ imp.load_source('mqtt', '..\\mqtt\\mqtt.py')
 from mqtt import mqtt
 imp.load_source('mqttTopicsNPayloads', '..\\mqtt\\jmriMqttTopicsNPayloads.py')
 from mqttTopicsNPayloads import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
 imp.load_source('jmriObj', '..\\rpc\\JMRIObjects.py')
 from jmriObj import *
-imp.load_source('jmriRpcClient', '..\\rpc\\genJMRIRpcClient.py')
+imp.load_source('jmriRpcClient', '..\\rpc\\myRailIORpcClient.py')
 from jmriRpcClient import *
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
@@ -63,11 +63,11 @@ from config import *
 
 #################################################################################################################################################
 # Class: actuator
-# Purpose:      Provides the JMRI-genJMRI interactions for various actuators providing the bridge between following JMRI objects:
-#               TURNOUTS, LIGHTS and MEMORIES, and the genJMRI satelite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses
-#               Implements the management-, configuration-, supervision-, and control of genJMRI actuators.
+# Purpose:      Provides the JMRI-myRailIO interactions for various actuators providing the bridge between following JMRI objects:
+#               TURNOUTS, LIGHTS and MEMORIES, and the myRailIO satelite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses
+#               Implements the management-, configuration-, supervision-, and control of myRailIO actuators.
 #               See archictecture.md for more information
-# StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
+# StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods

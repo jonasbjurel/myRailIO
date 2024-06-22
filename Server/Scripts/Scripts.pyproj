@@ -5,9 +5,9 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{dcd4e9af-0405-4d2e-b869-e99650f9fa08}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>GenJMRI\genJMRId.py</StartupFile>
+    <StartupFile>myRailIO\myRailIOd.py</StartupFile>
     <SearchPath />
-    <WorkingDirectory>.\genJMRI</WorkingDirectory>
+    <WorkingDirectory>.\myRailIO</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
@@ -22,19 +22,19 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="alarmHandler\alarmHandler.py" />
-    <Compile Include="GenJMRI\actuatorLogic.py" />
-    <Compile Include="GenJMRI\config.py" />
-    <Compile Include="GenJMRI\decoderLogic.py" />
-    <Compile Include="GenJMRI\genJMRId.py" />
-    <Compile Include="GenJMRI\lgLinkLogic.py" />
-    <Compile Include="GenJMRI\lightGroupLogic.py" />
-    <Compile Include="GenJMRI\momResources.py" />
-    <Compile Include="GenJMRI\sateliteLogic.py" />
-    <Compile Include="GenJMRI\satLinkLogic.py" />
-    <Compile Include="GenJMRI\sensorLogic.py" />
-    <Compile Include="GenJMRI\topDecoderLogic.py" />
-    <Compile Include="GenJMRI\ui.py" />
-    <Compile Include="GenJMRI\__init__.py" />
+    <Compile Include="myRailIO\actuatorLogic.py" />
+    <Compile Include="myRailIO\config.py" />
+    <Compile Include="myRailIO\decoderLogic.py" />
+    <Compile Include="myRailIO\myRailIOd.py" />
+    <Compile Include="myRailIO\lgLinkLogic.py" />
+    <Compile Include="myRailIO\lightGroupLogic.py" />
+    <Compile Include="myRailIO\momResources.py" />
+    <Compile Include="myRailIO\sateliteLogic.py" />
+    <Compile Include="myRailIO\satLinkLogic.py" />
+    <Compile Include="myRailIO\sensorLogic.py" />
+    <Compile Include="myRailIO\topDecoderLogic.py" />
+    <Compile Include="myRailIO\ui.py" />
+    <Compile Include="myRailIO\__init__.py" />
     <Compile Include="lib\dict2XML\dict2XML.py" />
     <Compile Include="lib\dict2XML\runtests.py" />
     <Compile Include="lib\dict2XML\setup.py" />
@@ -47,11 +47,11 @@
     <Compile Include="lib\xml2dict\xml2dict.py" />
     <Compile Include="mqtt\jmriMqttTopicsNPayloads.py" />
     <Compile Include="mqtt\mqtt.py" />
-    <Compile Include="rc\genJMRIRc.py" />
+    <Compile Include="rc\myRailIORc.py" />
     <Compile Include="rpc\dictEscapeing.py" />
-    <Compile Include="rpc\genJMRIRpcClient.py" />
-    <Compile Include="rpc\genJMRIRpcServer.py" />
-    <Compile Include="rpc\genJMRIRpcTestBench.py" />
+    <Compile Include="rpc\myRailIORpcClient.py" />
+    <Compile Include="rpc\myRailIORpcServer.py" />
+    <Compile Include="rpc\myRailIORpcTestBench.py" />
     <Compile Include="rpc\JMRIObjects.py" />
     <Compile Include="rpc\__init__.py" />
     <Compile Include="schema\moTypes.py" />
@@ -70,42 +70,42 @@
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="GenJMRI\icons\decoder.png" />
-    <Content Include="GenJMRI\icons\genJMRI.png" />
-    <Content Include="GenJMRI\icons\gui_save_icon_157040.png" />
-    <Content Include="GenJMRI\icons\link.png" />
-    <Content Include="GenJMRI\icons\satelite.png" />
-    <Content Include="GenJMRI\icons\sensor.png" />
-    <Content Include="GenJMRI\icons\server.png" />
-    <Content Include="GenJMRI\icons\servo.png" />
-    <Content Include="GenJMRI\icons\traffic-light.png" />
-    <Content Include="GenJMRI\ui\Actuators_Inventory_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Actuator_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Add_Dialog.ui" />
-    <Content Include="GenJMRI\ui\autoLoad_Pref_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Config_Output_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Crash_Dump_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Decoders_Inventory_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Decoder_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Decoder_Modify_Dialog.ui" />
-    <Content Include="GenJMRI\ui\LightGroupsLink_Dialog.ui" />
-    <Content Include="GenJMRI\ui\LightGroups_Inventory_Dialog.ui" />
-    <Content Include="GenJMRI\ui\LightGroup_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Log_Output_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Log_Setting_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Main_Frame.ui" />
-    <Content Include="GenJMRI\ui\SatLink_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Sat_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Sensor_Dialog.ui" />
-    <Content Include="GenJMRI\ui\Top_Dialog.ui" />
+    <Content Include="myRailIO\icons\decoder.png" />
+    <Content Include="myRailIO\icons\myRailIO.png" />
+    <Content Include="myRailIO\icons\gui_save_icon_157040.png" />
+    <Content Include="myRailIO\icons\link.png" />
+    <Content Include="myRailIO\icons\satelite.png" />
+    <Content Include="myRailIO\icons\sensor.png" />
+    <Content Include="myRailIO\icons\server.png" />
+    <Content Include="myRailIO\icons\servo.png" />
+    <Content Include="myRailIO\icons\traffic-light.png" />
+    <Content Include="myRailIO\ui\Actuators_Inventory_Dialog.ui" />
+    <Content Include="myRailIO\ui\Actuator_Dialog.ui" />
+    <Content Include="myRailIO\ui\Add_Dialog.ui" />
+    <Content Include="myRailIO\ui\autoLoad_Pref_Dialog.ui" />
+    <Content Include="myRailIO\ui\Config_Output_Dialog.ui" />
+    <Content Include="myRailIO\ui\Crash_Dump_Dialog.ui" />
+    <Content Include="myRailIO\ui\Decoders_Inventory_Dialog.ui" />
+    <Content Include="myRailIO\ui\Decoder_Dialog.ui" />
+    <Content Include="myRailIO\ui\Decoder_Modify_Dialog.ui" />
+    <Content Include="myRailIO\ui\LightGroupsLink_Dialog.ui" />
+    <Content Include="myRailIO\ui\LightGroups_Inventory_Dialog.ui" />
+    <Content Include="myRailIO\ui\LightGroup_Dialog.ui" />
+    <Content Include="myRailIO\ui\Log_Output_Dialog.ui" />
+    <Content Include="myRailIO\ui\Log_Setting_Dialog.ui" />
+    <Content Include="myRailIO\ui\Main_Frame.ui" />
+    <Content Include="myRailIO\ui\SatLink_Dialog.ui" />
+    <Content Include="myRailIO\ui\Sat_Dialog.ui" />
+    <Content Include="myRailIO\ui\Sensor_Dialog.ui" />
+    <Content Include="myRailIO\ui\Top_Dialog.ui" />
     <Content Include="requirements.txt" />
     <Content Include="todo.txt" />
     <Content Include="tz\zones.csv" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="GenJMRI" />
-    <Folder Include="GenJMRI\icons" />
-    <Folder Include="GenJMRI\ui" />
+    <Folder Include="myRailIO" />
+    <Folder Include="myRailIO\icons" />
+    <Folder Include="myRailIO\ui" />
     <Folder Include="lib" />
     <Folder Include="lib\dict2XML" />
     <Folder Include="lib\dict2XML\tests" />

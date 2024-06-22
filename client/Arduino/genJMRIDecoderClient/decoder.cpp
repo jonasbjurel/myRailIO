@@ -198,7 +198,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         panic("%s: Configuration parsing failed", logContextName);
         return;
     }
-    if (xmlConfigDoc->FirstChildElement("genJMRI") == NULL || xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder") == NULL || xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SystemName") == NULL) {
+    if (xmlConfigDoc->FirstChildElement("myRailIO") == NULL || xmlConfigDoc->FirstChildElement("myRailIO")->FirstChildElement("Decoder") == NULL || xmlConfigDoc->FirstChildElement("myRailIO")->FirstChildElement("Decoder")->FirstChildElement("SystemName") == NULL) {
         panic("%s: Failed to parse the configuration - xml is missformatted", logContextName);
         return;
     }
@@ -224,7 +224,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_URI] = NULL;
     decoderSearchTags[XML_DECODER_ADMSTATE] = NULL;
     LOG_INFO("Parsing decoder configuration:" CR);
-    getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability E.g. sizeof(decoderSearchTags)/sizeof(size_t)
+    getTagTxt(xmlConfigDoc->FirstChildElement("myRailIO")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability E.g. sizeof(decoderSearchTags)/sizeof(size_t)
     decoderSearchTags[XML_DECODER_MQTT_URI] = NULL;
     decoderSearchTags[XML_DECODER_MQTT_PORT] = NULL;
     decoderSearchTags[XML_DECODER_MQTT_PREFIX] = NULL;
@@ -244,7 +244,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     decoderSearchTags[XML_DECODER_MAC] = "MAC";
     decoderSearchTags[XML_DECODER_URI] = "URI";
     decoderSearchTags[XML_DECODER_ADMSTATE] = "AdminState";
-    getTagTxt(xmlConfigDoc->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
+    getTagTxt(xmlConfigDoc->FirstChildElement("myRailIO")->FirstChildElement("Decoder")->FirstChildElement(), decoderSearchTags, xmlconfig, sizeof(decoderSearchTags) / 4); // Need to fix the addressing for portability
 
     //VALIDATING AND SETTING OF CONFIGURATION
     LOG_INFO("%s: Validating and setting provided decoder configuration" CR, logContextName);
@@ -380,7 +380,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     //CONFIFIGURING LIGHTGROUP LINKS
     LOG_INFO("%s: Validating and configuring lightgroups links" CR, logContextName);
     tinyxml2::XMLElement* lgLinkXmlElement;
-    if (lgLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("LightgroupsLink")){
+    if (lgLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("myRailIO")->FirstChildElement("Decoder")->FirstChildElement("LightgroupsLink")){
         const char* lgLinkSearchTags[4];
         lgLinkSearchTags[XML_LGLINK_SYSNAME] = NULL;
         lgLinkSearchTags[XML_LGLINK_USRNAME] = NULL;
@@ -414,7 +414,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
     //CONFIFIGURING SATELITE LINKS
     LOG_INFO("%s: Validating and configuring satelite links" CR, logContextName);
     tinyxml2::XMLElement* satLinkXmlElement;
-    if (satLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("genJMRI")->FirstChildElement("Decoder")->FirstChildElement("SateliteLink")) {
+    if (satLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("myRailIO")->FirstChildElement("Decoder")->FirstChildElement("SateliteLink")) {
         const char* satLinkSearchTags[4];
         satLinkSearchTags[XML_SATLINK_SYSNAME] = NULL;
         satLinkSearchTags[XML_SATLINK_USRNAME] = NULL;

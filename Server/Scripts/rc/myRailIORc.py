@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# genJMRI common return and error codes.
+# myRailIO common return and error codes.
 # A full description of the project can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/README.md
 #################################################################################################################################################
 # Todo - see https://github.com/jonasbjurel/GenericJMRIdecoder/issues

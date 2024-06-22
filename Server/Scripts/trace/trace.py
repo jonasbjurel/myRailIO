@@ -314,8 +314,8 @@ class trace:
     @staticmethod
     def __deliverNotification(unifiedTime, callerFunFrame, severity, notification):
         with trace.lock:
-            defaultSysLogFormatNotification = "<" + str(trace.getSyslogPrio(severity)) + ">" + "TopDecoder genJMRIServer: " + str(unifiedTime) + ": " + str(trace.getSeverityStr(severity)).split("-")[1] + ": " + callerFunFrame.f_code.co_name + ": " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1] + "-" + str(callerFunFrame.f_lineno) + ": " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
-            defaultConsoleFormatNotification = str(unifiedTime) + ": TopDecoder:genJMRIServer " + str(trace.getSeverityStr(severity)).split("-")[1] + ": " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1] + "-" + str(callerFunFrame.f_lineno) + " in " + callerFunFrame.f_code.co_name + "(): " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
+            defaultSysLogFormatNotification = "<" + str(trace.getSyslogPrio(severity)) + ">" + "TopDecoder myRailIOServer: " + str(unifiedTime) + ": " + str(trace.getSeverityStr(severity)).split("-")[1] + ": " + callerFunFrame.f_code.co_name + ": " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1] + "-" + str(callerFunFrame.f_lineno) + ": " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
+            defaultConsoleFormatNotification = str(unifiedTime) + ": TopDecoder:myRailIOServer " + str(trace.getSeverityStr(severity)).split("-")[1] + ": " + callerFunFrame.f_code.co_filename.rpartition("\\")[-1] + "-" + str(callerFunFrame.f_lineno) + " in " + callerFunFrame.f_code.co_name + "(): " + notification + (" , TERMINATING ..." if severity >= trace.getTerminatingLevel() else "")
             for cb in trace.notifyCb:
                 cb(unifiedTime, callerFunFrame, severity, notification, defaultConsoleFormatNotification, (True if severity >= trace.getTerminatingLevel() else False))
             if trace.RSyslog and trace.localRSyslog:

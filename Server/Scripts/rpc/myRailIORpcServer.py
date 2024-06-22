@@ -32,8 +32,8 @@ import imp
 # Of course below absolute path definitions needs to be fixed to something portable ...
 imp.load_source('JMRIObjects', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rpc\\JMRIObjects.py')
 from JMRIObjects import jmriObj
-imp.load_source('genJMRIRc', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rc\\genJMRIRc.py')
-from genJMRIRc import rc
+imp.load_source('myRailIORc', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rc\\myRailIORc.py')
+from myRailIORc import rc
 imp.load_source('dictEscapeing', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rpc\\dictEscapeing.py')
 from dictEscapeing import *
 imp.load_source('myTrace', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\trace\\trace.py')
@@ -47,9 +47,9 @@ from mqttTopicsNPayloads import *
 #################################################################################################################################################
 JMRI_DEFAULT_RPC_MAX_MISSED_KEEPALIVE = 3
 JMRI_DEFAULT_RPC_KEEPALIVE_INTERVAL = 10
-JMRI_RPC_KEEPALIVE_INTERVAL_ADDR = "IM_GENJMRI_RPC_KEEPALIVE_INTERVAL"
+JMRI_RPC_KEEPALIVE_INTERVAL_ADDR = "IM_MYRAILIO_RPC_KEEPALIVE_INTERVAL"
 JMRI_DEFAULT_RPC_SERVER_GLOBAL_DEBUG_LEVEL = DEBUG_INFO
-JMRI_RPC_SERVER_GLOBAL_DEBUG_LEVEL_ADDR = "IM_GENJMRI_GLOBAL_DEBUG_LEVEL"
+JMRI_RPC_SERVER_GLOBAL_DEBUG_LEVEL_ADDR = "IM_MYRAILIO_GLOBAL_DEBUG_LEVEL"
 # END <Parameters> ------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -626,9 +626,9 @@ class jmriListener():
         usrName = event.source.userName
         newState = event.newValue
         oldState = event.oldValue
-        trace.notify(DEBUG_VERBOSE, "Got a JMRI object state listener state change from: " + type + ":" + sysName + "new state: " + state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.newValue) + ", old state: " + state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.oldValue))
-        response = {"stateChange" : {"objType" : type, "sysName" : sysName, "usrName" : usrName, "newState" : state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.newValue), 
-                                                                                                 "oldState" : state2stateStr(jmriObj.getGenJMRITypeFromJMRIType(type), sysName, event.oldValue)}}
+        trace.notify(DEBUG_VERBOSE, "Got a JMRI object state listener state change from: " + type + ":" + sysName + "new state: " + state2stateStr(jmriObj.getMyRailIOTypeFromJMRIType(type), sysName, event.newValue) + ", old state: " + state2stateStr(jmriObj.getMyRailIOTypeFromJMRIType(type), sysName, event.oldValue))
+        response = {"stateChange" : {"objType" : type, "sysName" : sysName, "usrName" : usrName, "newState" : state2stateStr(jmriObj.getMyRailIOTypeFromJMRIType(type), sysName, event.newValue), 
+                                                                                                 "oldState" : state2stateStr(jmriObj.getMyRailIOTypeFromJMRIType(type), sysName, event.oldValue)}}
         jmriListener.stateChangeList.append(dicttoxml(dictEscapeing.dictEscape(response)))
         jmriListener.stateChangeSem.release()
         

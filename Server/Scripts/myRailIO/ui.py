@@ -25,7 +25,7 @@ import trace
 import imp
 imp.load_source('sysState', '..\\sysState\\sysState.py')
 from sysState import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
@@ -131,7 +131,7 @@ class UI_mainWindow(QMainWindow):
         self.faultBlockMarkMoMObjSignal.connect(self.__faultBlockMarkMoMObj)
         self.inactivateMoMObjSignal.connect(self.__inactivateMoMObj)
         self.controlBlockMarkMoMObjSignal.connect(self.__controlBlockMarkMoMObj)
-        self.configFileDialog = UI_fileDialog("genJMRI main configuration", self)
+        self.configFileDialog = UI_fileDialog("myRailIO main configuration", self)
         loadUi(MAIN_FRAME_UI, self)
         self.actionOpenConfig.setEnabled(True)
         self.actionSaveConfig.setEnabled(True)
@@ -309,7 +309,7 @@ class UI_mainWindow(QMainWindow):
 
         # Edit actions
         # ------------
-        self.actiongenJMRI_preferences.triggered.connect(self.editGenJMRIPreferences)
+        self.actionmyRailIO_preferences.triggered.connect(self.editMyRailIOPreferences)
 
         # View actions
         # ------------
@@ -332,7 +332,7 @@ class UI_mainWindow(QMainWindow):
 
         # Help actions
         # ------------
-        self.actionAbout_genJMRI.triggered.connect(self.about)
+        self.actionAbout_myRailIO.triggered.connect(self.about)
 
         # Main window push button actions
         # ===============================
@@ -386,7 +386,7 @@ class UI_mainWindow(QMainWindow):
         self.logsetting = UI_logSettingDialog(self.parentObjHandle)
         self.logsetting.show()
 
-    def editGenJMRIPreferences(self):
+    def editMyRailIOPreferences(self):
         self.dialog = UI_topDialog(self.parentObjHandle, edit=True)
         self.dialog.show()
 
@@ -420,8 +420,8 @@ class UI_mainWindow(QMainWindow):
     def about(self):
         QMessageBox.about(
             self,
-            "About genJMRI",
-            "<p>genJMRI implements a generic signal masts-, actuators- and sensor decoder framework for JMRI, </p>"
+            "About myRailIO",
+            "<p>myRailIO implements a generic signal masts-, actuators- and sensor decoder framework for JMRI, </p>"
             "<p>For more information see:</p>"
             "<p>https://github.com/jonasbjurel/GenericJMRIdecoder</p>",
         )
@@ -484,7 +484,7 @@ class UI_fileDialog(QWidget):
 
     def saveFilePrefs(self):
         try:
-            filePrefsXml = ET.Element("genJMRIFilePreference")
+            filePrefsXml = ET.Element("myRailIOFilePreference")
             path = ET.SubElement(filePrefsXml, "Path")
             path.text = self.path
             file = ET.SubElement(filePrefsXml, "FileName")
@@ -1135,12 +1135,12 @@ class UI_topDialog(QDialog):
         self.gitTagComboBox.setEnabled(False) #Missing functionality
         self.gitCiPushButton.setEnabled(False) #Missing functionality
         self.gitCoPushButton.setEnabled(False) #Missing functionality
-        # General genJMRI Meta-data
+        # General myRailIO Meta-data
         self.authorLineEdit.setEnabled(True)
         self.descriptionLineEdit.setEnabled(True)
         self.versionLineEdit.setEnabled(True)
         self.dateLineEdit.setEnabled(True)
-        # General genJMRI services configuration
+        # General myRailIO services configuration
         self.ntpLineEdit.setEnabled(True)
         self.timeZoneComboBox.setEnabled(True)
         self.rsyslogUrlLineEdit.setEnabled(True)
@@ -1161,13 +1161,13 @@ class UI_topDialog(QDialog):
         self.MQTT_URI_LineEdit.setEnabled(True)
         self.MQTT_Port_LineEdit.setEnabled(True)
         self.MQTT_TOPIC_PREFIX_LineEdit.setEnabled(True)
-        # genJMRI states
+        # myRailIO states
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
-        # Top-decoder/genJMRI preference Confirm or cancel
+        # Top-decoder/myRailIO preference Confirm or cancel
         self.confirmButtonBox.setEnabled(True)
 
     def unSetEditable(self):
@@ -1177,11 +1177,11 @@ class UI_topDialog(QDialog):
         self.gitTagComboBox.setEnabled(False) #Missing functionality
         self.gitCiPushButton.setEnabled(False) #Missing functionality
         self.gitCoPushButton.setEnabled(False) #Missing functionality
-        # General genJMRI Meta-data
+        # General myRailIO Meta-data
         self.authorLineEdit.setEnabled(False)
         self.descriptionLineEdit.setEnabled(False) 
         self.dateLineEdit.setEnabled(False)
-        # General genJMRI services configuration
+        # General myRailIO services configuration
         self.ntpLineEdit.setEnabled(False)
         self.timeZoneComboBox.setEnabled(False)
         self.rsyslogUrlLineEdit.setEnabled(False)
@@ -1202,7 +1202,7 @@ class UI_topDialog(QDialog):
         self.RPC_URI_LineEdit.setEnabled(False)
         self.RPC_Port_LineEdit.setEnabled(False)
         self.JMRIRpcKeepalivePeriodDoubleSpinBox.setEnabled(False)
-        # General genJMRI states
+        # General myRailIO states
         self.opStateSummaryLineEdit.setEnabled(False)
         self.opStateDetailLineEdit.setEnabled(False)
         self.upTimeLineEdit.setEnabled(False)
@@ -1217,12 +1217,12 @@ class UI_topDialog(QDialog):
         self.gitUrlLineEdit.setText(str(self.parentObjHandle.gitUrl.value))
         self.gitBranchComboBox.setCurrentText(str(self.parentObjHandle.gitBranch.value))
         self.gitTagComboBox.setCurrentText(str(self.parentObjHandle.gitTag.value))
-        # General genJMRI Meta-data
+        # General myRailIO Meta-data
         self.authorLineEdit.setText(str(self.parentObjHandle.author.value))
         self.descriptionLineEdit.setText(str(self.parentObjHandle.description.value))
         self.versionLineEdit.setText(str(self.parentObjHandle.version.value))
         self.dateLineEdit.setText(str(self.parentObjHandle.date.value))
-        # General genJMRI services configuration
+        # General myRailIO services configuration
         self.ntpLineEdit.setText(str(self.parentObjHandle.ntpUri.value))
         self.timeZoneComboBox.setCurrentText(self.parentObjHandle.tzClearText.value)
         self.rsyslogUrlLineEdit.setText(self.parentObjHandle.rsyslogUrl.value)
@@ -1242,7 +1242,7 @@ class UI_topDialog(QDialog):
         self.RPC_URI_LineEdit.setText(self.parentObjHandle.jmriRpcURI.value)
         self.RPC_Port_LineEdit.setText(str(self.parentObjHandle.jmriRpcPortBase.value))
         self.JMRIRpcKeepalivePeriodDoubleSpinBox.setValue(self.parentObjHandle.JMRIRpcKeepAlivePeriod.value)
-        # General genJMRI states
+        # General myRailIO states
         self.opStateSummaryLineEdit.setText(str(self.parentObjHandle.getOpStateSummary()[STATE_STR]))
         self.opStateDetailLineEdit.setText(str(self.parentObjHandle.getOpStateDetailStr()))
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
@@ -1254,12 +1254,12 @@ class UI_topDialog(QDialog):
         self.parentObjHandle.gitUrl.value = self.gitUrlLineEdit.displayText()
         self.parentObjHandle.gitBranch.value = self.gitBranchComboBox.currentText()
         self.parentObjHandle.gitTag.value = self.gitTagComboBox.currentText()
-        # General genJMRI Meta-data
+        # General myRailIO Meta-data
         self.parentObjHandle.author.value = self.authorLineEdit.displayText()
         self.parentObjHandle.description.value = self.descriptionLineEdit.displayText()
         self.parentObjHandle.version.value = self.versionLineEdit.displayText()
         self.parentObjHandle.date.value = self.dateLineEdit.displayText()
-        # General genJMRI services configuration
+        # General myRailIO services configuration
         self.parentObjHandle.ntpUri.value = self.ntpLineEdit.displayText()
         self.parentObjHandle.tzClearText.value = self.timeZoneComboBox.currentText()
         self.parentObjHandle.tzEncodedText.value = tz.getEncodedTimeZones(self.parentObjHandle.tzClearText.candidateValue)
@@ -1280,7 +1280,7 @@ class UI_topDialog(QDialog):
         self.parentObjHandle.jmriRpcURI.value = self.RPC_URI_LineEdit.displayText()
         self.parentObjHandle.jmriRpcPortBase.value = int(self.RPC_Port_LineEdit.displayText())
         self.parentObjHandle.JMRIRpcKeepAlivePeriod.value = self.JMRIRpcKeepalivePeriodDoubleSpinBox.value()
-        # General genJMRI states
+        # General myRailIO states
         if self.adminStateForceCheckBox.isChecked():
             self.parentObjHandle.setAdmStateRecurse(self.adminStateComboBox.currentText())
         else:

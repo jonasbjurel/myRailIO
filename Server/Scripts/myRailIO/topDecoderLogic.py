@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI topDecoder class providing the genJMRI decoder management-, supervision and configuration. genJMRI provides the concept of decoders
+# A myRailIO topDecoder class providing the myRailIO decoder management-, supervision and configuration. myRailIO provides the concept of decoders
 # for controling various JMRI I/O resources such as lights-, light groups-, signal masts-, sensors and actuators throug various periperial
 # devices and interconnect links.
 #
@@ -48,8 +48,8 @@ from mqtt import mqtt
 imp.load_source('jmriMqttTopicsNPayloads', '..\\mqtt\\jmriMqttTopicsNPayloads.py')
 from jmriMqttTopicsNPayloads import *
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"\\..\\rpc\\")
-from genJMRIRpcClient import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+from myRailIORpcClient import *
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
@@ -84,10 +84,10 @@ from ui import UI_decoderDialog, UI_topDialog, UI_addDialog
 
 #################################################################################################################################################
 # Class: topDecoder
-# Purpose: The decoder class provides decoder management-, supervision and configuration. genJMRI provides the concept of decoders
+# Purpose: The decoder class provides decoder management-, supervision and configuration. myRailIO provides the concept of decoders
 # for controling various JMRI I/O resources such as lights-, light groups-, signal masts-, sensors and actuators throug various periperial
 # devices and interconnect links.
-# StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
+# StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
@@ -207,7 +207,7 @@ class topDecoder(systemState, schema):
         except:
             trace.notify(DEBUG_PANIC, "Error parsing XML configuration\n" + str(traceback.print_exc()))
             return rc.PARSE_ERR
-        if str(controllersXmlTree.getroot().tag) != "genJMRI":
+        if str(controllersXmlTree.getroot().tag) != "myRailIO":
             trace.notify(DEBUG_ERROR, "XML configuration missformated")
             return rc.PARSE_ERR
         for versionHistory in controllersXmlTree.getroot():
@@ -370,7 +370,7 @@ class topDecoder(systemState, schema):
         except:
             trace.notify(DEBUG_PANIC, "Error parsing XML configuration\n" + str(traceback.print_exc()))
             return rc.PARSE_ERR
-        if str(controllersXmlTree.getroot().tag) != "genJMRI":
+        if str(controllersXmlTree.getroot().tag) != "myRailIO":
             trace.notify(DEBUG_ERROR, "XML configuration missformated")
             return rc.PARSE_ERR
         discoveryConfig = ET.Element("DiscoveryResponse")
@@ -538,7 +538,7 @@ class topDecoder(systemState, schema):
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True, onlyIncludeThisChild=False):
             trace.notify(DEBUG_TERSE, "Providing top decoder over arching .xml configuration")
-            topXml = ET.Element("genJMRI")
+            topXml = ET.Element("myRailIO")
             if not decoder:
                 childXml = ET.SubElement(topXml, "Author")
                 if self.author.value: childXml.text = str(self.author.value)
@@ -659,7 +659,7 @@ class topDecoder(systemState, schema):
         if resourceType == DECODER:
             self.decoders.append(decoder(self.win, self.topItem, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.decoders.candidateValue
-            trace.notify(DEBUG_INFO, "Decoder: " + self.decoders.candidateValue[-1].nameKey.candidateValue + " has been added to genJMRI server (top decoder) - awaiting configuration")
+            trace.notify(DEBUG_INFO, "Decoder: " + self.decoders.candidateValue[-1].nameKey.candidateValue + " has been added to myRailIO server (top decoder) - awaiting configuration")
             if not config and configXml:
                 nameKey = self.decoders.candidateValue[-1].nameKey.candidateValue
                 res = self.decoders.candidateValue[-1].onXmlConfig(configXml)
@@ -700,7 +700,7 @@ class topDecoder(systemState, schema):
         pass
 
     def restart(self):
-        print("Restarting genJMRI server...")
+        print("Restarting myRailIO server...")
 
     def setLogVerbosity(self, logVerbosity):
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(logVerbosity))
@@ -763,7 +763,7 @@ class topDecoder(systemState, schema):
         trace.startSyslog(self.rsyslogUrl.value, self.rsyslogPort.value)
         # Set MQTT parameters
         if self.mqttConfigChanged:
-            trace.notify(DEBUG_INFO, "Connecting/re-connecting MQTT client genJMRIServer to MQTT brooker: " + self.decoderMqttURI.value + ":" + str(self.decoderMqttPort.value))
+            trace.notify(DEBUG_INFO, "Connecting/re-connecting MQTT client myRailIOServer to MQTT brooker: " + self.decoderMqttURI.value + ":" + str(self.decoderMqttPort.value))
             self.mqttClient.restart(self.decoderMqttURI.value, port=self.decoderMqttPort.value, onConnectCb=self.__onMQTTConnect, onDisconnectCb=self.__onMQTTDisconnect, clientId = MQTT_CLIENT_ID)
         self.mqttClient.setTopicPrefix(self.decoderMqttTopicPrefix.value)
         self.setLogVerbosity(self.logVerbosity.value)

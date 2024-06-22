@@ -7,9 +7,9 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# Managed object types for genJMRI, providing functions for transactional handling as well as object type- syntax and range validation.
+# Managed object types for myRailIO, providing functions for transactional handling as well as object type- syntax and range validation.
 # The base_t class provides the transactional handling of any arbitrary type (including transactional handling such as commit() and abort(),
-# while ther is a specific class for each genJMRI MO type, providing the specific MO's value type-, syntax-, and range checking. 
+# while ther is a specific class for each myRailIO MO type, providing the specific MO's value type-, syntax-, and range checking. 
 # A full description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
 #################################################################################################################################################
 
@@ -24,7 +24,7 @@ import re
 import inspect
 import imp
 # Internal project dependencies
-imp.load_source('jmriRpcClient', '..\\rpc\\genJMRIRpcClient.py')
+imp.load_source('jmriRpcClient', '..\\rpc\\myRailIORpcClient.py')
 from jmriRpcClient import *
 imp.load_source('jmriObjectTypes', '..\\rpc\\JMRIObjects.py')
 from jmriObjectTypes import *
@@ -112,12 +112,12 @@ class base_t():
 
 
 #################################################################################################################################################
-# genJMRI type specific validation classes
+# myRailIO type specific validation classes
 # Constants:
 #   -
 # Methods:
 #   validate(value):ret None - Validates the specific type value properties - type, syntax, range
-#   It can also add- or override methods for a genJMRI type class - like __add__, etc.
+#   It can also add- or override methods for a myRailIO type class - like __add__, etc.
 #################################################################################################################################################
 class estr_t(base_t):
     def validate(self, value):
@@ -336,5 +336,5 @@ class satLinkAddr_t(base_t):
         assert type(value) == int, "satLinkAddr_t didnt pass type check" 
         assert (value < MAX_SAT_ADRESSES and value >= 0), "satLinkAddr_t didnt pass range check" 
 #------------------------------------------------------------------------------------------------------------------------------------------------
-# END: genJMRI type specific validation classes
+# END: myRailIO type specific validation classes
 #------------------------------------------------------------------------------------------------------------------------------------------------

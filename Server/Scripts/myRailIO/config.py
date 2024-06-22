@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# This module provides the genJMRI non alterable configurations, such as default parameters, tunable default parameters, and System hardcoded 
+# This module provides the myRailIO non alterable configurations, such as default parameters, tunable default parameters, and System hardcoded 
 # parameters - not alterable without implementation design
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
@@ -32,7 +32,7 @@ DEFAULT_RSYSLOG_SERVER =                "my.RsysLogServer.org"
 DEFAULT_RSYSLOG_PORT =                  514
 DEFAULT_RSYSLOG_PROTOCOL =              "UDP"
 DEFAULT_LOG_VERBOSITY =                 "DEBUG-INFO"
-DEFAULT_LOG_FILE =                      "genJmri.log"
+DEFAULT_LOG_FILE =                      "myRailIO.log"
 DEFAULT_LOG_ROTATION_NO_FILES =         0
 DEFAULT_LOG_FILE_SIZE_KB =              500
 DEFAULT_TRACK_FAILSAFE =                True
@@ -41,7 +41,7 @@ DEFAULT_GIT_TAG =                       "-"
 
 # Tunable default parameters - can be changed - but not exposed as managed objects
 DECODER_MAX_MISSED_PINGS =              3
-MQTT_CLIENT_ID =                        "genJMRIServer"
+MQTT_CLIENT_ID =                        "myRailIOServer"
 MQTT_RETRY_PERIOD_S =                   1
 RPC_RETRY_PERIOD_S =                    1
 

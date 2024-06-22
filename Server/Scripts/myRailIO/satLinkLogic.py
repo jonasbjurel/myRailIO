@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI sateliteLink class providing the genJMRI satelite link management- and supervision. genJMRI provides the concept of satelite links
+# A myRailIO sateliteLink class providing the myRailIO satelite link management- and supervision. myRailIO provides the concept of satelite links
 # for daisy-chaining of satelites which provides sensor and actuator capabilities.
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
@@ -37,7 +37,7 @@ imp.load_source('mqtt', '..\\mqtt\\mqtt.py')
 from mqtt import mqtt
 imp.load_source('mqttTopicsNPayloads', '..\\mqtt\\jmriMqttTopicsNPayloads.py')
 from mqttTopicsNPayloads import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
@@ -61,10 +61,10 @@ from config import *
 
 #################################################################################################################################################
 # Class: satLink
-# Purpose:      Provides management- and supervision capabilities of genJMRI satelite links. Implements the management-, configuration-,
-#               supervision-, and control of genJMRI satelite links - interconnecting satelites in daisy-chains.
+# Purpose:      Provides management- and supervision capabilities of myRailIO satelite links. Implements the management-, configuration-,
+#               supervision-, and control of myRailIO satelite links - interconnecting satelites in daisy-chains.
 #               See archictecture.md for more information
-# StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
+# StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods

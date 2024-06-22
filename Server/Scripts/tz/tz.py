@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI time zone class that provide time zone related functionality.
+# A myRailIO time zone class that provide time zone related functionality.
 #
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
 #################################################################################################################################################

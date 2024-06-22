@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI server management object model (MOM) schema class providing various genJMRI schema fractions, and transactional handling of those.
+# A myRailIO server management object model (MOM) schema class providing various myRailIO schema fractions, and transactional handling of those.
 # The class holds one or several schema fractions with one or several managed objects (MOs) each.
 #
 # Setting a MO value is done by "mo.value = value" or "setattr(mo, "value", value")" which will validate the type-, syntax and range defined for the 
@@ -48,7 +48,7 @@ from moTypes import *
 # Class schema
 # Constants:
 #   BASE_SCHEMA, ADMIN_SCHEMA, GIT_SCHEMA etc all represents schema fragments that can be used for the schema composition for a particular 
-#   genJMRI functional class, E.g. Topdecoder, Decoder, LG-Link, etc...
+#   myRailIO functional class, E.g. Topdecoder, Decoder, LG-Link, etc...
 #
 # Methods:
 #   __init__():ret None - Object initialisation

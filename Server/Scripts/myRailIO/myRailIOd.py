@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# This is the MAIN genJMRI deamon program
+# This is the MAIN myRailIO deamon program
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -32,9 +32,9 @@ import ctypes
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     win = UI_mainWindow()
-    myappid = 'genJMRI.Server.GUI.version' 
+    myappid = 'myRailIO.Server.GUI.version' 
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-    win.setWindowIcon(QIcon('icons\\genJMRI.png'))
+    win.setWindowIcon(QIcon('icons\\myRailIO.png'))
     win.setParentObjHandle(topDecoder(win))
     win.show()
     app.exec()

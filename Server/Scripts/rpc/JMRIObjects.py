@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# genJMRI common obect types
+# myRailIO common obect types
 # A full description of the project can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/README.md
 #################################################################################################################################################
 # Todo - see https://github.com/jonasbjurel/GenericJMRIdecoder/issues
@@ -34,5 +34,5 @@ class jmriObj():
 
 
     @staticmethod
-    def getGenJMRITypeFromJMRIType(JMRIType):
+    def getMyRailIOTypeFromJMRIType(JMRIType):
         return jmriObj.OBJ_STR.index(JMRIType)

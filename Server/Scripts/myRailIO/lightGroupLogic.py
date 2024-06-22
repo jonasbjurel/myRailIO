@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A genJMRI lightgroup class providing the JMRI-genJMRI interactions for lights and light signals, currently only signal masts are supported.
+# A myRailIO lightgroup class providing the JMRI-myRailIO interactions for lights and light signals, currently only signal masts are supported.
 # But other lightgroups will be added such as sequential road block, lights, television flicker, fluorecent flicker, etc. 
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
@@ -37,13 +37,13 @@ imp.load_source('mqtt', '..\\mqtt\\mqtt.py')
 from mqtt import mqtt
 imp.load_source('mqttTopicsNPayloads', '..\\mqtt\\jmriMqttTopicsNPayloads.py')
 from mqttTopicsNPayloads import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 imp.load_source('schema', '..\\schema\\schema.py')
 from schema import *
 imp.load_source('jmriObj', '..\\rpc\\JMRIObjects.py')
 from jmriObj import *
-imp.load_source('jmriRpcClient', '..\\rpc\\genJMRIRpcClient.py')
+imp.load_source('jmriRpcClient', '..\\rpc\\myRailIORpcClient.py')
 from jmriRpcClient import *
 imp.load_source('parseXml', '..\\xml\\parseXml.py')
 from parseXml import *
@@ -63,11 +63,11 @@ from config import *
 
 #################################################################################################################################################
 # Class: lightGroup
-# Purpose:      Provides the JMRI-genJMRI interactions for various lightGroups providing the bridge between following JMRI objects:
-#               MASTS, and the genJMRI lightGroup concepts, additional mappings will be added
-#               Implements the management-, configuration-, supervision-, and control of genJMRI lightgroups.
+# Purpose:      Provides the JMRI-myRailIO interactions for various lightGroups providing the bridge between following JMRI objects:
+#               MASTS, and the myRailIO lightGroup concepts, additional mappings will be added
+#               Implements the management-, configuration-, supervision-, and control of myRailIO lightgroups.
 #               See archictecture.md for more information
-# StdMethods:   The standard genJMRI Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
+# StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods

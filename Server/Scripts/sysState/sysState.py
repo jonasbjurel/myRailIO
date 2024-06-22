@@ -5,10 +5,10 @@ import threading
 import traceback
 import imp
 #from trace import *
-#from genJMRIRc import rc
+#from myRailIORc import rc
 imp.load_source('myTrace', '..\\trace\\trace.py')
 from myTrace import *
-imp.load_source('rc', '..\\rc\\genJMRIRc.py')
+imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
 
 

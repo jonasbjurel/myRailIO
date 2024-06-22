@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# TestBench for the genJMRIRpc framework.
+# TestBench for the myRailIORpc framework.
 # A full description of the project can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/README.md
 #################################################################################################################################################
 # Todo - see https://github.com/jonasbjurel/GenericJMRIdecoder/issues
@@ -20,7 +20,7 @@ import os
 import sys
 sys.path.append(os.path.realpath('..'))
 from JMRIObjects import jmriObj
-from genJMRIRpcClient import *
+from myRailIORpcClient import *
 import imp
 imp.load_source('myTrace', '..\\trace\\trace.py')
 from myTrace import *
@@ -85,7 +85,7 @@ def sensorListener(event):
 #################################################################################################################################################
 ## Creating RPC backend
 trace.start()
-print("Starting genJMRI RPC Client")
+print("Starting myRailIO RPC Client")
 RPC_CLIENT = jmriRpcClient()
 RPC_CLIENT.start(uri = "127.0.0.2", errCb=errHandler)
 
@@ -120,7 +120,7 @@ print("\n\nRetreiving and setting keep-alive interval")
 print("Current keep-alive interval is " + str(RPC_CLIENT.getKeepaliveInterval()))
 print("Setting keep-alive interval to 1 second and waiting 30 seconds")
 RPC_CLIENT.setKeepaliveInterval(1)
-if RPC_CLIENT.getKeepaliveInterval() != 1 or int(RPC_CLIENT.getStateBySysName(jmriObj.MEMORIES, "IM_GENJMRI_RPC_KEEPALIVE_INTERVAL")) != 1:
+if RPC_CLIENT.getKeepaliveInterval() != 1 or int(RPC_CLIENT.getStateBySysName(jmriObj.MEMORIES, "IM_MYRAILIO_RPC_KEEPALIVE_INTERVAL")) != 1:
     print("ERROR - Could not set keep-alive interval")
     result = result | OTHER_FAIL
 else:
