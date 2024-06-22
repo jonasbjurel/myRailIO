@@ -30,15 +30,15 @@ import threading
 import time
 import imp
 # Of course below absolute path definitions needs to be fixed to something portable ...
-imp.load_source('JMRIObjects', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rpc\\JMRIObjects.py')
+imp.load_source('JMRIObjects', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\myRailIO\\Server\\Scripts\\rpc\\JMRIObjects.py')
 from JMRIObjects import jmriObj
-imp.load_source('myRailIORc', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rc\\myRailIORc.py')
+imp.load_source('myRailIORc', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\myRailIO\\Server\\Scripts\\rc\\myRailIORc.py')
 from myRailIORc import rc
-imp.load_source('dictEscapeing', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\rpc\\dictEscapeing.py')
+imp.load_source('dictEscapeing', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\myRailIO\\Server\\Scripts\\rpc\\dictEscapeing.py')
 from dictEscapeing import *
-imp.load_source('myTrace', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\trace\\trace.py')
+imp.load_source('myTrace', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\myRailIO\\Server\\Scripts\\trace\\trace.py')
 from myTrace import *
-imp.load_source('mqttTopicsNPayloads', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\GenericJMRIdecoder\\Server\\Scripts\\mqtt\\jmriMqttTopicsNPayloads.py')
+imp.load_source('mqttTopicsNPayloads', 'C:\\Users\\jonas\\OneDrive\\Projects\\ModelRailway\\myRailIO\\Server\\Scripts\\mqtt\\jmriMqttTopicsNPayloads.py')
 from mqttTopicsNPayloads import *
 # END <Module/Library dependance> ---------------------------------------------------------------------------------------------------------------
 

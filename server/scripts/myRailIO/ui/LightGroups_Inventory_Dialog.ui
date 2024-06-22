@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../../../../../../../../.designer/icons/myRailIO.png</normaloff>../../../../../../../../.designer/icons/myRailIO.png</iconset>
+    <normaloff>../icons/traffic-light.png</normaloff>../icons/traffic-light.png</iconset>
   </property>
   <property name="toolTip">
    <string/>

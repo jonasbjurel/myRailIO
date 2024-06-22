@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Alarm dialog</string>
+   <string>Alarm inventory</string>
   </property>
   <property name="windowIcon">
    <iconset>
