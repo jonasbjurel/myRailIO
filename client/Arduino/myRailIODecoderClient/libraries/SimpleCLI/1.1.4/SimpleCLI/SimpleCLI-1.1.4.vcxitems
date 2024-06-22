@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding ="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+  <PropertyGroup Label="Globals" >
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{dae021ae-46e5-432c-a995-b72ca08f55b2}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\Argument.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\Command.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\CommandError.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\SimpleCLI.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\c\arg.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\c\cmd.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\c\cmd_error.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\c\comparator.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)src\c\parser.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\Argument.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\Command.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\CommandError.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\SimpleCLI.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\StringCLI.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\arg.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\arg_types.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\cmd.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\cmd_error.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\cmd_error_types.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\cmd_types.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\comparator.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\parser.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)src\c\parser_types.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="$(MSBuildThisFileDirectory)keywords.txt" />
+<Text Include="$(MSBuildThisFileDirectory)library.properties" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)library.json" />
+<None Include="$(MSBuildThisFileDirectory)LICENSE" />
+<None Include="$(MSBuildThisFileDirectory)README.md" />
+  </ItemGroup>
+</Project>
