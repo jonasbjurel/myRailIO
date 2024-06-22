@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{dcd4e9af-0405-4d2e-b869-e99650f9fa08}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>myRailIO\myRailIOd.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.\myRailIO</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.10</InterpreterId>
+    <TestFramework>Pytest</TestFramework>
+    <IsWindowsApplication>False</IsWindowsApplication>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="alarmHandler\alarmHandler.py" />
+    <Compile Include="myRailIO\actuatorLogic.py" />
+    <Compile Include="myRailIO\config.py" />
+    <Compile Include="myRailIO\decoderLogic.py" />
+    <Compile Include="myRailIO\myRailIOd.py" />
+    <Compile Include="myRailIO\lgLinkLogic.py" />
+    <Compile Include="myRailIO\lightGroupLogic.py" />
+    <Compile Include="myRailIO\momResources.py" />
+    <Compile Include="myRailIO\sateliteLogic.py" />
+    <Compile Include="myRailIO\satLinkLogic.py" />
+    <Compile Include="myRailIO\sensorLogic.py" />
+    <Compile Include="myRailIO\topDecoderLogic.py" />
+    <Compile Include="myRailIO\ui.py" />
+    <Compile Include="myRailIO\__init__.py" />
+    <Compile Include="lib\dict2XML\dict2XML.py" />
+    <Compile Include="lib\dict2XML\runtests.py" />
+    <Compile Include="lib\dict2XML\setup.py" />
+    <Compile Include="lib\dict2XML\tests\tests.py" />
+    <Compile Include="lib\dict2XML\tests\__init__.py" />
+    <Compile Include="lib\dict2XML\__init__.py" />
+    <Compile Include="lib\xml2dict.py" />
+    <Compile Include="lib\xml2dict\examples.py" />
+    <Compile Include="lib\xml2dict\setup.py" />
+    <Compile Include="lib\xml2dict\xml2dict.py" />
+    <Compile Include="mqtt\jmriMqttTopicsNPayloads.py" />
+    <Compile Include="mqtt\mqtt.py" />
+    <Compile Include="rc\myRailIORc.py" />
+    <Compile Include="rpc\dictEscapeing.py" />
+    <Compile Include="rpc\myRailIORpcClient.py" />
+    <Compile Include="rpc\myRailIORpcServer.py" />
+    <Compile Include="rpc\myRailIORpcTestBench.py" />
+    <Compile Include="rpc\JMRIObjects.py" />
+    <Compile Include="rpc\__init__.py" />
+    <Compile Include="schema\moTypes.py" />
+    <Compile Include="schema\schema.py" />
+    <Compile Include="schema\schemaTestBench.py" />
+    <Compile Include="topologyMgr\topologyMgr.py" />
+    <Compile Include="trace\syslog.py" />
+    <Compile Include="sysState\sysState.py" />
+    <Compile Include="test\decoderSim.py" />
+    <Compile Include="trace\trace.py" />
+    <Compile Include="trace\traceTestBench.py" />
+    <Compile Include="tz\tz.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="xml\parseXml.py" />
+    <Compile Include="__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="myRailIO\icons\decoder.png" />
+    <Content Include="myRailIO\icons\myRailIO.png" />
+    <Content Include="myRailIO\icons\gui_save_icon_157040.png" />
+    <Content Include="myRailIO\icons\link.png" />
+    <Content Include="myRailIO\icons\satelite.png" />
+    <Content Include="myRailIO\icons\sensor.png" />
+    <Content Include="myRailIO\icons\server.png" />
+    <Content Include="myRailIO\icons\servo.png" />
+    <Content Include="myRailIO\icons\traffic-light.png" />
+    <Content Include="myRailIO\ui\Actuators_Inventory_Dialog.ui" />
+    <Content Include="myRailIO\ui\Actuator_Dialog.ui" />
+    <Content Include="myRailIO\ui\Add_Dialog.ui" />
+    <Content Include="myRailIO\ui\autoLoad_Pref_Dialog.ui" />
+    <Content Include="myRailIO\ui\Config_Output_Dialog.ui" />
+    <Content Include="myRailIO\ui\Crash_Dump_Dialog.ui" />
+    <Content Include="myRailIO\ui\Decoders_Inventory_Dialog.ui" />
+    <Content Include="myRailIO\ui\Decoder_Dialog.ui" />
+    <Content Include="myRailIO\ui\Decoder_Modify_Dialog.ui" />
+    <Content Include="myRailIO\ui\LightGroupsLink_Dialog.ui" />
+    <Content Include="myRailIO\ui\LightGroups_Inventory_Dialog.ui" />
+    <Content Include="myRailIO\ui\LightGroup_Dialog.ui" />
+    <Content Include="myRailIO\ui\Log_Output_Dialog.ui" />
+    <Content Include="myRailIO\ui\Log_Setting_Dialog.ui" />
+    <Content Include="myRailIO\ui\Main_Frame.ui" />
+    <Content Include="myRailIO\ui\SatLink_Dialog.ui" />
+    <Content Include="myRailIO\ui\Sat_Dialog.ui" />
+    <Content Include="myRailIO\ui\Sensor_Dialog.ui" />
+    <Content Include="myRailIO\ui\Top_Dialog.ui" />
+    <Content Include="requirements.txt" />
+    <Content Include="todo.txt" />
+    <Content Include="tz\zones.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="myRailIO" />
+    <Folder Include="myRailIO\icons" />
+    <Folder Include="myRailIO\ui" />
+    <Folder Include="lib" />
+    <Folder Include="lib\dict2XML" />
+    <Folder Include="lib\dict2XML\tests" />
+    <Folder Include="lib\xml2dict" />
+    <Folder Include="mqtt" />
+    <Folder Include="alarmHandler\" />
+    <Folder Include="topologyMgr\" />
+    <Folder Include="rc" />
+    <Folder Include="rpc" />
+    <Folder Include="schema" />
+    <Folder Include="sysState" />
+    <Folder Include="test" />
+    <Folder Include="trace" />
+    <Folder Include="tz\" />
+    <Folder Include="xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.10" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
