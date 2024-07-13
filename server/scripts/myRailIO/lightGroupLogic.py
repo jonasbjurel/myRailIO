@@ -78,7 +78,7 @@ class lightGroup(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
-        self.provioned = False
+        self.provisioned = False
         self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
@@ -233,13 +233,13 @@ class lightGroup(systemState, schema):
                 return res
         else:
             trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.provioned = True
+        self.provisioned = True
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Light group " + self.jmriLgSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        if not self.provioned:
+        if not self.provisioned:
             self.delete(top = True)
         return rc.OK
 

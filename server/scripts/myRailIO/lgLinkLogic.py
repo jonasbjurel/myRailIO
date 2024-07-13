@@ -55,8 +55,8 @@ from config import *
 
 #################################################################################################################################################
 # Class: satLink
-# Purpose:      Provides management- and supervision capabilities of myRailIO satelite links. Implements the management-, configuration-,
-#               supervision-, and control of myRailIO satelite links - interconnecting satelites in daisy-chains.
+# Purpose:      Provides management- and supervision capabilities of myRailIO satellite links. Implements the management-, configuration-,
+#               supervision-, and control of myRailIO satellite links - interconnecting satellites in daisy-chains.
 #               See archictecture.md for more information
 # StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), regSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
@@ -69,7 +69,7 @@ class lgLink(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
-        self.provioned = False
+        self.provisioned = False
         self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
@@ -250,7 +250,7 @@ class lgLink(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
-        self.provioned = True
+        self.provisioned = True
         return rc.OK
 
     def abort(self):
@@ -264,7 +264,7 @@ class lgLink(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        if not self.provioned:
+        if not self.provisioned:
             self.delete(top = True)
         return rc.OK
 

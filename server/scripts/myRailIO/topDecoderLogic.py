@@ -681,8 +681,11 @@ class topDecoder(systemState, schema):
             return rc.GEN_ERR
 
     def delChild(self, child):
-        self.decoders.value.remove(child)
-        self.childs.value = self.decoders.candidateValue
+        try:
+            self.decoders.value.remove(child)
+            self.childs.value = self.decoders.candidateValue
+        except:
+            pass
 
     def view(self):
         self.dialog = UI_topDialog(self, edit=False)

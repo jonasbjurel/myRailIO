@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>883</width>
-    <height>1310</height>
+    <height>1318</height>
    </rect>
   </property>
   <property name="focusPolicy">
@@ -23,7 +23,7 @@
    <iconset>
     <normaloff>../icons/server.png</normaloff>../icons/server.png</iconset>
   </property>
-  <widget class="QLabel" name="label_2">
+  <widget class="QLabel" name="authorLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -46,7 +46,7 @@
     <string>Author:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_3">
+  <widget class="QLabel" name="descriptionLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -69,7 +69,7 @@
     <string>Config description:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4">
+  <widget class="QLabel" name="versionLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -86,13 +86,13 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO configuration version&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration version - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Config version:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_5">
+  <widget class="QLabel" name="ntpUrlLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -109,13 +109,13 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO NTP server URL&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>NTP server:</string>
+    <string>NTP URL:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_6">
+  <widget class="QLabel" name="timeZoneLabel">
    <property name="geometry">
     <rect>
      <x>490</x>
@@ -141,7 +141,7 @@
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_7">
+  <widget class="QLabel" name="rsyslogUrlLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -158,18 +158,18 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO RSyslog server URL&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>RSyslog URL:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_10">
+  <widget class="QLabel" name="mqttPinPeriodLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>659</y>
-     <width>211</width>
+     <width>231</width>
      <height>41</height>
     </rect>
    </property>
@@ -181,13 +181,13 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO Supervision period (supervision of decoders and satelites)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT end to end Ping supervision period (supervision of decoders and satellites)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Pingperiod (s):</string>
+    <string>MQTT Ping-period (s):</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_13">
+  <widget class="QLabel" name="dateLabel">
    <property name="geometry">
     <rect>
      <x>370</x>
@@ -204,7 +204,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO configuration version date&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration date - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Version date:</string>
@@ -228,7 +228,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration author - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -255,7 +255,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration description - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -309,7 +309,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Configuration date - also used as part of a git commit message&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -342,7 +342,7 @@
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>NTP server URL</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO NTP server URL&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>pool.ntp.org</string>
@@ -363,13 +363,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>RSyslog setting (default is to the local Rsyslog collector - this host)</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>RSyslog setting (default is to the local Rsyslog collector - this host)</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO RSyslog server URL&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>myRsyslogServerUrl.org</string>
@@ -392,13 +392,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Set all decoders- and decoder's objects in in fail-safe if an error exist - no matter where in the object hierarchy the error resides</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Set all decoders- and decoder's objects in in fail-safe if an error exist - no matter where in the object hierarchy the error resides</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set all decoders- and decoder's objects in fail-safe if an error exists - no matter where in the object hierarchy the error resides&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Decoder failsafe</string>
@@ -421,13 +421,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Turnoff track power if an error exist - no matter where in the object hierarchy the error resides</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Turnoff track power if an error exist - no matter where in the object hierarchy the error resides</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Turnoff track power if an error exist - no matter where in the object hierarchy the error resides&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Tracks failsafe</string>
@@ -448,13 +448,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Log-level/-verbosity of the log producers</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Log-level/-verbosity of the log producers</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO Log verbosity&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <item>
     <property name="text">
@@ -482,7 +482,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QLabel" name="label">
+  <widget class="QLabel" name="logVerbosityLabel">
    <property name="geometry">
     <rect>
      <x>550</x>
@@ -525,13 +525,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Commit the configuration changes to git</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Commit the configuration changes to git</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git commit changes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>git Commit</string>
@@ -554,7 +554,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Accept and deploy configuration changes / or reject them</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -563,13 +563,13 @@
     <string/>
    </property>
    <property name="whatsThis">
-    <string>Accept and deploy configuration changes / or reject them</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Accept and deploy configuration changes / or reject them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_9">
+  <widget class="QLabel" name="adminStateLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -613,13 +613,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>System administrative state</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>System administrative state</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO server administrative state [ENABLE | DISABLE]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <item>
     <property name="text">
@@ -637,7 +637,7 @@
     <rect>
      <x>398</x>
      <y>1050</y>
-     <width>91</width>
+     <width>181</width>
      <height>41</height>
     </rect>
    </property>
@@ -649,19 +649,19 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Force subsequent needed changes of child administrative state when changing this level's adninistrative state</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Force subsequent needed changes of child administrative state when changing this level's adninistrative state</string>
+    <string>If you want to avoid manually “ENABLE” all parents, or “DISABLE” all children you may use the “recursive” version of “ENABLE”/”DISABLE” in which case the server does it for you.</string>
    </property>
    <property name="text">
-    <string>Force</string>
+    <string>Recursive</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_11">
+  <widget class="QLabel" name="operationalStateDetailLabel">
    <property name="geometry">
     <rect>
      <x>350</x>
@@ -687,7 +687,7 @@
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_12">
+  <widget class="QLabel" name="operationalStateLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -704,7 +704,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO server operational state [AVAIL | UNAVAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO server operational state sumary [AVAIL | UNAVAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Operational state:</string>
@@ -734,7 +734,7 @@
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Summary of the top-level operational state</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO server operational state sumary [AVAIL | UNAVAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -758,13 +758,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Top level operational state details</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Top level operational state details</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO server detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -790,13 +790,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Check-out a configuration from git</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>-10</number>
    </property>
    <property name="whatsThis">
-    <string>Check-out a configuration from git</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check-out a configuration from git&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>git Check-out</string>
@@ -843,13 +843,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>System uptime</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>System uptime</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO server uptime - time sinse topDecoder became available&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -858,7 +858,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_15">
+  <widget class="QLabel" name="upTimeLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -875,13 +875,13 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO server uptime - time sinse previous server start&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO server uptime - time sinse topDecoder became available&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Up-time (min):</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_14">
+  <widget class="QLabel" name="rpcKeepAliveLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -898,10 +898,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO Supervision period (supervision of decoders and satelites)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO RPC Supervision period (supervision of RPC between Tran controller and MyRailIO server)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>JMRI RPC keep-alive (s):</string>
+    <string>RPC keep-alive (s):</string>
    </property>
   </widget>
   <widget class="QPushButton" name="genConfigPushButton">
@@ -924,13 +924,13 @@
     <enum>Qt::StrongFocus</enum>
    </property>
    <property name="toolTip">
-    <string>Re generate the current configuration to XML for viewing c</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Re generate the current configuration to XML for viewing c</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Re generate the current configuration to XML for viewing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="styleSheet">
     <string notr="true"/>
@@ -954,13 +954,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>MQTT application supervision ping period.</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>MQTT application supervision ping period.</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT end to end Ping supervision period (supervision of decoders and satellites)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="decimals">
     <number>1</number>
@@ -987,13 +987,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Keep alive period for the JMRI RPC supervision</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Keep alive period for the JMRI RPC supervision</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO RPC Supervision period (supervision of RPC between Tran controller and MyRailIO server)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="decimals">
     <number>1</number>
@@ -1020,7 +1020,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>MQTT topic prefix</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -1029,7 +1029,7 @@
     <string/>
    </property>
    <property name="whatsThis">
-    <string>MQTT topic prefix</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT Topic pre-fix&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>/trains/</string>
@@ -1062,13 +1062,13 @@
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>JMRI RPC URI</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;JMRI RPC URI&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>127.0.0.1</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_18">
+  <widget class="QLabel" name="mqttPortLabel">
    <property name="geometry">
     <rect>
      <x>490</x>
@@ -1085,7 +1085,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT broker port&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>MQTT Port:</string>
@@ -1109,13 +1109,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>JMRI RPC port base - several ports will be used following this one</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>JMRI RPC port base - several ports will be used following this one</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;JMRI RPC port base - several ports will be used following this one&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>8000</string>
@@ -1142,13 +1142,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>MQTT broker port</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>MQTT broker port</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT broker port&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>1883</string>
@@ -1160,7 +1160,7 @@
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_17">
+  <widget class="QLabel" name="mqttUrlLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -1177,7 +1177,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT broker URL&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>MQTT URL:</string>
@@ -1196,7 +1196,7 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="QLabel" name="label_20">
+  <widget class="QLabel" name="rpcUrlLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -1213,10 +1213,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;JMRI RPC URI&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>JMRI RPC URL:</string>
+    <string>RPC URL:</string>
    </property>
   </widget>
   <widget class="Line" name="line_5">
@@ -1247,19 +1247,19 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>MQTT Broker URI</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>MQTT Broker URI</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT broker URL&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>test.mosquitto.org</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_19">
+  <widget class="QLabel" name="mqttTopicLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -1276,13 +1276,13 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO NTP server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT Topic pre-fix&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Topic pre-fix:</string>
+    <string>MQTT Topic pre-fix:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_21">
+  <widget class="QLabel" name="rpcPortLabel">
    <property name="geometry">
     <rect>
      <x>470</x>
@@ -1299,10 +1299,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string/>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;JMRI RPC port base - several ports will be used following this one&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>JMRI RPC port base:</string>
+    <string>RPC port base:</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1323,13 +1323,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>MQTT supervision keep-alive period</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>MQTT supervision keep-alive period</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT keep-alive supervision period (supervision of MQTT broker)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="decimals">
     <number>0</number>
@@ -1341,7 +1341,7 @@
     <double>60.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_23">
+  <widget class="QLabel" name="mqttKeppAliveLabel">
    <property name="geometry">
     <rect>
      <x>540</x>
@@ -1358,10 +1358,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string/>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO MQTT keep-alive supervision period (supervision of MQTT broker)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Keep-alive (s):</string>
+    <string>MQTT Keep-alive (s):</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1395,19 +1395,19 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>RSyslog file path/name</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>RSyslog file path/name</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO RSyslog file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>/var/log/jmri/myRailIO.log</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_8">
+  <widget class="QLabel" name="rsyslogFileLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -1424,13 +1424,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>RSyslog file used by the collector of this host</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO RSyslog file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>RSyslog File:</string>
@@ -1500,7 +1500,7 @@
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Number of RSyslog files used for log-rotation) </string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Number of RSyslog files used for log-rotation &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="minimum">
     <number>1</number>
@@ -1509,7 +1509,7 @@
     <number>20</number>
    </property>
   </widget>
-  <widget class="QLabel" name="label_25">
+  <widget class="QLabel" name="logRotateFilesLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -1526,7 +1526,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Number of RSyslog files used for log-rotation &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Logrotate # files:</string>
@@ -1547,19 +1547,19 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>Maximum RSyslog file size before log-rotation happens</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>Maximum RSyslog file size before log-rotation happens</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO Logrotate file size&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>500</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_26">
+  <widget class="QLabel" name="logRotateFileSizeLabel">
    <property name="geometry">
     <rect>
      <x>320</x>
@@ -1576,7 +1576,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO RSYSLOG server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MyRailIO Logrotate file size&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Logrotate file size (KB):</string>
@@ -1585,7 +1585,7 @@
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_22">
+  <widget class="QLabel" name="gitUriLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -1602,7 +1602,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git repository URL or local Git path: Eg. &amp;quot;https://github.com/jonasbjurel/myConfig&amp;quot; or &amp;quot;local://myConfig&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>git URI:</string>
@@ -1623,13 +1623,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git branch name-, tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git branch name-, tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git branch name.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="editable">
     <bool>false</bool>
@@ -1655,7 +1655,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -1672,7 +1672,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QLabel" name="label_24">
+  <widget class="QLabel" name="gitTagLabel">
    <property name="geometry">
     <rect>
      <x>460</x>
@@ -1689,7 +1689,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git tag-, commit Id-, or commit tip.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>git tag:</string>
@@ -1698,11 +1698,11 @@
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_16">
+  <widget class="QLabel" name="gitBranchLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>260</y>
+     <y>270</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -1715,7 +1715,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in branch&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;git branch name.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>git branch:</string>
@@ -1736,7 +1736,7 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Git repository URL or local Git path: Eg. &amp;quot;https://github.com/jonasbjurel/myConfig&amp;quot; or &amp;quot;local://myConfig&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
@@ -1782,13 +1782,13 @@
     </font>
    </property>
    <property name="toolTip">
-    <string>TimeZone- and daylight saving setting</string>
+    <string/>
    </property>
    <property name="toolTipDuration">
     <number>10</number>
    </property>
    <property name="whatsThis">
-    <string>TimeZone- and daylight saving setting</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;MyRailIO Time Zone&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="editable">
     <bool>true</bool>

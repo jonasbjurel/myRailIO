@@ -8,7 +8,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
 # A myRailIO sensor class providing the JMRI-myRailIO interactions for various sensors providing the bridge between following JMRI objects:
-# SENSORS and MEMORIES, and the myRailIO satelite sensor object atributes: DIGITAL sensor
+# SENSORS and MEMORIES, and the myRailIO satellite sensor object atributes: DIGITAL sensor
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -64,7 +64,7 @@ from config import *
 #################################################################################################################################################
 # Class: sensor
 # Purpose:      Provides the JMRI-myRailIO interactions for various sensors providing the bridge between following JMRI objects:
-#               SENSORS-, and MEMORIES, and the myRailIO satelite sensor object atributes: DIGITAL.
+#               SENSORS-, and MEMORIES, and the myRailIO satellite sensor object atributes: DIGITAL.
 #               Implements the management-, configuration-, supervision-, and control of myRailIO sensors.
 #               See archictecture.md for more information
 # StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
@@ -78,7 +78,7 @@ class sensor(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
-        self.provioned = False
+        self.provisioned = False
         self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
@@ -218,13 +218,13 @@ class sensor(systemState, schema):
                 return res
         else:
             trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.provioned = True
+        self.provisioned = True
         return rc.OK
 
     def abort(self):
         trace.notify(DEBUG_TERSE, "Sensor " + self.jmriSensSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        if not self.provioned:
+        if not self.provisioned:
             self.delete(top = True)
         return rc.OK
 
@@ -405,7 +405,7 @@ class sensor(systemState, schema):
             self.CBLalarm.ceaseAlarm("Parent object for which this object is depending on is now working")
 
     def __onDecoderOpStateChange(self, topic, value):
-        trace.notify(DEBUG_INFO, "Satelite " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        trace.notify(DEBUG_INFO, "Satellite " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
         self.setOpStateDetail(self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
         self.unSetOpStateDetail(~self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
 

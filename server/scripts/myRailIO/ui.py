@@ -62,7 +62,7 @@ SATLINK_DIALOG_UI = "ui/SatLink_Dialog.ui"
 LIGHTGROUP__LINK_DIALOG_UI = "ui/LightGroupsLink_Dialog.ui"
 LIGHTGROUP_DIALOG_UI = "ui/LightGroup_Dialog.ui"
 LIGHTGROUP_INVENTORY_DIALOG_UI = "ui/LightGroups_Inventory_Dialog.ui"
-SATELITE_DIALOG_UI = "ui/Sat_Dialog.ui"
+SATELLITE_DIALOG_UI = "ui/Sat_Dialog.ui"
 SENSOR_DIALOG_UI = "ui/Sensor_Dialog.ui"
 SENSOR_INVENTORY_DIALOG_UI = "ui/Sensors_Inventory_Dialog.ui"
 ACTUATOR_DIALOG_UI = "ui/Actuator_Dialog.ui"
@@ -80,7 +80,7 @@ AUTOLOAD_PREF_DIALOG_UI = "ui/AutoLoad_Pref_Dialog.ui"
 SERVER_ICON = "icons/server.png"
 DECODER_ICON = "icons/decoder.png"
 LINK_ICON = "icons/link.png"
-SATELITE_ICON = "icons/satelite.png"
+SATELLITE_ICON = "icons/satellite.png"
 TRAFFICLIGHT_ICON = "icons/traffic-light.png"
 SENSOR_ICON = "icons/sensor.png"
 ACTUATOR_ICON = "icons/servo.png"
@@ -171,11 +171,11 @@ class UI_mainWindow(QMainWindow):
             fontSize = 10
             setBold = False
             color = QColor(0, 0, 0)
-        elif type == SATELITE_LINK:
+        elif type == SATELLITE_LINK:
             fontSize = 12
             setBold = True
             color = QColor(0, 0, 0)
-        elif type == SATELITE:
+        elif type == SATELLITE:
             fontSize = 11
             setBold = True
             color = QColor(0, 0, 0)
@@ -1084,8 +1084,8 @@ class UI_addDialog(QDialog):
         if resourceTypes & DECODER: resourceTypeList.append("Decoder")
         if resourceTypes & LIGHT_GROUP_LINK: resourceTypeList.append("Light group link")
         if resourceTypes & LIGHT_GROUP: resourceTypeList.append("Light group")
-        if resourceTypes & SATELITE_LINK: resourceTypeList.append("Satelite link")
-        if resourceTypes & SATELITE: resourceTypeList.append("Satelite")
+        if resourceTypes & SATELLITE_LINK: resourceTypeList.append("Satellite link")
+        if resourceTypes & SATELLITE: resourceTypeList.append("Satellite")
         if resourceTypes & SENSOR: resourceTypeList.append("Sensor")
         if resourceTypes & ACTUATOR: resourceTypeList.append("Actuator")
         self.resourceTypeComboBox.addItems(resourceTypeList)
@@ -1101,8 +1101,8 @@ class UI_addDialog(QDialog):
         elif resourceTypeStr == "Decoder": resourceType = DECODER
         elif resourceTypeStr == "Light group link": resourceType = LIGHT_GROUP_LINK
         elif resourceTypeStr == "Light group": resourceType = LIGHT_GROUP
-        elif resourceTypeStr == "Satelite link": resourceType = SATELITE_LINK
-        elif resourceTypeStr == "Satelite": resourceType = SATELITE
+        elif resourceTypeStr == "Satellite link": resourceType = SATELLITE_LINK
+        elif resourceTypeStr == "Satellite": resourceType = SATELLITE
         elif resourceTypeStr == "Sensor": resourceType = SENSOR
         elif resourceTypeStr == "Actuator": resourceType = ACTUATOR
         print("ResourceTypeStr: " + resourceTypeStr)
@@ -1179,7 +1179,8 @@ class UI_topDialog(QDialog):
         self.gitCoPushButton.setEnabled(False) #Missing functionality
         # General myRailIO Meta-data
         self.authorLineEdit.setEnabled(False)
-        self.descriptionLineEdit.setEnabled(False) 
+        self.descriptionLineEdit.setEnabled(False)
+        self.versionLineEdit.setEnabled(False)
         self.dateLineEdit.setEnabled(False)
         # General myRailIO services configuration
         self.ntpLineEdit.setEnabled(False)
@@ -2659,13 +2660,13 @@ class lightGroupInventoryTableModel(QtCore.QAbstractTableModel):
 
 
 
-class UI_sateliteDialog(QDialog):
+class UI_satelliteDialog(QDialog):
     def __init__(self, parentObjHandle, rpcClient, edit = False, parent = None, newConfig = False):
         super().__init__(parent)
         self.parentObjHandle = parentObjHandle
         self.rpcClient = rpcClient
         self.newConfig = newConfig
-        loadUi(SATELITE_DIALOG_UI, self)
+        loadUi(SATELLITE_DIALOG_UI, self)
         self.connectWidgetSignalsSlots()
         self.displayValues()
         if edit:
@@ -2793,7 +2794,7 @@ class UI_sateliteDialog(QDialog):
 # ==============================================================
 # Public data-structures:
 # -----------------------
-# -parentObjHandle: satelite                Parent satelite object handle
+# -parentObjHandle: satellite                Parent satellite object handle
 # -rpcClient: rpc:                          rpcClient handle
 # -newConfig: bool                          New configuration flag
 #
@@ -3203,7 +3204,7 @@ class sensorInventoryTableModel(QtCore.QAbstractTableModel):
         sensors : List[sensor] = []
         for decoderItter in self.parentObjHandle.decoders.value:
             for satLinkLinkItter in decoderItter.satLinks.value:
-                for satItter in satLinkLinkItter.satelites.value:
+                for satItter in satLinkLinkItter.satellites.value:
                     sensors.extend(satItter.sensors.value)
         return sensors
         
@@ -3256,7 +3257,7 @@ class sensorInventoryTableModel(QtCore.QAbstractTableModel):
 # ===============================================================
 # Public data-structures:
 # -----------------------
-# -parentObjHandle: satelite                Parent satelite object handle
+# -parentObjHandle: satellite                Parent satellite object handle
 # -rpcClient: rpc:                          rpcClient handle
 # -newConfig: bool                          New configuration flag
 #
@@ -3713,7 +3714,7 @@ class actuatorInventoryTableModel(QtCore.QAbstractTableModel):
         actuators : List[actuator] = []
         for decoderItter in self.parentObjHandle.decoders.value:
             for satLinkLinkItter in decoderItter.satLinks.value:
-                for satItter in satLinkLinkItter.satelites.value:
+                for satItter in satLinkLinkItter.satellites.value:
                     actuators.extend(satItter.actuators.value)
         return actuators
 

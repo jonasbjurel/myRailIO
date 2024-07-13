@@ -34,8 +34,8 @@
 #define FACTORY_RESET_PROVISIONING_TIMEOUT_S		30
 #define PROVISIONING_TIMEOUT_S						5
 #define DECODER_DISCOVERY_TIMEOUT_S					60
-#define MAX_SATLINKS								1	//2
-#define MAX_LGLINKS									0	//2
+#define MAX_SATLINKS								0	//2
+#define MAX_LGLINKS									1	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"

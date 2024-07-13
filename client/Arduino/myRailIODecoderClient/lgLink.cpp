@@ -80,10 +80,6 @@ lgLink::lgLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_decod
         latencyVect[i] = 0;
         runtimeVect[i] = 0;
     }
-    char taskName[30];
-    sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
-    linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS, taskName,
-        FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
 }
 
 lgLink::~lgLink(void) {
@@ -319,6 +315,10 @@ rc_t lgLink::start(void) {
 void lgLink::up(void) {
     BaseType_t rc;
     LOG_TERSE("%s: Starting lglink scanning" CR, logContextName);
+    char taskName[30];
+    sprintf(taskName, CPU_UPDATE_STRIP_TASKNAME, linkNo);
+    linkScanWdt = new (heap_caps_malloc(sizeof(wdt), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) wdt(WDT_UPDATE_STRIP_LOOP_TIMEOUT_MS, taskName,
+                  FAULTACTION_GLOBAL_FAILSAFE | FAULTACTION_GLOBAL_REBOOT | FAULTACTION_ESCALATE_INTERGAP);
     linkScan = true;
     if (!eTaskCreate(
             updateStripHelper,                                  // Task function

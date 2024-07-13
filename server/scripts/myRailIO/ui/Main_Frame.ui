@@ -448,14 +448,14 @@
     <string>Show Light groups inventory</string>
    </property>
   </action>
-  <action name="actionShow_Satelite_Links">
+  <action name="actionShow_Satellite_Links">
    <property name="text">
-    <string>Show Satelite Links inventory</string>
+    <string>Show Satellite Links inventory</string>
    </property>
   </action>
-  <action name="actionShow_Satelites">
+  <action name="actionShow_Satellites">
    <property name="text">
-    <string>Show Satelites inventory</string>
+    <string>Show Satellites inventory</string>
    </property>
   </action>
   <action name="actionShow_SensorInventory">

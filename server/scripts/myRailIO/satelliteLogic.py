@@ -7,7 +7,7 @@
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
-# A myRailIO satelite class providing the myRailIO satelite management- and supervision. myRailIO provides various sensor and actuators interworking
+# A myRailIO satellite class providing the myRailIO satellite management- and supervision. myRailIO provides various sensor and actuators interworking
 # with JMRI.
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
@@ -61,22 +61,22 @@ from config import *
 
 
 #################################################################################################################################################
-# Class: satelite
-# Purpose:      Provides management- and supervision capabilities of myRailIO satelites. Implements the management-, configuration-, supervision-,
-#               and control of myRailIO satelites.
+# Class: satellite
+# Purpose:      Provides management- and supervision capabilities of myRailIO satellites. Implements the management-, configuration-, supervision-,
+#               and control of myRailIO satellites.
 #               See archictecture.md for more information
 # StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
 #               updateReq(), validate(), checkSysName(), commit0(), commit1(), abort(), getXmlConfigTree(), getActivMethods(), addChild(), delChild(),
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
-class satelite(systemState, schema):
+class satellite(systemState, schema):
     def __init__(self, win, parentItem, rpcClient, mqttClient, name = None, demo = False):
         self.win = win
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
-        self.provioned = False
+        self.provisioned = False
         self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
@@ -97,18 +97,18 @@ class satelite(systemState, schema):
         if name:
             self.satSystemName.value = name
         else:
-            self.satSystemName.value = "GJSAT-MyNewSateliteSysName"
+            self.satSystemName.value = "GJSAT-MyNewSatelliteSysName"
         self.nameKey.value = "Sat-" + self.satSystemName.candidateValue
-        self.userName.value = "MyNewSateliteUsrName"
-        self.description.value = "MyNewSateliteDescription"
+        self.userName.value = "MyNewSatelliteUsrName"
+        self.description.value = "MyNewSatelliteDescription"
         self.satLinkAddr.value = 0
         self.commitAll()
-        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELITE, displayIcon=SATELITE_ICON)
-        self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite reported disconnected")
-        self.NOT_CONFIGUREDalarm = alarm(self, "CONFIGURATION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite has not received a valid configuration")
-        self.SAT_EXCESSIVE_BER_ERRORalarm = alarm(self, "TRANSMISION ERROR", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite excessive transmission errors")
-        self.SAT_GEN_ERRORalarm = alarm(self, "GENERAL RECOVERABLE ERROR", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite is experiencing a recoverable general error")
-        self.INT_FAILalarm = alarm(self, "INTERNAL FAILURE", self.nameKey.value, ALARM_CRITICALITY_A, "Satelite has experienced an internal error")
+        self.item = self.win.registerMoMObj(self, parentItem, self.nameKey.candidateValue, SATELLITE, displayIcon=SATELLITE_ICON)
+        self.NOT_CONNECTEDalarm = alarm(self, "CONNECTION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Satellite reported disconnected")
+        self.NOT_CONFIGUREDalarm = alarm(self, "CONFIGURATION STATUS", self.nameKey.value, ALARM_CRITICALITY_A, "Satellite has not received a valid configuration")
+        self.SAT_EXCESSIVE_BER_ERRORalarm = alarm(self, "TRANSMISION ERROR", self.nameKey.value, ALARM_CRITICALITY_A, "Satellite excessive transmission errors")
+        self.SAT_GEN_ERRORalarm = alarm(self, "GENERAL RECOVERABLE ERROR", self.nameKey.value, ALARM_CRITICALITY_A, "Satellite is experiencing a recoverable general error")
+        self.INT_FAILalarm = alarm(self, "INTERNAL FAILURE", self.nameKey.value, ALARM_CRITICALITY_A, "Satellite has experienced an internal error")
         self.CBLalarm = alarm(self, "CONTROL-BLOCK STATUS", self.nameKey.value, ALARM_CRITICALITY_C, "Parent object blocked resulting in a control-block of this object")
         systemState.__init__(self)
         self.regOpStateCb(self.__sysStateAllListener, OP_ALL[STATE])
@@ -123,7 +123,7 @@ class satelite(systemState, schema):
                 self.addChild(ACTUATOR, name="actuator-" + str(i), config=False, demo=True)
             self.logStatsProducer = threading.Thread(target=self.__demoStatsProducer)
             self.logStatsProducer.start()
-        trace.notify(DEBUG_INFO,"New Satelite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
+        trace.notify(DEBUG_INFO,"New Satellite link: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
     @staticmethod
     def aboutToDelete(ref):
@@ -156,7 +156,7 @@ class satelite(systemState, schema):
                 trace.notify(DEBUG_INFO, "\"AdminState\" not set for " + self.nameKey.candidateValue + " - disabling it")
                 self.setAdmState(ADM_DISABLE[STATE_STR])
         except:
-            trace.notify(DEBUG_ERROR, "Configuration validation failed for Satelite traceback: " + str(traceback.print_exc()))
+            trace.notify(DEBUG_ERROR, "Configuration validation failed for Satellite traceback: " + str(traceback.print_exc()))
             return rc.TYPE_VAL_ERR
         if self.getAdmState() == ADM_ENABLE[STATE]:
             res = self.updateReq(self, self, uploadNReboot = True)
@@ -195,13 +195,13 @@ class satelite(systemState, schema):
         return res
 
     def validate(self):
-        trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " received configuration validate()")
+        trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " received configuration validate()")
         self.schemaDirty = self.isDirty()
         childs = True
         try:
             self.childs.candidateValue
         except:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " - No childs to validate")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " - No childs to validate")
             childs = False
         if childs:
             for child in self.childs.candidateValue:
@@ -209,10 +209,10 @@ class satelite(systemState, schema):
                 if res != rc.OK:
                     return res
         if self.schemaDirty:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " - configurations has been changed - validating them")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " - configurations has been changed - validating them")
             return self.__validateConfig()
         else:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " - configuration has NOT been changed - skipping validation")
             return rc.OK
         return rc.OK
 
@@ -223,12 +223,12 @@ class satelite(systemState, schema):
         return self.parent.unRegSysName(sysName)
 
     def commit0(self):
-        trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " received configuration commit0()")
+        trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " received configuration commit0()")
         childs = True
         try:
             self.childs.candidateValue
         except:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " - No childs to commit(0)")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " - No childs to commit(0)")
             childs = False
         if childs:
             for child in self.childs.candidateValue:
@@ -236,29 +236,29 @@ class satelite(systemState, schema):
                 if res != rc.OK:
                     return res 
         if self.schemaDirty:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " was reconfigured, commiting configuration")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " was reconfigured, commiting configuration")
             self.commitAll()
             self.win.reSetMoMObjStr(self.item, self.nameKey.value)
             return rc.OK
         else:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " was not reconfigured, skiping config commitment")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " was not reconfigured, skiping config commitment")
             return rc.OK
         return rc.OK
 
     def commit1(self):
-        trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " received configuration commit1()")
+        trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.value + " received configuration commit1()")
         if self.schemaDirty:
             try:
-                trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " was reconfigured - applying the configuration")
+                trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.value + " was reconfigured - applying the configuration")
                 res = self.__setConfig()
             except:
-                trace.notify(DEBUG_PANIC, "Could not set new configuration for Satelite " + self.satSystemName.value)
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for Satellite " + self.satSystemName.value)
                 return rc.GEN_ERR
             if res != rc.OK:
-                trace.notify(DEBUG_PANIC, "Could not set new configuration for Satelite " + self.satSystemName.value)
+                trace.notify(DEBUG_PANIC, "Could not set new configuration for Satellite " + self.satSystemName.value)
                 return res
         else:
-            trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.value + " was not reconfigured, skiping re-configuration")
+            trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.value + " was not reconfigured, skiping re-configuration")
         childs = True
         try:
             self.childs.value
@@ -270,11 +270,11 @@ class satelite(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
-        self.provioned = True
+        self.provisioned = True
         return rc.OK
 
     def abort(self):
-        trace.notify(DEBUG_TERSE, "Satelite " + self.satSystemName.candidateValue + " received configuration abort()")
+        trace.notify(DEBUG_TERSE, "Satellite " + self.satSystemName.candidateValue + " received configuration abort()")
         childs = True
         try:
             self.childs.value
@@ -284,29 +284,29 @@ class satelite(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        if not self.provioned:
+        if not self.provisioned:
             self.delete(top = True)
         return rc.OK
 
     def getXmlConfigTree(self, decoder=False, text=False, includeChilds=True):
-        trace.notify(DEBUG_TERSE, "Providing satelite .xml configuration")
-        sateliteXml = ET.Element("Satelite")
-        sysName = ET.SubElement(sateliteXml, "SystemName")
+        trace.notify(DEBUG_TERSE, "Providing satellite .xml configuration")
+        satelliteXml = ET.Element("Satellite")
+        sysName = ET.SubElement(satelliteXml, "SystemName")
         sysName.text = self.satSystemName.value
-        usrName = ET.SubElement(sateliteXml, "UserName")
+        usrName = ET.SubElement(satelliteXml, "UserName")
         usrName.text = self.userName.value
-        descName = ET.SubElement(sateliteXml, "Description")
+        descName = ET.SubElement(satelliteXml, "Description")
         descName.text = self.description.value
-        LinkAddress = ET.SubElement(sateliteXml, "LinkAddress")
+        LinkAddress = ET.SubElement(satelliteXml, "LinkAddress")
         LinkAddress.text = str(self.satLinkAddr.value)
-        adminState = ET.SubElement(sateliteXml, "AdminState")
+        adminState = ET.SubElement(satelliteXml, "AdminState")
         adminState.text = self.getAdmState()[STATE_STR]
         if includeChilds:
             for sensor in self.sensors.value:
-                sateliteXml.append(sensor.getXmlConfigTree(decoder=decoder))
+                satelliteXml.append(sensor.getXmlConfigTree(decoder=decoder))
             for actuator in self.actuators.value:
-                sateliteXml.append(actuator.getXmlConfigTree(decoder=decoder))
-        return minidom.parseString(ET.tostring(sateliteXml)).toprettyxml(indent="   ") if text else sateliteXml
+                satelliteXml.append(actuator.getXmlConfigTree(decoder=decoder))
+        return minidom.parseString(ET.tostring(satelliteXml)).toprettyxml(indent="   ") if text else satelliteXml
 
     def getMethods(self):
         return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
@@ -324,7 +324,7 @@ class satelite(systemState, schema):
         if resourceType == SENSOR:
             self.sensors.append(sensor(self.win, self.item, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.sensors.candidateValue + self.actuators.candidateValue
-            trace.notify(DEBUG_INFO, "Sensor: " + self.sensors.candidateValue[-1].nameKey.candidateValue + "is being added to satelite" + self.nameKey.value)
+            trace.notify(DEBUG_INFO, "Sensor: " + self.sensors.candidateValue[-1].nameKey.candidateValue + "is being added to satellite" + self.nameKey.value)
             if not config and configXml:
                 nameKey = self.sensors.candidateValue[-1].nameKey.candidateValue
                 res = self.sensors.candidateValue[-1].onXmlConfig(configXml)
@@ -332,20 +332,20 @@ class satelite(systemState, schema):
                 if res != rc.OK:
                     trace.notify(DEBUG_ERROR, "Failed to configure Sensor: " + nameKey + " - return code: " + rc.getErrStr(res))
                     return res
-                trace.notify(DEBUG_INFO, "Sensor: " + self.sensors.value[-1].nameKey.value + " successfully added to satelite link " + self.nameKey.value)
+                trace.notify(DEBUG_INFO, "Sensor: " + self.sensors.value[-1].nameKey.value + " successfully added to satellite link " + self.nameKey.value)
                 return rc.OK
             if config:
                 self.dialog = UI_sensorDialog(self.sensors.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
-            trace.notify(DEBUG_ERROR, "Satelite could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\": " +
+            trace.notify(DEBUG_ERROR, "Satellite could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\": " +
                                       ("Provided" if configXml else "Not provided") + " \"demo\": " + str(demo))
             return rc.GEN_ERR
         elif resourceType == ACTUATOR:
             self.actuators.append(actuator(self.win, self.item, self.rpcClient, self.mqttClient, name=name, demo=demo))
             self.childs.value = self.sensors.candidateValue + self.actuators.candidateValue
-            trace.notify(DEBUG_INFO, "Sensor: " + self.actuators.candidateValue[-1].nameKey.candidateValue + "is being added to satelite" + self.nameKey.value)
+            trace.notify(DEBUG_INFO, "Sensor: " + self.actuators.candidateValue[-1].nameKey.candidateValue + "is being added to satellite" + self.nameKey.value)
             if not config and configXml:
                 nameKey = self.actuators.candidateValue[-1].nameKey.candidateValue
                 res = self.actuators.candidateValue[-1].onXmlConfig(configXml)
@@ -353,18 +353,18 @@ class satelite(systemState, schema):
                 if res != rc.OK:
                     trace.notify(DEBUG_ERROR, "Failed to configure Actuator: " + nameKey + " - return code: " + rc.getErrStr(res))
                     return res
-                trace.notify(DEBUG_INFO, "Actuator: " + self.actuators.value[-1].nameKey.value + " successfully added to satelite link " + self.nameKey.value)
+                trace.notify(DEBUG_INFO, "Actuator: " + self.actuators.value[-1].nameKey.value + " successfully added to satellite link " + self.nameKey.value)
                 return rc.OK
             if config:
                 self.dialog = UI_actuatorDialog(self.actuators.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
-            trace.notify(DEBUG_ERROR, "Satelite could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\": " +
+            trace.notify(DEBUG_ERROR, "Satellite could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\": " +
                                       ("Provided" if configXml else "Not provided") + " \"demo\": " + str(demo))
             return rc.GEN_ERR
         else:
-            trace.notify(DEBUG_ERROR, "Satelite only take ACTUATOR or SENSOR as child, given child was: " + str(resourceType))
+            trace.notify(DEBUG_ERROR, "Satellite only take ACTUATOR or SENSOR as child, given child was: " + str(resourceType))
             return rc.GEN_ERR
 
     def delChild(self, child):
@@ -383,11 +383,11 @@ class satelite(systemState, schema):
         return rc.OK
 
     def view(self):
-        self.dialog = UI_sateliteDialog(self, self.rpcClient, edit=False)
+        self.dialog = UI_satelliteDialog(self, self.rpcClient, edit=False)
         self.dialog.show()
 
     def edit(self):
-        self.dialog = UI_sateliteDialog(self, self.rpcClient, edit=True)
+        self.dialog = UI_satelliteDialog(self, self.rpcClient, edit=True)
         self.dialog.show()
 
     def add(self):
@@ -453,11 +453,11 @@ class satelite(systemState, schema):
                 trace.notify(DEBUG_ERROR, "System name " + self.satSystemName.candidateValue + " already in use")
                 return res
         self.sysNameReged = True
-        weakSelf = weakref.ref(self, satelite.aboutToDelete)
+        weakSelf = weakref.ref(self, satellite.aboutToDelete)
         res = self.parent.satTopology.addTopologyMember(self.satSystemName.candidateValue, self.satLinkAddr.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Satelite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + "return code: " + rc.getErrStr(res))
-            trace.notify(DEBUG_ERROR, "Satelite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + rc.getErrStr(res))
+            print (">>>>>>>>>>>>> Satellite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + "return code: " + rc.getErrStr(res))
+            trace.notify(DEBUG_ERROR, "Satellite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + rc.getErrStr(res))
             return res
         return rc.OK # Place holder for object config validation
 
@@ -481,7 +481,7 @@ class satelite(systemState, schema):
         return rc.OK
 
     def __sysStateRespondListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
-        trace.notify(DEBUG_INFO, "Satelite " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
+        trace.notify(DEBUG_INFO, "Satellite " + self.nameKey.value + " got a new OP State generated by the server - informing the client accordingly - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         if changedOpStateDetail & OP_DISABLED[STATE]:
             if self.getAdmState() == ADM_ENABLE:
                 self.mqttClient.publish(self.satAdmDownStreamTopic, ADM_ON_LINE_PAYLOAD)
@@ -519,25 +519,25 @@ class satelite(systemState, schema):
             else:
                 self.updateReq(self, self, uploadNReboot = False)
         if (changedOpStateDetail & OP_INIT[STATE]) and (opStateDetail & OP_INIT[STATE]):
-            self.NOT_CONNECTEDalarm.raiseAlarm("Satelite has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
+            self.NOT_CONNECTEDalarm.raiseAlarm("Satellite has not connected, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INIT[STATE]) and not (opStateDetail & OP_INIT[STATE]):
-            self.NOT_CONNECTEDalarm.ceaseAlarm("Satelite link has now successfully connected")
+            self.NOT_CONNECTEDalarm.ceaseAlarm("Satellite link has now successfully connected")
         if (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and (opStateDetail & OP_UNCONFIGURED[STATE]):
-            self.NOT_CONFIGUREDalarm.raiseAlarm("Satelite has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
+            self.NOT_CONFIGUREDalarm.raiseAlarm("Satellite has not been configured, it might be restarting-, but may have issues to connect to the WIFI, LAN or the MQTT-brooker, or the MAC address may not be correctly provisioned", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_UNCONFIGURED[STATE]) and not (opStateDetail & OP_UNCONFIGURED[STATE]):
-            self.NOT_CONFIGUREDalarm.ceaseAlarm("Satelite is now successfully configured")
+            self.NOT_CONFIGUREDalarm.ceaseAlarm("Satellite is now successfully configured")
         if (changedOpStateDetail & OP_ERRSEC[STATE]) and (opStateDetail & OP_ERRSEC[STATE]):
-            self.SAT_EXCESSIVE_BER_ERRORalarm.raiseAlarm("Satelite is experiencing exsessive transmision errors", p_sysStateTransactionId, True)
+            self.SAT_EXCESSIVE_BER_ERRORalarm.raiseAlarm("Satellite is experiencing exsessive transmision errors", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_ERRSEC[STATE]) and not (opStateDetail & OP_ERRSEC[STATE]):
-            self.SAT_EXCESSIVE_BER_ERRORalarm.ceaseAlarm("Satelite transmision error rate is now below the alarm threshold")
+            self.SAT_EXCESSIVE_BER_ERRORalarm.ceaseAlarm("Satellite transmision error rate is now below the alarm threshold")
         if (changedOpStateDetail & OP_GENERR[STATE]) and (opStateDetail & OP_GENERR[STATE]):
-            self.SAT_GEN_ERRORalarm.raiseAlarm("Satelite is experiencing a recoverable error", p_sysStateTransactionId, True)
+            self.SAT_GEN_ERRORalarm.raiseAlarm("Satellite is experiencing a recoverable error", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_GENERR[STATE]) and not (opStateDetail & OP_GENERR[STATE]):
-            self.SAT_GEN_ERRORalarm.ceaseAlarm("The Satelite general error has ceased")
+            self.SAT_GEN_ERRORalarm.ceaseAlarm("The Satellite general error has ceased")
         if (changedOpStateDetail & OP_INTFAIL[STATE]) and (opStateDetail & OP_INTFAIL[STATE]):
-            self.INT_FAILalarm.raiseAlarm("Satelite is experiencing an internal error", p_sysStateTransactionId, True)
+            self.INT_FAILalarm.raiseAlarm("Satellite is experiencing an internal error", p_sysStateTransactionId, True)
         elif (changedOpStateDetail & OP_INTFAIL[STATE]) and not (opStateDetail & OP_INTFAIL[STATE]):
-            self.INT_FAILalarm.ceaseAlarm("Satelite is no longer experiencing any internal errors")
+            self.INT_FAILalarm.ceaseAlarm("Satellite is no longer experiencing any internal errors")
         if (changedOpStateDetail & OP_CBL[STATE]) and (opStateDetail & OP_CBL[STATE]):
             self.CBLalarm.raiseAlarm("Parent object for which this object is depending on has failed", p_sysStateTransactionId, False)
         elif (changedOpStateDetail & OP_CBL[STATE]) and not (opStateDetail & OP_CBL[STATE]):
@@ -545,17 +545,17 @@ class satelite(systemState, schema):
         return
 
     def __onDecoderOpStateChange(self, topic, value):
-        trace.notify(DEBUG_INFO, "Satelite " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
+        trace.notify(DEBUG_INFO, "Satellite " + self.nameKey.value + " received a new OP State from client: " + value + " setting server OP-state accordingly")
         self.setOpStateDetail(self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
         self.unSetOpStateDetail(~self.getOpStateDetailBitMapFromStr(value) & ~OP_DISABLED[STATE] & ~OP_SERVUNAVAILABLE[STATE] & ~OP_CBL[STATE])
 
     def __onStats(self, topic, payload):
         # We expect a report every second
-        trace.notify(DEBUG_VERBOSE, "Satelite " + self.nameKey.value + " received a statistics report")
+        trace.notify(DEBUG_VERBOSE, "Satellite " + self.nameKey.value + " received a statistics report")
         # statsXmlTree = ET.ElementTree(ET.fromstring(payload.decode('UTF-8')))
         statsXmlTree = ET.ElementTree(ET.fromstring(payload))
         if str(statsXmlTree.getroot().tag) != "statReport":
-            trace.notify(DEBUG_ERROR, "Satelite statistics report missformated")
+            trace.notify(DEBUG_ERROR, "Satellite statistics report missformated")
             return
         if not (self.getOpStateDetail() & OP_DISABLED[STATE]):
             statsXmlVal = parse_xml(statsXmlTree.getroot(),
@@ -577,5 +577,5 @@ class satelite(systemState, schema):
             self.txCrcErr += 1
             self.wdErr += 1
             time.sleep(0.25)
-# End Satelite
+# End Satellite
 #------------------------------------------------------------------------------------------------------------------------------------------------

@@ -41,8 +41,8 @@ DECODER_MAX_LG_LINKS =          2
 MAX_LG_ADRESSES =               16
 DECODER_MAX_SAT_LINKS =         2
 MAX_SAT_ADRESSES =              16
-SATELITE_MAX_SENS_PORTS =       8
-SATELITE_MAX_ACT_PORTS =        4
+SATELLITE_MAX_SENS_PORTS =       8
+SATELLITE_MAX_ACT_PORTS =        4
 #------------------------------------------------------------------------------------------------------------------------------------------------
 # END: System constants
 #------------------------------------------------------------------------------------------------------------------------------------------------
@@ -253,7 +253,7 @@ class satSystemName_t(base_t):
     def validate(self, value):
         assert type(value) == str, "satSystemName_t didnt pass type check" 
         assert re.match(r'^GJSAT', value), "satSystemName_t didnt pass syntax check"
-        try: self.nameKey.value = "Satelite-" + value
+        try: self.nameKey.value = "Satellite-" + value
         except: pass
 
 class jmriSensSystemName_t(base_t):
@@ -266,7 +266,7 @@ class jmriSensSystemName_t(base_t):
 class sensPort_t(base_t):
     def validate(self, value):
         assert type(value) == int, "sensPort_t didnt pass type check" 
-        assert (value < SATELITE_MAX_SENS_PORTS and value >= 0), "sensPort_t didnt pass range check" 
+        assert (value < SATELLITE_MAX_SENS_PORTS and value >= 0), "sensPort_t didnt pass range check" 
 
 class sensType_t(base_t):
     def validate(self, value):
@@ -290,7 +290,7 @@ class jmriActSystemName_t(base_t):
 class actPort_t(base_t):
     def validate(self, value):
         assert type(value) == int, "actPort_t didnt pass type check" 
-        assert (value < SATELITE_MAX_ACT_PORTS and value >= 0), "actPort_t didnt pass range check"
+        assert (value < SATELLITE_MAX_ACT_PORTS and value >= 0), "actPort_t didnt pass range check"
         if super().__getattribute__("parent").actSubType.candidateValue == "SOLENOID":
             assert ((value % 2) == 0), "actPort_t didnt pass range check, SOLENOID sub-type requires even port-base number"
 
