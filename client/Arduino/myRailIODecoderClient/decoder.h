@@ -62,7 +62,7 @@ class satLink;
 /* Purpose: The "decoder" class implements a static singlton object responsible for setting up the common decoder mqtt class objects,           */
 /*          subscribing to the management configuration topic, parsing the top level xml configuration and forwarding propper xml               */
 /*          configuration segments to the different decoder services, E.g. Lightgroup links. Lightgroups [Signal Masts | general Lights |       */
-/*          sequencedLights], Satelite Links, Satelites, Sensors, Actueators, etc.                                                              */
+/*          sequencedLights], Satellite Links, Satellites, Sensors, Actueators, etc.                                                              */
 /*          Turnouts or sensors...                                                                                                              */
 /*          The "decoder" sequences the start up of the the different decoder services. It also holds the decoder infrastructure config such    */
 /*          as ntp-, rsyslog-, ntp-, watchdog- and cli configuration and is the cooridnator and root of such servicies.                         */

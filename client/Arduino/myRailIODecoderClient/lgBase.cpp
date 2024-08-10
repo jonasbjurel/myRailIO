@@ -134,6 +134,7 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         panic("%s: System Name missing", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_LG_SYSNAME]);
     if (!xmlconfig[XML_LG_USRNAME]){
         LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_LG_SYSNAME]);
         xmlconfig[XML_LG_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LG_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LG_SYSNAME]) + 15];
@@ -192,6 +193,10 @@ void lgBase::onConfig(const tinyxml2::XMLElement* p_lgXmlElement) {
         panic("lg-type not supported" CR);
         return;
     }
+	if (!extentionLgClassObj) {
+		panic("%s: Failed to create lg extention object", logContextName);
+		return;
+	}
     LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], init());
     if (EXT_RC){
         panic("%s: Failed to initialize lg extention object", logContextName);
@@ -236,7 +241,11 @@ rc_t lgBase::start(void) {
             panic("%s Failed to start lg extention object" CR, logContextName);
             return EXT_RC;
         }
-    }
+	}
+	else {
+		panic("%s: No extention object to start" CR, logContextName);
+		return RC_NOT_CONFIGURED_ERR;
+	}
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char admopSubscribeTopic[300];
     sprintf(admopSubscribeTopic, "%s/%s/%s", MQTT_LG_ADMSTATE_DOWNSTREAM_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_LG_SYSNAME]);
@@ -458,30 +467,41 @@ rc_t lgBase::getNoOffLeds(uint8_t* p_noOfLeds, bool p_force) {
         LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getNoOffLeds(p_noOfLeds, p_force));
         return EXT_RC;
     }
-    else
-        return 0;
+    else{
+		LOG_WARN("%s: LG Extention class has not been configured/does not exist, cannot get number of leds" CR, logContextName);
+		return RC_NOT_CONFIGURED_ERR;
+    }
 }
 
 rc_t lgBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("%s Cannot set lg property as debug is inactive" CR, logContextName);
+        LOG_ERROR("%s Cannot set lg property as debug-flag is inactive, use \"set debug\" to activate debug" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         LOG_ERROR("%s: Cannot set lg property as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
+    if (p_propertyId < 1 || p_propertyId > 3) {
+        LOG_WARN("%s: Property id %i is out of range" CR, logContextName, p_propertyId);
+        return RC_NOT_FOUND_ERR;
+    }
+
     if (extentionLgClassObj) {
         LG_CALL_EXT_RC(extentionLgClassObj, xmlconfig[XML_LG_TYPE], setProperty(p_propertyId, p_propertyValue));
-        if (EXT_RC)
+        if (EXT_RC){
+            LOG_WARN("%s: Could not set Property id %i, return code: %i" CR, logContextName, p_propertyId, EXT_RC);
             return EXT_RC;
+        }
         else {
             strcpy(xmlconfig[XML_LG_PROPERTY1 + p_propertyId - 1], p_propertyValue);
+            return RC_OK;
         }
-        return RC_OK;
     }
-    else
-        return RC_NOTIMPLEMENTED_ERR;
+    else {
+        LOG_WARN("%s: LG Extention class has not been configured/does not exist, cannot set property id %i" CR, logContextName, p_propertyId);
+        return RC_NOT_CONFIGURED_ERR;
+    }
 }
 
 rc_t lgBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force) {
@@ -489,6 +509,14 @@ rc_t lgBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_for
         LOG_ERROR("%s Cannot get port as lg is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
+	if (p_propertyId < 1 || p_propertyId > 3) {
+		LOG_WARN("%s: Property id %i is out of range" CR, logContextName, p_propertyId);
+		return RC_NOT_FOUND_ERR;
+	}
+	if (!xmlconfig[XML_LG_PROPERTY1 + p_propertyId - 1]) {
+		LOG_WARN("%s: Property %i is not set" CR, logContextName, p_propertyId);
+		return RC_NOT_FOUND_ERR;
+	}
     strcpy(p_propertyValue, xmlconfig[XML_LG_PROPERTY1 + p_propertyId - 1]);
     return RC_OK;
 }
@@ -507,6 +535,7 @@ rc_t lgBase::setShowing(const char* p_showing, bool p_force) {
         return RC_OK;
     }
     else {
+		LOG_ERROR("%s: LG Extention class has not been configured/does not exist, cannot set showing" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
 }
@@ -521,6 +550,7 @@ rc_t lgBase::getShowing(char* p_showing, bool p_force) {
         LG_CALL_EXT(extentionLgClassObj, xmlconfig[XML_LG_TYPE], getShowing(p_showing));
         return RC_OK;
     }
+	LOG_ERROR("%s: LG Extention class has not been configured/does not exist, cannot get showing" CR, logContextName);
     strcpy(p_showing, "-");
     return RC_NOT_CONFIGURED_ERR;
 }
@@ -644,7 +674,7 @@ void lgBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTab
         return;
     }
     rc_t rc;
-    char* property = NULL;
+    char property[50];
     if (cmd.getArgument(1)) {
         if (rc = static_cast<lgBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg property, return code: %i", rc);
@@ -654,15 +684,15 @@ void lgBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTab
         acceptedCliCommand(CLI_TERM_QUIET);
     }
     else {
-        printCli("Lightgroup property index:\t\t\tLightgroup property value:\n");
-        for (uint8_t i = 0; i < 255; i++) {
+        printCli("| %*s | %*s |", -26, "Lightgroup property index:", -30, "Lightgroup property value:");
+        for (uint8_t i = 1; i < 255; i++) {
             if (rc = static_cast<lgBase*>(p_cliContext)->getProperty(i, property)) {
                 if (rc == RC_NOT_FOUND_ERR)
                     break;
                 notAcceptedCliCommand(CLI_GEN_ERR, "Could not get lg property %i, return code: %i", i, rc);
                 return;
             }
-            printCli("%i\t\t\t%s\n", i, property);
+            printCli("| %*i | %*s |", -26, i, -30, property);
         }
         printCli("END");
         acceptedCliCommand(CLI_TERM_QUIET);
@@ -671,13 +701,18 @@ void lgBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTab
 
 void lgBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable){
     Command cmd(p_cmd);
-    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+    if (!cmd.getArgument(1) || !cmd.getArgument(2) || cmd.getArgument(3)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
     if (rc = static_cast<lgBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str())) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
+        if (rc == RC_NOT_CONFIGURED_ERR)
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg property %i, lg not configured", atoi(cmd.getArgument(1).getValue().c_str()));
+        else if (rc == RC_DEBUG_NOT_SET_ERR)
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg property %i, debug-flag not set, use\"set debug\"", atoi(cmd.getArgument(1).getValue().c_str()));
+        else
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set lg property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);

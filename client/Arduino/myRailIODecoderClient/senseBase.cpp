@@ -54,8 +54,10 @@ senseBase::senseBase(uint8_t p_sensPort, sat* p_satHandle) : systemState(p_satHa
     xmlconfig[XML_SENS_DESC] = NULL;
     xmlconfig[XML_SENS_PORT] = NULL;
     xmlconfig[XML_SENS_TYPE] = NULL;
+	xmlconfig[XML_SENS_PROPERTY1] = NULL;
+	xmlconfig[XML_SENS_PROPERTY2] = NULL;
+	xmlconfig[XML_SENS_PROPERTY3] = NULL;
     xmlconfig[XML_SENS_ADMSTATE] = NULL;
-    //xmlconfig[XML_SENS_PROPERTIES] = NULL;
     extentionSensClassObj = NULL;
     satLibHandle = NULL;
     debug = false;
@@ -111,6 +113,7 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
         panic("%s: JMRISystemName missing", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_SENS_SYSNAME]);
     if (!xmlconfig[XML_SENS_USRNAME]){
         LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_SENS_SYSNAME]);
         xmlconfig[XML_SENS_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_SENS_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_SENS_SYSNAME]) + 15];
@@ -167,6 +170,10 @@ void senseBase::onConfig(const tinyxml2::XMLElement* p_sensXmlElement) {
         panic("Sensor type not supported");
         return;
     }
+	if (!extentionSensClassObj) {
+		panic("%s: Failed to create sensor extention class object", logContextName);
+		return;
+	}
     SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], init());
     //if (xmlconfig[XML_SENS_PROPERTIES]) {
     //    LOG_INFO("senseBase::onConfig: Configuring the sensor base stem-object with properties" CR);
@@ -191,7 +198,12 @@ rc_t senseBase::start(void) {
         LOG_INFO("%s: Sensor port not yet discovered - starting it anyway" CR, logContextName);
     }
     LOG_INFO("%s: Starting extention class" CR, logContextName);
-    SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], start());
+	if (extentionSensClassObj)
+		SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], start());
+    else {
+        panic("%s: Sensor extention class object does not exist / not configured", logContextName);
+        return RC_NOT_CONFIGURED_ERR;
+    }
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     rc_t rc;
     char subscribeTopic[300];
@@ -210,18 +222,18 @@ rc_t senseBase::start(void) {
     return RC_OK;
 }
 
-void senseBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+void senseBase::onDiscovered(satellite* p_satelliteLibHandle, bool p_exists) {
     LOG_INFO("%s: Sensor port discovered" CR, logContextName);
     if (p_exists) {
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         systemState::unSetOpStateByBitmap(OP_UNDISCOVERED);
     }
     else {
         satLibHandle = NULL;
         systemState::setOpStateByBitmap(OP_UNDISCOVERED);
     }
-    if (!(getOpStateBitmap() & OP_UNCONFIGURED))
-        SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], onDiscovered(p_sateliteLibHandle, p_exists));
+    if (!(getOpStateBitmap() & OP_UNCONFIGURED) && extentionSensClassObj)
+        SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], onDiscovered(p_satelliteLibHandle, p_exists));
     else
         LOG_INFO("%s: Sensor port discovered, but was not configured" CR, logContextName);
 }
@@ -267,7 +279,7 @@ void senseBase::onSysStateChange(sysState_t p_sysState) {
 }
 
 void senseBase::failsafe(bool p_failsafe) {
-    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED) && extentionSensClassObj)
         SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_ACT_TYPE], failsafe(p_failsafe));
 }
 
@@ -400,26 +412,49 @@ uint8_t senseBase::getPort(bool p_force) {
     return sensPort;
 }
 
-rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force){
+rc_t senseBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force){
     if (!debug && !p_force) {
-        LOG_ERROR("%s: Cannot set Sensor property as debug is inactive" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Sensor property as debug-flag is inactive, use \"set debug\" to activate debug" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         LOG_ERROR("%s: Cannot set Sensor property as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    SENSE_CALL_EXT(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], setProperty(p_propertyId, p_propertyVal));
-    return RC_OK;
+	if (p_propertyId < 1 || p_propertyId > 3) {
+		LOG_WARN("%s: Property id %i is out of range" CR, logContextName, p_propertyId);
+		return RC_NOT_FOUND_ERR;
+	}
+    if (extentionSensClassObj) {
+        SENSE_CALL_EXT_RC(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], setProperty(p_propertyId, p_propertyValue));
+        if (EXT_RC) {
+            LOG_WARN("%s: Could not set Property id %i, return code: %i" CR, logContextName, p_propertyId, EXT_RC);
+            return EXT_RC;
+        }
+        strcpy(xmlconfig[XML_SENS_PROPERTY1 + p_propertyId - 1], p_propertyValue);
+        return RC_OK;
+    }
+    else {
+        LOG_WARN("%s: Sensor Extention class has not been configured/does not exist, cannot set property id %i" CR, logContextName, p_propertyId);
+        return RC_NOT_CONFIGURED_ERR;
+    }
 }
 
-rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force) {
+rc_t senseBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
         LOG_ERROR("%s: Cannot get Sensor properties as sensor is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    SENSE_CALL_EXT_RC(extentionSensClassObj, xmlconfig[XML_SENS_TYPE], getProperty(p_propertyId, p_propertyVal));
-    return EXT_RC;
+    if (p_propertyId < 1 || p_propertyId > 3) {
+        LOG_WARN("%s: Property id %i is out of range" CR, logContextName, p_propertyId);
+        return RC_NOT_FOUND_ERR;
+    }
+    if (!xmlconfig[XML_SENS_PROPERTY1 + p_propertyId - 1]) {
+        LOG_WARN("%s: Property %i is not set" CR, logContextName, p_propertyId);
+        return RC_NOT_FOUND_ERR;
+    }
+    strcpy(p_propertyValue, xmlconfig[XML_SENS_PROPERTY1 + p_propertyId - 1]);
+    return RC_OK;
 }
 
 rc_t senseBase::getSensing(char* p_sensing) {
@@ -523,7 +558,7 @@ void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmd
         return;
     }
     rc_t rc;
-    char* property;
+    char property[50];
     if (cmd.getArgument(1)) {
         if (rc = static_cast<senseBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor properties, return code: %i", rc);
@@ -533,29 +568,35 @@ void senseBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmd
         acceptedCliCommand(CLI_TERM_QUIET);
     }
     else {
-        printCli("Sensor property index:\t\t\Sensor property value:\n");
-        for (uint8_t i = 0; i < 255; i++) {
+        printCli("| %*s | %*s |", -22, "Sensor property index:", -30, "Sensor property value:");
+        for (uint8_t i = 1; i < 255; i++) {
             if (rc = static_cast<senseBase*>(p_cliContext)->getProperty(i, property)) {
                 if (rc == RC_NOT_FOUND_ERR)
                     break;
                 notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Sensor property %i, return code: %i", i, rc);
                 return;
             }
-            printCli("%i\t\t\t%s\n", i, property);
+            printCli("| %*i | %*s |", -26, i, -30, property);
         }
         printCli("END");
         acceptedCliCommand(CLI_TERM_QUIET);
     }
 }
+
 void senseBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
-    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+    if (!cmd.getArgument(1) || !cmd.getArgument(2) || cmd.getArgument(3)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
     if (rc = static_cast<senseBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str())) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
+        if (rc == RC_NOT_CONFIGURED_ERR)
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor property %i, sensor not configured", atoi(cmd.getArgument(1).getValue().c_str()));
+        else if (rc == RC_DEBUG_NOT_SET_ERR)
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor property %i, debug-flag not set, use\"set debug\"", atoi(cmd.getArgument(1).getValue().c_str()));
+        else
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Sensor property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);

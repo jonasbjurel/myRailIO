@@ -84,8 +84,6 @@ rc_t fileSys::getFile(const char* p_fileName, char* p_buff, uint p_buffSize,
         return RC_NOT_FOUND_ERR;
     }
     *p_readSize = fread(p_buff, 1, p_buffSize, fp);
-	Serial.printf("############# Read size: %d" CR, *p_readSize);
-	Serial.printf("############# Read buffer: %d" CR, strlen(p_buff));
     fclose(fp);
     return RC_OK;
 }

@@ -31,14 +31,14 @@
 
 
 /*==============================================================================================================================================*/
-/* Class: "sat(Satelite)"                                                                                                                       */
+/* Class: "sat(Satellite)"                                                                                                                       */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
 
 sat::sat(uint8_t p_satAddr, satLink* p_linkHandle) : systemState(p_linkHandle), globalCli(SAT_MO_NAME, SAT_MO_NAME, p_satAddr, p_linkHandle) {
     asprintf(&logContextName, "%s/%s-%i", p_linkHandle->getLogContextName(), "sat", p_satAddr);
-    LOG_INFO("%s: Creating Satelite (sat)" CR, logContextName);
+    LOG_INFO("%s: Creating Satellite (sat)" CR, logContextName);
     linkHandle = p_linkHandle;
     satLinkNo = linkHandle->getLink();
     satAddr = p_satAddr;
@@ -149,6 +149,7 @@ void sat::onConfig(tinyxml2::XMLElement* p_satXmlElement) {
         panic("%s: SystemNane missing", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_SAT_SYSNAME]);
     if (!xmlconfig[XML_SAT_USRNAME]) {
         LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_SAT_SYSNAME]);
         xmlconfig[XML_SAT_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_SAT_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_SAT_SYSNAME]) + 15];
@@ -315,16 +316,16 @@ void sat::up(void) {
     satLibHandle->satRegSenseCb(onSenseChangeHelper, this);
 }
 
-void sat::onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists) {
+void sat::onDiscovered(satellite* p_satelliteLibHandle, uint8_t p_satAddr, bool p_exists) {
     uint8_t link;
     link = linkHandle->getLink();
     LOG_INFO("%s: sat discovered" CR, logContextName);
     if (p_satAddr != satAddr) {
-        panic("%s: Inconsistent satelite address provided", logContextName);
+        panic("%s: Inconsistent satellite address provided", logContextName);
         return;
     }
     if (p_exists) {
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         satLibHandle->satRegStateCb(onSatLibStateChangeHelper, this);
         satLibHandle->setErrTresh(SAT_LINKERR_HIGHTRES, SAT_LINKERR_LOWTRES);
         unSetOpStateByBitmap(OP_UNDISCOVERED);
@@ -347,7 +348,7 @@ void sat::down(void) {
     LOG_INFO("%s: Disabling sat" CR, logContextName);
     rc_t rc = satLibHandle->disableSat();
     if (rc){
-        panic("%s: Could not disable Satelite - return code %X", logContextName, rc);
+        panic("%s: Could not disable Satellite - return code %X", logContextName, rc);
         return;
     }
     satLibHandle->satUnRegSenseCb();
@@ -388,7 +389,7 @@ void sat::onPmPoll(void) {
         LOG_ERROR("%s: Failed to send PM report" CR, logContextName);
 }
 
-void sat::onSenseChangeHelper(satelite* p_satelite, uint8_t p_LinkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata) {
+void sat::onSenseChangeHelper(satellite* p_satellite, uint8_t p_LinkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata) {
     ((sat*)p_metadata)->onSenseChange(p_senseAddr, p_senseVal);
 }
 
@@ -396,10 +397,10 @@ void sat::onSenseChange(uint8_t p_senseAddr, bool p_senseVal) {
     if (!getOpStateBitmap() && p_senseAddr >= 0 && p_senseAddr < MAX_SENS)
         senses[p_senseAddr]->onSenseChange(p_senseVal);
     else
-        LOG_TERSE("%s: sat: Sensor has changed value to %i, but satelite is not OP_WORKING, doing nothing..." CR, logContextName, p_senseVal);
+        LOG_TERSE("%s: sat: Sensor has changed value to %i, but satellite is not OP_WORKING, doing nothing..." CR, logContextName, p_senseVal);
 }
 
-void sat::onSatLibStateChangeHelper(satelite * p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
+void sat::onSatLibStateChangeHelper(satellite * p_satelliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle) {
     ((sat*)p_satHandle)->onSatLibStateChange(p_satOpState);
 }
 
@@ -571,7 +572,7 @@ rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("%s: Cannot set System name as satelite is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot set System name as satellite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -584,7 +585,7 @@ rc_t sat::setUsrName(const char* p_usrName, bool p_force) {
 
 rc_t sat::getUsrName(char* p_userName, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("%s: Cannot get User name as satelite is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot get User name as satellite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     strcpy(p_userName, xmlconfig[XML_SAT_USRNAME]);
@@ -597,7 +598,7 @@ rc_t sat::setDesc(const char* p_description, bool p_force) {
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("%s: Cannot set Description as satelite is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Description as satellite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
@@ -610,7 +611,7 @@ rc_t sat::setDesc(const char* p_description, bool p_force) {
 
 rc_t sat::getDesc(char* p_desc, bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("%s: Cannot get Description as satelite is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot get Description as satellite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     strcpy(p_desc, xmlconfig[XML_SAT_DESC]);
@@ -619,22 +620,22 @@ rc_t sat::getDesc(char* p_desc, bool p_force) {
 
 rc_t sat::setAddr(uint8_t p_addr, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("%s: Cannot set Satelite address as debug is inactive" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Satellite address as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("%s: Cannot set Satelite address as Actuator is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Satellite address as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     else {
-        LOG_ERROR("%s: Cannot set Satelite Address - not supported" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Satellite Address - not supported" CR, logContextName);
         return RC_NOTIMPLEMENTED_ERR;
     }
 }
 
 uint8_t sat::getAddr(bool p_force) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED && !p_force) {
-        LOG_ERROR("%s: Cannot get Satelite adress as Satelite is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot get Satellite adress as Satellite is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     return satAddr;
@@ -695,10 +696,10 @@ void sat::onCliGetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p
     }
     uint8_t address;
     if ((address = static_cast<sat*>(p_cliContext)->getAddr()) == RC_NOT_CONFIGURED_ERR) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satelite address, satelite not configured");
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satellite address, satellite not configured");
         return;
     }
-    printCli("Satelite address: %i", address);
+    printCli("Satellite address: %i", address);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -712,13 +713,13 @@ void sat::onCliSetAddrHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p
     if (rc = static_cast<sat*>(p_cliContext)->setAddr(atoi(cmd.getArgument(1).getValue().c_str()))) {
         switch (rc) {
         case RC_DEBUG_NOT_SET_ERR:
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address port, debug flag not set, see: \"set debug\"");
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satellite address port, debug flag not set, see: \"set debug\"");
             break;
         case RC_NOTIMPLEMENTED_ERR:
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address, not implemented");
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satellite address, not implemented");
             break;
         default:
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite address, return code: %i", rc);
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satellite address, return code: %i", rc);
             break;
         }
         return;
@@ -732,7 +733,7 @@ void sat::onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite RX CRC errors: %i", static_cast<sat*>(p_cliContext)->getRxCrcErrs());
+    printCli("Satellite RX CRC errors: %i", static_cast<sat*>(p_cliContext)->getRxCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -752,7 +753,7 @@ void sat::onCliGetTxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite TX CRC errors: %i", static_cast<sat*>(p_cliContext)->getTxCrcErrs());
+    printCli("Satellite TX CRC errors: %i", static_cast<sat*>(p_cliContext)->getTxCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -773,7 +774,7 @@ void sat::onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t*
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite watchdog errors: %i", static_cast<sat*>(p_cliContext)->getWdErrs());
+    printCli("Satellite watchdog errors: %i", static_cast<sat*>(p_cliContext)->getWdErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 

@@ -251,9 +251,7 @@ class syncMqttRequest():
             self._timeout : int = timeout
         self._responsePayload : str = None
         #self._syncRequestSemaphore : threading.Semaphore = threading.Semaphore(1)
-        print("@@@@@@@@Creating semaphore 0")
         self._syncRequestSemaphore : threading.Lock = threading.Lock()
-        print("@@@@@@@@Aquire semaphore 1")
         self._syncRequestSemaphore.acquire()
         self._mqttClient.subscribeTopic(self._responseTopic, self._getResponse)
         self._syncRequestReentranceLock : threading.Lock = threading.Lock()
@@ -264,7 +262,6 @@ class syncMqttRequest():
         self.mqttClient.unSubscribeTopic(self._responseTopic, self._getResponse)
         self._delete = True
         try:
-            print("@@@@@@@@Release semaphore 2")
             self._syncRequestSemaphore.release()
         except:
             pass
@@ -273,17 +270,13 @@ class syncMqttRequest():
         if not self._syncRequestReentranceLock.acquire(blocking = False):
             return None
         self._responsePayload = None
-        print(">>>>>>>>>Sending request")
         self._mqttClient.publish(self._requestTopic, self._requestPayload)
-        print(">>>>>>>>>Waiting for response")
         if not self._syncRequestSemaphore.acquire(timeout=self._timeout / 1000):
             trace.notify(DEBUG_ERROR, "MQTT sync request timed out for requestTopic: " + self._requestTopic + ", requestPayload: " + self._requestPayload + ", responseTopic" + self._responseTopic + ", timeout: " + str(self._timeout))
             self._syncRequestReentranceLock.release()
-            print(">>>>>>>>>Timeout")
             return None
         if self._delete:
             return None
-        print(">>>>>>>>>Serving response")
         self._syncRequestReentranceLock.release()
         trace.notify(DEBUG_ERROR, "MQTT sync request received a response: " + self._responsePayload + " for requestTopic: " + self._requestTopic + ", requestPayload: " + self._requestPayload + ", responseTopic" + self._responseTopic + ", timeout: " + str(self._timeout))
         return self._responsePayload
@@ -292,10 +285,7 @@ class syncMqttRequest():
         if not self._syncRequestReentranceLock.locked():
             return                                                                  # Ignore response if no one is still asking for it
         self._responsePayload = responsePayload
-        print("########Got response")
         self._syncRequestSemaphore.release()
-        print("########Released semaphore")
-
 
 #################################################################################################################################################
 # End Class: syncMqttRequest

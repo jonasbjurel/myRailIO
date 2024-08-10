@@ -392,7 +392,6 @@ class topDecoder(systemState, schema):
         return rc.OK
 
     def updateReq(self, child, source, uploadNReboot = True):
-        print(">>>>>>>>>>>>>>>> topDecoder received configuration updateReq()")
         if source == self:
             if self.updating:
                 return rc.ALREADY_EXISTS
@@ -460,11 +459,9 @@ class topDecoder(systemState, schema):
         print(self.sysNames)
         try:
             self.sysNames.index(sysName)
-            print(">>>>>>>>>>>>> sysName:" + sysName + " already exists")
             return rc.ALREADY_EXISTS
         except:
             self.sysNames.append(sysName)
-            print(">>>>>>>>>>>>> sysName " + sysName + " doesnt exists adding it")
             print(self.sysNames)
             return rc.OK
 

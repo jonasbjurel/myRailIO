@@ -704,18 +704,14 @@ class decoder(systemState, schema):
             trace.notify(DEBUG_ERROR, "Unknown log overload status: " + logOverloadStatus)
             
     def onCliAccess(self, topic, value):
-        print("///////////////// CLI access value: " + value)
         cliAccessStatusXmlTree = ET.ElementTree(ET.fromstring(value))
         if str(cliAccessStatusXmlTree.getroot().tag) != MQTT_DECODER_CLIACCESS_PAYLOAD_TAG:
             trace.notify(DEBUG_ERROR, "CLI access status message missformatted: " + value)
             return
         cliAccessStatus = cliAccessStatusXmlTree.getroot().text
-        print("///////////////// CLI access status: " + cliAccessStatus)
         if cliAccessStatus != "NONE":
-            print("///////////////// CLI RAISING ALARM")
             self.CLI_ACCESSalarm.raiseAlarm("Decoder is being accessed by a CLI user: " + cliAccessStatus)
         elif cliAccessStatus == "NONE":
-            print("///////////////// CLI CEASING ALARM")
             self.CLI_ACCESSalarm.ceaseAlarm("Decoder is no longer being accessed by a CLI user")
         else:
             trace.notify(DEBUG_ERROR, "Unknown CLI access status: " + cliAccessStatus)
@@ -756,12 +752,10 @@ class decoder(systemState, schema):
         weakSelf = weakref.ref(self, decoder.aboutToDelete)
         res = self.parent.decoderMacTopology.addTopologyMember(self.decoderSystemName.candidateValue, self.mac.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Decoder failed Mac-address topology validation for MAC: " + str(self.mac.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Decoder failed Mac-address topology validation for MAC: " + str(self.mac.candidateValue) + "return code: " + rc.getErrStr(res))
             return res
         res = self.parent.decoderUriTopology.addTopologyMember(self.decoderSystemName.candidateValue, self.decoderMqttURI.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Decoder failed URI topology validation for URI: " + str(self.decoderMqttURI.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Decoder failed URI topology validation for URI: " + str(self.decoderMqttURI.candidateValue) + "return code: " + rc.getErrStr(res))
             return res
         if len(self.lgLinks.candidateValue) > DECODER_MAX_LG_LINKS:

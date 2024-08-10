@@ -96,7 +96,7 @@
     <ClInclude Include="actMem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\genericIOSatellite\LIB\src\Satelite.h">
+    <ClInclude Include="..\..\..\..\genericIOSatellite\LIB\src\Satellite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cliCore.h">
@@ -206,7 +206,7 @@
     <ClCompile Include="actMem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\genericIOSatellite\LIB\src\Satelite.cpp">
+    <ClCompile Include="..\..\..\..\genericIOSatellite\LIB\src\Satellite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="globalCli.cpp">

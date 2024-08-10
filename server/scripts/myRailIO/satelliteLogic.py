@@ -456,7 +456,6 @@ class satellite(systemState, schema):
         weakSelf = weakref.ref(self, satellite.aboutToDelete)
         res = self.parent.satTopology.addTopologyMember(self.satSystemName.candidateValue, self.satLinkAddr.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Satellite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Satellite failed address/port topology validation for port/address: " + str(self.satLinkAddr.candidateValue) + rc.getErrStr(res))
             return res
         return rc.OK # Place holder for object config validation

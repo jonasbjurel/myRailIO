@@ -38,7 +38,7 @@
 #include "actTurn.h"
 #include "actLight.h"
 #include "actMem.h"
-#include "libraries/genericIOSatellite/LIB/src/Satelite.h"
+#include "libraries/genericIOSatellite/LIB/src/Satellite.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
@@ -68,8 +68,10 @@ class actMem;
 #define XML_ACT_PORT					3
 #define XML_ACT_TYPE					4
 #define XML_ACT_SUBTYPE					5
-#define XML_ACT_ADMSTATE				6
-//#define XML_ACT_PROPERTIES				7
+#define XML_ACT_PROPERTY1				6
+#define XML_ACT_PROPERTY2				7
+#define XML_ACT_PROPERTY3				8
+#define XML_ACT_ADMSTATE				9
 
 #define ACT_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "TURNOUT"))\
@@ -102,7 +104,7 @@ public:
 	rc_t init(void);
 	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement, bool p_twin = false);
 	rc_t start(void);
-	void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
+	void onDiscovered(satellite* p_satelliteLibHandle, bool p_exists);
 	static void onSysStateChangeHelper(const void* p_actBaseHandle, uint16_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
 	void failsafe(bool p_failsafe);
@@ -121,8 +123,8 @@ public:
 	rc_t getDesc(char* p_desc, bool p_force = false);
 	rc_t setPort(uint8_t p_port, bool p_force = false);
 	int8_t getPort(bool p_force = false);
-	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
-	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force = false);
+	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force = false);
+	rc_t getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force = false);
 	rc_t getShowing(char* p_showing, char* p_orderedShowing, bool p_force = false);
 	rc_t setShowing(const char* p_showing, bool p_force = false);
 	const char* getLogLevel(void);
@@ -153,7 +155,7 @@ private:
 	EXT_RAM_ATTR sysState_t prevSysState;
 	EXT_RAM_ATTR char* xmlconfig[7];
 	EXT_RAM_ATTR bool debug;
-	EXT_RAM_ATTR satelite* satLibHandle;
+	EXT_RAM_ATTR satellite* satLibHandle;
 	EXT_RAM_ATTR void* extentionActClassObj;
 };
 

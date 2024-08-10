@@ -1,0 +1,169 @@
+Configuration:
+==============
+Variable pointing to the genJMRIdecoder.xml file: System name: IMgenericDecoderConfigXml
+
+
+Topic:
+/trains/track/decoderMgmt/<decoderURI>/
+
+Payload:
+<Decoder>
+	<Top>
+		<Author>Jonas Bjurel</Author>
+		<Description>A lightgroup set definition for my MQTT evaluations</Description>
+		<Version>0.1</Version>
+		<Date>2021-03-31</Date>
+		<NTPServer>pool.ntp.org</NTPServer>
+		<TimeZone>1</TimeZone>
+		<RsyslogReceiver/>
+		<Loglevel>DEBUG_VERBOSE</Loglevel>
+		<PingPeriod>10.0</PingPeriod>
+	</Top>
+  <LgLink> #NEW
+    <linkNo>0</linkNo>
+		<Lightgroups>
+			<Lightgroup>
+        <LgSystemName>IF$vsm:Sweden-3HMS:SL-5HL($0001)</LgSystemName>
+        <LGAddr>1</LGAddr>
+				<LgType>Signal Mast</LgType>
+				<LgDesc>
+					<SmType>Signal Mast</SmType>
+					<SmDimTime>NORMAL</SmDimTime>
+					<SmFlashFreq>NORMAL</SmFlashFreq>
+					<SmFlashDuty>50</SmFlashDuty>		#Not supported by the decoder
+					<SmBrightness>NORMAL</SmBrightness>
+				</LgDesc>
+			</Lightgroup>
+			<Lightgroup>
+
+			</Lightgroup>
+		
+			<SignalMastDesc>
+				<Aspects>
+					<Aspect>
+						<AspectName>Stopp</AspectName>
+						<Mast>
+							<Type>Sweden-3HMS:SL-5HL></Type>
+							<Head>UNLIT</Head>
+							<Head>LIT</Head>
+							<Head>UNLIT</Head>
+							<Head>UNLIT</Head>
+							<Head>UNLIT</Head>
+							<NoofPxl>6</NoofPxl>
+						</Mast>
+						<Mast>
+							<Type>Sweden-3HMS:SL-3HL</Type>
+							<Head>UNLIT</Head>
+							<Head>LIT</Head>
+							<Head>UNLIT</Head>
+							<NoofPxl>3</NoofPxl>
+						</Mast>
+					</Aspect>
+						.
+					<Aspect>
+						<AspectName>Kör 80 - vänta - kör 40</AspectName>
+						<Mast>
+							<Type>Sweden-3HMS:SL-5HL</Type>
+							<Head>LIT</Head>
+							<Head>UNLIT</Head>
+							<Head>FLASH</Head>
+							<Head>UNLIT</Head>
+							<Head>UNLIT</Head>
+							<NoofPxl>6</NoofPxl>
+						</Mast>
+					</Aspect>
+				</Aspects> 
+			</SignalMastDesc>
+		</Lightgroups>
+  </LgLink>
+
+  <SatLink>
+    <LinkNo>0</LinkNo>
+    <Satelite>
+      <SystemName>GJSAT-MySatelite-0</SystemName>
+      <Address>0</Address>
+      <Actuators>
+        <Actuator>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>0</Port>
+          <Type>TURNOUT</Type>
+          <SubType>SERVO</SubType>
+          <ActDesc>
+            <Direction>NORMAL/INVERSE</Direction>
+            <ThrownPos>0-100</ThrownPos>
+            <ClosedPos>0-100</ClosedPos>
+            <Speed>0-100</Speed>
+          </ActDesc>
+        </Actuator>
+
+        <Actuator>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>1</Port>
+          <Type>TURNOUT</Type>
+          <SubType>SOLENOID</SubType>
+          <ActDesc>
+            <Direction>NORMAL/INVERSE</Direction>
+            <Pulse>0-255</Pulse>
+          </ActDesc>
+        </Actuator>
+
+        <Actuator>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>2</Port>
+          <Type>GENERIC</Type>
+          <SubType>PWM100/PWM1_25K/PULSE/ONOFF</SubType>
+          <ActDesc>
+            <Invert>YES/NO</Invert>
+          </ActDesc>
+        </Actuator>
+      </Actuators>
+      
+			<Sensors>
+				<Sensor>
+          <SystemName>GJSAT-MySatelite-0</SystemName>
+          <Port>0</Port>
+					<SensorType>BINARY</SensorType>
+					<SensorDesc>
+            <Invert>YES/NO</Invert>
+            <Filter>0-255</Filter>
+					</SensorDesc>
+				</Sensor>
+			</Sensors>
+    </Satelite>
+  </SatLink>
+</Decoder>
+
+
+Setting Aspects to the decoder:
+Normal aspects:
+Topic: /trains/track/lightgroups/lightgroup/<decoderURI>/<lgAddr>
+Payload: <Aspect>"aspect"</Aspect>
+
+Setting Fail aspects to the decoder, the decoder will also autonomously set a fail aspect when failed or disconnected - the fail aspect is all leds lit
+Topic: /trains/track/lightgroups/lightgroup/<decoderURI>
+Payload: <Aspect>"FAIL"</Aspect>
+
+Selftest aspects, the selftest goes on 10 seconds after the decoder connection has been established
+Topic: /trains/track/lightgroups/lightgroup/<decoderURI>
+Payload: <Aspect>"SELFTEST"</Aspect>
+
+Supervision:
+============
+Downstream:
+Topic:Topic:/trains/track/decoderSupervision/downstream/controller1.bjurel.com
+Payload: Dummy
+Upstream
+Topic:Topic:/trains/track/decoderSupervision/upstream/controller1.bjurel.com
+Payload: Dummy
+
+Opstatus:
+<Offline/>
+<Online/>
+
+Machine orders:
+<reboot/>
+
+
+  topDeoderCordidinator("C:\Users\jonas\OneDrive\Projects\ModelRailway\GenericJMRIdecoder\Server\config\genJMRIdecoder.xml")
+
+  2Head_Dec1 !*[Decoder:decoder1.jmri.bjurel.com, Sequence:8, Brightness:Normal, DimTime:Normal, FlashFreq:Normal,  FlashDuty:50 ]*!

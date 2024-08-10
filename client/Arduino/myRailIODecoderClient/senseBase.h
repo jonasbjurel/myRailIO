@@ -35,7 +35,7 @@
 #include "wdt.h"
 #include "globalCli.h"
 #include "sat.h"
-#include "libraries/genericIOSatellite/LIB/src/Satelite.h"
+#include "libraries/genericIOSatellite/LIB/src/Satellite.h"
 #include "senseDigital.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
@@ -65,7 +65,10 @@ class senseDigital;
 #define XML_SENS_DESC					2
 #define XML_SENS_PORT					3
 #define XML_SENS_TYPE					4
-#define XML_SENS_ADMSTATE				5
+#define XML_SENS_PROPERTY1				5
+#define XML_SENS_PROPERTY2				6
+#define XML_SENS_PROPERTY3				7
+#define XML_SENS_ADMSTATE				8
 
 #define SENSE_CALL_EXT(ext_p, type, method)\
 		if(!strcmp(type, "DIGITAL"))\
@@ -90,7 +93,7 @@ public:
 	rc_t init(void);
 	void onConfig(const tinyxml2::XMLElement* p_sensXmlElement);
 	rc_t start(void);
-	void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
+	void onDiscovered(satellite* p_satelliteLibHandle, bool p_exists);
 	void onSenseChange(bool p_senseVal);
 	static void onSystateChangeHelper(const void* p_senseBaseHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
@@ -110,8 +113,8 @@ public:
 	rc_t getDesc(char* p_desc, bool p_force = false);
 	rc_t setPort(uint8_t p_port, bool p_force = false);
 	uint8_t getPort(bool p_force = false);
-	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force = false);
-	rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force = false);
+	rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force = false);
+	rc_t getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force = false);
 	rc_t getSensing(char* p_sensing);
 	const char* getLogLevel(void);
 	void setDebug(bool p_debug);
@@ -140,7 +143,7 @@ private:
 	EXT_RAM_ATTR sysState_t prevSysState;
 	EXT_RAM_ATTR char* xmlconfig[6];
 	EXT_RAM_ATTR bool debug;
-	EXT_RAM_ATTR satelite* satLibHandle;
+	EXT_RAM_ATTR satellite* satLibHandle;
 	EXT_RAM_ATTR void* extentionSensClassObj;
 };
 

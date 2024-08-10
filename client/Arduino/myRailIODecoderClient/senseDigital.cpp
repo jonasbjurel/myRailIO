@@ -67,10 +67,10 @@ rc_t senseDigital::start(void) {
     return RC_OK;
 }
 
-void senseDigital::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+void senseDigital::onDiscovered(satellite* p_satelliteLibHandle, bool p_exists) {
     if (p_exists) {
         LOG_INFO("%s: sensor discovered" CR, logContextName);
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         satLibHandle->setSenseFilter(DEFAULT_SENS_FILTER_TIME, sensPort);
     }
     else {
@@ -114,13 +114,9 @@ void senseDigital::failsafe(bool p_failSafe) {
     }
 }
 
+//REMOVE PART OF BASE CLASS
 rc_t senseDigital::setProperty(const uint8_t p_propertyId, const char* p_propertyValue) {
     LOG_INFO("%s: Setting Digital sensor property Id %d, property value %s" CR, logContextName, p_propertyId, p_propertyValue);
-    return RC_NOTIMPLEMENTED_ERR;
-    //......
-}
-
-rc_t senseDigital::getProperty(uint8_t p_propertyId, const char* p_propertyValue) {
     return RC_NOTIMPLEMENTED_ERR;
     //......
 }

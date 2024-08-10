@@ -35,11 +35,11 @@ MQTT_LOG_TOPIC = "track/log/"
 MQTT_ASPECT_TOPIC = "track/lightgroups/lightgroup/"
 MQTT_TURNOUT_TOPIC = "track/turnout/"
 MQTT_LIGHT_TOPIC = "track/light/"
-MQTT_SATLINK_ADMBLOCK_TOPIC = "track/sateliteLink/admblock/"
-MQTT_SATLINK_OPBLOCK_TOPIC = "track/sateliteLink/opblock/"
-MQTT_SAT_ADMBLOCK_TOPIC = "track/satelite/admblock/"
-MQTT_SAT_OPBLOCK_TOPIC = "track/satelite/opblock/"
-MQTT_SAT_PANIC_TOPIC = "track/satelite/panic/" # IS NOT USED
+MQTT_SATLINK_ADMBLOCK_TOPIC = "track/satelliteLink/admblock/"
+MQTT_SATLINK_OPBLOCK_TOPIC = "track/satelliteLink/opblock/"
+MQTT_SAT_ADMBLOCK_TOPIC = "track/satellite/admblock/"
+MQTT_SAT_OPBLOCK_TOPIC = "track/satellite/opblock/"
+MQTT_SAT_PANIC_TOPIC = "track/satellite/panic/" # IS NOT USED
 
 # MQTT payload
 # ------------

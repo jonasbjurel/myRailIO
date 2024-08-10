@@ -83,11 +83,11 @@ rc_t actTurn::start(void) {
     return RC_OK;
 }
 
-void actTurn::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+void actTurn::onDiscovered(satellite* p_satelliteLibHandle, bool p_exists) {
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_TURN_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
     if(p_exists){
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         LOG_INFO("%s: Subscribing to turn-out orders" CR, logContextName);
         if (mqtt::subscribeTopic(subscribeTopic, onActTurnChangeHelper, this)){
             panic("%s: Failed to suscribe to turn-out order topic \"%s\"", logContextName, subscribeTopic);
@@ -249,10 +249,6 @@ void actTurn::failsafe(bool p_failSafe) {
 
 rc_t actTurn::setProperty(uint8_t p_propertyId, const char* p_propertyVal){
     LOG_INFO("%s: Setting of Turn property not implemented" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
-}
-rc_t actTurn::getProperty(uint8_t p_propertyId, char* p_propertyVal){
-    LOG_INFO("%s: Getting of Turn property not implemented" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 

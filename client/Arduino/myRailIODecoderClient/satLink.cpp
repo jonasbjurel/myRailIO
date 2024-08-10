@@ -31,7 +31,7 @@
 
 
 /*==============================================================================================================================================*/
-/* Class: "satLink(Satelite Link)"                                                                                                              */
+/* Class: "satLink(Satellite Link)"                                                                                                              */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
@@ -44,8 +44,8 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     satLinkScanDisabled = true;
     debug = false;
     //We need to have this early since RMT requires internal RAM
-    satLinkLibHandle = new (heap_caps_malloc(sizeof(sateliteLink), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) \
-        sateliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
+    satLinkLibHandle = new (heap_caps_malloc(sizeof(satelliteLink), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) \
+        satelliteLink(linkNo, (gpio_num_t)(SATLINK_TX_PINS[p_linkNo]),
         (gpio_num_t)(SATLINK_RX_PINS[p_linkNo]),
         (rmt_channel_t)(SATLINK_RMT_TX_CHAN[p_linkNo]),
         (rmt_channel_t)(SATLINK_RMT_RX_CHAN[p_linkNo]),
@@ -55,7 +55,7 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
         CPU_SATLINK_CORE[p_linkNo],
         SATLINK_UPDATE_MS);
     if (satLinkLibHandle == NULL) {
-        panic("%s: Could not create satelite link library object for link channel", logContextName);
+        panic("%s: Could not create satellite link library object for link channel", logContextName);
         return;
     }
     char sysStateObjName[20];
@@ -78,7 +78,7 @@ satLink::satLink(uint8_t p_linkNo, decoder* p_decoderHandle) : systemState(p_dec
     xmlconfig[XML_SATLINK_DESC] = NULL;
     xmlconfig[XML_SATLINK_LINK] = NULL;
     xmlconfig[XML_SATLINK_ADMSTATE] = NULL;
-    satLinkLibHandle->satLinkRegSatDiscoverCb(&onDiscoveredSateliteHelper, this);
+    satLinkLibHandle->satLinkRegSatDiscoverCb(&onDiscoveredSatelliteHelper, this);
     satLinkLibHandle->satLinkRegStateCb(&onSatLinkLibStateChangeHelper, this);
     satLinkLibHandle->setErrTresh(SATLINK_LINKERR_HIGHTRES, SATLINK_LINKERR_LOWTRES);
     txUnderunErr = 0;
@@ -160,11 +160,11 @@ rc_t satLink::init(void) {
     regCmdMoArg(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, onCliClearWdErrsHelper);
     regCmdHelp(CLEAR_CLI_CMD, SATLINK_MO_NAME, SATLINKWDERRS_SUB_MO_NAME, SATLINK_CLEAR_WDERRS_HELP_TXT);
     LOG_INFO("%s: specific satLink CLI methods registered" CR, logContextName);
-    LOG_INFO("%s: Creating satelites for link channel %d" CR, logContextName);
-    for (uint8_t satAddress = 0; satAddress < MAX_SATELITES; satAddress++) {
+    LOG_INFO("%s: Creating satellites for link channel %d" CR, logContextName);
+    for (uint8_t satAddress = 0; satAddress < MAX_SATELLITES; satAddress++) {
         sats[satAddress] = new (heap_caps_malloc(sizeof(sat), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) sat(satAddress, this);
         if (sats[satAddress] == NULL){
-            panic("%s: Could not create satelite object", logContextName);
+            panic("%s: Could not create satellite object", logContextName);
             return RC_OUT_OF_MEM_ERR;
         }
         addSysStateChild(sats[satAddress]);
@@ -193,6 +193,7 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
         panic("%s: SystemName missing", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_SATLINK_SYSNAME]);
     if (!xmlconfig[XML_SATLINK_USRNAME]){
         LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_SATLINK_SYSNAME]);
         xmlconfig[XML_SATLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_SATLINK_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_SATLINK_SYSNAME]) + 15];
@@ -231,10 +232,10 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
     LOG_INFO("%s: Link: %s" CR, logContextName, xmlconfig[XML_SATLINK_LINK]);
     LOG_INFO("%s: satLink admin state: %s" CR, logContextName, xmlconfig[XML_SATLINK_ADMSTATE]);
     vTaskDelay(5 / portTICK_PERIOD_MS);
-    //CONFIFIGURING SATELITES
-    LOG_INFO("%s: Configuring Satelites" CR, logContextName);
+    //CONFIFIGURING SATELLITES
+    LOG_INFO("%s: Configuring Satellites" CR, logContextName);
     tinyxml2::XMLElement* satXmlElement;
-    if (satXmlElement = ((tinyxml2::XMLElement*)p_satLinkXmlElement)->FirstChildElement("Satelite")) {
+    if (satXmlElement = ((tinyxml2::XMLElement*)p_satLinkXmlElement)->FirstChildElement("Satellite")) {
         const char* satSearchTags[4];
         satSearchTags[XML_SAT_SYSNAME] = NULL;
         satSearchTags[XML_SAT_USRNAME] = NULL;
@@ -244,8 +245,8 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
             char* satXmlConfig[4] = { NULL };
             if (satXmlElement == NULL)
                 break;
-            if (satItter >= MAX_SATELITES){
-                panic("%s: More than maximum sats provided (%i/%i)", logContextName, satItter, MAX_SATELITES);
+            if (satItter >= MAX_SATELLITES){
+                panic("%s: More than maximum sats provided (%i/%i)", logContextName, satItter, MAX_SATELLITES);
                 return;
             }
             getTagTxt(satXmlElement->FirstChildElement(), satSearchTags, satXmlConfig, sizeof(satSearchTags) / 4); // Need to fix the addressing for portability
@@ -253,24 +254,24 @@ void satLink::onConfig(tinyxml2::XMLElement* p_satLinkXmlElement) {
                 panic("%s: satLink address missing", logContextName);
                 return;
             }
-            if ((atoi(satXmlConfig[XML_SAT_ADDR])) < 0 || atoi(satXmlConfig[XML_SAT_ADDR]) >= MAX_SATELITES){
+            if ((atoi(satXmlConfig[XML_SAT_ADDR])) < 0 || atoi(satXmlConfig[XML_SAT_ADDR]) >= MAX_SATELLITES){
                 panic("%s: satLink address (%i) out of bounds", logContextName, atoi(satXmlConfig[XML_SAT_ADDR]));
                 return;
             }
             LOG_INFO("%s: Configuring satLink" CR, logContextName);
             sats[atoi(satXmlConfig[XML_SAT_ADDR])]->onConfig(satXmlElement);
-            satXmlElement = ((tinyxml2::XMLElement*)satXmlElement)->NextSiblingElement("Satelite");
+            satXmlElement = ((tinyxml2::XMLElement*)satXmlElement)->NextSiblingElement("Satellite");
             vTaskDelay(5 / portTICK_PERIOD_MS);
         }
     }
     else
-        LOG_WARN("%s: No Satelites provided, no Satelites will be configured" CR, logContextName);
+        LOG_WARN("%s: No Satellites provided, no Satellites will be configured" CR, logContextName);
     unSetOpStateByBitmap(OP_UNCONFIGURED);
     LOG_INFO("%s: satLink configuration successfully finished" CR, logContextName);
 }
 
 rc_t satLink::start(void) {
-    LOG_INFO("%s: Starting Satelite link" CR, logContextName);
+    LOG_INFO("%s: Starting Satellite link" CR, logContextName);
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         LOG_INFO("%s: satLink not configured - will not start it" CR, logContextName);
         setOpStateByBitmap(OP_UNUSED);
@@ -290,12 +291,12 @@ rc_t satLink::start(void) {
         panic("%s: Failed to suscribe to opState topic: \"%s\"", logContextName, suscribeTopic);
         return RC_GEN_ERR;
     }
-    for (uint16_t satItter = 0; satItter < MAX_SATELITES; satItter++) {
+    for (uint16_t satItter = 0; satItter < MAX_SATELLITES; satItter++) {
         sats[satItter]->start();
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
     unSetOpStateByBitmap(OP_INIT);
-    LOG_INFO("%s: satLink and all its satelites have started" CR, logContextName);
+    LOG_INFO("%s: satLink and all its satellites have started" CR, logContextName);
     return RC_OK;
 }
 
@@ -346,17 +347,17 @@ void satLink::up(void) {
 	xSemaphoreGive(upDownLock);
 }
 
-void satLink::onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
+void satLink::onDiscoveredSatelliteHelper(satellite* p_satelliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle) {
     if (p_satLink != ((satLink*)p_satLinkHandle)->linkNo) {
         panic("Inconsistant link number, expected %i, got %i", ((satLink*)p_satLinkHandle)->linkNo, p_satLink);
         return;
     }
-    if ((p_satAddr >= MAX_SATELITES) && p_exists) {
-        panic("More than maximum (%i) allowed satelites discovered (%i) on the link", MAX_SATELITES, p_satAddr + 1);
+    if ((p_satAddr >= MAX_SATELLITES) && p_exists) {
+        panic("More than maximum (%i) allowed satellites discovered (%i) on the link", MAX_SATELLITES, p_satAddr + 1);
         return;
     }
     if (p_exists) {
-    ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_sateliteLibHandle, p_satAddr, p_exists);
+    ((satLink*)p_satLinkHandle)->sats[p_satAddr]->onDiscovered(p_satelliteLibHandle, p_satAddr, p_exists);
     }
 }
 
@@ -434,7 +435,7 @@ void satLink::onPmPoll(void) {
         if (mqtt::sendMsg(publishPmTopic, publishPmPayload, false)) {
             LOG_ERROR("%s: Failed to send PM report" CR, logContextName);
         }
-        for (uint8_t i = 0; i < MAX_SATELITES; i++) {
+        for (uint8_t i = 0; i < MAX_SATELLITES; i++) {
             sats[i]->onPmPoll();
         }
         if ((int)(delay = nextLoopTime - esp_timer_get_time()) > 0){
@@ -446,7 +447,7 @@ void satLink::onPmPoll(void) {
     vTaskDelete(NULL);
 }
 
-void satLink::onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandler, uint8_t p_linkAddr, satOpState_t p_satOpState, void* p_satLinkHandler) {
+void satLink::onSatLinkLibStateChangeHelper(satelliteLink* p_satelliteLinkLibHandler, uint8_t p_linkAddr, satOpState_t p_satOpState, void* p_satLinkHandler) {
     ((satLink*)p_satLinkHandler)->onSatLinkLibStateChange(p_satOpState);
 }
 
@@ -631,20 +632,20 @@ rc_t satLink::getDesc(char* p_desc, bool p_force) {
 
 rc_t satLink::setLink(uint8_t p_link, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("%s: Cannot set Satelite link No as debug is inactive" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Satellite link No as debug is inactive" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     else if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
-        LOG_ERROR("%s: Cannot set Satelite link No as satLink is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Satellite link No as satLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    LOG_ERROR("%s: Cannot set Satelite link No - not supported" CR, logContextName);
+    LOG_ERROR("%s: Cannot set Satellite link No - not supported" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 
 uint8_t satLink::getLink(bool p_force) {
     if ((systemState::getOpStateBitmap() & OP_UNCONFIGURED) && !p_force) {
-        LOG_ERROR("%s: Cannot get Satelite link No as satLink is not configured" CR, logContextName);
+        LOG_ERROR("%s: Cannot get Satellite link No as satLink is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
     return linkNo;
@@ -732,7 +733,7 @@ void satLink::clearWdErrs(void) {
     wdErr = 0;
 }
 
-//Statistics not yet existing from the Satelite library
+//Statistics not yet existing from the Satellite library
 //int64_t satLink::getMeanLatency(void) {}
 //int64_t satLink::getMaxLatency(void) {}
 //void satLink::clearMaxLatency(void) {}
@@ -753,10 +754,10 @@ void satLink::onCliGetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_
     }
     uint8_t link;
     if ((link = static_cast<satLink*>(p_cliContext)->getLink()) == RC_NOT_CONFIGURED_ERR) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satelitelink address, satelitelink not configured");
+        notAcceptedCliCommand(CLI_GEN_ERR, "Could not get satellitelink address, satellitelink not configured");
         return;
     }
-    printCli("Satelite-link: %i", link);
+    printCli("Satellite-link: %i", link);
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -770,13 +771,13 @@ void satLink::onCliSetLinkHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_
     if (rc = static_cast<satLink*>(p_cliContext)->setLink(atoi(cmd.getArgument(1).getValue().c_str()))) {
         switch (rc) {
         case RC_DEBUG_NOT_SET_ERR:
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite link address, debug flag not set, see: \"set debug\"");
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satellite link address, debug flag not set, see: \"set debug\"");
             break;
         case RC_NOTIMPLEMENTED_ERR:
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite link address, not implemented");
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satellite link address, not implemented");
             break;
         default:
-            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satelite link address, return code: %i", rc);
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Satellite link address, return code: %i", rc);
             break;
         }
         return;
@@ -790,7 +791,7 @@ void satLink::onCliGetTxUnderrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCm
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i TX-underruns: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getTxUnderruns());
+    printCli("Satellite-link %i TX-underruns: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getTxUnderruns());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -810,7 +811,7 @@ void satLink::onCliGetRxOverrrunsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCm
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i RX-overruns: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getTxUnderruns());
+    printCli("Satellite-link %i RX-overruns: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getTxUnderruns());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -830,7 +831,7 @@ void satLink::onCliGetScanTimingViolationsHelper(cmd* p_cmd, cliCore* p_cliConte
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i RX-Timing-violations: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getScanTimingViolations());
+    printCli("Satellite-link %i RX-Timing-violations: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getScanTimingViolations());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -850,7 +851,7 @@ void satLink::onCliGetRxCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdT
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i RX-CRC-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxCrcErrs());
+    printCli("Satellite-link %i RX-CRC-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -870,7 +871,7 @@ void satLink::onCliGetRemoteCrcErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cli
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i Remote-CRC-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRemoteCrcErrs());
+    printCli("Satellite-link %i Remote-CRC-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRemoteCrcErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -890,7 +891,7 @@ void satLink::onCliGetRxSymbolErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliC
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i RX-Symbol-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxSymbolErrs());
+    printCli("Satellite-link %i RX-Symbol-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxSymbolErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -910,7 +911,7 @@ void satLink::onCliGetRxDataSizeErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i RX-Size-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxDataSizeErrs());
+    printCli("Satellite-link %i RX-Size-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getRxDataSizeErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 
@@ -930,7 +931,7 @@ void satLink::onCliGetWdErrsHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTabl
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
-    printCli("Satelite-link %i Watchdog-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getWdErrs());
+    printCli("Satellite-link %i Watchdog-Errors: %i", static_cast<satLink*>(p_cliContext)->getLink(), static_cast<satLink*>(p_cliContext)->getWdErrs());
     acceptedCliCommand(CLI_TERM_QUIET);
 }
 

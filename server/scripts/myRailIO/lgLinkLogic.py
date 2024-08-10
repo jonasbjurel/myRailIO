@@ -420,7 +420,6 @@ class lgLink(systemState, schema):
         weakSelf = weakref.ref(self, lgLink.aboutToDelete)
         res = self.parent.lgLinkTopology.addTopologyMember(self.lgLinkSystemName.candidateValue, self.lgLinkNo.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Lightgroup Link failed address/port topology validation for Link No: " + str(self.lgLinkNo.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Lightgroup Link failed address/port topology validation for Link No: " + str(self.lgLinkNo.candidateValue) + rc.getErrStr(res))
             return res
         if len(self.lightGroups.candidateValue) > LG_LINK_MAX_LIGHTGROUPS:

@@ -254,8 +254,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "inhibited", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "timeout", 1, false);
 	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "actions", 1, false);
-	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expiries", 1, false);
-	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesedhit", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expires", 1, false);
+	regCmdFlagArg(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesthit", 1, false);
 	regCmdHelp(GET_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_GET_WDT_HELP_TXT);
 
 	regCmdMoArg(SHOW_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliShowWdt);
@@ -264,8 +264,8 @@ void globalCli::regGlobalCliMOCmds(void) {
 	regCmdMoArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliClearWdt);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "id", 1, true);
 	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "allstats", 1, false);
-	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expiries", 1, false);
-	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesedhit", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "expires", 1, false);
+	regCmdFlagArg(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, "closesthit", 1, false);
 	regCmdHelp(CLEAR_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, GLOBAL_CLEAR_WDT_HELP_TXT);
 
 	regCmdMoArg(STOP_CLI_CMD, GLOBAL_MO_NAME, WDT_SUB_MO_NAME, onCliStopWdt);
@@ -550,7 +550,7 @@ void globalCli::onCliHelp(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_du
 		return;
 	}
 	char* helpStr = new(heap_caps_malloc(sizeof(char[10000]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[10000];
-	if (getHelpStr(helpStr, getCliTypeByName(helpCmd), NULL, subMo, true, true)) {
+	if (getHelpStr(helpStr, getCliTypeByName(helpCmd), p_cliContext->getContextName(), subMo, true, true)) {
 		printCliNoFormat(helpStr);
 		acceptedCliCommand(CLI_TERM_QUIET);
 		delete helpStr;
@@ -699,13 +699,13 @@ void globalCli::processAvailCommands(bool p_all, bool p_help) {
 	for (uint16_t i = 0; i < commandTable->size(); i++) {
 		if (p_all) {
 			if (strcmp(commandTable->at(i)->mo, GLOBAL_MO_NAME) && strcmp(commandTable->at(i)->mo, COMMON_MO_NAME)) {
-				getHelpStr(helpStr, commandTable->at(i)->cmdType, NULL, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
+				getHelpStr(helpStr, commandTable->at(i)->cmdType, commandTable->at(i)->mo, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
 				printCommand(getCliNameByType(commandTable->at(i)->cmdType), commandTable->at(i)->mo, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "-", commandTable->at(i)->commandFlags ? commandTable->at(i)->commandFlags->getAllRegisteredStr(flags) : "", helpStr, false, p_all, p_help);
 			}
 		}
 		else{
 			if (!strcmp(commandTable->at(i)->mo, moType)) {
-				getHelpStr(helpStr, commandTable->at(i)->cmdType, NULL, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
+				getHelpStr(helpStr, commandTable->at(i)->cmdType, commandTable->at(i)->mo, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "", false, false);
 				printCommand(getCliNameByType(commandTable->at(i)->cmdType), commandTable->at(i)->mo, commandTable->at(i)->subMo ? commandTable->at(i)->subMo : "-", commandTable->at(i)->commandFlags ? commandTable->at(i)->commandFlags->getAllRegisteredStr(flags) : "", helpStr, false, p_all, p_help);
 			}
 		}
@@ -893,8 +893,8 @@ void globalCli::onCliStopCpu(cmd* p_cmd, cliCore* p_cliContext,
 	}
 	if ((p_cmdTable->commandFlags->isPresent("stats"))) {
 		if (!cpu::getPm()) {
-			notAcceptedCliCommand(CLI_GEN_ERR, "CPU statistics collection \
-												is already inactive");
+			notAcceptedCliCommand(CLI_GEN_ERR, "CPU statistics collection " \
+											   "already inactive");
 			LOG_VERBOSE_NOFMT("Cannot stop CPU statistics collection " \
 						 "- already inactive" CR);
 			return;
@@ -1876,12 +1876,12 @@ void globalCli::onCliGetWdt(cmd* p_cmd, cliCore* p_cliContext,
 		printCli(wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction));
 		cmdHandled = true;
 	}
-	else if (p_cmdTable->commandFlags->isPresent("expiries")) {
-		printCli("%i", wdtDescr->wdtExpiries);
+	else if (p_cmdTable->commandFlags->isPresent("expires")) {
+		printCli("%i", wdtDescr->wdtExpires);
 		cmdHandled = true;
 	}
-	else if (p_cmdTable->commandFlags->isPresent("closesedhit")) {
-		printCli("%i", wdtDescr->closesedhit * WD_TICK_MS);
+	else if (p_cmdTable->commandFlags->isPresent("closesthit")) {
+		printCli("%i", wdtDescr->closesthit * WD_TICK_MS);
 		cmdHandled = true;
 	}
 	if (cmdHandled)
@@ -1914,8 +1914,8 @@ void globalCli::showWdt(uint16_t p_wdtId) {
 		-10, "Inhibited:",
 		-13, "Timeout [ms]:",
 		-30, "Actions: ",
-		-9, "Expiries:",
-		-17, "Closesedhit [ms]:");
+		-9, "Expires:",
+		-17, "Closesthit [ms]:");
 	printCli("%s", wdtInfo);
 	if (p_wdtId != 0) {
 		char actionStr[31];
@@ -1929,8 +1929,8 @@ void globalCli::showWdt(uint16_t p_wdtId) {
 			-10, wdtDescr->isInhibited ? "True" : "False",
 			-13, wdtDescr->wdtTimeoutTicks * WD_TICK_MS,
 			-30, wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction),
-			-9, wdtDescr->wdtExpiries,
-			-17, wdtDescr->closesedhit * WD_TICK_MS);
+			-9, wdtDescr->wdtExpires,
+			-17, wdtDescr->closesthit * WD_TICK_MS);
 		printCli("%s", wdtInfo);
 		return;
 	}
@@ -1946,8 +1946,8 @@ void globalCli::showWdt(uint16_t p_wdtId) {
 			-10, wdtDescr->isInhibited? "True" : "False",
 			-13, wdtDescr->wdtTimeoutTicks * WD_TICK_MS,
 			-30, wdt::actionToStr(actionStr, 30, wdtDescr->wdtAction),
-			-9, wdtDescr->wdtExpiries,
-			-17, wdtDescr->closesedhit * WD_TICK_MS);
+			-9, wdtDescr->wdtExpires,
+			-17, wdtDescr->closesthit * WD_TICK_MS);
 		printCli("%s", wdtInfo);
 	}
 }
@@ -1978,16 +1978,16 @@ void globalCli::onCliClearWdt(cmd* p_cmd, cliCore* p_cliContext,
 		return;
 	}
 	if (p_cmdTable->commandFlags->isPresent("allstats")) {
-		wdt::clearExpiriesAll();
-		wdt::clearClosesedHitAll();
+		wdt::clearExpiresAll();
+		wdt::clearClosestHitAll();
 		cmdHandled = true;
 	}
-	else if (p_cmdTable->commandFlags->isPresent("expiries")) {
+	else if (p_cmdTable->commandFlags->isPresent("expires")) {
 		if (allIds) {
-			wdt::clearExpiriesAll();
+			wdt::clearExpiresAll();
 			cmdHandled = true;
 		}
-		else if (wdt::clearExpiries(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
+		else if (wdt::clearExpires(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
 			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
 								  "Watchdog Id: %s does not exist", p_cmdTable->commandFlags->isPresent("id")->getValue());
 			LOG_VERBOSE("Watchdog Id: %s does not exist" CR, p_cmdTable->commandFlags->isPresent("id")->getValue());
@@ -1996,12 +1996,12 @@ void globalCli::onCliClearWdt(cmd* p_cmd, cliCore* p_cliContext,
 		else
 			cmdHandled = true;
 	}
-	if (p_cmdTable->commandFlags->isPresent("closesedhit")) {
+	if (p_cmdTable->commandFlags->isPresent("closesthit")) {
 		if (allIds) {
-			wdt::clearClosesedHitAll();
+			wdt::clearClosestHitAll();
 			cmdHandled = true;
 		}
-		else if (wdt::clearClosesedHit(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
+		else if (wdt::clearClosestHit(atoi(p_cmdTable->commandFlags->isPresent("id")->getValue()))) {
 			notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR,
 				"Watchdog Id: %s does not exist", p_cmdTable->commandFlags->isPresent("id")->getValue());
 			LOG_VERBOSE("Watchdog Id: %s does not exist" CR, p_cmdTable->commandFlags->isPresent("id")->getValue());

@@ -2,6 +2,6 @@
 <myRailIOFilePreference>
 	<Path>C:/Users/jonas/OneDrive/Projects/ModelRailway/myRailIO/server/config</Path>
 	<FileName>C:/Users/jonas/OneDrive/Projects/ModelRailway/myRailIO/server/config/UserDescription.xml</FileName>
-	<AutoLoad>Yes</AutoLoad>
-	<AutoLoadDelay>10</AutoLoadDelay>
+	<AutoLoad>No</AutoLoad>
+	<AutoLoadDelay>0</AutoLoadDelay>
 </myRailIOFilePreference>

@@ -171,6 +171,7 @@ void lgLink::onConfig(const tinyxml2::XMLElement* p_lightgroupLinkXmlElement) {
         panic("%s: System name was not provided", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_LGLINK_SYSNAME]);
     if (!xmlconfig[XML_LGLINK_USRNAME]){
         LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName);
         xmlconfig[XML_LGLINK_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_LGLINK_SYSNAME]) + 15];

@@ -90,11 +90,11 @@ rc_t actMem::start(void) {
     return RC_OK;
 }
 
-void actMem::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+void actMem::onDiscovered(satellite* p_satelliteLibHandle, bool p_exists) {
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_MEM_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
     if (p_exists) {
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         LOG_INFO("%s: Subscribing to memory orders" CR, logContextName);
         if (mqtt::subscribeTopic(subscribeTopic, onActMemChangeHelper, this)) {
             panic("%s: Failed to suscribe to actMem order topic \"%s\"" CR, logContextName, subscribeTopic);
@@ -261,11 +261,6 @@ void actMem::failsafe(bool p_failSafe) {
 
 rc_t actMem::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
     LOG_INFO("%s: Setting of Memory property not implemented" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
-}
-
-rc_t actMem::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
-    LOG_INFO("%s: Getting of Memory property not implemented" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 

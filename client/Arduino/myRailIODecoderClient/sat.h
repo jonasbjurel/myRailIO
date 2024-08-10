@@ -36,7 +36,7 @@
 #include "satLink.h"
 #include "senseBase.h"
 #include "actBase.h"
-#include "libraries/genericIOSatellite/LIB/src/Satelite.h"
+#include "libraries/genericIOSatellite/LIB/src/Satellite.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
@@ -55,7 +55,7 @@ class actBase;
 
 
 /*==============================================================================================================================================*/
-/* Class: "sat(Satelite)"                                                                                                                       */
+/* Class: "sat(Satellite)"                                                                                                                       */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
@@ -74,13 +74,13 @@ public:
 	void onConfig(tinyxml2::XMLElement* p_satXmlElement);
 	rc_t start(void);
 	void up(void);
-	void onDiscovered(satelite* p_sateliteLibHandle, uint8_t p_satAddr, bool p_exists);
+	void onDiscovered(satellite* p_satelliteLibHandle, uint8_t p_satAddr, bool p_exists);
 	void down(void);
 	void failsafe(bool p_failsafe);
 	void onPmPoll(void);
-	static void onSatLibStateChangeHelper(satelite* p_sateliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle);
+	static void onSatLibStateChangeHelper(satellite* p_satelliteLibHandle, uint8_t p_linkAddr, uint8_t p_satAddr, satOpState_t p_satOpState, void* p_satHandle);
 	void onSatLibStateChange(satOpState_t p_satOpState);
-	static void onSenseChangeHelper(satelite* p_satelite, uint8_t p_linkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata);
+	static void onSenseChangeHelper(satellite* p_satellite, uint8_t p_linkAddr, uint8_t p_satAddr, uint8_t p_senseAddr, bool p_senseVal, void* p_metadata);
 	void onSenseChange(uint8_t p_senseAddr, bool p_senseVal);
 	static void onSysStateChangeHelper(const void* p_satHandle, sysState_t p_sysState);
 	void onSysStateChange(sysState_t p_sysState);
@@ -136,7 +136,7 @@ private:
 	EXT_RAM_ATTR sysState_t prevSysState;
 	EXT_RAM_ATTR bool satScanDisabled;
 	EXT_RAM_ATTR SemaphoreHandle_t satLock;
-	EXT_RAM_ATTR satelite* satLibHandle;
+	EXT_RAM_ATTR satellite* satLibHandle;
 	EXT_RAM_ATTR actBase* acts[MAX_ACT];
 	EXT_RAM_ATTR senseBase* senses[MAX_SENS];
 	EXT_RAM_ATTR uint32_t txUnderunErr;

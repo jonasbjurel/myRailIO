@@ -155,7 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\genericIOSatellite\LIB\src\Satelite.h" />
+    <ClInclude Include="..\..\..\..\genericIOSatellite\LIB\src\Satellite.h" />
     <ClInclude Include="actBase.h" />
     <ClInclude Include="actLight.h" />
     <ClInclude Include="actMem.h" />
@@ -198,7 +198,7 @@
     <ClInclude Include="__vm\.myRailIODecoderClient.vsarduino.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\genericIOSatellite\LIB\src\Satelite.cpp" />
+    <ClCompile Include="..\..\..\..\genericIOSatellite\LIB\src\Satellite.cpp" />
     <ClCompile Include="actBase.cpp" />
     <ClCompile Include="actLight.cpp" />
     <ClCompile Include="actMem.cpp" />

@@ -693,7 +693,7 @@ class alarmHandler:
 #                   <verbosity> : bool = False) -> None:
 #                                           Returns a list of formatted alarm table rows
 # -formatSelectedAlarmsCsv() -> str         Format the viewed (filtered) alarms into a csv table string
-# -formatAllAlarmsCsv() -> str              Format all alarms (no filtered) into a ´csv table
+# -formatAllAlarmsCsv() -> str              Format all alarms (no filtered) into a ï¿½csv table
 # -rowCount(<parent> : Any = Qt.QModelIndex()) -> int:
 #                                           Returns the current table view row count
 # -columnCount(<parent> : Any = Qt.QModelIndex()) -> int

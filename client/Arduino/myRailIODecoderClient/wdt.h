@@ -58,7 +58,7 @@ class wdt;
 /*          Watchdog kick actions can eather be used to try to remedy the failure which caused the watchdog to be kicked, or to set a failsafe  */
 /*            operation.                                                                                                                        */
 /*          Every time a watchdog is kicked - an expirey counter is incremented for that specific watchdog, and every hour, that expirey        */
-/*            is decremented by one. Should the expiriey counter reach MAX_EXPIRIES defined below, the watchdog will immediatly reboot the      */
+/*            is decremented by one. Should the expiriey counter reach MAX_EXPIRES defined below, the watchdog will immediatly reboot the      */
 /* Methods: See below.                                                                                                                          */
 /* Data structures: See below                                                                                                                   */
 /*==============================================================================================================================================*/
@@ -72,7 +72,7 @@ typedef uint8_t action_t ;                                                      
 #define FAULTACTION_ESCALATE_INTERGAP       1<<0                                    // If set, the escalation ladder from FAULTACTION_LOCAL0 to FAULTACTION_REBOOT will be intergapped with one WDT tick
 
 #define NO_OF_OUTSTANDING_WDT_TIMEOUT_JOBS  1                                       // Queue up to 1 outstanding jobs for the wdtHandlerBackend to keep up with
-#define WDT_MAX_EXPIRIES                    2                                       // Max number of watchdog expiries befor an unconditional reboot occurs
+#define WDT_MAX_EXPIRES                     2                                       // Max number of watchdog expires befor an unconditional reboot occurs
 
 #define CPU_WDT_BACKEND_TASKNAME            "Watchdog"                              // ISR Backend task
 #define CPU_WDT_BACKEND_STACKSIZE_1K        6                                       // ISR Backend task stack size, must be dimentioned to run the ISR backend + the action callbacks
@@ -104,8 +104,8 @@ struct wdt_t {                                                                  
     void* localCbParams;                                                            //   Local callback parameters
     bool ongoingWdtTimeout;                                                         //   A watchdog kick escalation ladder is running for this watchdog
     uint8_t wdtAction;                                                              //   action_t watchdog action/escalation ladder bitmap for this watchdog
-    uint16_t wdtExpiries;                                                           //   Number of watchdog kicks/expiries, decremented every hour.
-    uint32_t closesedhit;                                                           //   The closesed the watchdog has been from a kick (ms)
+    uint16_t wdtExpires;                                                           //   Number of watchdog kicks/expires, decremented every hour.
+    uint32_t closesthit;                                                           //   The closest the watchdog has been from a kick (ms)
 };
 
 typedef QList<wdt_t*> wdtDescrList_t;                                               // Type: List of watchdog descriptors
@@ -146,12 +146,12 @@ public:
     static bool getDebug(void);                                                     // Get debug mode
     static rc_t getWdtDescById(uint16_t p_id,                                       // Get watchdog descriptor by watchdog Id
                                wdt_t** p_descr);
-    static void clearExpiriesAll(void);                                             // Clear all watchdog expiries.
-    static rc_t clearExpiries(uint16_t p_id);                                       // Clear watchdog expiries by watchdog Id
-    void clearExpiries(void);                                                       // Clear watchdog expiries for current class object
-    static void clearClosesedHitAll(void);                                          // Clear all watchdog closesed hit
-    static rc_t clearClosesedHit(uint16_t p_id);                                    // Clear watchdog closesed hit by watchdog Id
-    void clearClosesedHit(void);                                                    // Clear watchdog closesed hit for current class object
+    static void clearExpiresAll(void);                                             // Clear all watchdog expires.
+    static rc_t clearExpires(uint16_t p_id);                                       // Clear watchdog expires by watchdog Id
+    void clearExpires(void);                                                       // Clear watchdog expires for current class object
+    static void clearClosestHitAll(void);                                          // Clear all watchdog closest hit
+    static rc_t clearClosestHit(uint16_t p_id);                                    // Clear watchdog closest hit by watchdog Id
+    void clearClosestHit(void);                                                    // Clear watchdog closest hit for current class object
     static rc_t inhibitAllWdtFeeds(bool p_inhibit);                                 // Inhibit feed of all watchdogs, leaving them to starve
     static rc_t inhibitWdtFeeds(uint16_t p_id,                                      // Inhibit feed of watchdog by Id, leaving it to starve
                                 bool p_inhibit);
@@ -190,7 +190,7 @@ private:
     static uint32_t currentWdtTick;                                                 // Current watchdog tick
     static uint32_t nextWdtTimeoutTick;                                             // Next watchdog tick needing care
     static bool outstandingWdtTimeout;                                              // A watchdog timeout/kick is being handled
-    static bool ageExpiries;                                                        // Indicates need for expiry aging (decreasing watch dog expiries)
+    static bool ageExpires;                                                         // Indicates need for expiry aging (decreasing watch dog expires )
     static bool debug;                                                              // Watchdog debug flag
 };
 

@@ -423,7 +423,6 @@ class satLink(systemState, schema):
         weakSelf = weakref.ref(self, satLink.aboutToDelete)
         res = self.parent.satLinkTopology.addTopologyMember(self.satLinkSystemName.candidateValue, self.satLinkNo.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Satellite Link failed address/port topology validation for Link No: " + str(self.satLinkNo.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Satellite Link failed address/port topology validation for Link No: " + str(self.satLinkNo.candidateValue) + rc.getErrStr(res))
             return res
         if len(self.satellites.candidateValue) > SATLINK_MAX_SATS:
