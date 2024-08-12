@@ -1,0 +1,269 @@
+<?xml version="1.0" ?>
+<genJMRI>
+	<Author>Jonas Bjurel</Author>
+	<Description>A Jonas genJMRI set definition for evaluations</Description>
+	<Version>2.0</Version>
+	<Date>2022-04-20</Date>
+	<Time>12:00:00</Time>
+	<gitBranch>Main</gitBranch>
+	<gitTag>MyGitTag</gitTag>
+	<gitUrl>my.git.com</gitUrl>
+	<VersionHistory>
+		<Version>
+			<VersionName>0.0</VersionName>
+			<Author>Jonas Bjurel</Author>
+			<Date>2022-02-01</Date>
+			<Time>11:00:00</Time>
+			<VersionDescription>Super early version description</VersionDescription>
+			<gitBranch/>
+			<gitTag/>
+			<gitUrl/>
+		</Version>
+		<Version>
+			<VersionName>1.0</VersionName>
+			<Author>Jonas Bjurel</Author>
+			<Date>2022-01-01</Date>
+			<Time>10:00:00</Time>
+			<VersionDescription>First test version description</VersionDescription>
+			<gitBranch/>
+			<gitTag/>
+			<gitUrl/>
+		</Version>
+	</VersionHistory>
+	<DecoderMqttURI>127.0.0.1</DecoderMqttURI>
+	<DecoderMqttPort>1883</DecoderMqttPort>
+	<DecoderMqttTopicPrefix>/trains/track</DecoderMqttTopicPrefix>
+	<DecoderPingPeriod>99.0</DecoderPingPeriod>
+	<JMRIRPCURI>127.0.0.2</JMRIRPCURI>
+	<JMRIRPCPortBase>8000</JMRIRPCPortBase>
+	<JMRIRpcKeepAlivePeriod>10.0</JMRIRpcKeepAlivePeriod>
+	<NTPServer>ntp.jmri.bjurel.com</NTPServer>
+	<NTPPort>123</NTPPort>
+	<TimeZoneGmtOffset>+1</TimeZoneGmtOffset>
+	<RSyslogServer>log.jmri.bjurel.com</RSyslogServer>
+	<RSyslogPort>514</RSyslogPort>
+	<RSyslogProtocol>TCP</RSyslogProtocol>
+	<LogLevel>DEBUG-VERBOSE</LogLevel>
+	<SNMPServer>snmp.jmri.bjurel.com</SNMPServer>
+	<SNMPPort>162</SNMPPort>
+	<SNMPProtocol>UDP</SNMPProtocol>
+	<TracksFailSafe>Yes</TracksFailSafe>
+	<DecodersFailSafe>Yes</DecodersFailSafe>
+	<AdminState>ENABLE</AdminState>
+	<Decoder>
+		<SystemName>GJD0-MyDecoder 0 SysName</SystemName>
+		<UserName>GJD0-MyDecoder 0 UsrName</UserName>
+		<Description>GJD0-MyDecoder 0 Desc</Description>
+		<MAC>E0:E2:E6:4C:14:34</MAC>
+		<URI>decoder0.jmri.bjurel.com</URI>
+		<AdminState>ENABLE</AdminState>
+		<LightgroupsLink>
+			<SystemName>GJLL-My Light groups link 0-0 SysName</SystemName>
+			<UserName>GJLL-My Light groups link 0-0 UsrName</UserName>
+			<Description>GJLL-My Light groups link 0-0 Desc</Description>
+			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
+			<Link>0</Link>
+			<AdminState>ENABLE</AdminState>
+			<LightGroup>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($100)</JMRISystemName>
+				<JMRIUserName>IF$vsm:Sweden-3HMS:SL-5HL($100) 0-0-0 UsrName</JMRIUserName>
+				<JMRIDescription>IF$vsm:Sweden-3HMS:SL-5HL($100) 0-0-0 Desc</JMRIDescription>
+				<Type>SIGNAL MAST</Type>
+				<LinkAddress>0</LinkAddress>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>SLOW</Property2>
+				<Property3>FAST</Property3>
+				<AdminState>ENABLE</AdminState>
+			</LightGroup>
+		</LightgroupsLink>
+		<LightgroupsLink>
+			<SystemName>GJLL-My Light groups link 0-1 SysName</SystemName>
+			<UserName>GJLL-My Light groups link 0-1 UsrName</UserName>
+			<Description>GJLL-My Light groups link 0-1 Desc</Description>
+			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
+			<Link>1</Link>
+			<AdminState>ENABLE</AdminState>
+			<LightGroup>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($101)</JMRISystemName>
+				<JMRIUserName>IF$vsm:My LightGroup 0-1-0 UsrName</JMRIUserName>
+				<JMRIDescription>IF$vsm:My LightGroup 0-1-0 Desc</JMRIDescription>
+				<Type>SIGNAL MAST</Type>
+				<LinkAddress>0</LinkAddress>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>NORMAL</Property2>
+				<Property3>NORMAL</Property3>
+				<AdminState>ENABLE</AdminState>
+			</LightGroup>
+		</LightgroupsLink>
+		<SateliteLink>
+			<SystemName>GJSL-My Satelite Link 0-0 SysName</SystemName>
+			<UserName>GJSL-My Satelite Link 0-0 UsrName</UserName>
+			<Description>GJSL-My Satelite Link 0-0 Desc</Description>
+			<Link>0</Link>
+			<AdminState>ENABLE</AdminState>
+			<Satelite>
+				<SystemName>GJSAT-My Satelite 0-0-0 SysName</SystemName>
+				<UserName>GJSAT-My Satelite 0-0-0 UsrName</UserName>
+				<Description>GJSAT-My Satelite 0-0-0 Desc</Description>
+				<Address>0</Address>
+				<AdminState>ENABLE</AdminState>
+				<Sensor>
+					<JMRISystemName>MS-MySensor 0-0-0-0 SysName</JMRISystemName>
+					<JMRIUserName>MySensor 0-0-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>MS-MySensor 0-0-0-0 Desc</JMRIDescription>
+					<Type>DIGITAL</Type>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Sensor>
+				<Actuator>
+					<JMRISystemName>MT-MyActuator 0-0-0-0 SysName</JMRISystemName>
+					<JMRIUserName>MT-MyActuator 0-0-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>MT-MyActuator 0-0-0-0 Desc</JMRIDescription>
+					<Type>TURNOUT</Type>
+					<SubType>SOLENOID</SubType>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Actuator>
+			</Satelite>
+		</SateliteLink>
+		<SateliteLink>
+			<SystemName>GJSL-My Satelite Link 0-1 SysName</SystemName>
+			<UserName>GJSL-My Satelite Link 0-1 UsrName</UserName>
+			<Description>GJSL-My Satelite Link 0-1 Desc</Description>
+			<Link>1</Link>
+			<AdminState>ENABLE</AdminState>
+			<Satelite>
+				<SystemName>GJSAT-My Satelite 0-1-0 SysName</SystemName>
+				<UserName>GJSAT-My Satelite 0-1-0 UsrName</UserName>
+				<Description>GJSAT-My Satelite 0-1-0 Desc</Description>
+				<Address>0</Address>
+				<AdminState>ENABLE</AdminState>
+				<Sensor>
+					<JMRISystemName>MS-MySensor 0-1-0-0 SysName</JMRISystemName>
+					<JMRIUserName>MySensor 0-1-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>MS-MySensor 0-1-0-0 Desc</JMRIDescription>
+					<Type>DIGITAL</Type>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Sensor>
+				<Actuator>
+					<JMRISystemName>MT-MyActuator 0-1-0-0 SysName</JMRISystemName>
+					<JMRIUserName>MT-MyActuator 0-1-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>MT-MyActuator 0-1-0-0 Desc</JMRIDescription>
+					<Type>TURNOUT</Type>
+					<SubType>SERVO</SubType>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Actuator>
+			</Satelite>
+		</SateliteLink>
+	</Decoder>
+	<Decoder>
+		<SystemName>GJD1-MyDecoder 1 SysName</SystemName>
+		<UserName>GJD1-MyDecoder 1 UsrName</UserName>
+		<Description>GJD1-MyDecoder 1 Desc</Description>
+		<MAC>01:23:45:67:89:AB</MAC>
+		<URI>decoder1.jmri.bjurel.com</URI>
+		<AdminState>ENABLE</AdminState>
+		<LightgroupsLink>
+			<SystemName>GJLL-My Light groups link 1-0 SysName</SystemName>
+			<UserName>GJLL-My Light groups link 1-0 UsrName</UserName>
+			<Description>GJLL-My Light groups link 1-0 Desc</Description>
+			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
+			<Link>0</Link>
+			<AdminState>ENABLE</AdminState>
+			<LightGroup>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($102)</JMRISystemName>
+				<JMRIUserName>IF$vsm:My LightGroup 1-0-0 UsrName</JMRIUserName>
+				<JMRIDescription>IF$vsm:My LightGroup 1-0-0 Desc</JMRIDescription>
+				<Type>SIGNAL MAST</Type>
+				<LinkAddress>0</LinkAddress>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>NORMAL</Property2>
+				<Property3>FAST</Property3>
+				<AdminState>ENABLE</AdminState>
+			</LightGroup>
+		</LightgroupsLink>
+		<LightgroupsLink>
+			<SystemName>GJLL-My Light groups link 1-1 SysName</SystemName>
+			<UserName>GJLL-My Light groups link 1-1 UsrName</UserName>
+			<Description>GJLL-My Light groups link 1-1 Desc</Description>
+			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
+			<Link>1</Link>
+			<AdminState>ENABLE</AdminState>
+			<LightGroup>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($103)</JMRISystemName>
+				<JMRIUserName>IF$vsm:My LightGroup 1-1-0 UsrName</JMRIUserName>
+				<JMRIDescription>IF$vsm:My LightGroup 1-1-0 Desc</JMRIDescription>
+				<Type>SIGNAL MAST</Type>
+				<LinkAddress>0</LinkAddress>
+				<Property1>SIGNAL MAST</Property1>
+				<Property2>FAST</Property2>
+				<Property3>NORMAL</Property3>
+				<AdminState>ENABLE</AdminState>
+			</LightGroup>
+		</LightgroupsLink>
+		<SateliteLink>
+			<SystemName>GJSL-My Satelite Link 1-0 SysName</SystemName>
+			<UserName>GJSL-My Satelite Link 1-0 UsrName</UserName>
+			<Description>GJSL-My Satelite Link 1-0 Desc</Description>
+			<Link>0</Link>
+			<AdminState>ENABLE</AdminState>
+			<Satelite>
+				<SystemName>GJSAT-My Satelite 1-0-0 SysName</SystemName>
+				<UserName>GJSAT-My Satelite 1-0-0 UsrName</UserName>
+				<Description>GJSAT-My Satelite 1-0-0 Desc</Description>
+				<Address>0</Address>
+				<AdminState>ENABLE</AdminState>
+				<Sensor>
+					<JMRISystemName>MS-MySensor 1-0-0-0 SysName</JMRISystemName>
+					<JMRIUserName>MySensor 1-0-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>MS-MySensor 1-0-0-0 Desc</JMRIDescription>
+					<Type>DIGITAL</Type>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Sensor>
+				<Actuator>
+					<JMRISystemName>ML-MyActuator 1-0-0-1 SysName</JMRISystemName>
+					<JMRIUserName>ML-MyActuator 1-0-0-1 UsrName</JMRIUserName>
+					<JMRIDescription>ML-MyActuator 1-0-0-1 Desc</JMRIDescription>
+					<Type>LIGHT</Type>
+					<SubType>PWM</SubType>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Actuator>
+			</Satelite>
+		</SateliteLink>
+		<SateliteLink>
+			<SystemName>GJSL-My Satelite Link 1-1 SysName</SystemName>
+			<UserName>GJSL-My Satelite Link 1-1 UsrName</UserName>
+			<Description>GJSL-My Satelite Link 1-1 Desc</Description>
+			<Link>1</Link>
+			<AdminState>ENABLE</AdminState>
+			<Satelite>
+				<SystemName>GJSAT-My Satelite 1-1-0 SysName</SystemName>
+				<UserName>GJSAT-My Satelite 2-1-0 UsrName</UserName>
+				<Description>GJSAT-My Satelite 1-1-0 Desc</Description>
+				<Address>0</Address>
+				<AdminState>ENABLE</AdminState>
+				<Sensor>
+					<JMRISystemName>MS-MySensor 1-1-0-0 SysName</JMRISystemName>
+					<JMRIUserName>MySensorUser 1-1-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>MS-MySensor 1-1-0-0 Desc</JMRIDescription>
+					<Type>DIGITAL</Type>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Sensor>
+				<Actuator>
+					<JMRISystemName>IM-MyActuator 1-1-0-0 SysName</JMRISystemName>
+					<JMRIUserName>IM-MyActuator 1-1-0-0 UsrName</JMRIUserName>
+					<JMRIDescription>IM-MyActuator 1-1-0-0 Desc</JMRIDescription>
+					<Type>MEMORY</Type>
+					<SubType>PULSE</SubType>
+					<Port>0</Port>
+					<AdminState>ENABLE</AdminState>
+				</Actuator>
+			</Satelite>
+		</SateliteLink>
+	</Decoder>
+</genJMRI>

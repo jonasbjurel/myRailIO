@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" ?>
+<genJMRI>
+	<Author>-</Author>
+	<Description>-</Description>
+	<Version>-</Version>
+	<Date>-</Date>
+	<Time>-</Time>
+	<gitBranch>Main</gitBranch>
+	<gitTag>-</gitTag>
+	<gitUrl>my.git.com</gitUrl>
+	<VersionHistory/>
+	<DecoderMqttURI>broker.emqx.io</DecoderMqttURI>
+	<DecoderMqttPort>1883</DecoderMqttPort>
+	<DecoderMqttTopicPrefix>/trains/</DecoderMqttTopicPrefix>
+	<DecoderPingPeriod>10.0</DecoderPingPeriod>
+	<JMRIRPCURI>127.0.0.2</JMRIRPCURI>
+	<JMRIRPCPortBase>8000</JMRIRPCPortBase>
+	<JMRIRpcKeepAlivePeriod>10.0</JMRIRpcKeepAlivePeriod>
+	<NTPServer>pool.ntp.org</NTPServer>
+	<NTPPort>123</NTPPort>
+	<TimeZoneGmtOffset/>
+	<RSyslogServer>my.RsysLogServer.org</RSyslogServer>
+	<RSyslogPort>514</RSyslogPort>
+	<RSyslogProtocol>TCP</RSyslogProtocol>
+	<LogLevel>DEBUG-INFO</LogLevel>
+	<SNMPServer>my.snmp.org</SNMPServer>
+	<SNMPPort>162</SNMPPort>
+	<SNMPProtocol>TCP</SNMPProtocol>
+	<TracksFailSafe>Yes</TracksFailSafe>
+	<DecodersFailSafe>Yes</DecodersFailSafe>
+	<AdminState>DISABLE</AdminState>
+</genJMRI>
