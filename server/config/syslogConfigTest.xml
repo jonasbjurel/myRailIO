@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<genJMRI>
+	<Author>-</Author>
+	<Description>-</Description>
+	<Version>-</Version>
+	<Date>-</Date>
+	<Time>-</Time>
+	<gitBranch>Main</gitBranch>
+	<gitTag>Tip</gitTag>
+	<gitUrl>my.git.com</gitUrl>
+	<VersionHistory/>
+	<DecoderMqttURI>192.168.0.135</DecoderMqttURI>
+	<DecoderMqttPort>1883</DecoderMqttPort>
+	<DecoderMqttTopicPrefix>/trains/</DecoderMqttTopicPrefix>
+	<DecoderPingPeriod>10.0</DecoderPingPeriod>
+	<JMRIRPCURI>127.0.0.2</JMRIRPCURI>
+	<JMRIRPCPortBase>8000</JMRIRPCPortBase>
+	<JMRIRpcKeepAlivePeriod>10.0</JMRIRpcKeepAlivePeriod>
+	<NTPServer>pool.ntp.org</NTPServer>
+	<NTPPort>123</NTPPort>
+	<TimeZoneGmtOffset/>
+	<RSyslogServer>192.168.0.135</RSyslogServer>
+	<RSyslogPort>514</RSyslogPort>
+	<RSyslogProtocol>UDP</RSyslogProtocol>
+	<RSyslogFile>C:/Users/jonas/OneDrive/Projects/ModelRailway/GenericJMRIdecoder/Server/config/Log.log</RSyslogFile>
+	<RSyslogRotateNoFiles>5</RSyslogRotateNoFiles>
+	<RSyslogFileSize>10</RSyslogFileSize>
+	<LogLevel>DEBUG-VERBOSE</LogLevel>
+	<SNMPServer>my.snmp.org</SNMPServer>
+	<SNMPPort>162</SNMPPort>
+	<SNMPProtocol>TCP</SNMPProtocol>
+	<TracksFailSafe>Yes</TracksFailSafe>
+	<DecodersFailSafe>Yes</DecodersFailSafe>
+	<AdminState>ENABLE</AdminState>
+	<Decoder>
+		<SystemName>GJD-NewDecoderSysName</SystemName>
+		<UserName>GJD-NewDecoderUsrName</UserName>
+		<Description>New decoder</Description>
+		<MAC>E0:E2:E6:4C:13:30</MAC>
+		<URI>no.valid.uri</URI>
+		<AdminState>ENABLE</AdminState>
+	</Decoder>
+</genJMRI>

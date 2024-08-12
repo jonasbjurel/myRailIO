@@ -79,7 +79,7 @@ class schema():
     TOP_DECODER_SCHEMA =    {"decoders":elist_t, "decoderFailSafe":ebool_t, "trackFailSafe":ebool_t}
     DECODER_SCHEMA =    {"decoderSystemName":decoderSystemName_t, "decoderMqttURI":uri_t, "mac":mac_t, "lgLinks":elist_t, "satLinks":elist_t}
     LG_LINK_SCHEMA =    {"lgLinkSystemName":lgLinkSystemName_t, "lgLinkNo":lgLinkNo_t, "lightGroups":elist_t, "mastDefinitionPath":estr_t}
-    SAT_LINK_SCHEMA =   {"satLinkSystemName":satLinkSystemName_t, "satLinkNo":satLinkNo_t, "satelites":elist_t}
+    SAT_LINK_SCHEMA =   {"satLinkSystemName":satLinkSystemName_t, "satLinkNo":satLinkNo_t, "satellites":elist_t}
     SAT_SCHEMA =        {"satSystemName":satSystemName_t, "satLinkAddr":satLinkAddr_t, "sensors":elist_t, "actuators":elist_t}
     SENS_SCHEMA =       {"jmriSensSystemName":jmriSensSystemName_t, "sensPort":sensPort_t, "sensType":sensType_t}
     ACT_SCHEMA =        {"jmriActSystemName":jmriActSystemName_t, "actPort":actPort_t, "actType":actType_t, "actSubType":actSubType_t}

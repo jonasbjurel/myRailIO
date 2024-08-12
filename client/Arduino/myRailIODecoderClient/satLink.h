@@ -39,7 +39,7 @@
 #include "cliGlobalDefinitions.h"
 #include "decoder.h"
 #include "sat.h"
-#include "libraries/genericIOSatellite/LIB/src/Satelite.h"
+#include "libraries/genericIOSatellite/LIB/src/Satellite.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
@@ -60,7 +60,7 @@ class sat;
 
 
 /*==============================================================================================================================================*/
-/* Class: "satLink(Satelite Link)"                                                                                                              */
+/* Class: "satLink(Satellite Link)"                                                                                                              */
 /* Purpose:                                                                                                                                     */
 /* Methods:                                                                                                                                     */
 /*==============================================================================================================================================*/
@@ -79,13 +79,13 @@ public:
 	void onConfig(tinyxml2::XMLElement* p_satLinkXmlElement);
 	rc_t start(void);
 	void up(void);
-	static void onDiscoveredSateliteHelper(satelite* p_sateliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle);
+	static void onDiscoveredSatelliteHelper(satellite* p_satelliteLibHandle, uint8_t p_satLink, uint8_t p_satAddr, bool p_exists, void* p_satLinkHandle);
 	void down(void);
 	static void onSatLinkScanHelper(void* p_metaData);
 	void onSatLinkScan(void);
 	static void pmPollHelper(void* p_metaData);
 	void onPmPoll(void);
-	static void onSatLinkLibStateChangeHelper(sateliteLink* p_sateliteLinkLibHandler, uint8_t p_linkAddr, satOpState_t p_satOpState, void* p_satLinkHandler);
+	static void onSatLinkLibStateChangeHelper(satelliteLink* p_satelliteLinkLibHandler, uint8_t p_linkAddr, satOpState_t p_satOpState, void* p_satLinkHandler);
 	void onSatLinkLibStateChange(satOpState_t p_satOpState);
 	static void onSysStateChangeHelper(const void* p_satLinkHandle, sysState_t p_sysState);
 	void onSysStateChange(const sysState_t p_sysState);
@@ -165,8 +165,8 @@ private:
 	EXT_RAM_ATTR bool satLinkScanDisabled;
 	EXT_RAM_ATTR SemaphoreHandle_t satLinkPmPollLock;
 	EXT_RAM_ATTR SemaphoreHandle_t upDownLock;
-	EXT_RAM_ATTR sateliteLink* satLinkLibHandle;
-	EXT_RAM_ATTR sat* sats[MAX_SATELITES];
+	EXT_RAM_ATTR satelliteLink* satLinkLibHandle;
+	EXT_RAM_ATTR sat* sats[MAX_SATELLITES];
 	EXT_RAM_ATTR uint32_t txUnderunErr;
 	EXT_RAM_ATTR uint32_t rxOverRunErr;
 	EXT_RAM_ATTR uint32_t scanTimingViolationErr;

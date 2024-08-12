@@ -55,6 +55,9 @@ actBase::actBase(uint8_t p_actPort, sat* p_satHandle) : systemState(p_satHandle)
     xmlconfig[XML_ACT_PORT] = NULL;
     xmlconfig[XML_ACT_TYPE] = NULL;
     xmlconfig[XML_ACT_SUBTYPE] = NULL;
+    xmlconfig[XML_ACT_PROPERTY1] = NULL;
+    xmlconfig[XML_ACT_PROPERTY2] = NULL;
+    xmlconfig[XML_ACT_PROPERTY3] = NULL;
     xmlconfig[XML_ACT_ADMSTATE] = NULL;
     //xmlconfig[XML_ACT_PROPERTIES] = NULL;
     extentionActClassObj = NULL;
@@ -114,6 +117,7 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement, bool p_twin)
         panic("%s: SystemNane missing", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_ACT_SYSNAME]);
     if (!xmlconfig[XML_ACT_USRNAME]) {
         LOG_WARN("%s: User name was not provided - using \"%s-UserName\"" CR, logContextName, xmlconfig[XML_ACT_SYSNAME]);
         xmlconfig[XML_ACT_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_ACT_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_ACT_SYSNAME]) + 15];
@@ -174,7 +178,7 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement, bool p_twin)
     //    LOG_INFO("actBase::onConfig: Actuator type specific properties provided, will be passed to the actuator type sub-class object: %s" CR, xmlconfig[XML_ACT_PROPERTIES]);
     if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "TURNOUT")) {
         LOG_INFO("%s: actuator type is turnout - programing act-stem object by creating an turnAct extention class object" CR, logContextName);
-            extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
+        extentionActClassObj = (void*) new (heap_caps_malloc(sizeof(actTurn), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) actTurn(this, xmlconfig[XML_ACT_TYPE], xmlconfig[XML_ACT_SUBTYPE]);
     }
     else if (!strcmp((const char*)xmlconfig[XML_ACT_TYPE], "LIGHT")) {
         LOG_INFO("%s: actuator type is light - programing act-stem object by creating an lightAct extention class object" CR, logContextName);
@@ -187,6 +191,10 @@ void actBase::onConfig(const tinyxml2::XMLElement* p_actXmlElement, bool p_twin)
     else{
         panic("%s: actuator type not supported", logContextName);
         return;
+    }
+	if (!extentionActClassObj){
+        panic("%s: Failed to create Actuator Extention object", logContextName);
+		return;
     }
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], init());
     //if (xmlconfig[XML_ACT_PROPERTIES]) {
@@ -220,6 +228,10 @@ rc_t actBase::start(void) {
         LOG_INFO("%s: actuator  not yet discovered - starting it anyway" CR, logContextName);
     }
     LOG_INFO("%s: Starting extention class" CR, logContextName);
+	if (!extentionActClassObj) {
+		panic("%s: Actuator extention object does not exist/was not configured", logContextName);
+		return RC_GEN_ERR;
+	}
     ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], start());
     LOG_INFO("%s: Subscribing to adm- and op state topics" CR, logContextName);
     char subscribeTopic[300];
@@ -246,18 +258,18 @@ rc_t actBase::start(void) {
     return RC_OK;
 }
 
-void actBase::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+void actBase::onDiscovered(satellite* p_satelliteLibHandle, bool p_exists) {
     LOG_INFO("%s: actuator discovered" CR, logContextName);
     if (p_exists) {
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         systemState::unSetOpStateByBitmap(OP_UNDISCOVERED);
     }
     else{
         satLibHandle = NULL;
         systemState::setOpStateByBitmap(OP_UNDISCOVERED);
     }
-    if (!(getOpStateBitmap() & OP_UNCONFIGURED))
-        ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onDiscovered(p_sateliteLibHandle, p_exists));
+    if (!(getOpStateBitmap() & OP_UNCONFIGURED) && extentionActClassObj)
+        ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], onDiscovered(p_satelliteLibHandle, p_exists));
     else 
         LOG_WARN("%s: actuator discovered, but was not configured" CR, logContextName);
 }
@@ -293,7 +305,7 @@ void actBase::onSysStateChange(sysState_t p_sysState) {
 
 void actBase::failsafe(bool p_failsafe) {
     char OPSTATE[100];
-    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED))
+    if (!(systemState::getOpStateBitmap() & OP_UNCONFIGURED) && extentionActClassObj)
         ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], failsafe(p_failsafe));
 }
 
@@ -438,26 +450,52 @@ int8_t actBase::getPort(bool p_force) {
     return actPort;
 }
 
-rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyVal, bool p_force) {
+rc_t actBase::setProperty(uint8_t p_propertyId, const char* p_propertyValue, bool p_force) {
     if (!debug && !p_force) {
-        LOG_ERROR("%s: Cannot set Actuator property as debug is inactive" CR, logContextName);
+        LOG_ERROR("%s: Cannot set Actuator property as debug-flag is inactive, use \"set debug\" to activate debug" CR, logContextName);
         return RC_DEBUG_NOT_SET_ERR;
     }
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED) {
         LOG_ERROR("%s: Cannot set Actuator property as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    ACT_CALL_EXT(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setProperty(p_propertyId, p_propertyVal));
-    return RC_OK;
+    if (p_propertyId < 1 || p_propertyId > 3) {
+        LOG_WARN("%s: Property id %i is out of range" CR, logContextName, p_propertyId);
+        return RC_NOT_FOUND_ERR;
+    }
+    if (extentionActClassObj) {
+        ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setProperty(p_propertyId, p_propertyValue));
+        if (EXT_RC) {
+            LOG_WARN("%s: Could not set Property id %i, return code: %i" CR, logContextName, p_propertyId, EXT_RC);
+            return EXT_RC;
+        }
+        else {
+            strcpy(xmlconfig[XML_ACT_PROPERTY1 + p_propertyId - 1], p_propertyValue);
+            return RC_OK;
+        }
+    }
+    else {
+        LOG_WARN("%s: Actuator Extention class has not been configured/does not exist, cannot set property id %i" CR, logContextName, p_propertyId);
+        return RC_NOT_CONFIGURED_ERR;
+    }
 }
 
-rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyVal, bool p_force) {
+rc_t actBase::getProperty(uint8_t p_propertyId, char* p_propertyValue, bool p_force) {
     if (systemState::getOpStateBitmap() & OP_UNCONFIGURED && !p_force) {
         LOG_ERROR("%s: Cannot get Actuator property as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getProperty(p_propertyId, p_propertyVal));
-    return EXT_RC;
+    if (p_propertyId < 1 || p_propertyId > 3) {
+        LOG_WARN("%s: Property id %i is out of range" CR, logContextName, p_propertyId);
+        return RC_NOT_FOUND_ERR;
+    }
+    if (!xmlconfig[XML_ACT_PROPERTY1 + p_propertyId - 1]) {
+        LOG_WARN("%s: Property %i is not set" CR, logContextName, p_propertyId);
+        return RC_NOT_FOUND_ERR;
+    }
+
+    strcpy(p_propertyValue, xmlconfig[XML_SENS_PROPERTY1 + p_propertyId - 1]);
+    return RC_OK;
 }
 
 rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing, bool p_force) {
@@ -465,9 +503,14 @@ rc_t actBase::getShowing(char* p_showing, char* p_orderedShowing, bool p_force) 
         LOG_ERROR("%s: Cannot get Actuator showing as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getShowing(p_showing, p_orderedShowing));
-    return EXT_RC;
-
+    if (extentionActClassObj){
+        ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], getShowing(p_showing, p_orderedShowing));
+        return EXT_RC;
+	}
+	else {
+		LOG_WARN("%s: Actuator Extention class has not been configured/does not exist, cannot get showing" CR, logContextName);
+		return RC_NOT_CONFIGURED_ERR;
+	}
 }
 
 rc_t actBase::setShowing(const char* p_showing, bool p_force) {
@@ -479,8 +522,14 @@ rc_t actBase::setShowing(const char* p_showing, bool p_force) {
         LOG_ERROR("%s: Cannot set Actuator showing as Actuator is not configured" CR, logContextName);
         return RC_NOT_CONFIGURED_ERR;
     }
-    ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setShowing(p_showing));
-    return EXT_RC;
+	if (extentionActClassObj) {
+		ACT_CALL_EXT_RC(extentionActClassObj, xmlconfig[XML_ACT_TYPE], setShowing(p_showing));
+		return EXT_RC;
+	}
+    else {
+		LOG_WARN("%s: Actuator Extention class has not been configured/does not exist, cannot set showing" CR, logContextName);
+		return RC_NOT_CONFIGURED_ERR;
+	}
 }
 
 const char* actBase::getLogLevel(void) {
@@ -592,7 +641,7 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
     rc_t rc;
     char property[50];
     if (cmd.getArgument(1)) {
-        if ((rc = static_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property))) {
+        if (rc = static_cast<actBase*>(p_cliContext)->getProperty(atoi(cmd.getArgument(1).getValue().c_str()), property)) {
             notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator properties, return code: %i", rc);
             return;
         }
@@ -600,7 +649,7 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
         acceptedCliCommand(CLI_TERM_QUIET);
     }
     else {
-        printCli("Actuator property index:\t\t\Actuator property value:\n");
+        printCli("| %*s | %*s |", -26, "Actuator property index:", -30, "Actuator property value:");
         for (uint8_t i = 0; i < 255; i++) {
             if ((rc = static_cast<actBase*>(p_cliContext)->getProperty(i, property))) {
                 if (rc == RC_NOT_FOUND_ERR)
@@ -608,7 +657,7 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
                 notAcceptedCliCommand(CLI_GEN_ERR, "Could not get Actuator property %i, return code: %i", i, rc);
                 return;
             }
-            printCli("%i\t\t\t%s\n", i, property);
+            printCli("| %*i | %*s |", -26, i, -30, property);
         }
         printCli("END");
         acceptedCliCommand(CLI_TERM_QUIET);
@@ -617,13 +666,18 @@ void actBase::onCliGetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTa
 
 void actBase::onCliSetPropertyHelper(cmd* p_cmd, cliCore* p_cliContext, cliCmdTable_t* p_cmdTable) {
     Command cmd(p_cmd);
-    if (!cmd.getArgument(1) || cmd.getArgument(2)) {
+    if (!cmd.getArgument(1) || !cmd.getArgument(2) || cmd.getArgument(3)) {
         notAcceptedCliCommand(CLI_NOT_VALID_ARG_ERR, "Bad number of arguments");
         return;
     }
     rc_t rc;
     if ((rc = static_cast<actBase*>(p_cliContext)->setProperty(atoi(cmd.getArgument(1).getValue().c_str()), cmd.getArgument(2).getValue().c_str()))) {
-        notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
+		if (rc == RC_NOT_CONFIGURED_ERR)
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator property %i, actuator not configured", atoi(cmd.getArgument(1).getValue().c_str()));
+        else if (rc == RC_DEBUG_NOT_SET_ERR)
+            notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator property %i, debug-flag not set, use\"set debug\"", atoi(cmd.getArgument(1).getValue().c_str()));
+		else
+			notAcceptedCliCommand(CLI_GEN_ERR, "Could not set Actuator property %i, return code: %i", atoi(cmd.getArgument(1).getValue().c_str()), rc);
         return;
     }
     acceptedCliCommand(CLI_TERM_EXECUTED);

@@ -7,11 +7,10 @@ __pycache__/
 *.so
 
 #config cache
-.genJMRI main configuration
+.myRailIO main configuration
 
 # Visual studio cache
 *.vs
 
 # Log files
 *.log
-/Server/Scripts/tz/tz.xml

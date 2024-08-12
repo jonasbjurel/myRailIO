@@ -11,11 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Decoder dialog</string>
+   <string>Decoder inventory</string>
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../icons/greyBell.jpg</normaloff>../icons/greyBell.jpg</iconset>
+    <normaloff>../icons/decoder.png</normaloff>../icons/decoder.png</iconset>
   </property>
   <property name="toolTip">
    <string/>

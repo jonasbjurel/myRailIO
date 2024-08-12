@@ -35,7 +35,7 @@
 /* Purpose: The "decoder" class implements a static singlton object responsible for setting up the common decoder mqtt class objects,           */
 /*          subscribing to the management configuration topic, parsing the top level xml configuration and forwarding propper xml               */
 /*          configuration segments to the different decoder services, E.g. Lightgroup links. Lightgroups [Signal Masts | general Lights |       */
-/*          sequencedLights], Satelite Links, Satelites, Sensors, Actueators, etc.                                                              */
+/*          sequencedLights], Satellite Links, Satellites, Sensors, Actueators, etc.                                                              */
 /*          Turnouts or sensors...                                                                                                              */
 /*          The "decoder" sequences the start up of the the different decoder services. It also holds the decoder infrastructure config such    */
 /*          as ntp-, rsyslog-, ntp-, watchdog- and cli configuration and is the cooridnator and root of such servicies.                         */
@@ -325,6 +325,7 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         panic("%s: System name was not provided", logContextName);
         return;
     }
+	setContextSysName(xmlconfig[XML_DECODER_SYSNAME]);
     if (xmlconfig[XML_DECODER_USRNAME] == NULL){
         LOG_WARN("%s: User name was not provided - using %s-UserName" CR, logContextName, xmlconfig[XML_DECODER_SYSNAME]);
         xmlconfig[XML_DECODER_USRNAME] = new (heap_caps_malloc(sizeof(char) * (strlen(xmlconfig[XML_DECODER_SYSNAME]) + 15), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(xmlconfig[XML_DECODER_SYSNAME]) + 15];
@@ -411,10 +412,10 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
         LOG_INFO("%s No lgLinks provided, no lgLinks will be configured" CR, logContextName);
     vTaskDelay(5 / portTICK_PERIOD_MS);
 
-    //CONFIFIGURING SATELITE LINKS
-    LOG_INFO("%s: Validating and configuring satelite links" CR, logContextName);
+    //CONFIFIGURING SATELLITE LINKS
+    LOG_INFO("%s: Validating and configuring satellite links" CR, logContextName);
     tinyxml2::XMLElement* satLinkXmlElement;
-    if (satLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("myRailIO")->FirstChildElement("Decoder")->FirstChildElement("SateliteLink")) {
+    if (satLinkXmlElement = ((tinyxml2::XMLElement*)xmlConfigDoc)->FirstChildElement("myRailIO")->FirstChildElement("Decoder")->FirstChildElement("SatelliteLink")) {
         const char* satLinkSearchTags[4];
         satLinkSearchTags[XML_SATLINK_SYSNAME] = NULL;
         satLinkSearchTags[XML_SATLINK_USRNAME] = NULL;
@@ -438,11 +439,11 @@ void decoder::onConfig(const char* p_topic, const char* p_payload) {
                 return;
             }
             satLinks[atoi(satLinkXmlconfig[XML_SATLINK_LINK])]->onConfig(satLinkXmlElement);
-            satLinkXmlElement = ((tinyxml2::XMLElement*)satLinkXmlElement)->NextSiblingElement("SateliteLink");
+            satLinkXmlElement = ((tinyxml2::XMLElement*)satLinkXmlElement)->NextSiblingElement("SatelliteLink");
         }
     }
     else
-        LOG_INFO("%s: No satLinks provided, no satelites will be configured" CR, logContextName);
+        LOG_INFO("%s: No satLinks provided, no satellites will be configured" CR, logContextName);
     delete xmlConfigDoc;
     unSetOpStateByBitmap(OP_UNCONFIGURED);
     LOG_INFO("%s: Configuration successfully finished" CR, logContextName);
@@ -564,7 +565,7 @@ rc_t decoder::start(void) {
         lgLinks[lgLinkItter]->start();
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
-    LOG_INFO("%s: Starting satelite link Decoders" CR, logContextName);
+    LOG_INFO("%s: Starting satellite link Decoders" CR, logContextName);
     for (int satLinkItter = 0; satLinkItter < MAX_SATLINKS; satLinkItter++) {
         LOG_TERSE("Starting SatLink-%d" CR, satLinkItter);
         if (satLinks[satLinkItter] == NULL) {
@@ -1109,7 +1110,7 @@ void decoder::onReboot(void) {
     Serial.printf(">>> Ordered reboot");
     panic("Ordered reboot");
 }
-
+ 
 void decoder::onMqttGetCoreDumpHelper(const char* p_topic, const char* p_payload, const void* p_decoderObject) {
     ((decoder*)p_decoderObject)->onMqttGetCoreDump();
 }
@@ -1416,7 +1417,6 @@ void decoder::checkNtp(void) {
 	newNtpNotification[0] = '\0';
     ntpOpState_t ntpOpState;
 	ntpTime::getNtpOpState(&ntpOpState);
-	Serial.printf("NTP state: 0x%x" CR, ntpOpState);
 	if (!ntpOpState && strcmp(previousNtpNotification, "SYNCED")) {
 		strcpy(newNtpNotification, "SYNCED");
 	}

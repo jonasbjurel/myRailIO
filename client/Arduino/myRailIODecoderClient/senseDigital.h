@@ -35,7 +35,7 @@
 #include "rc.h"
 #include "systemState.h"
 #include "senseBase.h"
-#include "libraries/genericIOSatellite/LIB/src/Satelite.h"
+#include "libraries/genericIOSatellite/LIB/src/Satellite.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
@@ -63,13 +63,12 @@ public:
     rc_t init(void);
     void onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElement);
     rc_t start(void); //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
-    void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
+    void onDiscovered(satellite* p_satelliteLibHandle, bool p_exists);
     void onSysStateChange(uint16_t p_sysState);
     void onSenseChange(bool p_senseVal);
     void failsafe(bool p_failSafe);
     void getSensing(char* p_sensing);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyValue);
-    rc_t getProperty(uint8_t p_propertyId, const char* p_propertyValue);
     void setDebug(bool p_debug);
     bool getDebug(void);
     bool getFilteredSense(void);
@@ -88,7 +87,7 @@ private:
     EXT_RAM_ATTR uint8_t sensPort;
     EXT_RAM_ATTR uint8_t satAddr;
     EXT_RAM_ATTR uint8_t satLinkNo;
-    EXT_RAM_ATTR satelite* satLibHandle;
+    EXT_RAM_ATTR satellite* satLibHandle;
     EXT_RAM_ATTR bool failSafe;
     EXT_RAM_ATTR char sensSysName[50];
     EXT_RAM_ATTR uint16_t sysState;

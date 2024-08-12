@@ -29,7 +29,7 @@
 #include "rc.h"
 #include "systemState.h"
 #include "actBase.h"
-#include "libraries/genericIOSatellite/LIB/src/Satelite.h"
+#include "libraries/genericIOSatellite/LIB/src/Satellite.h"
 #include "mqtt.h"
 #include "mqttTopics.h"
 #include "config.h"
@@ -65,11 +65,10 @@ public:
     rc_t init(void);
     void onConfig(const tinyxml2::XMLElement* p_sensExtentionXmlElement);
     rc_t start(void); //Starting the mastDecoder, subscribing to aspect changes, and flash events, returns RC_OK if successful
-    void onDiscovered(satelite* p_sateliteLibHandle, bool p_exists);
+    void onDiscovered(satellite* p_satelliteLibHandle, bool p_exists);
     void onSysStateChange(sysState_t p_sysState);
     static void onActMemChangeHelper(const char* p_topic, const char* p_payload, const void* p_actMemHandle);
     rc_t setProperty(uint8_t p_propertyId, const char* p_propertyVal);
-    rc_t getProperty(uint8_t p_propertyId, char* p_propertyVal);
     rc_t setShowing(const char* p_showing);
     rc_t getShowing(char* p_showing, char* p_orderedShowing);
     void failsafe(bool p_failSafe);
@@ -90,7 +89,7 @@ private:
     EXT_RAM_ATTR uint8_t actPort;
     EXT_RAM_ATTR uint8_t satAddr;
     EXT_RAM_ATTR uint8_t satLinkNo;
-    EXT_RAM_ATTR satelite* satLibHandle;
+    EXT_RAM_ATTR satellite* satLibHandle;
     SemaphoreHandle_t actMemLock;
     EXT_RAM_ATTR actMemType_t actMemType;
     EXT_RAM_ATTR uint8_t actMemPos;

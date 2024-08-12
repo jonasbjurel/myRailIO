@@ -35,11 +35,11 @@ MQTT_LOG_TOPIC = "track/log/"
 MQTT_ASPECT_TOPIC = "track/lightgroups/lightgroup/"
 MQTT_TURNOUT_TOPIC = "track/turnout/"
 MQTT_LIGHT_TOPIC = "track/light/"
-MQTT_SATLINK_ADMBLOCK_TOPIC = "track/sateliteLink/admblock/"
-MQTT_SATLINK_OPBLOCK_TOPIC = "track/sateliteLink/opblock/"
-MQTT_SAT_ADMBLOCK_TOPIC = "track/satelite/admblock/"
-MQTT_SAT_OPBLOCK_TOPIC = "track/satelite/opblock/"
-MQTT_SAT_PANIC_TOPIC = "track/satelite/panic/" # IS NOT USED
+MQTT_SATLINK_ADMBLOCK_TOPIC = "track/satelliteLink/admblock/"
+MQTT_SATLINK_OPBLOCK_TOPIC = "track/satelliteLink/opblock/"
+MQTT_SAT_ADMBLOCK_TOPIC = "track/satellite/admblock/"
+MQTT_SAT_OPBLOCK_TOPIC = "track/satellite/opblock/"
+MQTT_SAT_PANIC_TOPIC = "track/satellite/panic/" # IS NOT USED
 
 # MQTT payload
 # ------------
@@ -273,7 +273,7 @@ class decoder:
         self.__discover()
         self.__getConfig()
         for satLink in range(SATLINK_NO):
-            self.satLinks[satLink] = sateliteLink(self.decoderURI, satLink, self.MQTT, self)
+            self.satLinks[satLink] = satelliteLink(self.decoderURI, satLink, self.MQTT, self)
             self.state.addChild(self.satLinks[satLink].state)
             self.satLinks[satLink].start()
         for lg in range(LG_NO):
@@ -402,9 +402,9 @@ class decoder:
 
 
 # ==============================================================================================================================================
-# Class: sateliteLink
+# Class: satelliteLink
 # ==============================================================================================================================================
-class sateliteLink:
+class satelliteLink:
     def __init__(self, decoderURI, satLink, mqttHandle, parentHandle):
         self.decoderURI = decoderURI
         self.satLink = satLink
@@ -417,10 +417,10 @@ class sateliteLink:
         self.state.opBlock(SAT_INIT)
 
     def start(self):
-        print("Starting Satelite Link")
+        print("Starting Satellite Link")
         for sat in range(SAT_NO):
-            print("Starting Satelite" + str(sat))
-            self.sats[sat] = satelite(self.decoderURI, self.satLink, sat, self.MQTT, self)
+            print("Starting Satellite" + str(sat))
+            self.sats[sat] = satellite(self.decoderURI, self.satLink, sat, self.MQTT, self)
             self.state.addChild(self.sats[sat].state)
             self.sats[sat].start()
         self.state.opDeBlock(SAT_INIT)
@@ -434,7 +434,7 @@ class sateliteLink:
     def onOpStateChange(self):
         self.MQTT.publish(MQTT_PREFIX + MQTT_SATLINK_OPBLOCK_TOPIC + self.decoderURI + "/" +
                           str(self.satLink) + "/", str(self.state.getOpState()))
-        print("Satelite Link: " + self.decoderURI + "/" + str(self.satLink) + "/" + " opState changed:" +
+        print("Satellite Link: " + self.decoderURI + "/" + str(self.satLink) + "/" + " opState changed:" +
               str(self.state.getOpState()))
 
     def blockSatLinkOpState(self, opState):
@@ -455,9 +455,9 @@ class sateliteLink:
 
 
 # ==============================================================================================================================================
-# Class: satelite
+# Class: satellite
 # ==============================================================================================================================================
-class satelite:
+class satellite:
     def __init__(self, decoderURI, satLink, sat, mqttHandle, parentHandle):
         self.decoderURI = decoderURI
         self.satLink = satLink
@@ -492,7 +492,7 @@ class satelite:
     def onOpStateChange(self):
         self.MQTT.publish(MQTT_PREFIX + MQTT_SAT_OPBLOCK_TOPIC + self.decoderURI + "/" +
                           str(self.satLink) + "/" + str(self.sat) + "/", str(self.state.getOpState()))
-        print("Satelite: " + self.decoderURI + "/" + str(self.satLink) + "/" + str(self.sat) + "/" + " opState changed:" +
+        print("Satellite: " + self.decoderURI + "/" + str(self.satLink) + "/" + str(self.sat) + "/" + " opState changed:" +
               str(self.state.getOpState()))
 
     def blockSatOpState(self, opState):
@@ -638,7 +638,7 @@ decoder1Handle = decoder(DECODER1_URI)
 decoder1Handle.start()
 print("System started")
 time.sleep(30)
-print("Blocking satelite links")
+print("Blocking satellite links")
 for link in range(SATLINK_NO):
     print("ERR SEC for link: " + str(link))
     decoder1Handle.blockSatLinkOpState(link, SAT_ERRSEC)

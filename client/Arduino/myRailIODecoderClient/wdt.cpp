@@ -51,7 +51,7 @@ EXT_RAM_ATTR wdtDescrList_t* wdt::wdtDescrList = NULL;
 DRAM_ATTR  uint32_t wdt::currentWdtTick = 0;
 DRAM_ATTR  uint32_t wdt::nextWdtTimeoutTick = UINT32_MAX - 1;
 DRAM_ATTR  bool wdt::outstandingWdtTimeout = false;
-DRAM_ATTR  bool wdt::ageExpiries = false;
+DRAM_ATTR  bool wdt::ageExpires = false;
 DRAM_ATTR  bool wdt::debug = false;
 
 
@@ -106,8 +106,8 @@ wdt::wdt(uint32_t p_wdtTimeoutMs, const char* p_wdtDescription, action_t p_wdtAc
 	strcpy(wdtDescr->wdtDescription, p_wdtDescription);
 	wdtDescr->wdtAction = p_wdtAction;
 	wdtDescr->escalationCnt = 0;
-	wdtDescr->wdtExpiries = 0;
-	wdtDescr->closesedhit = wdtDescr->wdtTimeoutTicks * WD_TICK_MS;
+	wdtDescr->wdtExpires = 0;
+	wdtDescr->closesthit = wdtDescr->wdtTimeoutTicks * WD_TICK_MS;
 	wdtDescr->localCb = NULL;
 	wdtDescr->localCbParams = NULL;
 	wdtDescr->ongoingWdtTimeout = false;
@@ -183,8 +183,8 @@ void wdt::activate(bool p_lock) {
 	LOG_INFO("Activating watchdog instance for %s" CR, wdtDescr->wdtDescription);
 	if (p_lock)
 		xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
-	clearClosesedHit();
-	clearExpiries();
+	clearClosestHit();
+	clearExpires();
 	wdtDescr->wdtUpcommingTimeoutTick = currentWdtTick + wdtDescr->wdtTimeoutTicks;
 	nextWdtTimeoutTick = nextTickToHandle(false);
 	wdtDescr->isActive = true;
@@ -218,7 +218,7 @@ rc_t wdt::setTimeout(uint16_t p_id, uint32_t p_wdtTimeoutMs) {
 				p_wdtTimeoutMs / WD_TICK_MS;
 			nextWdtTimeoutTick = nextTickToHandle(false);
 			xSemaphoreGive(wdtDescrListLock);
-			clearClosesedHit(p_id);
+			clearClosestHit(p_id);
 			return RC_OK;
 		}
 	}
@@ -314,66 +314,66 @@ rc_t wdt::getWdtDescById(uint16_t p_id, wdt_t** p_descr) {
 	return RC_NOT_FOUND_ERR;
 }
 
-void wdt::clearExpiriesAll(void) {
-	LOG_INFO_NOFMT("Clearing all watchdog expireies counters" CR);
+void wdt::clearExpiresAll(void) {
+	LOG_INFO_NOFMT("Clearing all watchdog expires counters" CR);
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter < wdtDescrList->size();
 		 wdtDescrListItter++) {
-		wdtDescrList->at(wdtDescrListItter)->wdtExpiries = 0;
+		wdtDescrList->at(wdtDescrListItter)->wdtExpires = 0;
 	}
 	xSemaphoreGive(wdtDescrListLock);
 }
 
-rc_t wdt::clearExpiries(uint16_t p_id) {
-	LOG_INFO("Clearing watchdog expireies counter for id: %i" CR, p_id);
+rc_t wdt::clearExpires(uint16_t p_id) {
+	LOG_INFO("Clearing watchdog expires counter for id: %i" CR, p_id);
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter < wdtDescrList->size();
 		 wdtDescrListItter++) {
 		if (wdtDescrList->at(wdtDescrListItter)->id == p_id) {
-			wdtDescrList->at(wdtDescrListItter)->wdtExpiries = 0;
+			wdtDescrList->at(wdtDescrListItter)->wdtExpires = 0;
 			xSemaphoreGive(wdtDescrListLock);
 			return RC_OK;
 		}
 	}
 	xSemaphoreGive(wdtDescrListLock);
-	LOG_INFO("Could not clear watchdog expireies counter for id: %i - does not exist" CR, p_id);
+	LOG_INFO("Could not clear watchdog expires counter for id: %i - does not exist" CR, p_id);
 	return RC_NOT_FOUND_ERR;
 }
 
-void wdt::clearExpiries(void) {
-	wdtDescr->wdtExpiries = 0;
+void wdt::clearExpires(void) {
+	wdtDescr->wdtExpires = 0;
 }
 
-void wdt::clearClosesedHitAll(void) {
-	LOG_INFO_NOFMT("Clearing all watchdog closesed hit counters" CR);
+void wdt::clearClosestHitAll(void) {
+	LOG_INFO_NOFMT("Clearing all watchdog closest hit counters" CR);
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter < wdtDescrList->size();
 		 wdtDescrListItter++) {
-		wdtDescrList->at(wdtDescrListItter)->closesedhit =
+		wdtDescrList->at(wdtDescrListItter)->closesthit =
 			wdtDescrList->at(wdtDescrListItter)->wdtTimeoutTicks;
 	}
 	xSemaphoreGive(wdtDescrListLock);
 }
 
-rc_t wdt::clearClosesedHit(uint16_t p_id) {
-	LOG_INFO("Clearing watchdog closesed hit counter for id: %i" CR, p_id);
+rc_t wdt::clearClosestHit(uint16_t p_id) {
+	LOG_INFO("Clearing watchdog closest hit counter for id: %i" CR, p_id);
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	for (uint16_t wdtDescrListItter = 0; wdtDescrListItter < wdtDescrList->size();
 		 wdtDescrListItter++) {
 		if (wdtDescrList->at(wdtDescrListItter)->id == p_id) {
-			wdtDescrList->at(wdtDescrListItter)->closesedhit = 
+			wdtDescrList->at(wdtDescrListItter)->closesthit = 
 				wdtDescrList->at(wdtDescrListItter)->wdtTimeoutTicks;
 			xSemaphoreGive(wdtDescrListLock);
 			return RC_OK;
 		}
 	}
 	xSemaphoreGive(wdtDescrListLock);
-	LOG_INFO("Could not clear watchdog closesed hit counter for id: %i - does not exist" CR, p_id);
+	LOG_INFO("Could not clear watchdog closest hit counter for id: %i - does not exist" CR, p_id);
 	return RC_NOT_FOUND_ERR;
 }
 
-void wdt::clearClosesedHit() {
-	wdtDescr->closesedhit = wdtDescr->wdtTimeoutTicks;
+void wdt::clearClosestHit() {
+	wdtDescr->closesthit = wdtDescr->wdtTimeoutTicks;
 }
 
 rc_t wdt::inhibitAllWdtFeeds(bool p_inhibit) {
@@ -414,8 +414,8 @@ void wdt::inhibitWdtFeeds(bool p_inhibit) {
 void wdt::feed(void) {
 	xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 	if ((uint32_t)(wdtDescr->wdtUpcommingTimeoutTick - currentWdtTick) <
-		wdtDescr->closesedhit)
-		wdtDescr->closesedhit = (uint32_t)(wdtDescr->wdtUpcommingTimeoutTick - currentWdtTick);
+		wdtDescr->closesthit)
+		wdtDescr->closesthit = (uint32_t)(wdtDescr->wdtUpcommingTimeoutTick - currentWdtTick);
 	if (!wdtDescr->ongoingWdtTimeout && wdtDescr->isActive &&
 		!wdtDescr->isInhibited){
 		wdtDescr->wdtUpcommingTimeoutTick = currentWdtTick + wdtDescr->wdtTimeoutTicks;
@@ -483,7 +483,7 @@ void IRAM_ATTR wdt::wdtTimerIsr(void) {												// Watchdog tick as defined b
 	if (outstandingWdtTimeout)														// A watchdog timeout escalation ladder with escalation intergaps is ongoing,
 		handleBackend = true;														//   needs to be handled by the backend task
 	if (currentWdtTick % WDT_HOUR_TICK == 0) {										// Age/decrease expiry counters each hour
-		ageExpiries = true;
+		ageExpires = true;
 		handleBackend = true;
 	}
 	if (handleBackend){
@@ -504,19 +504,19 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 		xSemaphoreTake(wdtDescrListLock, portMAX_DELAY);
 		for (uint16_t wdtDescrListItter = 0; wdtDescrListItter <					// Itterate all registered watch dogs
 			 wdtDescrList->size(); wdtDescrListItter++) {
-			if (ageExpiries && wdtDescrList->at(wdtDescrListItter)->wdtExpiries)	// Age the expiry counter
-				wdtDescrList->at(wdtDescrListItter)->wdtExpiries--;
+			if (ageExpires && wdtDescrList->at(wdtDescrListItter)->wdtExpires)	// Age the expiry counter
+				wdtDescrList->at(wdtDescrListItter)->wdtExpires--;
 			if ((wdtDescrList->at(wdtDescrListItter)->wdtUpcommingTimeoutTick == 
 				currentWdtTick ||
 				wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout) &&
 				wdtDescrList->at(wdtDescrListItter)->isActive){						// A Watch dog timeout has occured
 				if (!wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout)
-					wdtDescrList->at(wdtDescrListItter)->wdtExpiries++;				// Increase the history of watchdog expireies
+					wdtDescrList->at(wdtDescrListItter)->wdtExpires++;				// Increase the history of watchdog expires
 				outstandingWdtTimeout = true;										// Mark that we are currently treating an ongoing Watch dog timeout escalation
 				wdtDescrList->at(wdtDescrListItter)->ongoingWdtTimeout = true;
-				if (wdtDescrList->at(wdtDescrListItter)->wdtExpiries >=				// Maximum wdt expiries occurred, unconditional reboot
-					WDT_MAX_EXPIRIES) {
-					panic("Maximum number of watchdog expiries reached for %s", wdtDescrList->at(wdtDescrListItter)->wdtDescription);
+				if (wdtDescrList->at(wdtDescrListItter)->wdtExpires >=				// Maximum wdt expires occurred, unconditional reboot
+					WDT_MAX_EXPIRES) {
+					panic("Maximum number of watchdog expires reached for %s", wdtDescrList->at(wdtDescrListItter)->wdtDescription);
 					currentWdtTick = currentWdtTick / 0;
 					return;
 				}
@@ -631,7 +631,7 @@ void wdt::wdtHandlerBackend(void* p_args) {											// Watchdog back-end ever 
 				}
 			}
 		}
-		ageExpiries = false;
+		ageExpires = false;
 		nextWdtTimeoutTick = nextTickToHandle(false);
 		xSemaphoreGive(wdtDescrListLock);
 	}

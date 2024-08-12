@@ -470,10 +470,10 @@ void cliCore::printCliNoFormat(char* p_msg) {
 }
 
 rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
-						  const char* p_cmdSubMoArg, cliCmdCb_t* p_cliCmdCb) {
+	const char* p_cmdSubMoArg, cliCmdCb_t* p_cliCmdCb) {
 	char cmdSubMoArgPrint[50];
 	char cmdSubMoArg[50];
-	if (p_cmdSubMoArg){
+	if (p_cmdSubMoArg) {
 		strcpy(cmdSubMoArgPrint, p_cmdSubMoArg);
 		strcpy(cmdSubMoArg, p_cmdSubMoArg);
 	}
@@ -482,23 +482,24 @@ rc_t cliCore::regCmdMoArg(cliMainCmd_t p_commandType, const char* p_mo,
 		strcpy(cmdSubMoArg, "");
 	}
 	LOG_VERBOSE("Registering command: " \
-			   "%s for MO: %s for subMo: %s for cli context: %s-%i" CR,
-			   getCliNameByType(p_commandType),
-			   p_mo, cmdSubMoArgPrint, getContextName(), getContextIndex());
+		"%s for MO: %s for subMo: %s for cli context: %s-%i" CR,
+		getCliNameByType(p_commandType),
+		p_mo, cmdSubMoArgPrint, getContextName(), getContextIndex());
+
 	for (uint16_t i = 0; i < cliCmdTable->size(); i++) {
-		if ((cliCmdTable->at(i)->cmdType == p_commandType) && 
+		if ((cliCmdTable->at(i)->cmdType == p_commandType) &&
 			(!strcmp(cliCmdTable->at(i)->mo, p_mo)) &&
 			(!strcmp(cliCmdTable->at(i)->subMo, cmdSubMoArg))) {
 			for (uint16_t j = 0; j < cliCmdTable->at(i)->contextMap->size(); j++) {
 				if (cliCmdTable->at(i)->contextMap->at(j)->contextHandle == this) {
 					LOG_ERROR("Cmd: %s, Mo: %s, sub-MO: " \
-							  "%s already exists" CR, getCliNameByType(p_commandType),
-							   p_mo, cmdSubMoArg);
+						"%s already exists" CR, getCliNameByType(p_commandType),
+						p_mo, cmdSubMoArg);
 					return RC_ALREADYEXISTS_ERR;
 				}
 			}
 			cliCmdTable->at(i)->contextMap->push_back(new (heap_caps_malloc(sizeof(contextMap_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) contextMap_t);
-			if (!cliCmdTable->at(i)->contextMap->back()){
+			if (!cliCmdTable->at(i)->contextMap->back()) {
 				panic("Could not create context list item");
 				return RC_OUT_OF_MEM_ERR;
 			}
@@ -695,23 +696,25 @@ const char* cliCore::getHelpStr(char* p_helpStrBuff, cliMainCmd_t p_cmdType, con
 	bool found = false;
 	strcpy(p_helpStrBuff, "");
 	uint16_t i;
-	for (i = 0; i < cliCmdTable->size(); i++) {
-		if (p_mo) {
+	char* globalMoName = new (heap_caps_malloc(strlen(GLOBAL_MO_NAME) +1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(GLOBAL_MO_NAME) + 1];
+	strcpy(globalMoName, GLOBAL_MO_NAME);
+	char* commonMoName = new (heap_caps_malloc(strlen(COMMON_MO_NAME) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[strlen(COMMON_MO_NAME) + 1];
+	strcpy(commonMoName, COMMON_MO_NAME);
+	char* contextItter[3] = { globalMoName, commonMoName, (char*)p_mo };
+	for (uint8_t contextItterCnt = 0; p_mo? contextItterCnt < 3 : contextItterCnt < 2; contextItterCnt++) {
+		for (i = 0; i < cliCmdTable->size(); i++) {
 			if (p_cmdType == cliCmdTable->at(i)->cmdType &&
-				!strcmp(cliCmdTable->at(i)->mo, p_mo) &&
+				!strcmp(cliCmdTable->at(i)->mo, contextItter[contextItterCnt]) &&
 				!strcmp(cliCmdTable->at(i)->subMo, p_subMo)) {
 				found = true;
 				break;
 			}
 		}
-		else {
-			if (p_cmdType == cliCmdTable->at(i)->cmdType &&
-				!strcmp(cliCmdTable->at(i)->subMo, p_subMo)) {
-				found = true;
-				break;
-			}
-		}
+		if (found)
+			break;
 	}
+	delete globalMoName;
+	delete commonMoName;
 	if (found) {
 		if (p_showCmdSyntax) {
 			strcat(p_helpStrBuff, getCliNameByType(cliCmdTable->at(i)->cmdType));
@@ -722,7 +725,7 @@ const char* cliCore::getHelpStr(char* p_helpStrBuff, cliMainCmd_t p_cmdType, con
 			if (cliCmdTable->at(i)->cmdType == HELP_CLI_CMD) //Have the argument syntax registered instead
 				strcat(p_helpStrBuff, " [{command} [{sub-MO}]]"); TR: //MEDIUM: All help commands (eg help cli) shows arguments in their help text
 			strcat(p_helpStrBuff, " ");
-			char* flagsStr = new(heap_caps_malloc(sizeof(char[201]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[201];
+			char* flagsStr = new(heap_caps_malloc(sizeof(char[500]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[500];
 			strcat(p_helpStrBuff, cliCmdTable->at(i)->commandFlags ? cliCmdTable->at(i)->commandFlags->getAllRegisteredStr(flagsStr) : "");
 			delete flagsStr;
 			strcat(p_helpStrBuff, ": \n\r");
@@ -731,18 +734,17 @@ const char* cliCore::getHelpStr(char* p_helpStrBuff, cliMainCmd_t p_cmdType, con
 		if (p_showAvailableInMo) {
 			strcat(p_helpStrBuff, "Available in following MOs: ");
 			found = false;
-			strcat(p_helpStrBuff, "{");
+			
 			for (uint16_t j = 0; j < cliCmdTable->size(); j++) {
-				if (cliCmdTable->at(j)->cmdType == p_cmdType && cliCmdTable->at(j)->cmdType && !strcmp(cliCmdTable->at(j)->subMo, p_subMo)) {
-					strcat(p_helpStrBuff, cliCmdTable->at(i)->mo);
+				if (cliCmdTable->at(j)->cmdType == p_cmdType && !strcmp(cliCmdTable->at(j)->subMo, p_subMo)) {
+					strcat(p_helpStrBuff, "{");
+					strcat(p_helpStrBuff, cliCmdTable->at(j)->mo);
 					strcat(p_helpStrBuff, "}, ");
 					found = true;
 				}
 			}
 			if (found)
 				*(p_helpStrBuff + strlen(p_helpStrBuff) - 2) = '\0';
-			else
-				*(p_helpStrBuff + strlen(p_helpStrBuff) - 1) = '\0';
 		}
 		return p_helpStrBuff;
 	}

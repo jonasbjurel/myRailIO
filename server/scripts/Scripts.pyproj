@@ -29,7 +29,7 @@
     <Compile Include="myRailIO\lgLinkLogic.py" />
     <Compile Include="myRailIO\lightGroupLogic.py" />
     <Compile Include="myRailIO\momResources.py" />
-    <Compile Include="myRailIO\sateliteLogic.py" />
+    <Compile Include="myRailIO\satelliteLogic.py" />
     <Compile Include="myRailIO\satLinkLogic.py" />
     <Compile Include="myRailIO\sensorLogic.py" />
     <Compile Include="myRailIO\topDecoderLogic.py" />

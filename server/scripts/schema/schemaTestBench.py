@@ -130,8 +130,8 @@ def myRailIOSensSystemName_t(good=True):
     else: return [1, "ABC-MY_BAD_SENS"]
 
 def genSensPortNo_t(good=True):
-    if good: return [0, SATELITE_MAX_SENS_PORTS-1]
-    else: return ["1", -1, SATELITE_MAX_SENS_PORTS]
+    if good: return [0, SATELLITE_MAX_SENS_PORTS-1]
+    else: return ["1", -1, SATELLITE_MAX_SENS_PORTS]
 
 def genSensType_t(good=True):
     if good: return ["DIGITAL"]
@@ -142,8 +142,8 @@ def myRailIOActSystemName_t(good=True):
     else: return ["SOMETHING ELSE"]
 
 def genActPortNo_t(good=True):
-    if good: return [0, SATELITE_MAX_ACT_PORTS-1]
-    else: return ["0", -1, SATELITE_MAX_ACT_PORTS]
+    if good: return [0, SATELLITE_MAX_ACT_PORTS-1]
+    else: return ["0", -1, SATELLITE_MAX_ACT_PORTS]
 
 def genActType_t(good=True):
     if good: return ["SOLENOID", "SERVO", "PWM", "ONOFF", "PULSE"]

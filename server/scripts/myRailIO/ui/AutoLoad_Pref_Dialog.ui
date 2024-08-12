@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>519</width>
-    <height>134</height>
+    <width>540</width>
+    <height>189</height>
    </rect>
   </property>
   <property name="font">
@@ -22,11 +22,19 @@
   <widget class="QDialogButtonBox" name="autoLoadConfigAcceptButtonBox">
    <property name="geometry">
     <rect>
-     <x>340</x>
-     <y>100</y>
-     <width>161</width>
-     <height>32</height>
+     <x>360</x>
+     <y>154</y>
+     <width>171</width>
+     <height>31</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Accept and deploy configuration changes / or reject them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
@@ -39,8 +47,8 @@
    <property name="geometry">
     <rect>
      <x>11</x>
-     <y>10</y>
-     <width>401</width>
+     <y>20</y>
+     <width>421</width>
      <height>41</height>
     </rect>
    </property>
@@ -52,7 +60,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in tag&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;By Setting “Auto-load configuration file” to yes the current loaded/saved configuration file will be loaded after “Auto-load configuration file delay” seconds. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Auto-load configuration file:</string>
@@ -61,11 +69,21 @@
   <widget class="QComboBox" name="autoLoadConfigComboBox">
    <property name="geometry">
     <rect>
-     <x>440</x>
+     <x>450</x>
      <y>19</y>
-     <width>60</width>
-     <height>22</height>
+     <width>81</width>
+     <height>41</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>50</weight>
+     <bold>false</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;By Setting “Auto-load configuration file” to yes the current loaded/saved configuration file will be loaded after “Auto-load configuration file delay” seconds. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <item>
     <property name="text">
@@ -82,8 +100,8 @@
    <property name="geometry">
     <rect>
      <x>11</x>
-     <y>50</y>
-     <width>401</width>
+     <y>90</y>
+     <width>421</width>
      <height>41</height>
     </rect>
    </property>
@@ -95,7 +113,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Git check-out/check-in tag&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If “Auto-load configuration file” is set to yes the current loaded/saved configuration file will be loaded after “Auto-load configuration file delay” seconds. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Auto-load configuration file delay (s):</string>
@@ -104,11 +122,21 @@
   <widget class="QSpinBox" name="autoLoadConfigDelaySpinBox">
    <property name="geometry">
     <rect>
-     <x>440</x>
-     <y>58</y>
-     <width>61</width>
-     <height>22</height>
+     <x>450</x>
+     <y>90</y>
+     <width>81</width>
+     <height>41</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>50</weight>
+     <bold>false</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If “Auto-load configuration file” is set to yes the current loaded/saved configuration file will be loaded after “Auto-load configuration file delay” seconds. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </widget>
  </widget>

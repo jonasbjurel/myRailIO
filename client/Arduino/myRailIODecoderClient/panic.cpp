@@ -25,8 +25,8 @@
 /*==============================================================================================================================================*/
 /* END Include files                                                                                                                            */
 /*==============================================================================================================================================*/
-EXT_RAM_ATTR char stackTraceBuff[4096];
-EXT_RAM_ATTR char coreDumpBuff[4096];
+EXT_RAM_ATTR char stackTraceBuff[16384];
+EXT_RAM_ATTR char coreDumpBuff[16384];
 EXT_RAM_ATTR char panicLogMsg[512];
 EXT_RAM_ATTR bool ongoingPanic = false;
 QList<panicCbReg_t*>* panicCbList = new QList<panicCbReg_t*>;

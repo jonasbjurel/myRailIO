@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>sateliteDialog</class>
- <widget class="QDialog" name="sateliteDialog">
+ <class>satelliteDialog</class>
+ <widget class="QDialog" name="satelliteDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,11 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Satelite</string>
+   <string>Satellite</string>
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../icons/satelite.png</normaloff>../icons/satelite.png</iconset>
+    <normaloff>../icons/satellite.png</normaloff>../icons/satellite.png</iconset>
   </property>
   <widget class="QComboBox" name="adminStateComboBox">
    <property name="geometry">
@@ -32,7 +32,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite administrative state [ENABLE | DISABLE]</string>
+    <string>Satellite administrative state [ENABLE | DISABLE]</string>
    </property>
    <item>
     <property name="text">
@@ -45,7 +45,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QLabel" name="label_3">
+  <widget class="QLabel" name="adminStateLabel">
    <property name="geometry">
     <rect>
      <x>370</x>
@@ -62,7 +62,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satelite administrative state [ENABLE | DISABLE]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satellite administrative state [ENABLE | DISABLE]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Admin. state:</string>
@@ -71,7 +71,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4">
+  <widget class="QLabel" name="operationalStateLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -88,7 +88,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satelite operational state [AVAIL | UNAVAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satellite operational state [AVAIL | UNAVAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Operational state:</string>
@@ -109,7 +109,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite operational state [AVAIL | UNAVAIL]</string>
+    <string>Satellite operational state [AVAIL | UNAVAIL]</string>
    </property>
    <property name="text">
     <string/>
@@ -121,9 +121,9 @@
   <widget class="QCheckBox" name="adminStateForceCheckBox">
    <property name="geometry">
     <rect>
-     <x>680</x>
+     <x>630</x>
      <y>538</y>
-     <width>91</width>
+     <width>131</width>
      <height>41</height>
     </rect>
    </property>
@@ -135,13 +135,13 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satelite Force Admin state change - recursively changes admin state of childs&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>If you want to avoid manually “ENABLE” all parents, or “DISABLE” all children you may use the “recursive” version of “ENABLE”/”DISABLE” in which case the server does it for you.</string>
    </property>
    <property name="text">
-    <string>Force</string>
+    <string>Recursive</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_5">
+  <widget class="QLabel" name="upTimeLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -158,7 +158,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satelite uptime - time sinse previous satelite start&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satellite uptime - time sinse previous satellite start&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Up-time (min):</string>
@@ -179,7 +179,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite uptime - time sinse previous satelite start</string>
+    <string>Satellite uptime - time sinse previous satellite start</string>
    </property>
    <property name="text">
     <string/>
@@ -204,11 +204,14 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Accept and deploy configuration changes / or reject them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_9">
+  <widget class="QLabel" name="operationalStateDetailLabel">
    <property name="geometry">
     <rect>
      <x>370</x>
@@ -225,7 +228,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satelite detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satellite detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Details:</string>
@@ -246,7 +249,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Satelite detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Satellite detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -255,12 +258,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_10">
+  <widget class="QLabel" name="AddressLabel">
    <property name="geometry">
     <rect>
-     <x>500</x>
+     <x>570</x>
      <y>20</y>
-     <width>181</width>
+     <width>111</width>
      <height>41</height>
     </rect>
    </property>
@@ -272,10 +275,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satelite address&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:400;&quot;&gt;Satellite address&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>Satelite Address:</string>
+    <string>Address:</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="JMRIDescriptionLineEdit">
@@ -293,7 +296,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite description</string>
+    <string>Satellite description</string>
    </property>
    <property name="text">
     <string/>
@@ -302,7 +305,7 @@
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_16">
+  <widget class="QLabel" name="descriptionLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -319,7 +322,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Satelite description&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Satellite description&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Description:</string>
@@ -349,7 +352,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_7">
+  <widget class="QLabel" name="rxCRCLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -396,7 +399,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_11">
+  <widget class="QLabel" name="watchdogLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -483,7 +486,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Transmit CRC errors (detected by the decoder satelite link receiver)</string>
+    <string>Transmit CRC errors (detected by the decoder satellite link receiver)</string>
    </property>
    <property name="text">
     <string/>
@@ -507,7 +510,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite address</string>
+    <string>Satellite address</string>
    </property>
    <property name="maximum">
     <number>16</number>
@@ -526,7 +529,7 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="QLabel" name="label_12">
+  <widget class="QLabel" name="txCrcLabel">
    <property name="geometry">
     <rect>
      <x>450</x>
@@ -543,7 +546,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Transmit CRC errors (detected by the decoder satelite link receiver)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Transmit CRC errors (detected by the decoder satellite link receiver)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>TX CRC errors:</string>
@@ -562,7 +565,7 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="QLabel" name="label_17">
+  <widget class="QLabel" name="SystemNameLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -579,7 +582,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Satelite description&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Satellite description&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>System name:</string>
@@ -590,7 +593,7 @@
     <rect>
      <x>230</x>
      <y>20</y>
-     <width>251</width>
+     <width>321</width>
      <height>41</height>
     </rect>
    </property>
@@ -600,7 +603,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite description</string>
+    <string>Satellite description</string>
    </property>
    <property name="text">
     <string/>
@@ -609,7 +612,7 @@
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_18">
+  <widget class="QLabel" name="userNameLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -626,10 +629,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Satelite description&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; font-weight:400;&quot;&gt;Satellite description&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
-    <string>User name</string>
+    <string>User name:</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="JMRIUserNameLineEdit">
@@ -647,7 +650,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Satelite description</string>
+    <string>Satellite description</string>
    </property>
    <property name="text">
     <string/>

@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" ?>
+<genJMRI>
+	<Author>-</Author>
+	<Description>-</Description>
+	<Version>-</Version>
+	<Date>-</Date>
+	<Time>-</Time>
+	<gitBranch>Main</gitBranch>
+	<gitTag>Tip</gitTag>
+	<gitUrl>my.git.com</gitUrl>
+	<VersionHistory/>
+	<DecoderMqttURI>192.168.8.100</DecoderMqttURI>
+	<DecoderMqttPort>1883</DecoderMqttPort>
+	<DecoderMqttTopicPrefix>/trains</DecoderMqttTopicPrefix>
+	<DecoderPingPeriod>10.0</DecoderPingPeriod>
+	<DecoderKeepAlivePeriod>60</DecoderKeepAlivePeriod>
+	<JMRIRPCURI>127.0.0.2</JMRIRPCURI>
+	<JMRIRPCPortBase>8000</JMRIRPCPortBase>
+	<JMRIRpcKeepAlivePeriod>10.0</JMRIRpcKeepAlivePeriod>
+	<NTPServer>pool.ntp.org</NTPServer>
+	<NTPPort>123</NTPPort>
+	<TimeZoneGmtOffset/>
+	<RSyslogServer>192.168.8.100</RSyslogServer>
+	<RSyslogPort>514</RSyslogPort>
+	<RSyslogProtocol>UDP</RSyslogProtocol>
+	<RSyslogFile>genJmri.log</RSyslogFile>
+	<RSyslogRotateNoFiles>1</RSyslogRotateNoFiles>
+	<RSyslogFileSize>500</RSyslogFileSize>
+	<LogLevel>DEBUG-INFO</LogLevel>
+	<SNMPServer>my.snmp.org</SNMPServer>
+	<SNMPPort>162</SNMPPort>
+	<SNMPProtocol>TCP</SNMPProtocol>
+	<TracksFailSafe>Yes</TracksFailSafe>
+	<DecodersFailSafe>Yes</DecodersFailSafe>
+	<AdminState>ENABLE</AdminState>
+	<Decoder>
+		<SystemName>GJD-NewDecoderSysName</SystemName>
+		<UserName>GJD-NewDecoderUsrName</UserName>
+		<Description>New decoder</Description>
+		<MAC>E0:E2:E6:4C:13:30</MAC>
+		<URI>no.valid.uri</URI>
+		<AdminState>ENABLE</AdminState>
+		<LightgroupsLink>
+			<SystemName>GJLL-NewLgLinkSysName</SystemName>
+			<UserName>GJLL-NewLgLinkUsrName</UserName>
+			<Description>New Light group link</Description>
+			<MastDefinitionPath>C:\Program Files (x86)\JMRI\xml\signals\Sweden-3HMS</MastDefinitionPath>
+			<Link>0</Link>
+			<AdminState>ENABLE</AdminState>
+			<LightGroup>
+				<JMRISystemName>IF$vsm:Sweden-3HMS:SL-5HL($005)</JMRISystemName>
+				<JMRIUserName>GJLG-NewLightGroupUsrName</JMRIUserName>
+				<JMRIDescription>GJLG-NewLightGroupUsrDescription</JMRIDescription>
+				<Type>SIGNAL MAST</Type>
+				<LinkAddress>0</LinkAddress>
+				<Property1>Sweden-3HMS:SL-5HL</Property1>
+				<Property2>NORMAL</Property2>
+				<Property3>NORMAL</Property3>
+				<AdminState>ENABLE</AdminState>
+			</LightGroup>
+		</LightgroupsLink>
+	</Decoder>
+</genJMRI>

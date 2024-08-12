@@ -69,12 +69,12 @@ rc_t actLight::start(void) {
     return RC_OK;
 }
 
-void actLight::onDiscovered(satelite* p_sateliteLibHandle, bool p_exists) {
+void actLight::onDiscovered(satellite* p_satelliteLibHandle, bool p_exists) {
     LOG_INFO("%s: actLight extention class object discovered" CR, logContextName);
     char subscribeTopic[300];
     sprintf(subscribeTopic, "%s%s%s%s%s", MQTT_LIGHT_TOPIC, "/", mqtt::getDecoderUri(), "/", sysName);
     if (p_exists) {
-        satLibHandle = p_sateliteLibHandle;
+        satLibHandle = p_satelliteLibHandle;
         LOG_INFO("%s: Subscribing to light orders \"%s\"" CR, logContextName, subscribeTopic);
         if (mqtt::subscribeTopic(subscribeTopic, onActLightChangeHelper, this)){
             panic("%s: Failed to suscribe to light actuator order topic", logContextName);
@@ -148,11 +148,6 @@ void actLight::failsafe(bool p_failSafe) {
 
 rc_t actLight::setProperty(uint8_t p_propertyId, const char* p_propertyVal) {
     LOG_INFO("%s: Setting of Light property not implemented" CR, logContextName);
-    return RC_NOTIMPLEMENTED_ERR;
-}
-
-rc_t actLight::getProperty(uint8_t p_propertyId, char* p_propertyVal) {
-    LOG_INFO("%s: Getting of Light property not implemented" CR, logContextName);
     return RC_NOTIMPLEMENTED_ERR;
 }
 

@@ -38,7 +38,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor administrative state [ENABLE | DISABLE]</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor administrative state [ENABLE | DISABLE]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <item>
     <property name="text">
@@ -56,7 +56,7 @@
     <rect>
      <x>370</x>
      <y>400</y>
-     <width>141</width>
+     <width>131</width>
      <height>41</height>
     </rect>
    </property>
@@ -66,6 +66,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor administrative state [ENABLE | DISABLE]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Admin. state:</string>
@@ -79,7 +82,7 @@
     <rect>
      <x>10</x>
      <y>330</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -89,6 +92,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor operational state sumary [AVAIL | UNAVAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Operational state:</string>
@@ -112,7 +118,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor operational state [AVAIL | UNAVAIL]</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor operational state sumary [AVAIL | UNAVAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -124,9 +130,9 @@
   <widget class="QCheckBox" name="adminStateForceCheckBox">
    <property name="geometry">
     <rect>
-     <x>680</x>
+     <x>640</x>
      <y>400</y>
-     <width>91</width>
+     <width>131</width>
      <height>41</height>
     </rect>
    </property>
@@ -138,10 +144,10 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor Force Admin state change - recursively changes admin state of childs</string>
+    <string>If you want to avoid manually “ENABLE” all parents, or “DISABLE” all children you may use the “recursive” version of “ENABLE”/”DISABLE” in which case the server does it for you.</string>
    </property>
    <property name="text">
-    <string>Force</string>
+    <string>Recursive</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_5">
@@ -149,7 +155,7 @@
     <rect>
      <x>10</x>
      <y>400</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -159,6 +165,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor uptime - time sinse satellite link became available&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Up-time:</string>
@@ -179,7 +188,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor uptime - time sinse previous satelite start</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor uptime - time sinse satellite link became available&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -207,6 +216,9 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Accept and deploy configuration changes / or reject them&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
@@ -216,7 +228,7 @@
     <rect>
      <x>370</x>
      <y>330</y>
-     <width>141</width>
+     <width>131</width>
      <height>41</height>
     </rect>
    </property>
@@ -226,6 +238,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Details:</string>
@@ -246,7 +261,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor detailed operational state [INIT | DISABLE | CBL | ERRSEC | FAIL]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -255,12 +270,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_13">
+  <widget class="QLabel" name="sensorTypeLabel">
    <property name="geometry">
     <rect>
      <x>369</x>
      <y>229</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -270,17 +285,20 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor type&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Sensor type:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_14">
+  <widget class="QLabel" name="jmriSystemNameLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>20</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -290,6 +308,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Aptos,sans-serif';&quot;&gt;This is an immutable system identifier that needs to start with the &amp;quot;MS-&amp;quot; prefix.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>JMRI system name:</string>
@@ -298,12 +319,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_15">
+  <widget class="QLabel" name="jmruUserNameLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>90</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -313,6 +334,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor user name&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>JMRI user name:</string>
@@ -336,7 +360,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>JMRI provided actuator user name</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor user name&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -360,7 +384,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Current sensor state</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor sensing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -369,12 +393,12 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_7">
+  <widget class="QLabel" name="sensingLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>470</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -384,17 +408,20 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor sensing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Sensor sensing:</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_18">
+  <widget class="QLabel" name="jmriDescriptionLabel">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>160</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -404,6 +431,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor description&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>JMRI description:</string>
@@ -427,7 +457,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>JMRI provided actuator description</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor description&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string/>
@@ -436,12 +466,12 @@
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="label_17">
+  <widget class="QLabel" name="sensorPortLabel">
    <property name="geometry">
     <rect>
      <x>9</x>
      <y>230</y>
-     <width>221</width>
+     <width>211</width>
      <height>41</height>
     </rect>
    </property>
@@ -451,6 +481,9 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor port&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="text">
     <string>Sensor port:</string>
@@ -474,7 +507,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor type</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor type&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <item>
     <property name="text">
@@ -510,7 +543,7 @@
     </font>
    </property>
    <property name="whatsThis">
-    <string>Sensor port</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sensor port&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="prefix">
     <string/>
@@ -540,7 +573,7 @@
     <bool>true</bool>
    </property>
    <property name="whatsThis">
-    <string>JMRI provided actuator system name</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Aptos,sans-serif';&quot;&gt;This is an immutable system identifier that needs to start with the &amp;quot;MS-&amp;quot; prefix.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="editable">
     <bool>true</bool>

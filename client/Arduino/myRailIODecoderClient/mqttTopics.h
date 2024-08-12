@@ -45,7 +45,7 @@
 #define MQTT_LGLINK_TOPIC_FRAGMENT				"lglink"
 #define MQTT_SATLINK_TOPIC_FRAGMENT				"satLink"
 #define MQTT_LG_TOPIC_FRAGMENT					"lightgroup"
-#define MQTT_SAT_TOPIC_FRAGMENT					"satelite"
+#define MQTT_SAT_TOPIC_FRAGMENT					"satellite"
 #define MQTT_SENS_TOPIC_FRAGMENT				"sensor"
 #define MQTT_ACT_TOPIC_FRAGMENT					"actuator"
 #define MQTT_TURN_TOPIC_FRAGMENT				"turnout"

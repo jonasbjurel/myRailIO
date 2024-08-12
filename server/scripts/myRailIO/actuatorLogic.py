@@ -8,7 +8,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #################################################################################################################################################
 # A myRailIO actuator class providing the JMRI-myRailIO interactions for various actuators providing the bridge between following JMRI objects:
-# TURNOUTS, LIGHTS and MEMORIES, and the myRailIO satelite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses.
+# TURNOUTS, LIGHTS and MEMORIES, and the myRailIO satellite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses.
 #
 # See readme.md and and architecture.md for installation-, configuration-, and architecture descriptions
 # A full project description can be found here: https://github.com/jonasbjurel/GenericJMRIdecoder/blob/main/README.md
@@ -64,7 +64,7 @@ from config import *
 #################################################################################################################################################
 # Class: actuator
 # Purpose:      Provides the JMRI-myRailIO interactions for various actuators providing the bridge between following JMRI objects:
-#               TURNOUTS, LIGHTS and MEMORIES, and the myRailIO satelite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses
+#               TURNOUTS, LIGHTS and MEMORIES, and the myRailIO satellite actuator object atributes: SERVO, SOLENOID, PWM, ON/OFF, and Pulses
 #               Implements the management-, configuration-, supervision-, and control of myRailIO actuators.
 #               See archictecture.md for more information
 # StdMethods:   The standard myRailIO Managed Object Model API methods are all described in archictecture.md including: __init__(), onXmlConfig(),
@@ -78,7 +78,7 @@ class actuator(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
-        self.provioned = False
+        self.provisioned = False
         self.sysNameReged = False
         self.schemaDirty = False
         schema.__init__(self)
@@ -185,7 +185,6 @@ class actuator(systemState, schema):
         return res
 
     def validate(self):
-        print(">>>>>>>>>>>>>>>>>>>>Actuator validate")
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration validate()")
         self.schemaDirty = self.isDirty()
         if self.schemaDirty:
@@ -226,15 +225,13 @@ class actuator(systemState, schema):
                 return res
         else:
             trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.value + " was not reconfigured, skiping re-configuration")
-        self.provioned = True
+        self.provisioned = True
         return rc.OK
 
     def abort(self):
-        print(">>>>>>>>>>>>>>>>>>>>abort")
         trace.notify(DEBUG_TERSE, "Actuator " + self.jmriActSystemName.candidateValue + " received configuration abort()")
         self.abortAll()
-        if not self.provioned:
-            print(">>>>>>>>>>>>>>>>>>>>removing myself")
+        if not self.provisioned:
             self.delete(top = True)
         # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
@@ -346,17 +343,12 @@ class actuator(systemState, schema):
         #HERE IS WHERE WE NEED TO ADD THE TOPOLOGY VALIDATION OF THE CONFIGURATION
         # We need to define additional subsequent ports needed for this actuator type: self.contigousPorts
         self.parent.actTopology.removeTopologyMember(self.jmriActSystemName.value)
-        print(">>>>>>>>>>>>>>>>> About to allocate ports in topology")
         weakSelf = weakref.ref(self, actuator.aboutToDelete)
         for portItter in range (0, self.contigiousPorts):
-            print(">>>>>>>>>>>>>>>>> Allocating port: " + str(self.actPort.candidateValue + portItter))
             res = self.parent.actTopology.addTopologyMember(self.jmriActSystemName.candidateValue, self.actPort.candidateValue + portItter, weakSelf)
             if res:
-                print(">>>>>>>>>>>>>>>>Add failed")
                 trace.notify(DEBUG_ERROR, "Actuator failed address/port topology validation for port/address: " + str(self.actPort.candidateValue + portItter) + rc.getErrStr(res))
                 return res
-            print(">>>>>>>>>>>>>>>>Add Succeeded")
-
         return rc.OK
 
     def __setConfig(self):

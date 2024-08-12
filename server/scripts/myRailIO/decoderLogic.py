@@ -94,7 +94,7 @@ class decoder(systemState, schema):
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
         self.demo = demo
-        self.provioned = False
+        self.provisioned = False
         self.sysNameReged = False
         self.schemaDirty = False
         childsSchemaDirty = False
@@ -166,7 +166,7 @@ class decoder(systemState, schema):
             for i in range(DECODER_MAX_LG_LINKS):
                 self.addChild(LIGHT_GROUP_LINK, name="GJLL-" + str(i), config=False, demo=True)
             for i in range(DECODER_MAX_SAT_LINKS):
-                self.addChild(SATELITE_LINK, name=i, config=False, demo=True)
+                self.addChild(SATELLITE_LINK, name=i, config=False, demo=True)
         trace.notify(DEBUG_INFO,"New decoder: " + self.nameKey.candidateValue + " created - awaiting configuration")
 
     @staticmethod
@@ -219,11 +219,11 @@ class decoder(systemState, schema):
                 if res != rc.OK:
                     trace.notify(DEBUG_ERROR, "Failed to add Light group link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
                     return res
-        for sateliteLinkXml in xmlConfig:
-            if sateliteLinkXml.tag == "SateliteLink":
-                res = self.addChild(SATELITE_LINK, config=False, configXml=sateliteLinkXml, demo=False)
+        for satelliteLinkXml in xmlConfig:
+            if satelliteLinkXml.tag == "SatelliteLink":
+                res = self.addChild(SATELLITE_LINK, config=False, configXml=satelliteLinkXml, demo=False)
                 if res != rc.OK:
-                    trace.notify(DEBUG_ERROR, "Failed to add satelite link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
+                    trace.notify(DEBUG_ERROR, "Failed to add satellite link to " + decoderXmlConfig.get("SystemName") + " - return code: " + rc.getErrStr(res))
                     return res
         return rc.OK
 
@@ -313,7 +313,7 @@ class decoder(systemState, schema):
                 res = child.commit1()
                 if res != rc.OK:
                     return res
-        self.provioned = True
+        self.provisioned = True
         return rc.OK
     
     def abort(self):
@@ -327,7 +327,7 @@ class decoder(systemState, schema):
             for child in self.childs.value:
                 child.abort()
         self.abortAll()
-        if not self.provioned:
+        if not self.provisioned:
             self.delete(top = True)
         # WEE NEED TO CHECK IF THE ABORT WAS DUE TO THE CREATION OF THIS OBJECT AND IF SO DELETE OUR SELVES (self.delete)
         return rc.OK
@@ -389,18 +389,18 @@ class decoder(systemState, schema):
                 self.dialog.show()
                 self.reEvalOpState()
                 return rc.OK
-        elif resourceType == SATELITE_LINK:
+        elif resourceType == SATELLITE_LINK:
             self.satLinks.append(satLink(self.win, self.item, self.rpcClient, self.mqttClient, name = name, demo = demo))
             self.childs.value = self.lgLinks.candidateValue + self.satLinks.candidateValue
-            trace.notify(DEBUG_INFO, "Satelite link: " + self.satLinks.candidateValue[-1].nameKey.candidateValue + "is being added to decoder " + self.nameKey.value)
+            trace.notify(DEBUG_INFO, "Satellite link: " + self.satLinks.candidateValue[-1].nameKey.candidateValue + "is being added to decoder " + self.nameKey.value)
             if not config and configXml:
                 nameKey = self.satLinks.candidateValue[-1].nameKey.candidateValue
                 res = self.satLinks.candidateValue[-1].onXmlConfig(configXml)
                 self.reEvalOpState()
                 if res != rc.OK:
-                    trace.notify(DEBUG_ERROR, "Failed to configure Satelite link: " + nameKey + " - return code: " + rc.getErrStr(res))
+                    trace.notify(DEBUG_ERROR, "Failed to configure Satellite link: " + nameKey + " - return code: " + rc.getErrStr(res))
                     return res
-                trace.notify(DEBUG_INFO, "Satelite link: " + self.satLinks.value[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
+                trace.notify(DEBUG_INFO, "Satellite link: " + self.satLinks.value[-1].nameKey.value + " successfully added to decoder " + self.nameKey.value)
                 return rc.OK
             if config:
                 self.dialog = UI_satLinkDialog(self.satLinks.candidateValue[-1], self.rpcClient, edit=True, newConfig = True)
@@ -410,7 +410,7 @@ class decoder(systemState, schema):
             trace.notify(DEBUG_ERROR, "Decoder could not handele \"addChild\" permutation of \"config\" : " + str(config) + ", \"configXml\: " + ("Provided" if configXml else "Not provided") + " \"demo\": " + str(demo) + " \"replacement\": " + str(replacement))
             return rc.GEN_ERR
         else:
-            trace.notify(DEBUG_ERROR, "Gen JMRI server (top decoder) only takes SATELITE_LINK and LIGHT_GROPU_LINK as childs, given child was: " + str(resourceType))
+            trace.notify(DEBUG_ERROR, "Gen JMRI server (top decoder) only takes SATELLITE_LINK and LIGHT_GROPU_LINK as childs, given child was: " + str(resourceType))
             return rc.GEN_ERR
 
     def delChild(self, child):
@@ -437,7 +437,7 @@ class decoder(systemState, schema):
         self.dialog.show()
 
     def add(self):
-        self.dialog = UI_addDialog(self, LIGHT_GROUP_LINK | SATELITE_LINK)
+        self.dialog = UI_addDialog(self, LIGHT_GROUP_LINK | SATELLITE_LINK)
         self.dialog.show()
 
     def delete(self, top=False):
@@ -704,18 +704,14 @@ class decoder(systemState, schema):
             trace.notify(DEBUG_ERROR, "Unknown log overload status: " + logOverloadStatus)
             
     def onCliAccess(self, topic, value):
-        print("///////////////// CLI access value: " + value)
         cliAccessStatusXmlTree = ET.ElementTree(ET.fromstring(value))
         if str(cliAccessStatusXmlTree.getroot().tag) != MQTT_DECODER_CLIACCESS_PAYLOAD_TAG:
             trace.notify(DEBUG_ERROR, "CLI access status message missformatted: " + value)
             return
         cliAccessStatus = cliAccessStatusXmlTree.getroot().text
-        print("///////////////// CLI access status: " + cliAccessStatus)
         if cliAccessStatus != "NONE":
-            print("///////////////// CLI RAISING ALARM")
             self.CLI_ACCESSalarm.raiseAlarm("Decoder is being accessed by a CLI user: " + cliAccessStatus)
         elif cliAccessStatus == "NONE":
-            print("///////////////// CLI CEASING ALARM")
             self.CLI_ACCESSalarm.ceaseAlarm("Decoder is no longer being accessed by a CLI user")
         else:
             trace.notify(DEBUG_ERROR, "Unknown CLI access status: " + cliAccessStatus)
@@ -756,12 +752,10 @@ class decoder(systemState, schema):
         weakSelf = weakref.ref(self, decoder.aboutToDelete)
         res = self.parent.decoderMacTopology.addTopologyMember(self.decoderSystemName.candidateValue, self.mac.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Decoder failed Mac-address topology validation for MAC: " + str(self.mac.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Decoder failed Mac-address topology validation for MAC: " + str(self.mac.candidateValue) + "return code: " + rc.getErrStr(res))
             return res
         res = self.parent.decoderUriTopology.addTopologyMember(self.decoderSystemName.candidateValue, self.decoderMqttURI.candidateValue, weakSelf)
         if res:
-            print (">>>>>>>>>>>>> Decoder failed URI topology validation for URI: " + str(self.decoderMqttURI.candidateValue) + "return code: " + rc.getErrStr(res))
             trace.notify(DEBUG_ERROR, "Decoder failed URI topology validation for URI: " + str(self.decoderMqttURI.candidateValue) + "return code: " + rc.getErrStr(res))
             return res
         if len(self.lgLinks.candidateValue) > DECODER_MAX_LG_LINKS:

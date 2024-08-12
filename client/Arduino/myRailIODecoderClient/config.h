@@ -35,14 +35,14 @@
 #define PROVISIONING_TIMEOUT_S						5
 #define DECODER_DISCOVERY_TIMEOUT_S					60
 #define MAX_SATLINKS								1	//2
-#define MAX_LGLINKS									0	//2
+#define MAX_LGLINKS									1	//2
 #define DECODER_CONFIG_TIMEOUT_S					60
 #define MQTT_DEFAULT_KEEPALIVEPERIOD_S				10.0
 #define NTP_DEFAULT_URI								"se.pool.ntp.org"
 #define NTP_DEFAULT_PORT							123
 #define NTP_DEFAULT_TZ_AREA_CLEAR_TEXT				"Etc/UTC"
 #define NTP_DEFAULT_TZ_AREA_ENCODED_TEXT			"UTC0"
-#define NTP_DEFAULT_TZ_GMTOFFSET					+1
+#define NTP_DEFAULT_TZ_GMTOFFSET					+1 
 #define NTP_MAX_NTPSERVERS							3
 #define NTP_POLL_PERIOD_S							60
 #define NTP_DEFAULT_SYNCMODE						SNTP_SYNC_MODE_SMOOTH //SNTP_SYNC_MODE_SMOOTH | SNTP_SYNC_MODE_IMMED
@@ -60,14 +60,14 @@
 #define FLASH_TYPE_1_0_HZ							1
 #define FLASH_TYPE_1_5_HZ							2
 
-// Satelite link configuration
+// Satellite link configuration
 // ===========================
-#define MAX_SATELITES								1 //8 Max satelites for each Satelite link
+#define MAX_SATELLITES								1 //8 Max satellites for each Satellite link
 #define SATLINK_LINKERR_HIGHTRES					10 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 #define SATLINK_LINKERR_LOWTRES						0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 
 
-// Satelite configuration
+// Satellite configuration
 // ======================
 #define SAT_LINKERR_HIGHTRES						2 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
 #define SAT_LINKERR_LOWTRES							0 // Sum of all Link CRC- & Symbol errors over a second that will trigger ERRSEC
@@ -75,13 +75,13 @@
 // Sensor configuration
 // ====================
 #define DEFAULT_SENS_FILTER_TIME					5	// Digital sensor filter (ms)
-#define MAX_SENS									1	//8 Maximum sensors // Maximum satelites per satelite link
-#define SATLINK_UPDATE_MS							5	// Satelite scan period (ms)
+#define MAX_SENS									1	//8 Maximum sensors // Maximum satellites per satellite link
+#define SATLINK_UPDATE_MS							5	// Satellite scan period (ms)
 #define SENSDIGITAL_DEFAULT_FAILSAFE				true
 
 // Actuator configuration
 // ======================
-#define MAX_ACT										2	//4 Maximum actuators per satelite
+#define MAX_ACT										2	//4 Maximum actuators per satellite
 
 // General servo configuration
 #define SERVO_LEFT_PWM_VAL							26
@@ -109,7 +109,7 @@
 
 // Light group configuration
 // =========================
-#define MAX_LGS										8
+#define MAX_LGS										1					//8 Maximum light groups
 
 // Signal mast Light group configuration
 #define SM_DIM_NORMAL_MS							75
@@ -201,7 +201,7 @@
 #define CPU_MQTT_PING_TASKNAME						"mqttPing"
 #define CPU_MQTT_PING_STACK_ATTR					INTERNAL
 
-// Satelite link
+// Satellite link
 const uint8_t CPU_SATLINK_CORE[] =					{ CORE_1, CORE_0 };
 #define CPU_SATLINK_PRIO							20
 #define CPU_SATLINK_STACKSIZE_1K					6
