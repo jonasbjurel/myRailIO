@@ -53,54 +53,6 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:16pt; font-weight:600;&quot;&gt;Object navigation:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="restartPushButton">
-    <property name="geometry">
-     <rect>
-      <x>440</x>
-      <y>710</y>
-      <width>251</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Restart</string>
-    </property>
-    <property name="checkable">
-     <bool>false</bool>
-    </property>
-    <property name="autoExclusive">
-     <bool>false</bool>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="topLogPushButton">
-    <property name="geometry">
-     <rect>
-      <x>710</x>
-      <y>710</y>
-      <width>251</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>14</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>System log</string>
-    </property>
-    <property name="checkable">
-     <bool>false</bool>
-    </property>
-    <property name="autoExclusive">
-     <bool>false</bool>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_9">
     <property name="geometry">
      <rect>
@@ -152,7 +104,7 @@
       <x>13</x>
       <y>47</y>
       <width>951</width>
-      <height>651</height>
+      <height>731</height>
      </rect>
     </property>
     <property name="sizePolicy">

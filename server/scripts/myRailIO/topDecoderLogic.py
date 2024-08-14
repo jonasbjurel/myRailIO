@@ -829,13 +829,16 @@ class topDecoder(systemState, schema):
             trace.notify(DEBUG_INFO, "MQTT client: " + clientId + " disconnected from brooker")
 
     def __onRpcErr(self, conStatus):
+        print("__onRpcErr")
         if conStatus != rc.OK:
             trace.notify(DEBUG_ERROR, "RPC client disconnected from RPC server")
             self.subConnectionOpState = self.subConnectionOpState | RPC_DISCONNECTED_FAILURE
             if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
                 self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+                print("reSetOpStateDetail")
             else:
                 self.setOpStateDetail(OP_DISCONNECTED[STATE])
+                print("setOpStateDetail")
         else:
             trace.notify(DEBUG_INFO, "RPC client connected to RPC server")
             self.subConnectionOpState = self.subConnectionOpState & ~RPC_DISCONNECTED_FAILURE

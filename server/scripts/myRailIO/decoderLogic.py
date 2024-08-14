@@ -811,9 +811,6 @@ class decoder(systemState, schema):
         self.syncLogLvlRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGLVLREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_LOGLVLREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_LOGLVLRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
         self.syncWwwUiRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WWWUIREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_WWWUIREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_WWWUIRESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
         self.syncOpStateRequest = syncMqttRequest(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_OPSTATEREQ_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, MQTT_DECODER_OPSTATEREQ_PAYLOAD, MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_OPSTATERESP_TOPIC + self.getDecoderUri()  + "/" + self.decoderSystemName.value, self.mqttClient, 500)
-
-
-
         self.WIFI_Balarm.updateAlarmSrc(self.nameKey.value)
         self.WIFI_Aalarm.updateAlarmSrc(self.nameKey.value)
         self.NOT_CONNECTEDalarm.updateAlarmSrc(self.nameKey.value)
@@ -848,6 +845,7 @@ class decoder(systemState, schema):
     def __sysStateAllListener(self, changedOpStateDetail, p_sysStateTransactionId = None):
         #trace.notify(DEBUG_INFO, self.nameKey.value + " got a new OP Statr - changed opState: " + self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & changedOpStateDetail) + " - the composite OP-state is now: " + self.getOpStateDetailStr())
         opStateDetail = self.getOpStateDetail()
+        print("__sysStateAllListener " + str(opStateDetail))
         if opStateDetail & OP_DISABLED[STATE]:
             self.win.inactivateMoMObj(self.item)
         elif opStateDetail & OP_CBL[STATE]:

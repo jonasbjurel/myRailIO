@@ -203,9 +203,11 @@ class UI_mainWindow(QMainWindow):
         self.MoMTreeModel.removeRow(item.row(), parent=self.MoMTreeModel.indexFromItem(item).parent())
 
     def faultBlockMarkMoMObj(self, item, faultState):
+        print("faultBlockMarkMoMObj" + str(faultState))
         self.faultBlockMarkMoMObjSignal.emit(item, faultState)
 
     def __faultBlockMarkMoMObj(self, item, faultState):
+        print("__faultBlockMarkMoMObj" + str(faultState))
         if faultState:
             item.setColor(QColor(255, 0, 0))
         else:
@@ -218,9 +220,11 @@ class UI_mainWindow(QMainWindow):
         item.setColor(QColor(200, 200, 200))
 
     def controlBlockMarkMoMObj(self, item):
+        print("controlBlockMarkMoMObj")
         self.controlBlockMarkMoMObjSignal.emit(item)
 
     def __controlBlockMarkMoMObj(self, item):
+        print("__controlBlockMarkMoMObj")
         item.setColor(QColor(255, 200, 0))
 
     def _onAlarm(self, p_criticality, p_noOfAlarms, p_object):
@@ -345,12 +349,6 @@ class UI_mainWindow(QMainWindow):
         # MoM tree widget
         self.topMoMTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.topMoMTree.customContextMenuRequested.connect(self.MoMMenuContextTree)
-
-        # Log widget
-        self.topLogPushButton.clicked.connect(self.log)
-
-        # Restart widget
-        self.restartPushButton.clicked.connect(self.restart)
 
         # Alarm widget
         self.alarmPushButton.clicked.connect(self.showAlarms)
