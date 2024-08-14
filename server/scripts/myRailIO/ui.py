@@ -1574,6 +1574,8 @@ class UI_decoderDialog(QDialog):
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
+        self.hwVerLineEdit.setEnabled(False)
+        self.fwVerLineEdit.setEnabled(False)
         self.ipAddressLineEdit.setEnabled(False)
         self.launchUiPushButton.setEnabled(True)
         self.launchTelnetPushButton.setEnabled(False)
@@ -1590,6 +1592,8 @@ class UI_decoderDialog(QDialog):
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(False)
         self.adminStateForceCheckBox.setEnabled(False)
+        self.hwVerLineEdit.setEnabled(False)
+        self.fwVerLineEdit.setEnabled(False)
         self.ipAddressLineEdit.setEnabled(False)
         self.launchUiPushButton.setEnabled(True)
         self.launchTelnetPushButton.setEnabled(False)
@@ -1605,6 +1609,14 @@ class UI_decoderDialog(QDialog):
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
         self.adminStateComboBox.setCurrentText(self.parentObjHandle.getAdmState()[STATE_STR])
+        try:
+            self.hwVerLineEdit.setText(self.parentObjHandle.getHardwareVersionFromClient())
+        except:
+            self.hwVerLineEdit.setText("-")
+        try:
+            self.fwVerLineEdit.setText(self.parentObjHandle.getFirmwareVersionFromClient())
+        except:
+            self.fwVerLineEdit.setText("-")
         try:
             self.ipAddressLineEdit.setText(self.parentObjHandle.getIpAddressFromClient())
         except:
