@@ -863,7 +863,7 @@ class UI_logSettingDialog(QDialog):
         self.logSettingConfirmButtonBox.rejected.connect(self.rejected)
 
     def accepted(self):
-        self.parentObjHandle.setLogVerbosity(short2longVerbosity(self.logSettingVerbosityComboBox.currentText()))
+        self.parentObjHandle.setLogVerbosity(short2longVerbosity(self.logSettingVerbosityComboBox.currentText()), commit = True)
         self.close()
 
     def rejected(self):

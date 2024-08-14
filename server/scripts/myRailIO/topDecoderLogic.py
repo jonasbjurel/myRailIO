@@ -285,7 +285,6 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("DecoderMqttTopicPrefix") != None: self.decoderMqttTopicPrefix.value = topDecoderXmlConfig.get("DecoderMqttTopicPrefix")
             if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = topDecoderXmlConfig.get("NTPServer")
             if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
-#FIX THIS TZ
             if topDecoderXmlConfig.get("TimeZoneClearText") != None:
                 self.tzClearText.value = topDecoderXmlConfig.get("TimeZoneClearText")
                 self.tzEncodedText.value = tz.getEncodedTimeZones(self.tzClearText.candidateValue)
@@ -302,7 +301,6 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("SNMPPort") != None: self.snmpPort.value = int(topDecoderXmlConfig.get("SNMPPort"))
             if topDecoderXmlConfig.get("SNMPProtocol") != None: self.snmpProtocol.value = topDecoderXmlConfig.get("SNMPProtocol")
-
             if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("TracksFailSafe") != None: 
                 if topDecoderXmlConfig.get("TracksFailSafe") == "Yes": 
@@ -702,7 +700,14 @@ class topDecoder(systemState, schema):
     def restart(self):
         print("Restarting myRailIO server...")
 
-    def setLogVerbosity(self, logVerbosity):
+    def setLogVerbosity(self, logVerbosity, commit = False):
+        self.logVerbosity.value = logVerbosity
+        if commit:
+            try:
+                self.logVerbosity.commit()
+            except:
+                trace.notify(DEBUG_ERROR, "Could not commit log-level to database")
+                return rc.DB_ERR
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(logVerbosity))
         self.rpcClient.setRpcServerDebugLevel(logVerbosity)
         if trace.getSeverityFromSeverityStr(logVerbosity) < DEBUG_INFO:
