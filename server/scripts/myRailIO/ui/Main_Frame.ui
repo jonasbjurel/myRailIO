@@ -168,7 +168,6 @@
     <addaction name="separator"/>
     <addaction name="autoLoadPreferences"/>
     <addaction name="separator"/>
-    <addaction name="actionRestart_2"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -189,7 +188,6 @@
     <property name="title">
      <string>&amp;Tools</string>
     </property>
-    <addaction name="actionRestart"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -210,9 +208,7 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionConfiguration"/>
-    <addaction name="actionVersions"/>
     <addaction name="actionAlarms"/>
-    <addaction name="actionAlarm_inventory"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">

@@ -317,8 +317,8 @@ class UI_mainWindow(QMainWindow):
 
         # View actions
         # ------------
+        self.actionConfiguration.triggered.connect(self.showConfig)
         self.actionAlarms.triggered.connect(self.showAlarms)
-        self.actionAlarm_inventory.triggered.connect(self.showAlarmInventory)
 
         # Tools actions
         # -------------
@@ -361,6 +361,10 @@ class UI_mainWindow(QMainWindow):
 
     def saveConfigFileAs(self):
         self.configFileDialog.saveFileAsDialog(self.parentObjHandle.getXmlConfigTree(text=True))
+        
+    def showConfig(self):
+        self.configOutputDialog = UI_getConfig(self, self.parentObjHandle.getXmlConfigTree(text=True))
+        self.configOutputDialog.show()
 
     def haveGoodConfiguration(self, haveIt):
         if haveIt:
