@@ -203,6 +203,7 @@
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionServer_version"/>
     <addaction name="actionAbout_myRailIO"/>
     <addaction name="actionSearch_for_help"/>
     <addaction name="separator"/>
@@ -379,6 +380,9 @@
    </property>
   </action>
   <action name="actionSearch_for_help">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Search for help</string>
    </property>
@@ -394,6 +398,9 @@
    </property>
   </action>
   <action name="actionUpgrading_JMRI">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Upgrading JMRI</string>
    </property>
@@ -528,6 +535,11 @@
   <action name="actionRestart_3">
    <property name="text">
     <string>Restart</string>
+   </property>
+  </action>
+  <action name="actionServer_version">
+   <property name="text">
+    <string>Version</string>
    </property>
   </action>
  </widget>

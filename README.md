@@ -4,7 +4,7 @@ MyRailIO<sup>©</sup>
 
 MyRailIO<sup>©</sup> Readme
 
-A model railway controller backend for signal masts-, sensors-, light
+MyRailIO is a model railway controller backend for signal masts-, sensors-, light
 effects-, actuators and more.
 
 # License and copyright

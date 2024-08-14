@@ -15,6 +15,7 @@ import threading
 import traceback
 from momResources import *
 import webbrowser
+import markdown
 import imp
 imp.load_source('rpc', '..\\rpc\\JMRIObjects.py')
 from rpc import jmriObj
@@ -347,7 +348,12 @@ class UI_mainWindow(QMainWindow):
 
         # Help actions
         # ------------
+        self.actionServer_version.triggered.connect(self.version)
         self.actionAbout_myRailIO.triggered.connect(self.about)
+        self.actionSearch_for_help.triggered.connect(self.searchHelp)
+        self.actionLicense.triggered.connect(self.license)
+        self.actionHow_to_contribute.triggered.connect(self.contribute)
+        self.actionSource.triggered.connect(self.source)
 
     def connectWidgetSignalsSlots(self):
         # MoM tree widget
@@ -581,15 +587,29 @@ class UI_mainWindow(QMainWindow):
         self.actuatorInventoryWidget = UI_actuatorInventoryShowDialog(self.parentObjHandle)
         self.actuatorInventoryWidget.show()
 
-    def about(self):
-        QMessageBox.about(
-            self,
-            "About myRailIO",
-            "<p>myRailIO implements a generic signal masts-, actuators- and sensor decoder framework for JMRI, </p>"
-            "<p>For more information see:</p>"
-            "<p>https://github.com/jonasbjurel/GenericJMRIdecoder</p>",
-        )
+    def version(self):
+        with open('VERSION.md', 'r') as file:
+            versionMd = file.read()
+            QMessageBox.about(self, "myRailIO server version", markdown.markdown(versionMd))
 
+    def about(self):
+        with open('../../../ABOUT_SHORT.md', 'r') as file:
+            aboutMd = file.read()
+            QMessageBox.about(self, "About myRailIO", markdown.markdown(aboutMd))
+
+    def license(self):
+        with open('../../../LICENSE_SHORT.md', 'r') as file:
+            licenseMd = file.read()
+            QMessageBox.about(self, "myRailIO Lisense", markdown.markdown(licenseMd))
+            
+    def searchHelp(self):
+        QMessageBox.about(self, "myRailIO Help", markdown.markdown("help can me found at <https://www.myrail.io/resources>"))
+
+    def contribute(self):
+        QMessageBox.about(self, "myRailIO How to contribute", markdown.markdown("Sign up for your contribution <https://myrail.io/#Join>"))
+
+    def source(self):
+        QMessageBox.about(self, "myRailIO Source", markdown.markdown("All sources can be found at <https://github.com/jonasbjurel/myRailIO>"))
 
 
 class UI_fileDialog(QWidget):
