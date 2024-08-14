@@ -173,15 +173,24 @@
     <property name="title">
      <string>&amp;Edit</string>
     </property>
+    <addaction name="actionAdd"/>
+    <addaction name="actionDelete"/>
     <addaction name="actionEdit"/>
-    <addaction name="actionRemove"/>
-    <addaction name="actionChange"/>
+    <addaction name="actionView"/>
     <addaction name="separator"/>
     <addaction name="actionCopy"/>
     <addaction name="actionPaste"/>
     <addaction name="actionFind"/>
     <addaction name="separator"/>
+    <addaction name="actionEnable"/>
+    <addaction name="actionEnable_recursive"/>
+    <addaction name="actionDisable"/>
+    <addaction name="actionDisable_recursive"/>
+    <addaction name="separator"/>
+    <addaction name="actionRestart_3"/>
+    <addaction name="separator"/>
     <addaction name="actionmyRailIO_preferences"/>
+    <addaction name="separator"/>
     <addaction name="actiongit_preferences"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -271,22 +280,25 @@
     <string>Save as</string>
    </property>
   </action>
-  <action name="actionEdit">
+  <action name="actionAdd">
    <property name="text">
     <string>Add</string>
    </property>
   </action>
-  <action name="actionRemove">
+  <action name="actionDelete">
    <property name="text">
-    <string>Remove</string>
+    <string>Delete</string>
    </property>
   </action>
-  <action name="actionChange">
+  <action name="actionEdit">
    <property name="text">
-    <string>Change</string>
+    <string>Edit</string>
    </property>
   </action>
   <action name="actionFind">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Find</string>
    </property>
@@ -422,6 +434,9 @@
    </property>
   </action>
   <action name="actiongit_preferences">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>gitOps preferences</string>
    </property>
@@ -483,6 +498,36 @@
   <action name="actionShow_AlarmInventory">
    <property name="text">
     <string>Alarms inventory</string>
+   </property>
+  </action>
+  <action name="actionView">
+   <property name="text">
+    <string>View</string>
+   </property>
+  </action>
+  <action name="actionEnable">
+   <property name="text">
+    <string>Enable</string>
+   </property>
+  </action>
+  <action name="actionEnable_recursive">
+   <property name="text">
+    <string>Enable - recursive</string>
+   </property>
+  </action>
+  <action name="actionDisable">
+   <property name="text">
+    <string>Disable</string>
+   </property>
+  </action>
+  <action name="actionDisable_recursive">
+   <property name="text">
+    <string>Disable - recursive</string>
+   </property>
+  </action>
+  <action name="actionRestart_3">
+   <property name="text">
+    <string>Restart</string>
    </property>
   </action>
  </widget>

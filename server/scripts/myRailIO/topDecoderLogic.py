@@ -641,10 +641,10 @@ class topDecoder(systemState, schema):
             return minidom.parseString(ET.tostring(topXml, 'unicode')).toprettyxml() if text else topXml
 
     def getMethods(self):
-        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
 
     def getActivMethods(self):
-        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
             activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT
         elif self.getAdmState() == ADM_DISABLE:

@@ -249,48 +249,48 @@ class UI_mainWindow(QMainWindow):
         menu = QMenu()
         menu.setTitle(MoMName + " - actions")
         menu.toolTipsVisible()
+        addAction = menu.addAction("Add")
+        addAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ADD else addAction.setEnabled(False)
+        deleteAction = menu.addAction("Delete")
+        deleteAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DELETE else deleteAction.setEnabled(False)
+        editAction = menu.addAction("Edit")
+        editAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_EDIT else editAction.setEnabled(False)
         viewAction = menu.addAction("View") if stdItemObj.getObj().getMethods() & METHOD_VIEW else None
-        if viewAction != None: viewAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else viewAction.setEnabled(False)
-        editAction = menu.addAction("Edit") if stdItemObj.getObj().getMethods() & METHOD_EDIT else None
-        if editAction != None: editAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_EDIT else editAction.setEnabled(False)
-        copyAction = menu.addAction("Copy") if stdItemObj.getObj().getMethods() & METHOD_COPY else None
-        if copyAction != None: copyAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_COPY else copyAction.setEnabled(False)
-        addAction = menu.addAction("Add") if stdItemObj.getObj().getMethods() & METHOD_ADD else None
-        if addAction != None: addAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ADD else addAction.setEnabled(False)
-        deleteAction = menu.addAction("Delete") if stdItemObj.getObj().getMethods() & METHOD_DELETE else None
-        if deleteAction != None: deleteAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DELETE else deleteAction.setEnabled(False)
+        viewAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else viewAction.setEnabled(False)
         menu.addSeparator()
-        enableAction = menu.addAction("Enable") if stdItemObj.getObj().getMethods() & METHOD_ENABLE else None
-        if enableAction != None: enableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE else enableAction.setEnabled(False)
-        enableRecursAction = menu.addAction("Enable - recursive") if stdItemObj.getObj().getMethods() & METHOD_ENABLE_RECURSIVE else None
-        if enableRecursAction != None: enableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE_RECURSIVE else enableRecursAction.setEnabled(False)
-        disableAction = menu.addAction("Disable") if stdItemObj.getObj().getMethods() & METHOD_DISABLE else None
-        if disableAction != None: disableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE else disableAction.setEnabled(False)
-        disableRecursAction = menu.addAction("Disable - recursive") if stdItemObj.getObj().getMethods() & METHOD_DISABLE_RECURSIVE else None
-        if disableRecursAction != None: disableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE_RECURSIVE else disableRecursAction.setEnabled(False)
+        copyAction = menu.addAction("Copy")
+        copyAction.setEnabled(False)
+        pasteAction = menu.addAction("Paste")
+        pasteAction.setEnabled(False)
+        FindAction = menu.addAction("Find")
+        FindAction.setEnabled(False)
         menu.addSeparator()
-        logAction = menu.addAction("View log") if stdItemObj.getObj().getMethods() & METHOD_LOG else None
-        if logAction != None: logAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_LOG else logAction.setEnabled(False)
+        enableAction = menu.addAction("Enable")
+        enableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE else enableAction.setEnabled(False)
+        enableRecursAction = menu.addAction("Enable - recursive")
+        enableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE_RECURSIVE else enableRecursAction.setEnabled(False)
+        disableAction = menu.addAction("Disable")
+        disableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE else disableAction.setEnabled(False)
+        disableRecursAction = menu.addAction("Disable - recursive")
+        disableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE_RECURSIVE else disableRecursAction.setEnabled(False)
         menu.addSeparator()
-        restartAction = menu.addAction("Restart") if stdItemObj.getObj().getMethods() & METHOD_RESTART else None
-        if restartAction != None: restartAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_RESTART else restartAction.setEnabled(False)
-
+        restartAction = menu.addAction("Restart")
+        restartAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_RESTART else restartAction.setEnabled(False)
         action = menu.exec_(self.topMoMTree.mapToGlobal(point))
         res = 0
         try:
-            if action == viewAction: res = stdItemObj.getObj().view()
             if action == addAction: res = stdItemObj.getObj().add()
-            if action == editAction: res = stdItemObj.getObj().edit()
-            if action == copyAction: res = stdItemObj.getObj().copy()
             if action == deleteAction: res = stdItemObj.getObj().delete(top=True)
+            if action == editAction: res = stdItemObj.getObj().edit()
+            if action == viewAction: res = stdItemObj.getObj().view()
+            #if action == copyAction: res = stdItemObj.getObj().copy()
+            #if action == pasteAction: res = stdItemObj.getObj().paste()
+            #if action == findAction: res = stdItemObj.getObj().copy()
             if action == enableAction: res = stdItemObj.getObj().enable()
             if action == enableRecursAction: res = stdItemObj.getObj().enableRecurse()
             if action == disableAction: res = stdItemObj.getObj().disable()
             if action == disableRecursAction: res = stdItemObj.getObj().disableRecurse()
-            if action == logAction: 
-                self.logDialog = UI_logDialog(stdItemObj.getObj())
-                self.logDialog.show()
-            if action == restartAction: res = stdItemObj.getObj().restart()
+            if action == restartAction: res = stdItemObj.getObj().decoderRestart()
             if res != rc.OK and res != None:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
@@ -313,6 +313,15 @@ class UI_mainWindow(QMainWindow):
 
         # Edit actions
         # ------------
+        self.actionAdd.triggered.connect(self.add)
+        self.actionDelete.triggered.connect(self.delete)
+        self.actionEdit.triggered.connect(self.edit)
+        self.actionView.triggered.connect(self.view)
+        self.actionEnable.triggered.connect(self.enable)
+        self.actionEnable_recursive.triggered.connect(self.enableRecursive)
+        self.actionDisable.triggered.connect(self.disable)
+        self.actionDisable_recursive.triggered.connect(self.disableRecursive)
+        self.actionRestart_3.triggered.connect(self.restart)
         self.actionmyRailIO_preferences.triggered.connect(self.editMyRailIOPreferences)
 
         # View actions
@@ -333,25 +342,21 @@ class UI_mainWindow(QMainWindow):
 
         # Debug actions
         # -----------------
+        self.actionOpenLogProp.triggered.connect(self.setLogProperty)
+        self.actionOpen_Log_window.triggered.connect(self.log)
 
         # Help actions
         # ------------
         self.actionAbout_myRailIO.triggered.connect(self.about)
 
-        # Main window push button actions
-        # ===============================
-        # Log actions
-        # -----------
-        self.actionOpenLogProp.triggered.connect(self.setLogProperty)
-        self.actionOpen_Log_window.triggered.connect(self.log)
-
     def connectWidgetSignalsSlots(self):
         # MoM tree widget
         self.topMoMTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.topMoMTree.customContextMenuRequested.connect(self.MoMMenuContextTree)
+        self.menuEdit.aboutToShow.connect(self.updateEditMenu)
 
         # Alarm widget
-        self.alarmPushButton.clicked.connect(self.showAlarms)
+        #self.alarmPushButton.clicked.connect(self.showAlarms)
 
     def openConfigFile(self):
         self.configFileDialog.openFileDialog()
@@ -379,6 +384,166 @@ class UI_mainWindow(QMainWindow):
     def setAutoLoadPreferences(self):
         print("Setting Autoload prefs")
         self.configFileDialog.setAutoloadPrefs()
+        
+    def updateEditMenu(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            self.actionAdd.setEnabled(False)
+            self.actionDelete.setEnabled(False)
+            self.actionEdit.setEnabled(False)
+            self.actionView.setEnabled(False)
+            self.actionEnable.setEnabled(False)
+            self.actionEnable_recursive.setEnabled(False)
+            self.actionDisable.setEnabled(False)
+            self.actionDisable_recursive.setEnabled(False)
+            self.actionRestart_3.setEnabled(False)
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        self.actionAdd.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ADD else self.actionAdd.setEnabled(False)
+        self.actionDelete.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DELETE else self.actionDelete.setEnabled(False)
+        self.actionEdit.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_EDIT else self.actionEdit.setEnabled(False)
+        self.actionView.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else self.actionView.setEnabled(False)
+        self.actionEnable.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE else self.actionEnable.setEnabled(False)
+        self.actionEnable_recursive.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE_RECURSIVE else self.actionEnable_recursive.setEnabled(False)
+        self.actionDisable.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE else self.actionDisable.setEnabled(False)
+        self.actionDisable_recursive.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE_RECURSIVE else self.actionDisable_recursive.setEnabled(False)
+        self.actionRestart_3.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_RESTART else self.actionRestart_3.setEnabled(False)
+
+    def add(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().add()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not add object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def delete(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().delete()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not delete object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+
+    def edit(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().edit()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not edit object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def view(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().view()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not view object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def enable(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().enable()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not enable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def enableRecursive(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().enableRecurse()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not enable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def disable(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().disable()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not disable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def disableRecursive(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().disableRecurse()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not disable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def restart(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().decoderRestart()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not restart object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
 
     def log(self):
         self.log = UI_logDialog(self.parentObjHandle)
@@ -391,9 +556,6 @@ class UI_mainWindow(QMainWindow):
     def editMyRailIOPreferences(self):
         self.dialog = UI_topDialog(self.parentObjHandle, edit=True)
         self.dialog.show()
-
-    def restart(self):
-        self.parentObjHandle.restart()
 
     def showAlarms(self):
         self.alarmWidget = UI_alarmShowDialog(self.parentObjHandle)
