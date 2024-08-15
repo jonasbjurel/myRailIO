@@ -116,8 +116,11 @@ class StandardItem(QStandardItem):
         return self.obj
 
     def setColor(self, color):
-        self.setForeground(color)
-        self.setFont(self.fnt)
+        try:
+            self.setForeground(color)
+            self.setFont(self.fnt)
+        except:
+            pass
 
     def __delete__(self):
         super().__delete__()
