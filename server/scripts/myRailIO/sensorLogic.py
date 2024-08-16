@@ -118,7 +118,11 @@ class sensor(systemState, schema):
 
     @staticmethod
     def aboutToDelete(ref):
-        ref.parent.actTopology.removeTopologyMember(ref.jmriSensSystemName.value)
+        ref.parent.sensTopology.removeTopologyMember(ref.jmriSensSystemName.value)
+
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.sensTopology.removeTopologyMember(self.jmriSensSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:

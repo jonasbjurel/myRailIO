@@ -1792,13 +1792,21 @@ class UI_decoderInventoryShowDialog(QDialog):
     def showSelectedDecoder(self, p_clickedIndex):
         if p_clickedIndex.column() == decoderInventoryTableModel.provUriCol():
             decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())
-            webbrowser.open_new_tab(decoder.getDecoderWwwUiFromClient())
+            if decoder:
+                webbrowser.open_new_tab(decoder.getDecoderWwwUiFromClient())
         elif p_clickedIndex.column() == decoderInventoryTableModel.coreDumpCol():
-            UI_crashDumpDialog(self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())).show()
+            decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())
+            if decoder:
+                UI_crashDumpDialog(decoder).show()
         else:
             decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
-            self.individualDecoderWidget = UI_decoderDialog(decoder, decoder.rpcClient)
-            self.individualDecoderWidget.show()
+            if decoder:
+                self.individualDecoderWidget = UI_decoderDialog(decoder, decoder.rpcClient)
+                self.individualDecoderWidget.show()
+
+            else:
+                self.parentObjHandle.add(mac = self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.macCol()).data(), showResourceTypeSelector = False)
+
 #################################################################################################################################################
 # End Class: UI_decoderInventoryShowDialog
 #################################################################################################################################################
@@ -1949,6 +1957,31 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             decoderInventoryRow.append(decoderInventoryItter.getCoreDumpIdFromClient())
             decoderInventoryRow.append(decoderInventoryItter.getDecoderWwwUiFromClient())
             self._decoderInventoryTable.append(decoderInventoryRow)
+        for decoderInventoryItter in self.parentObjHandle.discoveredDecoders:
+            decoderInventoryRow : List[str] = []
+            if not self.parentObjHandle.discoveredDecoders[decoderInventoryItter]["CONFIGURED"]:
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append(self.parentObjHandle.discoveredDecoders[decoderInventoryItter]["HWVER"])
+                decoderInventoryRow.append(self.parentObjHandle.discoveredDecoders[decoderInventoryItter]["FWVER"])
+                decoderInventoryRow.append(decoderInventoryItter)
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                self._decoderInventoryTable.append(decoderInventoryRow)
+            
+            
+
         return self._decoderInventoryTable
 
     def rowCount(self, p_parent : Any = Qt.QModelIndex()) -> int:
@@ -1964,7 +1997,7 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             if role != QtCore.Qt.DisplayRole:
                 return None
             if orientation == QtCore.Qt.Horizontal:
-                return ("SysName:","UsrName:", "Desc:", "OpState (Server/Client):", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[s]:", "WifiSSID:", "WiFiRSSI[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "CoreDump", "DecoderUI:")[section]
+                return ("SysName:","UsrName:", "Desc:", "OpState (Server/Client):", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[M]:", "WifiSSID:", "WiFiRSSI[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "CoreDump", "DecoderUI:")[section]
             else:
                 return f"{section}"
 
@@ -1975,8 +2008,10 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.DisplayRole:
                 return self._decoderInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
+                if not self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]):
+                    return QtGui.QBrush(QtGui.QColor('#0000FF'))
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
@@ -2799,7 +2834,7 @@ class lightGroupInventoryTableModel(QtCore.QAbstractTableModel):
             if role != QtCore.Qt.DisplayRole:
                 return None
             if orientation == QtCore.Qt.Horizontal:
-                return ("SysName:","UsrName:", "Desc:", "Type:", "Subtype:", "LinkAddr:", "OpState:", "Showing:", "UpTime[s]:", "Topology:")[section]
+                return ("SysName:","UsrName:", "Desc:", "Type:", "Subtype:", "LinkAddr:", "OpState:", "Showing:", "UpTime[M]:", "Topology:")[section]
             else:
                 return f"{section}"
 
@@ -2811,7 +2846,7 @@ class lightGroupInventoryTableModel(QtCore.QAbstractTableModel):
                 return self._lightGroupInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
                 if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
@@ -3388,7 +3423,7 @@ class sensorInventoryTableModel(QtCore.QAbstractTableModel):
                 return self._sensorInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
                 if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
@@ -3898,7 +3933,7 @@ class actuatorInventoryTableModel(QtCore.QAbstractTableModel):
                 return self._actuatorInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
                 if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:

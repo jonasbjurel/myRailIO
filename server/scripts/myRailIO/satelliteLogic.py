@@ -129,6 +129,10 @@ class satellite(systemState, schema):
     def aboutToDelete(ref):
         ref.parent.satTopology.removeTopologyMember(ref.satSystemName.value)
 
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.satTopology.removeTopologyMember(self.satSystemName.value)
+
     def onXmlConfig(self, xmlConfig):
         try:
             satXmlConfig = parse_xml(xmlConfig,
@@ -371,6 +375,7 @@ class satellite(systemState, schema):
         if child.canDelete() != rc.OK:
             trace.notify(DEBUG_INFO, "Could not delete " + child.nameKey.candidateValue + " - as the object or its childs are not in DISABLE state")
             return self.canDelete()
+        child.aboutToDeleteWorkAround()                      #WORKAROUND CODE FOR ISSUE #123
         try:
             child.sensors.remove(child)
         except:

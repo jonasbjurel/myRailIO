@@ -120,6 +120,10 @@ class lightGroup(systemState, schema):
     def aboutToDelete(ref):
         ref.parent.lgTopology.removeTopologyMember(ref.jmriLgSystemName.value)
 
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.lgTopology.removeTopologyMember(self.jmriLgSystemName.value)
+
     def onXmlConfig(self, xmlConfig):
         try:
             lgXmlConfig = parse_xml(xmlConfig,

@@ -20,6 +20,7 @@
 #################################################################################################################################################
 from dataclasses import dataclass
 from http.client import FOUND
+from xmlrpc.client import MAXINT
 import imp
 imp.load_source('rc', '..\\rc\\myRailIORc.py')
 from rc import rc
@@ -56,8 +57,12 @@ class topologyMember():
 class topologyMgr(object):
     def __init__(self, parent, noOfAddresses):
         self.parent = parent
-        self.maxAddresses = noOfAddresses
-        self.remainingAddresses = noOfAddresses
+        if noOfAddresses == -1:
+            self.maxAddresses = MAXINT
+            self.remainingAddresses = MAXINT
+        else:
+            self.maxAddresses = noOfAddresses
+            self.remainingAddresses = noOfAddresses
         self.members = []
     
     def __del__(self):
@@ -96,7 +101,7 @@ class topologyMgr(object):
             return rc.DOES_NOT_EXIST
     
     def removeTopologyMember(self, sysName):
-        print(">>>>>>>>>>>>>>>>>>>> removeTopologyMember")
+        print(">>>>>>>>>>>>>>>>>>>> removeTopologyMember" + str(sysName))
         found = False
         for memberItter in self.members:
             if memberItter.sysName == sysName:

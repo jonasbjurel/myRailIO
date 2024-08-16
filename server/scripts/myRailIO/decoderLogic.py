@@ -78,18 +78,9 @@ from config import *
 #               view(), edit(), add(), delete(), accepted(), rejected()
 # SpecMethods:  No class specific methods
 #################################################################################################################################################
-'''
-Alarms:
-    CPU (Three levels)
-    Memory (Three levels)
-    CLI
-    Debug mode
-    NTP
-    Log overload
-    WIFI SNR
-'''
+
 class decoder(systemState, schema):
-    def __init__(self, win, parentItem, rpcClient, mqttClient, name = None, demo = False):
+    def __init__(self, win, parentItem, rpcClient, mqttClient, name = None, mac = None, demo = False):
         self.win = win
         self.parentItem = parentItem
         self.parent = parentItem.getObj()
@@ -117,10 +108,13 @@ class decoder(systemState, schema):
             self.decoderSystemName.value = name
         else:
             self.decoderSystemName.value = "GJD-MyNewDecoderSysName"
+        if mac:
+            self.mac.value = mac
+        else:
+            self.mac.value = "00:00:00:00:00:00"
         self.nameKey.value = "Decoder-" + self.decoderSystemName.candidateValue
         self.userName.value = "MyNewDecoderUsrName"
         self.decoderMqttURI.value = "no.valid.uri"
-        self.mac.value = "00:00:00:00:00:00"
         self.description.value = "MyNewdecoderDescription"
         self.commitAll()
         self.item = self.win.registerMoMObj(self, self.parentItem, self.nameKey.candidateValue, DECODER, displayIcon=DECODER_ICON)
@@ -168,10 +162,15 @@ class decoder(systemState, schema):
             for i in range(DECODER_MAX_SAT_LINKS):
                 self.addChild(SATELLITE_LINK, name=i, config=False, demo=True)
         trace.notify(DEBUG_INFO,"New decoder: " + self.nameKey.candidateValue + " created - awaiting configuration")
-
+        
     @staticmethod
     def aboutToDelete(ref):
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDelete")
         ref.parent.decoderMacTopology.removeTopologyMember(ref.decoderSystemName.value)
+        
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.decoderMacTopology.removeTopologyMember(self.decoderSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:
@@ -417,6 +416,7 @@ class decoder(systemState, schema):
         if child.canDelete() != rc.OK:
             trace.notify(DEBUG_INFO, "Could not delete " + child.nameKey.candidateValue + " - as the object or its childs are not in DISABLE state")
             return child.canDelete()
+        child.aboutToDeleteWorkAround()                      #WORKAROUND CODE FOR ISSUE #123
         try:
             self.lgLinks.remove(child)
         except:
@@ -940,6 +940,11 @@ class decoder(systemState, schema):
         #self.mqttClient.publish(self.decoderOpDownStreamTopic, self.getOpStateDetailStrFromBitMap(self.getOpStateDetail() & (OP_SERVUNAVAILABLE[STATE] | OP_CBL[STATE])))
 
     def __decoderRestart(self):
+        try:
+            self.decoderRebootTopic
+        except:
+            trace.notify(DEBUG_ERROR, "Decoder " + self.nameKey.value + " could not be restarted")
+            return
         trace.notify(DEBUG_INFO, "Decoder " + self.nameKey.value + " requested will be restarted")
         self.mqttClient.publish(self.decoderRebootTopic, REBOOT_PAYLOAD)
         self.restart = True
