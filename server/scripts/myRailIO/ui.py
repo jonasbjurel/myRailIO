@@ -941,6 +941,8 @@ class UI_alarmShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
             self.updateTableWorker.stop()
+            self.updateTableWorkerThread.quit()
+            self.updateTableWorkerThread.wait()
 
     def updateAlarmTable(self):
         self.proxymodel.beginResetModel()
@@ -1093,6 +1095,8 @@ class UI_alarmInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
             self.updateTableWorker.stop()
+            self.updateTableWorkerThread.quit()
+            self.updateTableWorkerThread.wait()
 
     def updateAlarmInventoryTable(self):
         self.proxymodel.beginResetModel()
@@ -1775,6 +1779,8 @@ class UI_decoderInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
              self.updateTableWorker.stop()
+             self.updateTableWorkerThread.quit()
+             self.updateTableWorkerThread.wait()
         pass
 
     def updateDecoderInventoryTable(self):
@@ -1848,9 +1854,13 @@ class UI_decoderShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateDecoders.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 10:
+                self.updateDecoders.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -2658,6 +2668,8 @@ class UI_lightGroupInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
              self.updateTableWorker.stop()
+             self.updateTableWorkerThread.quit()
+             self.updateTableWorkerThread.wait()
         pass
 
     def updatelightGroupInventoryTable(self):
@@ -3235,7 +3247,9 @@ class UI_sensorInventoryShowDialog(QDialog):
 
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
-             self.updateTableWorker.stop()
+            self.updateTableWorker.stop()
+            self.updateTableWorkerThread.quit()
+            self.updateTableWorkerThread.wait()
         pass
 
     def updateSensorInventoryTable(self):
@@ -3745,6 +3759,8 @@ class UI_actuatorInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
              self.updateTableWorker.stop()
+             self.updateTableWorkerThread.quit()
+             self.updateTableWorkerThread.wait()
         pass
 
     def updateActuatorInventoryTable(self):
