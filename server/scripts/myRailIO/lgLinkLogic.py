@@ -116,6 +116,10 @@ class lgLink(systemState, schema):
     def aboutToDelete(ref):
         ref.parent.lgLinkTopology.removeTopologyMember(ref.lgLinkSystemName.value)
 
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.lgLinkTopology.removeTopologyMember(self.lgLinkSystemName.value)
+
     def onXmlConfig(self, xmlConfig):
         try:
             lgLinkXmlConfig = parse_xml(xmlConfig,
@@ -298,10 +302,10 @@ class lgLink(systemState, schema):
         return minidom.parseString(ET.tostring(lgLinkXml)).toprettyxml(indent="   ") if text else lgLinkXml
 
     def getMethods(self):
-        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
 
     def getActivMethods(self):
-        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
             activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
@@ -338,6 +342,7 @@ class lgLink(systemState, schema):
         if child.canDelete() != rc.OK:
             trace.notify(DEBUG_INFO, "Could not delete " + child.nameKey.candidateValue + " - as the object or its childs are not in DISABLE state")
             return child.canDelete()
+        child.aboutToDeleteWorkAround()                      #WORKAROUND CODE FOR ISSUE #123
         try:
             self.lightGroups.remove(child)
         except:

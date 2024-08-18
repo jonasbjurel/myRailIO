@@ -93,7 +93,7 @@ class lightGroup(systemState, schema):
         if name:
             self.jmriLgSystemName.value = name
         else:
-            self.jmriLgSystemName.value = "IF$vsm:Sweden-3HMS:SL-5HL($0001)"
+            self.jmriLgSystemName.value = "IF$vsm:Sweden-3HMS:SL-5HL($0001)" #SHOULD FOLLOW THE SIGNAL SYSTEM SELECTED BY THE LGLINK
         self.nameKey.value = "GJLG-NewLightGroup-" + self.jmriLgSystemName.candidateValue
         self.userName.value = "MyNewSignalMastUsrName"
         self.description.value = "MyNewSignalMastDescription"
@@ -119,6 +119,10 @@ class lightGroup(systemState, schema):
     @staticmethod
     def aboutToDelete(ref):
         ref.parent.lgTopology.removeTopologyMember(ref.jmriLgSystemName.value)
+
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.lgTopology.removeTopologyMember(self.jmriLgSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:

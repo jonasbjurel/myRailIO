@@ -112,6 +112,7 @@ class topDecoder(systemState, schema):
         self.mqttClient = None
         self.mqttClientId = MQTT_CLIENT_ID
         self.rpcClient = None
+        self.discoveredDecoders = {}
         self.schemaDirty = False
         self.sysNames = []
         schema.__init__(self)
@@ -285,7 +286,6 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("DecoderMqttTopicPrefix") != None: self.decoderMqttTopicPrefix.value = topDecoderXmlConfig.get("DecoderMqttTopicPrefix")
             if topDecoderXmlConfig.get("NTPServer") != None: self.ntpUri.value = topDecoderXmlConfig.get("NTPServer")
             if topDecoderXmlConfig.get("NTPPort") != None: self.ntpPort.value = int(topDecoderXmlConfig.get("NTPPort"))
-#FIX THIS TZ
             if topDecoderXmlConfig.get("TimeZoneClearText") != None:
                 self.tzClearText.value = topDecoderXmlConfig.get("TimeZoneClearText")
                 self.tzEncodedText.value = tz.getEncodedTimeZones(self.tzClearText.candidateValue)
@@ -302,7 +302,6 @@ class topDecoder(systemState, schema):
             if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("SNMPPort") != None: self.snmpPort.value = int(topDecoderXmlConfig.get("SNMPPort"))
             if topDecoderXmlConfig.get("SNMPProtocol") != None: self.snmpProtocol.value = topDecoderXmlConfig.get("SNMPProtocol")
-
             if topDecoderXmlConfig.get("SNMPServer") != None: self.snmpUri.value = topDecoderXmlConfig.get("SNMPServer")
             if topDecoderXmlConfig.get("TracksFailSafe") != None: 
                 if topDecoderXmlConfig.get("TracksFailSafe") == "Yes": 
@@ -641,10 +640,10 @@ class topDecoder(systemState, schema):
             return minidom.parseString(ET.tostring(topXml, 'unicode')).toprettyxml() if text else topXml
 
     def getMethods(self):
-        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
 
     def getActivMethods(self):
-        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
             activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT
         elif self.getAdmState() == ADM_DISABLE:
@@ -652,9 +651,10 @@ class topDecoder(systemState, schema):
         else: activeMethods = ""
         return activeMethods
 
-    def addChild(self, resourceType, name = None, config = True, configXml = None, demo = False):
+    def addChild(self, resourceType, name = None, mac = None, config = True, configXml = None, demo = False):
+        print("MAC is: " + str(mac))
         if resourceType == DECODER:
-            self.decoders.append(decoder(self.win, self.topItem, self.rpcClient, self.mqttClient, name = name, demo = demo))
+            self.decoders.append(decoder(self.win, self.topItem, self.rpcClient, self.mqttClient, name = name, mac = mac, demo = demo))
             self.childs.value = self.decoders.candidateValue
             trace.notify(DEBUG_INFO, "Decoder: " + self.decoders.candidateValue[-1].nameKey.candidateValue + " has been added to myRailIO server (top decoder) - awaiting configuration")
             if not config and configXml:
@@ -678,9 +678,13 @@ class topDecoder(systemState, schema):
             return rc.GEN_ERR
 
     def delChild(self, child):
+        child.aboutToDeleteWorkAround()                      #WORKAROUND CODE FOR ISSUE #123
         try:
-            self.decoders.value.remove(child)
-            self.childs.value = self.decoders.candidateValue
+            self.decoders.remove(child)
+            self.decoders.commit()
+            self.childs.value = self.decoders.value
+            self.childs.commit()
+            print(self.decoders.value)
         except:
             pass
 
@@ -692,9 +696,12 @@ class topDecoder(systemState, schema):
         self.dialog = UI_topDialog(self, edit=True)
         self.dialog.show()
 
-    def add(self):
-        self.dialog = UI_addDialog(self, DECODER)
-        self.dialog.show()
+    def add(self, mac = None, showResourceTypeSelector = True):
+        if showResourceTypeSelector:
+            self.dialog = UI_addDialog(self, DECODER)
+            self.dialog.show()
+        else:
+            self.addChild(DECODER, mac = mac)
 
     def delete(self):
         pass
@@ -702,7 +709,14 @@ class topDecoder(systemState, schema):
     def restart(self):
         print("Restarting myRailIO server...")
 
-    def setLogVerbosity(self, logVerbosity):
+    def setLogVerbosity(self, logVerbosity, commit = False):
+        self.logVerbosity.value = logVerbosity
+        if commit:
+            try:
+                self.logVerbosity.commit()
+            except:
+                trace.notify(DEBUG_ERROR, "Could not commit log-level to database")
+                return rc.DB_ERR
         trace.setGlobalDebugLevel(trace.getSeverityFromSeverityStr(logVerbosity))
         self.rpcClient.setRpcServerDebugLevel(logVerbosity)
         if trace.getSeverityFromSeverityStr(logVerbosity) < DEBUG_INFO:
@@ -829,13 +843,16 @@ class topDecoder(systemState, schema):
             trace.notify(DEBUG_INFO, "MQTT client: " + clientId + " disconnected from brooker")
 
     def __onRpcErr(self, conStatus):
+        print("__onRpcErr")
         if conStatus != rc.OK:
             trace.notify(DEBUG_ERROR, "RPC client disconnected from RPC server")
             self.subConnectionOpState = self.subConnectionOpState | RPC_DISCONNECTED_FAILURE
             if self.getOpStateDetail() & OP_DISCONNECTED[STATE]:
                 self.reSetOpStateDetail(OP_DISCONNECTED[STATE])
+                print("reSetOpStateDetail")
             else:
                 self.setOpStateDetail(OP_DISCONNECTED[STATE])
+                print("setOpStateDetail")
         else:
             trace.notify(DEBUG_INFO, "RPC client connected to RPC server")
             self.subConnectionOpState = self.subConnectionOpState & ~RPC_DISCONNECTED_FAILURE
@@ -915,9 +932,37 @@ class topDecoder(systemState, schema):
         try:
             self.discoveryConfigXML
         except:
-            trace.notify(DEBUG_INFO, "Top decoder received a discovery request, but it was not yet configured - cannot respond")
-        else:
-            trace.notify(DEBUG_INFO, "Top decoder received a discovery request - responding")
-            self.mqttClient.publish(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC, self.discoveryConfigXML)
+            trace.notify(DEBUG_INFO, "Top decoder received a discovery request, but topdecoder is not yet configured - cannot respond")
+            return
+        trace.notify(DEBUG_INFO, "Top decoder received a discovery request - responding")
+        self.mqttClient.publish(MQTT_JMRI_PRE_TOPIC + MQTT_DECODER_DISCOVERY_RESPONSE_TOPIC, self.discoveryConfigXML)
+        try:
+            decoderInfoXmlTree = ET.ElementTree(ET.fromstring(payload))
+        except:
+            trace.notify(DEBUG_ERROR, "Discovery request missformatted")
+            return
+        if str(decoderInfoXmlTree.getroot().tag) != "DISCOVERY_REQUEST":
+            trace.notify(DEBUG_ERROR, "Discovery request missformatted")
+            return
+        try:
+            decoderInfo = parse_xml(decoderInfoXmlTree.getroot(),
+                                    {"MAC": MANSTR,
+                                        "HWVER": MANSTR,
+                                        "FWVER": MANSTR}
+                                    )
+        except:
+            trace.notify(DEBUG_ERROR, "Discovery request could not be parsed")
+            return
+        if not decoderInfo.get("MAC") or not decoderInfo.get("HWVER") or not decoderInfo.get("FWVER"):
+            trace.notify(DEBUG_ERROR, "Discovery request missing information")
+            return
+        if self.decoders.value == []:
+            self.discoveredDecoders[decoderInfo.get("MAC")] = {"HWVER": decoderInfo.get("HWVER"), "FWVER": decoderInfo.get("FWVER"), "CONFIGURED": False}
+        for decoderItter in self.decoders.value:
+            if decoderItter.mac.value == decoderInfo.get("MAC"):
+                self.discoveredDecoders[decoderInfo.get("MAC")] = {"HWVER": decoderInfo.get("HWVER"), "FWVER": decoderInfo.get("FWVER"), "CONFIGURED": True}
+            else:
+                self.discoveredDecoders[decoderInfo.get("MAC")] = {"HWVER": decoderInfo.get("HWVER"), "FWVER": decoderInfo.get("FWVER"), "CONFIGURED": False}
+        print(self.discoveredDecoders)
 # End TopDecoder
 #------------------------------------------------------------------------------------------------------------------------------------------------

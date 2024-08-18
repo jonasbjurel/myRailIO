@@ -118,6 +118,10 @@ class actuator(systemState, schema):
     @staticmethod
     def aboutToDelete(ref):
         ref.parent.actTopology.removeTopologyMember(ref.jmriActSystemName.value)
+        
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.actTopology.removeTopologyMember(self.jmriActSystemName.value)
 
     def onXmlConfig(self, xmlConfig):
         try:

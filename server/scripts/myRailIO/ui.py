@@ -15,6 +15,7 @@ import threading
 import traceback
 from momResources import *
 import webbrowser
+import markdown
 import imp
 imp.load_source('rpc', '..\\rpc\\JMRIObjects.py')
 from rpc import jmriObj
@@ -115,8 +116,11 @@ class StandardItem(QStandardItem):
         return self.obj
 
     def setColor(self, color):
-        self.setForeground(color)
-        self.setFont(self.fnt)
+        try:
+            self.setForeground(color)
+            self.setFont(self.fnt)
+        except:
+            pass
 
     def __delete__(self):
         super().__delete__()
@@ -203,9 +207,11 @@ class UI_mainWindow(QMainWindow):
         self.MoMTreeModel.removeRow(item.row(), parent=self.MoMTreeModel.indexFromItem(item).parent())
 
     def faultBlockMarkMoMObj(self, item, faultState):
+        print("faultBlockMarkMoMObj" + str(faultState))
         self.faultBlockMarkMoMObjSignal.emit(item, faultState)
 
     def __faultBlockMarkMoMObj(self, item, faultState):
+        print("__faultBlockMarkMoMObj" + str(faultState))
         if faultState:
             item.setColor(QColor(255, 0, 0))
         else:
@@ -218,9 +224,11 @@ class UI_mainWindow(QMainWindow):
         item.setColor(QColor(200, 200, 200))
 
     def controlBlockMarkMoMObj(self, item):
+        print("controlBlockMarkMoMObj")
         self.controlBlockMarkMoMObjSignal.emit(item)
 
     def __controlBlockMarkMoMObj(self, item):
+        print("__controlBlockMarkMoMObj")
         item.setColor(QColor(255, 200, 0))
 
     def _onAlarm(self, p_criticality, p_noOfAlarms, p_object):
@@ -245,48 +253,48 @@ class UI_mainWindow(QMainWindow):
         menu = QMenu()
         menu.setTitle(MoMName + " - actions")
         menu.toolTipsVisible()
+        addAction = menu.addAction("Add")
+        addAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ADD else addAction.setEnabled(False)
+        deleteAction = menu.addAction("Delete")
+        deleteAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DELETE else deleteAction.setEnabled(False)
+        editAction = menu.addAction("Edit")
+        editAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_EDIT else editAction.setEnabled(False)
         viewAction = menu.addAction("View") if stdItemObj.getObj().getMethods() & METHOD_VIEW else None
-        if viewAction != None: viewAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else viewAction.setEnabled(False)
-        editAction = menu.addAction("Edit") if stdItemObj.getObj().getMethods() & METHOD_EDIT else None
-        if editAction != None: editAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_EDIT else editAction.setEnabled(False)
-        copyAction = menu.addAction("Copy") if stdItemObj.getObj().getMethods() & METHOD_COPY else None
-        if copyAction != None: copyAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_COPY else copyAction.setEnabled(False)
-        addAction = menu.addAction("Add") if stdItemObj.getObj().getMethods() & METHOD_ADD else None
-        if addAction != None: addAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ADD else addAction.setEnabled(False)
-        deleteAction = menu.addAction("Delete") if stdItemObj.getObj().getMethods() & METHOD_DELETE else None
-        if deleteAction != None: deleteAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DELETE else deleteAction.setEnabled(False)
+        viewAction.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else viewAction.setEnabled(False)
         menu.addSeparator()
-        enableAction = menu.addAction("Enable") if stdItemObj.getObj().getMethods() & METHOD_ENABLE else None
-        if enableAction != None: enableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE else enableAction.setEnabled(False)
-        enableRecursAction = menu.addAction("Enable - recursive") if stdItemObj.getObj().getMethods() & METHOD_ENABLE_RECURSIVE else None
-        if enableRecursAction != None: enableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE_RECURSIVE else enableRecursAction.setEnabled(False)
-        disableAction = menu.addAction("Disable") if stdItemObj.getObj().getMethods() & METHOD_DISABLE else None
-        if disableAction != None: disableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE else disableAction.setEnabled(False)
-        disableRecursAction = menu.addAction("Disable - recursive") if stdItemObj.getObj().getMethods() & METHOD_DISABLE_RECURSIVE else None
-        if disableRecursAction != None: disableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE_RECURSIVE else disableRecursAction.setEnabled(False)
+        copyAction = menu.addAction("Copy")
+        copyAction.setEnabled(False)
+        pasteAction = menu.addAction("Paste")
+        pasteAction.setEnabled(False)
+        FindAction = menu.addAction("Find")
+        FindAction.setEnabled(False)
         menu.addSeparator()
-        logAction = menu.addAction("View log") if stdItemObj.getObj().getMethods() & METHOD_LOG else None
-        if logAction != None: logAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_LOG else logAction.setEnabled(False)
+        enableAction = menu.addAction("Enable")
+        enableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE else enableAction.setEnabled(False)
+        enableRecursAction = menu.addAction("Enable - recursive")
+        enableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE_RECURSIVE else enableRecursAction.setEnabled(False)
+        disableAction = menu.addAction("Disable")
+        disableAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE else disableAction.setEnabled(False)
+        disableRecursAction = menu.addAction("Disable - recursive")
+        disableRecursAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE_RECURSIVE else disableRecursAction.setEnabled(False)
         menu.addSeparator()
-        restartAction = menu.addAction("Restart") if stdItemObj.getObj().getMethods() & METHOD_RESTART else None
-        if restartAction != None: restartAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_RESTART else restartAction.setEnabled(False)
-
+        restartAction = menu.addAction("Restart")
+        restartAction.setEnabled(True)  if stdItemObj.getObj().getActivMethods() & METHOD_RESTART else restartAction.setEnabled(False)
         action = menu.exec_(self.topMoMTree.mapToGlobal(point))
         res = 0
         try:
-            if action == viewAction: res = stdItemObj.getObj().view()
             if action == addAction: res = stdItemObj.getObj().add()
-            if action == editAction: res = stdItemObj.getObj().edit()
-            if action == copyAction: res = stdItemObj.getObj().copy()
             if action == deleteAction: res = stdItemObj.getObj().delete(top=True)
+            if action == editAction: res = stdItemObj.getObj().edit()
+            if action == viewAction: res = stdItemObj.getObj().view()
+            #if action == copyAction: res = stdItemObj.getObj().copy()
+            #if action == pasteAction: res = stdItemObj.getObj().paste()
+            #if action == findAction: res = stdItemObj.getObj().copy()
             if action == enableAction: res = stdItemObj.getObj().enable()
             if action == enableRecursAction: res = stdItemObj.getObj().enableRecurse()
             if action == disableAction: res = stdItemObj.getObj().disable()
             if action == disableRecursAction: res = stdItemObj.getObj().disableRecurse()
-            if action == logAction: 
-                self.logDialog = UI_logDialog(stdItemObj.getObj())
-                self.logDialog.show()
-            if action == restartAction: res = stdItemObj.getObj().restart()
+            if action == restartAction: res = stdItemObj.getObj().decoderRestart()
             if res != rc.OK and res != None:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
@@ -309,12 +317,21 @@ class UI_mainWindow(QMainWindow):
 
         # Edit actions
         # ------------
+        self.actionAdd.triggered.connect(self.add)
+        self.actionDelete.triggered.connect(self.delete)
+        self.actionEdit.triggered.connect(self.edit)
+        self.actionView.triggered.connect(self.view)
+        self.actionEnable.triggered.connect(self.enable)
+        self.actionEnable_recursive.triggered.connect(self.enableRecursive)
+        self.actionDisable.triggered.connect(self.disable)
+        self.actionDisable_recursive.triggered.connect(self.disableRecursive)
+        self.actionRestart_3.triggered.connect(self.restart)
         self.actionmyRailIO_preferences.triggered.connect(self.editMyRailIOPreferences)
 
         # View actions
         # ------------
+        self.actionConfiguration.triggered.connect(self.showConfig)
         self.actionAlarms.triggered.connect(self.showAlarms)
-        self.actionAlarm_inventory.triggered.connect(self.showAlarmInventory)
 
         # Tools actions
         # -------------
@@ -329,31 +346,26 @@ class UI_mainWindow(QMainWindow):
 
         # Debug actions
         # -----------------
+        self.actionOpenLogProp.triggered.connect(self.setLogProperty)
+        self.actionOpen_Log_window.triggered.connect(self.log)
 
         # Help actions
         # ------------
+        self.actionServer_version.triggered.connect(self.version)
         self.actionAbout_myRailIO.triggered.connect(self.about)
-
-        # Main window push button actions
-        # ===============================
-        # Log actions
-        # -----------
-        self.actionOpenLogProp.triggered.connect(self.setLogProperty)
-        self.actionOpen_Log_window.triggered.connect(self.log)
+        self.actionSearch_for_help.triggered.connect(self.searchHelp)
+        self.actionLicense.triggered.connect(self.license)
+        self.actionHow_to_contribute.triggered.connect(self.contribute)
+        self.actionSource.triggered.connect(self.source)
 
     def connectWidgetSignalsSlots(self):
         # MoM tree widget
         self.topMoMTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.topMoMTree.customContextMenuRequested.connect(self.MoMMenuContextTree)
-
-        # Log widget
-        self.topLogPushButton.clicked.connect(self.log)
-
-        # Restart widget
-        self.restartPushButton.clicked.connect(self.restart)
+        self.menuEdit.aboutToShow.connect(self.updateEditMenu)
 
         # Alarm widget
-        self.alarmPushButton.clicked.connect(self.showAlarms)
+        #self.alarmPushButton.clicked.connect(self.showAlarms)
 
     def openConfigFile(self):
         self.configFileDialog.openFileDialog()
@@ -363,6 +375,10 @@ class UI_mainWindow(QMainWindow):
 
     def saveConfigFileAs(self):
         self.configFileDialog.saveFileAsDialog(self.parentObjHandle.getXmlConfigTree(text=True))
+        
+    def showConfig(self):
+        self.configOutputDialog = UI_getConfig(self, self.parentObjHandle.getXmlConfigTree(text=True))
+        self.configOutputDialog.show()
 
     def haveGoodConfiguration(self, haveIt):
         if haveIt:
@@ -377,6 +393,166 @@ class UI_mainWindow(QMainWindow):
     def setAutoLoadPreferences(self):
         print("Setting Autoload prefs")
         self.configFileDialog.setAutoloadPrefs()
+        
+    def updateEditMenu(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            self.actionAdd.setEnabled(False)
+            self.actionDelete.setEnabled(False)
+            self.actionEdit.setEnabled(False)
+            self.actionView.setEnabled(False)
+            self.actionEnable.setEnabled(False)
+            self.actionEnable_recursive.setEnabled(False)
+            self.actionDisable.setEnabled(False)
+            self.actionDisable_recursive.setEnabled(False)
+            self.actionRestart_3.setEnabled(False)
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        self.actionAdd.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ADD else self.actionAdd.setEnabled(False)
+        self.actionDelete.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DELETE else self.actionDelete.setEnabled(False)
+        self.actionEdit.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_EDIT else self.actionEdit.setEnabled(False)
+        self.actionView.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_VIEW else self.actionView.setEnabled(False)
+        self.actionEnable.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE else self.actionEnable.setEnabled(False)
+        self.actionEnable_recursive.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_ENABLE_RECURSIVE else self.actionEnable_recursive.setEnabled(False)
+        self.actionDisable.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE else self.actionDisable.setEnabled(False)
+        self.actionDisable_recursive.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_DISABLE_RECURSIVE else self.actionDisable_recursive.setEnabled(False)
+        self.actionRestart_3.setEnabled(True) if stdItemObj.getObj().getActivMethods() & METHOD_RESTART else self.actionRestart_3.setEnabled(False)
+
+    def add(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().add()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not add object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def delete(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().delete()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not delete object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+
+    def edit(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().edit()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not edit object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def view(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().view()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not view object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def enable(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().enable()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not enable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def enableRecursive(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().enableRecurse()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not enable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def disable(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().disable()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not disable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def disableRecursive(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().disableRecurse()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not disable object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            
+    def restart(self):
+        try:
+            item = self.topMoMTree.selectedIndexes()[0]
+        except:
+            return
+        stdItemObj = item.model().itemFromIndex(item)
+        res = stdItemObj.getObj().decoderRestart()
+        if res != rc.OK and res != None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error could not restart object")
+            msg.setInformativeText(rc.getErrStr(res))
+            msg.setWindowTitle("Error")
+            msg.exec_()
 
     def log(self):
         self.log = UI_logDialog(self.parentObjHandle)
@@ -389,9 +565,6 @@ class UI_mainWindow(QMainWindow):
     def editMyRailIOPreferences(self):
         self.dialog = UI_topDialog(self.parentObjHandle, edit=True)
         self.dialog.show()
-
-    def restart(self):
-        self.parentObjHandle.restart()
 
     def showAlarms(self):
         self.alarmWidget = UI_alarmShowDialog(self.parentObjHandle)
@@ -417,15 +590,29 @@ class UI_mainWindow(QMainWindow):
         self.actuatorInventoryWidget = UI_actuatorInventoryShowDialog(self.parentObjHandle)
         self.actuatorInventoryWidget.show()
 
-    def about(self):
-        QMessageBox.about(
-            self,
-            "About myRailIO",
-            "<p>myRailIO implements a generic signal masts-, actuators- and sensor decoder framework for JMRI, </p>"
-            "<p>For more information see:</p>"
-            "<p>https://github.com/jonasbjurel/GenericJMRIdecoder</p>",
-        )
+    def version(self):
+        with open('VERSION.md', 'r') as file:
+            versionMd = file.read()
+            QMessageBox.about(self, "myRailIO server version", markdown.markdown(versionMd))
 
+    def about(self):
+        with open('../../../ABOUT_SHORT.md', 'r') as file:
+            aboutMd = file.read()
+            QMessageBox.about(self, "About myRailIO", markdown.markdown(aboutMd))
+
+    def license(self):
+        with open('../../../LICENSE_SHORT.md', 'r') as file:
+            licenseMd = file.read()
+            QMessageBox.about(self, "myRailIO Lisense", markdown.markdown(licenseMd))
+            
+    def searchHelp(self):
+        QMessageBox.about(self, "myRailIO Help", markdown.markdown("help can me found at <https://www.myrail.io/resources>"))
+
+    def contribute(self):
+        QMessageBox.about(self, "myRailIO How to contribute", markdown.markdown("Sign up for your contribution <https://myrail.io/#Join>"))
+
+    def source(self):
+        QMessageBox.about(self, "myRailIO Source", markdown.markdown("All sources can be found at <https://github.com/jonasbjurel/myRailIO>"))
 
 
 class UI_fileDialog(QWidget):
@@ -699,7 +886,7 @@ class UI_logSettingDialog(QDialog):
         self.logSettingConfirmButtonBox.rejected.connect(self.rejected)
 
     def accepted(self):
-        self.parentObjHandle.setLogVerbosity(short2longVerbosity(self.logSettingVerbosityComboBox.currentText()))
+        self.parentObjHandle.setLogVerbosity(short2longVerbosity(self.logSettingVerbosityComboBox.currentText()), commit = True)
         self.close()
 
     def rejected(self):
@@ -754,6 +941,8 @@ class UI_alarmShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
             self.updateTableWorker.stop()
+            self.updateTableWorkerThread.quit()
+            self.updateTableWorkerThread.wait()
 
     def updateAlarmTable(self):
         self.proxymodel.beginResetModel()
@@ -906,6 +1095,8 @@ class UI_alarmInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
             self.updateTableWorker.stop()
+            self.updateTableWorkerThread.quit()
+            self.updateTableWorkerThread.wait()
 
     def updateAlarmInventoryTable(self):
         self.proxymodel.beginResetModel()
@@ -1410,6 +1601,8 @@ class UI_decoderDialog(QDialog):
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(True)
         self.adminStateForceCheckBox.setEnabled(True)
+        self.hwVerLineEdit.setEnabled(False)
+        self.fwVerLineEdit.setEnabled(False)
         self.ipAddressLineEdit.setEnabled(False)
         self.launchUiPushButton.setEnabled(True)
         self.launchTelnetPushButton.setEnabled(False)
@@ -1426,6 +1619,8 @@ class UI_decoderDialog(QDialog):
         self.upTimeLineEdit.setEnabled(False)
         self.adminStateComboBox.setEnabled(False)
         self.adminStateForceCheckBox.setEnabled(False)
+        self.hwVerLineEdit.setEnabled(False)
+        self.fwVerLineEdit.setEnabled(False)
         self.ipAddressLineEdit.setEnabled(False)
         self.launchUiPushButton.setEnabled(True)
         self.launchTelnetPushButton.setEnabled(False)
@@ -1441,6 +1636,14 @@ class UI_decoderDialog(QDialog):
         self.opStateDetailLineEdit.setText(self.parentObjHandle.getOpStateDetailStr())
         self.upTimeLineEdit.setText(str(self.parentObjHandle.getUptime()))
         self.adminStateComboBox.setCurrentText(self.parentObjHandle.getAdmState()[STATE_STR])
+        try:
+            self.hwVerLineEdit.setText(self.parentObjHandle.getHardwareVersionFromClient())
+        except:
+            self.hwVerLineEdit.setText("-")
+        try:
+            self.fwVerLineEdit.setText(self.parentObjHandle.getFirmwareVersionFromClient())
+        except:
+            self.fwVerLineEdit.setText("-")
         try:
             self.ipAddressLineEdit.setText(self.parentObjHandle.getIpAddressFromClient())
         except:
@@ -1576,6 +1779,8 @@ class UI_decoderInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
              self.updateTableWorker.stop()
+             self.updateTableWorkerThread.quit()
+             self.updateTableWorkerThread.wait()
         pass
 
     def updateDecoderInventoryTable(self):
@@ -1593,13 +1798,21 @@ class UI_decoderInventoryShowDialog(QDialog):
     def showSelectedDecoder(self, p_clickedIndex):
         if p_clickedIndex.column() == decoderInventoryTableModel.provUriCol():
             decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())
-            webbrowser.open_new_tab(decoder.getDecoderWwwUiFromClient())
+            if decoder:
+                webbrowser.open_new_tab(decoder.getDecoderWwwUiFromClient())
         elif p_clickedIndex.column() == decoderInventoryTableModel.coreDumpCol():
-            UI_crashDumpDialog(self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())).show()
+            decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.sysNameCol()).data())
+            if decoder:
+                UI_crashDumpDialog(decoder).show()
         else:
             decoder = self.decoderInventoryTableModel.getDecoderObjFromSysId(self.decoderInventoryTableView.model().index(p_clickedIndex.row(), 0).data())
-            self.individualDecoderWidget = UI_decoderDialog(decoder, decoder.rpcClient)
-            self.individualDecoderWidget.show()
+            if decoder:
+                self.individualDecoderWidget = UI_decoderDialog(decoder, decoder.rpcClient)
+                self.individualDecoderWidget.show()
+
+            else:
+                self.parentObjHandle.add(mac = self.decoderInventoryTableView.model().index(p_clickedIndex.row(), decoderInventoryTableModel.macCol()).data(), showResourceTypeSelector = False)
+
 #################################################################################################################################################
 # End Class: UI_decoderInventoryShowDialog
 #################################################################################################################################################
@@ -1641,9 +1854,13 @@ class UI_decoderShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateDecoders.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 10:
+                self.updateDecoders.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -1750,6 +1967,31 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             decoderInventoryRow.append(decoderInventoryItter.getCoreDumpIdFromClient())
             decoderInventoryRow.append(decoderInventoryItter.getDecoderWwwUiFromClient())
             self._decoderInventoryTable.append(decoderInventoryRow)
+        for decoderInventoryItter in self.parentObjHandle.discoveredDecoders:
+            decoderInventoryRow : List[str] = []
+            if not self.parentObjHandle.discoveredDecoders[decoderInventoryItter]["CONFIGURED"]:
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append(self.parentObjHandle.discoveredDecoders[decoderInventoryItter]["HWVER"])
+                decoderInventoryRow.append(self.parentObjHandle.discoveredDecoders[decoderInventoryItter]["FWVER"])
+                decoderInventoryRow.append(decoderInventoryItter)
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                decoderInventoryRow.append("-")
+                self._decoderInventoryTable.append(decoderInventoryRow)
+            
+            
+
         return self._decoderInventoryTable
 
     def rowCount(self, p_parent : Any = Qt.QModelIndex()) -> int:
@@ -1765,7 +2007,7 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             if role != QtCore.Qt.DisplayRole:
                 return None
             if orientation == QtCore.Qt.Horizontal:
-                return ("SysName:","UsrName:", "Desc:", "OpState (Server/Client):", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[s]:", "WifiSSID:", "WiFiRSSI[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "CoreDump", "DecoderUI:")[section]
+                return ("SysName:","UsrName:", "Desc:", "OpState (Server/Client):", "FWVersion:", "HWVersion:", "MACAddress:", "IPAddress:", "MQTTBroker:", "MQTTClient:", "UpTime[M]:", "WifiSSID:", "WiFiRSSI[dBm]:", "LogLevel:", "MemFree INT/EXT [kB]:", "CPUUsage[%]:", "CoreDump", "DecoderUI:")[section]
             else:
                 return f"{section}"
 
@@ -1776,8 +2018,10 @@ class decoderInventoryTableModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.DisplayRole:
                 return self._decoderInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
+                if not self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]):
+                    return QtGui.QBrush(QtGui.QColor('#0000FF'))
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getDecoderObjFromSysId(self._decoderInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
@@ -2177,8 +2421,8 @@ class UI_lightGroupDialog(QDialog):
         self.property2Font = self.lgProp2Box.font()
         self.property3Geometry = self.lgProp3Box.geometry()
         self.property3Font = self.lgProp3Box.font()
-        self.lgPropertyHandler()
         self.displayValues()
+        self.lgPropertyHandler()
         if edit:
             self.setEditable()
         else:
@@ -2315,8 +2559,8 @@ class UI_lightGroupDialog(QDialog):
             self.lgProp1Box.show()
             self.lgProp2Box.show()
             self.lgProp3Box.show()
-            self.lgProp1Box.currentTextChanged.connect(self.onMastTypeChanged)
             self.onMastTypeChanged()
+            self.lgProp1Box.currentTextChanged.connect(self.onMastTypeChanged)
         else:
             self.lgProperty1Label.setText("Property 1:")
             self.lgProperty2Label.setText("Property 2:")
@@ -2424,6 +2668,8 @@ class UI_lightGroupInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
              self.updateTableWorker.stop()
+             self.updateTableWorkerThread.quit()
+             self.updateTableWorkerThread.wait()
         pass
 
     def updatelightGroupInventoryTable(self):
@@ -2483,9 +2729,13 @@ class UI_lightGroupShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateLightGroups.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 5:
+                self.updateLightGroups.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -2600,7 +2850,7 @@ class lightGroupInventoryTableModel(QtCore.QAbstractTableModel):
             if role != QtCore.Qt.DisplayRole:
                 return None
             if orientation == QtCore.Qt.Horizontal:
-                return ("SysName:","UsrName:", "Desc:", "Type:", "Subtype:", "LinkAddr:", "OpState:", "Showing:", "UpTime[s]:", "Topology:")[section]
+                return ("SysName:","UsrName:", "Desc:", "Type:", "Subtype:", "LinkAddr:", "OpState:", "Showing:", "UpTime[M]:", "Topology:")[section]
             else:
                 return f"{section}"
 
@@ -2612,7 +2862,7 @@ class lightGroupInventoryTableModel(QtCore.QAbstractTableModel):
                 return self._lightGroupInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
                 if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getLightGroupObjFromSysId(self._lightGroupInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
@@ -3001,7 +3251,9 @@ class UI_sensorInventoryShowDialog(QDialog):
 
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
-             self.updateTableWorker.stop()
+            self.updateTableWorker.stop()
+            self.updateTableWorkerThread.quit()
+            self.updateTableWorkerThread.wait()
         pass
 
     def updateSensorInventoryTable(self):
@@ -3061,9 +3313,13 @@ class UI_sensorShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateSensors.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 5:
+                self.updateSensors.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -3189,7 +3445,7 @@ class sensorInventoryTableModel(QtCore.QAbstractTableModel):
                 return self._sensorInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
                 if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getSensorObjFromSysId(self._sensorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:
@@ -3511,6 +3767,8 @@ class UI_actuatorInventoryShowDialog(QDialog):
     def stopUpdate(self, event):
         if self.updateTableWorkerThread.isRunning():
              self.updateTableWorker.stop()
+             self.updateTableWorkerThread.quit()
+             self.updateTableWorkerThread.wait()
         pass
 
     def updateActuatorInventoryTable(self):
@@ -3570,9 +3828,13 @@ class UI_actuatorShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateActuators.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 5:
+                self.updateActuators.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -3699,7 +3961,7 @@ class actuatorInventoryTableModel(QtCore.QAbstractTableModel):
                 return self._actuatorInventoryTable[row][column]
             if role == QtCore.Qt.ForegroundRole:
                 if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() == OP_WORKING[STATE]:
-                    return QtGui.QBrush(QtGui.QColor('#00FF00'))
+                    return QtGui.QBrush(QtGui.QColor('#779638'))
                 if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & OP_DISABLED[STATE]:
                     return QtGui.QBrush(QtGui.QColor('#505050'))
                 if self.getActuatorObjFromSysId(self._actuatorInventoryTable[row][self.sysNameCol()]).getOpStateDetail() & ~OP_CBL[STATE]:

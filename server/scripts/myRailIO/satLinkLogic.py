@@ -124,6 +124,10 @@ class satLink(systemState, schema):
     def aboutToDelete(ref):
         ref.parent.satLinkTopology.removeTopologyMember(ref.satLinkSystemName.value)
 
+    def aboutToDeleteWorkAround(self):                      #WORKAROUND CODE FOR ISSUE #123
+        print(">>>>>>>>>>>>>>>>>>>> aboutToDeleteWorkAround")
+        self.parent.satLinkTopology.removeTopologyMember(self.satLinkSystemName.value)
+
     def onXmlConfig(self, xmlConfig):
         try:
             satLinkXmlConfig = parse_xml(xmlConfig,
@@ -299,10 +303,10 @@ class satLink(systemState, schema):
         return minidom.parseString(ET.tostring(satLinkXml)).toprettyxml(indent="   ") if text else satLinkXml
 
     def getMethods(self):
-        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
 
     def getActivMethods(self):
-        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
             activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
@@ -339,6 +343,7 @@ class satLink(systemState, schema):
         if child.canDelete() != rc.OK:
             trace.notify(DEBUG_INFO, "Could not delete " + child.nameKey.candidateValue + " - as the object or its childs are not in DISABLE state")
             return child.canDelete()
+        child.aboutToDeleteWorkAround()                      #WORKAROUND CODE FOR ISSUE #123
         try:
             self.satellites.remove(child)
         except:

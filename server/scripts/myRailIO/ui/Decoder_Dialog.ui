@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>774</width>
-    <height>610</height>
+    <height>620</height>
    </rect>
   </property>
   <property name="font">
@@ -26,7 +26,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>149</y>
+     <y>129</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -49,7 +49,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>150</y>
+     <y>130</y>
      <width>551</width>
      <height>41</height>
     </rect>
@@ -73,7 +73,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>220</y>
+     <y>190</y>
      <width>551</width>
      <height>41</height>
     </rect>
@@ -97,7 +97,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>219</y>
+     <y>189</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -120,7 +120,7 @@
    <property name="geometry">
     <rect>
      <x>590</x>
-     <y>570</y>
+     <y>580</y>
      <width>171</width>
      <height>41</height>
     </rect>
@@ -143,7 +143,7 @@
    <property name="geometry">
     <rect>
      <x>590</x>
-     <y>509</y>
+     <y>530</y>
      <width>171</width>
      <height>41</height>
     </rect>
@@ -166,7 +166,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>509</y>
+     <y>530</y>
      <width>91</width>
      <height>41</height>
     </rect>
@@ -190,7 +190,7 @@
    <property name="geometry">
     <rect>
      <x>340</x>
-     <y>509</y>
+     <y>530</y>
      <width>131</width>
      <height>41</height>
     </rect>
@@ -216,7 +216,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>509</y>
+     <y>530</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -239,7 +239,7 @@
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>439</y>
+     <y>470</y>
      <width>331</width>
      <height>41</height>
     </rect>
@@ -263,7 +263,7 @@
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>509</y>
+     <y>530</y>
      <width>111</width>
      <height>41</height>
     </rect>
@@ -291,7 +291,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>438</y>
+     <y>469</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -317,7 +317,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>439</y>
+     <y>470</y>
      <width>91</width>
      <height>41</height>
     </rect>
@@ -341,7 +341,7 @@
    <property name="geometry">
     <rect>
      <x>340</x>
-     <y>439</y>
+     <y>470</y>
      <width>131</width>
      <height>41</height>
     </rect>
@@ -364,7 +364,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>289</y>
+     <y>249</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -387,7 +387,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>290</y>
+     <y>250</y>
      <width>551</width>
      <height>41</height>
     </rect>
@@ -411,7 +411,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>340</y>
+     <y>300</y>
      <width>751</width>
      <height>20</height>
     </rect>
@@ -471,7 +471,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>80</y>
+     <y>70</y>
      <width>211</width>
      <height>41</height>
     </rect>
@@ -494,7 +494,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>80</y>
+     <y>70</y>
      <width>551</width>
      <height>41</height>
     </rect>
@@ -518,7 +518,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>369</y>
+     <y>390</y>
      <width>131</width>
      <height>41</height>
     </rect>
@@ -541,7 +541,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>369</y>
+     <y>390</y>
      <width>181</width>
      <height>41</height>
     </rect>
@@ -565,7 +565,7 @@
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>369</y>
+     <y>390</y>
      <width>151</width>
      <height>41</height>
     </rect>
@@ -588,7 +588,7 @@
    <property name="geometry">
     <rect>
      <x>610</x>
-     <y>369</y>
+     <y>390</y>
      <width>151</width>
      <height>41</height>
     </rect>
@@ -605,6 +605,113 @@
    </property>
    <property name="text">
     <string>Launch CLI</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="hwVerLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>330</y>
+     <width>181</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Decoder IP-address&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="hwVerLabel">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>330</y>
+     <width>131</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Decoder IP-address&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>HW Version:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="fwVerLabel">
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>330</y>
+     <width>131</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Decoder IP-address&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>FW Version:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="fwVerLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>580</x>
+     <y>330</y>
+     <width>181</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Decoder IP-address&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="Line" name="line_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>440</y>
+     <width>751</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
    </property>
   </widget>
  </widget>

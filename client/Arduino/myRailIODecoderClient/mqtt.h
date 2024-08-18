@@ -47,6 +47,7 @@
 #include "wdt.h"
 #include "taskWrapper.h"
 #include "logHelpers.h"
+#include "version.h"
 
 //DEBUG
 #include "cpu.h"

@@ -557,7 +557,19 @@ rc_t mqtt::getOpStateStr(char* p_opState) {
 void mqtt::discover(void) {
     const char* mqtt_discovery_response_topic = MQTT_DISCOVERY_RESPONSE_TOPIC;
     subscribeTopic(mqtt_discovery_response_topic, &onDiscoverResponse, NULL);
-    sendMsg(MQTT_DISCOVERY_REQUEST_TOPIC, MQTT_DISCOVERY_REQUEST_PAYLOAD, false);
+	char* discoveryRequestPayload = new (heap_caps_malloc(500, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[500];
+	sprintf(discoveryRequestPayload,    "<%s>\n" \
+                                        "  <%s>%s</%s>\n" \
+                                        "  <%s>%s-V%i</%s>\n" \
+                                        "  <%s>V%s-%s</%s>\n" \
+                                        "</%s>", \
+                                        MQTT_DISCOVERY_REQUEST_PAYLOAD, \
+                                            MQTT_DISCOVERY_REQUEST_PAYLOAD_MAC, networking::getMac(), MQTT_DISCOVERY_REQUEST_PAYLOAD_MAC, \
+                                            MQTT_DISCOVERY_REQUEST_PAYLOAD_HWVER, ESP.getChipModel(), ESP.getChipRevision(), MQTT_DISCOVERY_REQUEST_PAYLOAD_HWVER, \
+                                            MQTT_DISCOVERY_REQUEST_PAYLOAD_FWVER, MYRAILIO_VERSION, MYRAILIO_VERSION_STATUS, MQTT_DISCOVERY_REQUEST_PAYLOAD_FWVER, \
+                                        MQTT_DISCOVERY_REQUEST_PAYLOAD);
+    sendMsg(MQTT_DISCOVERY_REQUEST_TOPIC, discoveryRequestPayload, false);
+	delete discoveryRequestPayload;
 }
 
 void mqtt::onDiscoverResponse(const char* p_topic, const char* p_payload, const void* p_dummy) {

@@ -1231,7 +1231,6 @@ void decoder::onMqttGetHwVer(void) {
     char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
     sprintf(topic, "%s/%s/%s", MQTT_DECODER_HWVER_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
     char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
-
     sprintf(payload, "<%s>%s-V%i</%s>", DELIVERHWVER_XMLTAG_PAYLOAD, ESP.getChipModel(), ESP.getChipRevision(), DELIVERHWVER_XMLTAG_PAYLOAD);
     mqtt::sendMsg(topic, payload, false);
     delete payload;
@@ -1246,8 +1245,7 @@ void decoder::onMqttGetSwVer(void) {
     char* topic = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
     sprintf(topic, "%s/%s/%s", MQTT_DECODER_SWVER_RESP_TOPIC, mqtt::getDecoderUri(), xmlconfig[XML_DECODER_SYSNAME]);
     char* payload = new (heap_caps_malloc(sizeof(char[200]), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) char[200];
-
-    sprintf(payload, "<%s>V%s-%s</%s>", DELIVERSWVER_XMLTAG_PAYLOAD, MYRAILIO_VERSION, MYRAILIO_STATUS, DELIVERSWVER_XMLTAG_PAYLOAD);
+    sprintf(payload, "<%s>V%s-%s</%s>", DELIVERSWVER_XMLTAG_PAYLOAD, MYRAILIO_VERSION, MYRAILIO_VERSION_STATUS, DELIVERSWVER_XMLTAG_PAYLOAD);
     mqtt::sendMsg(topic, payload, false);
     delete payload;
     delete topic;
