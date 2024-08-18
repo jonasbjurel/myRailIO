@@ -2421,8 +2421,8 @@ class UI_lightGroupDialog(QDialog):
         self.property2Font = self.lgProp2Box.font()
         self.property3Geometry = self.lgProp3Box.geometry()
         self.property3Font = self.lgProp3Box.font()
-        self.lgPropertyHandler()
         self.displayValues()
+        self.lgPropertyHandler()
         if edit:
             self.setEditable()
         else:
@@ -2559,8 +2559,8 @@ class UI_lightGroupDialog(QDialog):
             self.lgProp1Box.show()
             self.lgProp2Box.show()
             self.lgProp3Box.show()
-            self.lgProp1Box.currentTextChanged.connect(self.onMastTypeChanged)
             self.onMastTypeChanged()
+            self.lgProp1Box.currentTextChanged.connect(self.onMastTypeChanged)
         else:
             self.lgProperty1Label.setText("Property 1:")
             self.lgProperty2Label.setText("Property 2:")
@@ -2729,9 +2729,13 @@ class UI_lightGroupShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateLightGroups.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 5:
+                self.updateLightGroups.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -3309,9 +3313,13 @@ class UI_sensorShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateSensors.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 5:
+                self.updateSensors.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False
@@ -3820,9 +3828,13 @@ class UI_actuatorShowDialogUpdateWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def start(self):
         self.run = True
+        cnt = 0
         while self.run:
-            self.updateActuators.emit()
-            QtCore.QThread.sleep(5)
+            if cnt == 5:
+                self.updateActuators.emit()
+                cnt = 0
+            QtCore.QThread.sleep(1)
+            cnt += 1
 
     def stop(self):
         self.run = False

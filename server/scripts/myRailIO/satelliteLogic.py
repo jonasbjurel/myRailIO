@@ -313,10 +313,10 @@ class satellite(systemState, schema):
         return minidom.parseString(ET.tostring(satelliteXml)).toprettyxml(indent="   ") if text else satelliteXml
 
     def getMethods(self):
-        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        return METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_COPY | METHOD_DELETE | METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
 
     def getActivMethods(self):
-        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE |METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG | METHOD_RESTART
+        activeMethods = METHOD_VIEW | METHOD_ADD | METHOD_EDIT | METHOD_DELETE |METHOD_ENABLE | METHOD_ENABLE_RECURSIVE | METHOD_DISABLE | METHOD_DISABLE_RECURSIVE | METHOD_LOG
         if self.getAdmState() == ADM_ENABLE:
             activeMethods = activeMethods & ~METHOD_ENABLE & ~METHOD_ENABLE_RECURSIVE & ~METHOD_EDIT & ~METHOD_DELETE
         elif self.getAdmState() == ADM_DISABLE:
@@ -377,7 +377,7 @@ class satellite(systemState, schema):
             return self.canDelete()
         child.aboutToDeleteWorkAround()                      #WORKAROUND CODE FOR ISSUE #123
         try:
-            child.sensors.remove(child)
+            self.sensors.remove(child)
         except:
             pass
         try:
